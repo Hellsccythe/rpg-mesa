@@ -5,20 +5,21 @@ import path from 'path'
 export default defineConfig({
   plugins: [vue()],
 
+  // Isso é muito importante agora
+  root: __dirname,
+
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      '@': path.resolve(__dirname, './src'),
     },
   },
 
   server: {
     port: 5173,
     host: true,
-    hmr: {
-      overlay: false,
-    },
   },
 
-  clearScreen: true,
-  logLevel: 'info',
+  build: {
+    outDir: 'dist',
+  },
 })
