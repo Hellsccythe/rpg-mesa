@@ -1,0 +1,15 @@
+{
+  "name": "rpg-mesa-server",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Server-side logic for RPG Mesa",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.100.1",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.37"
+  }
+}
