@@ -1,4 +1,4 @@
-// server/src/api/personagem/personagens.dto.ts
+// server/src/modules/personagem/personagens.dto.ts
 import {
   IsString,
   IsOptional,

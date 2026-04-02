@@ -1,11 +1,5 @@
 // src/types/supabase.ts
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export interface Database {
   public: {
@@ -45,4 +39,59 @@ export interface Database {
       // Podemos adicionar classes e skills depois
     }
   }
+}
+
+export interface UsuarioApi {
+  id: string
+  email: string | undefined
+}
+
+export interface LayoutApi {
+  titulo: string
+  subtitulo: string
+  backgroundImage: string
+}
+
+export interface PersonagemPublicoApi {
+  characterId: string
+  name: string
+  level: number
+  avatarUrl: string | null
+  classe: string | null
+}
+
+export interface PersonagemApi {
+  characterId: string
+  userId: string
+  campaignId: string | null
+  name: string
+  level: number
+  data: any
+  avatarUrl: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface PaginaInicialApi {
+  layout: LayoutApi
+  personagens: PersonagemPublicoApi[]
+}
+
+export interface ListarPersonagemDto {
+  nome?: string
+  campaignId?: string
+}
+
+export interface SalvarPersonagemDto {
+  name: string
+  level?: number
+  campaignId?: string
+  data?: Json
+}
+
+export interface EditarPersonagemDto {
+  name?: string
+  level?: number
+  campaignId?: string
+  data?: Json
 }
