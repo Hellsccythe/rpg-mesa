@@ -55,6 +55,24 @@ export const useCharactersStore = defineStore('characters', {
       }
     },
 
+    async fetchCharacterById(characterId: string) {
+      this.loading = true
+      this.error = null
+      try {
+        const { data } = await api.get<PersonagemApi>(`/personagens/${characterId}`)
+        const idx = this.myCharacters.findIndex((char) => char.characterId === characterId)
+        if (idx !== -1) this.myCharacters[idx] = data
+        else this.myCharacters.unshift(data)
+        return data
+      } catch (err: any) {
+        this.error = err.message || 'Erro ao carregar personagem'
+        console.error('Erro fetchCharacterById:', err)
+        throw err
+      } finally {
+        this.loading = false
+      }
+    },
+
     async createCharacter(payload: SalvarPersonagemDto, avatarFile?: File) {
       this.loading = true
       this.error = null

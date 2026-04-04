@@ -111,7 +111,7 @@ async function login() {
   errorMsg.value = ''
 
   try {
-    await authStore.signIn(email.value.trim(), password.value)
+    await authStore.signIn(email.value.trim(), password.value, props.character.characterId)
     router.push({ name: 'dashboard', query: { characterId: props.character.characterId } })
   } catch {
     errorMsg.value = 'Credenciais inválidas. Tente novamente.'

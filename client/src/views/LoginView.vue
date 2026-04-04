@@ -19,6 +19,21 @@
           </p>
         </div>
 
+        <div
+          v-if="sessionExpiredMessage"
+          class="w-full max-w-4xl mb-10 rounded-3xl border border-[#6B4E9E]/40 bg-[#1A2438]/80 backdrop-blur-md shadow-2xl shadow-black/30 overflow-hidden"
+        >
+          <div class="h-1 w-full bg-gradient-to-r from-red-500 via-[#6B4E9E] to-[#C8D0E0]" />
+          <div class="px-6 py-5 md:px-8 md:py-6">
+            <p class="text-xs uppercase tracking-[0.35em] text-red-300/80 mb-2">Sessão expirada</p>
+            <h2 class="text-2xl md:text-3xl font-bold text-[#C8D0E0]">Faça login novamente</h2>
+            <p class="mt-3 text-zinc-300 leading-relaxed">
+              Sua sessão ativa atingiu o limite de 24 horas. Escolha novamente o personagem e
+              informe e-mail e senha para continuar.
+            </p>
+          </div>
+        </div>
+
         <!-- Grid de personagens -->
         <div class="w-full max-w-6xl">
           <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
@@ -84,18 +99,24 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useCharactersStore } from '@/stores/characters'
+import { useAuthStore } from '@/stores/auth'
 import CreateCharacterModal from '@/components/CreateCharacterModal.vue'
 import CharacterSelectModal from '@/components/CharacterSelectModal.vue'
 import type { PersonagemPublicoApi } from '@/types/supabase'
 
 const charactersStore = useCharactersStore()
+const authStore = useAuthStore()
+const route = useRoute()
+const router = useRouter()
 const showCreateModal = ref(false)
 const selectedChar = ref<PersonagemPublicoApi | null>(null)
 
 const characters = computed(() => charactersStore.publicCharacters)
 const layout = computed(() => charactersStore.layout)
 const loading = computed(() => charactersStore.loading)
+const sessionExpiredMessage = computed(() => route.query.reason === 'session-expired')
 
 const backgroundStyle = computed(() => {
   const img = layout.value?.backgroundImage ?? '/login-bg.jpg'
@@ -107,6 +128,11 @@ onMounted(async () => {
 })
 
 function abrirLogin(char: PersonagemPublicoApi) {
+  if (authStore.canReuseSessionForCharacter(char.characterId)) {
+    router.push({ name: 'dashboard', query: { characterId: char.characterId } })
+    return
+  }
+
   selectedChar.value = char
 }
 </script>

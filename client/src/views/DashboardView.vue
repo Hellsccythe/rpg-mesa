@@ -1,36 +1,96 @@
 <template>
   <div class="min-h-screen bg-[#0A0F1C] text-white relative overflow-hidden">
-    <!-- Fundo com gradiente sutil -->
+    <!-- Fundo sutil -->
     <div class="absolute inset-0 bg-gradient-to-br from-[#0F1C3A] via-[#1A2438] to-[#2A1B4A]/80" />
 
     <div class="relative z-10 min-h-screen flex flex-col">
-      <!-- Header -->
+      <!-- HEADER MELHORADO -->
       <header
-        class="h-16 border-b border-[#6B4E9E]/30 bg-black/40 backdrop-blur-md px-6 flex items-center justify-between"
+        class="h-16 border-b border-[#6B4E9E]/30 bg-black/50 backdrop-blur-md px-6 flex items-center justify-between"
       >
-        <button @click="goBack" class="text-3xl text-zinc-300 hover:text-white transition-colors">
-          ‹
+        <!-- Botão Voltar -->
+        <button
+          @click="goBack"
+          class="text-3xl text-zinc-300 hover:text-white transition-colors flex items-center gap-2"
+        >
+          ‹ <span class="text-base font-medium">Voltar</span>
         </button>
 
-        <div class="flex items-center gap-10 text-lg font-medium">
-          <span class="text-[#C8D0E0]">Caminho Sem Volta</span>
-          <span class="text-zinc-400 hover:text-white cursor-pointer transition-colors"
-            >Inventário</span
-          >
-          <span class="text-zinc-400 hover:text-white cursor-pointer transition-colors"
-            >Notas de Campanha</span
-          >
-          <span class="text-zinc-400 hover:text-white cursor-pointer transition-colors"
-            >Cidade</span
-          >
+        <!-- Título do RPG -->
+        <div class="flex items-center gap-3">
+          <span class="text-2xl font-bold tracking-widest text-red-400">Caminho Sem Volta</span>
         </div>
 
-        <div class="flex items-center gap-5 text-2xl">
+        <!-- Abas de Navegação -->
+        <nav class="flex items-center gap-8 text-lg font-medium">
+          <router-link to="/dashboard" class="text-zinc-400 hover:text-white transition-colors">
+            Personagem
+          </router-link>
+
+          <router-link to="/deuses" class="text-zinc-400 hover:text-white transition-colors">
+            Deuses
+          </router-link>
+
+          <router-link to="/cidade" class="text-zinc-400 hover:text-white transition-colors">
+            Cidade
+          </router-link>
+
+          <router-link to="/skills" class="text-zinc-400 hover:text-white transition-colors">
+            Skills
+          </router-link>
+
+          <router-link to="/titulos" class="text-zinc-400 hover:text-white transition-colors">
+            Títulos
+          </router-link>
+
+          <router-link to="/classes" class="text-zinc-400 hover:text-white transition-colors">
+            Classes
+          </router-link>
+
+          <router-link to="/npcs" class="text-zinc-400 hover:text-white transition-colors">
+            NPCs
+          </router-link>
+
+          <router-link to="/notas" class="text-zinc-400 hover:text-white transition-colors">
+            Notas de Aventura
+          </router-link>
+        </nav>
+
+        <!-- Ícones da direita -->
+        <div class="flex items-center gap-6 text-2xl text-zinc-300">
           <button class="hover:text-[#C8D0E0] transition-colors">👤</button>
-          <button class="hover:text-[#C8D0E0] transition-colors">⚙️</button>
+          <div class="relative" @click.stop>
+            <button
+              @click="toggleSettingsMenu"
+              class="hover:text-[#C8D0E0] transition-colors"
+              title="Abrir menu"
+              aria-label="Abrir menu de configuracoes"
+            >
+              ⚙️
+            </button>
+
+            <div
+              v-if="showSettingsMenu"
+              class="absolute right-0 mt-2 w-52 rounded-2xl border border-[#6B4E9E]/50 bg-[#0F1C3A]/95 p-2 shadow-xl backdrop-blur-md"
+            >
+              <button
+                @click="openSettings"
+                class="block w-full rounded-xl px-4 py-2 text-left text-base text-zinc-200 transition-colors hover:bg-[#2A1B4A]"
+              >
+                Configurações
+              </button>
+              <button
+                @click="logout"
+                class="block w-full rounded-xl px-4 py-2 text-left text-base text-red-300 transition-colors hover:bg-red-950/60"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
         </div>
       </header>
 
+      <!-- Conteúdo principal (mantido igual) -->
       <main class="flex-1 px-6 md:px-12 py-10">
         <div v-if="loading" class="h-full flex items-center justify-center text-xl text-zinc-400">
           Carregando personagem...
@@ -46,7 +106,7 @@
         </div>
 
         <div v-else-if="character" class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <!-- Card do Personagem (Esquerda) -->
+          <!-- Card do Personagem -->
           <div class="lg:col-span-4">
             <div
               class="bg-gradient-to-br from-[#2A1B4A] to-[#1A2438] border border-[#6B4E9E]/40 rounded-3xl p-6"
@@ -68,7 +128,6 @@
                 </div>
               </div>
 
-              <!-- Inventário Rápido -->
               <button
                 class="mt-6 w-full py-5 bg-[#0F1C3A] hover:bg-[#2A1B4A] border border-[#6B4E9E]/50 rounded-2xl flex items-center justify-center gap-3 transition-all"
               >
@@ -77,9 +136,8 @@
             </div>
           </div>
 
-          <!-- Centro - Nome, Level, Indole e Botão Principal -->
+          <!-- Centro -->
           <div class="lg:col-span-5 flex flex-col items-center justify-center gap-8">
-            <!-- Nome -->
             <div class="flex items-center gap-4">
               <div class="text-5xl font-bold tracking-wide text-[#C8D0E0]">
                 {{ character.name }}
@@ -87,7 +145,6 @@
               <button class="text-3xl text-[#6B4E9E] hover:text-white transition-colors">✏️</button>
             </div>
 
-            <!-- Level e Indole -->
             <div class="flex gap-10 text-center">
               <div>
                 <div class="text-sm text-zinc-400">Nível</div>
@@ -101,7 +158,6 @@
               </div>
             </div>
 
-            <!-- Botão Gerenciamento -->
             <button
               @click="openManagementModal"
               class="mt-4 w-full max-w-lg py-6 text-2xl font-semibold bg-gradient-to-r from-[#6B4E9E] to-[#4C2D7A] hover:brightness-110 rounded-3xl transition-all shadow-xl shadow-purple-950"
@@ -110,7 +166,7 @@
             </button>
           </div>
 
-          <!-- Notas da Campanha (Direita) -->
+          <!-- Notas da Campanha -->
           <div class="lg:col-span-3">
             <div class="bg-[#1A2438]/80 border border-[#6B4E9E]/30 rounded-3xl p-7 h-full">
               <h3 class="text-2xl font-semibold mb-5 text-[#C8D0E0]">Notas da Campanha</h3>
@@ -126,18 +182,21 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCharactersStore } from '@/stores/characters'
+import { useAuthStore } from '@/stores/auth'
 import type { PersonagemApi } from '@/types/supabase'
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
 const charactersStore = useCharactersStore()
 
 const loading = ref(true)
 const error = ref<string>('')
 const character = ref<PersonagemApi | null>(null)
+const showSettingsMenu = ref(false)
 
 const historyPreview = computed(() => {
   const txt = (character.value?.data?.history as string) || ''
@@ -155,35 +214,61 @@ const goBack = () => {
   router.push({ name: 'login' })
 }
 
+const toggleSettingsMenu = () => {
+  showSettingsMenu.value = !showSettingsMenu.value
+}
+
+const closeSettingsMenu = () => {
+  showSettingsMenu.value = false
+}
+
+const openSettings = () => {
+  closeSettingsMenu()
+  alert('Tela de configurações será implementada em breve!')
+}
+
+const logout = async () => {
+  closeSettingsMenu()
+  try {
+    await authStore.signOut()
+  } finally {
+    router.push({ name: 'login' })
+  }
+}
+
+const onGlobalClick = () => {
+  closeSettingsMenu()
+}
+
+onMounted(() => {
+  window.addEventListener('click', onGlobalClick)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('click', onGlobalClick)
+})
+
 const openManagementModal = () => {
-  // TODO: Abrir modal de gerenciamento completo
-  alert('Modal de Gerenciamento de Personagem será implementado em breve!')
+  alert('Modal de Gerenciamento será implementado em breve!')
 }
 
-async function loadCharacter() {
-  loading.value = true
-  error.value = ''
+onMounted(async () => {
+  const characterId = String(route.query.characterId ?? '').trim()
 
-  const characterId = route.query.characterId as string
   if (!characterId) {
-    error.value = 'Personagem não encontrado.'
+    error.value = 'Personagem não informado. Faça login novamente.'
     loading.value = false
     return
   }
 
-  await charactersStore.fetchCharacters()
-
-  const found = charactersStore.myCharacters.find((c) => c.characterId === characterId)
-
-  if (!found) {
-    error.value = 'Personagem não encontrado ou sem permissão.'
+  try {
+    character.value = await charactersStore.fetchCharacterById(characterId)
+  } catch {
+    error.value = 'Não foi possível carregar este personagem.'
+  } finally {
     loading.value = false
-    return
   }
+})
 
-  character.value = found
-  loading.value = false
-}
-
-onMounted(loadCharacter)
+// TODO: Quando criar as outras páginas, só mudar os to="/deuses", to="/cidade", etc.
 </script>
