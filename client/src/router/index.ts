@@ -23,6 +23,12 @@ const router = createRouter({
       component: () => import('@/views/DeusesView.vue'),
       meta: { requiresAuth: true },
     },
+    {
+      path: '/master',
+      name: 'master-panel',
+      component: () => import('@/views/MasterPanelView.vue'),
+      meta: { requiresAuth: true, requiresMaster: true },
+    },
   ],
 })
 
@@ -44,6 +50,10 @@ router.beforeEach(async (to) => {
   const authMeta = getStoredAuthMeta()
   const requiresAuth = to.matched.some((route) => route.meta.requiresAuth)
 
+  if (to.name === 'login' && refreshedSession && authMeta?.isMaster) {
+    return { name: 'master-panel' }
+  }
+
   if (to.name === 'login' && refreshedSession && authMeta?.activeCharacterId) {
     return {
       name: 'dashboard',
@@ -63,7 +73,7 @@ router.beforeEach(async (to) => {
     return true
   }
 
-  if (!refreshedSession || !authMeta?.activeCharacterId) {
+  if (!refreshedSession || !authMeta) {
     return sessionExpired
       ? {
           name: 'login',
@@ -73,8 +83,25 @@ router.beforeEach(async (to) => {
       : { name: 'login' }
   }
 
+  const requiresMaster = to.matched.some((route) => route.meta.requiresMaster)
+  if (requiresMaster && !authMeta.isMaster) {
+    return authMeta.activeCharacterId
+      ? {
+          name: 'dashboard',
+          query: { characterId: authMeta.activeCharacterId },
+        }
+      : { name: 'login' }
+  }
+
   if (to.name === 'dashboard') {
     const requestedCharacterId = String(to.query.characterId ?? '').trim()
+
+    if (authMeta.isMaster) {
+      if (!requestedCharacterId) {
+        return { name: 'login' }
+      }
+      return true
+    }
 
     if (!requestedCharacterId) {
       return {

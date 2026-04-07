@@ -9,6 +9,7 @@ const AUTH_SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000
 interface AuthMeta {
   authenticatedAt: number
   activeCharacterId: string | null
+  isMaster: boolean
 }
 
 function readAuthMeta(): AuthMeta | null {
@@ -25,6 +26,7 @@ function readAuthMeta(): AuthMeta | null {
       authenticatedAt: parsed.authenticatedAt,
       activeCharacterId:
         typeof parsed.activeCharacterId === 'string' ? parsed.activeCharacterId : null,
+      isMaster: parsed.isMaster === true,
     }
   } catch {
     return null
@@ -71,6 +73,7 @@ export const useAuthStore = defineStore('auth', () => {
   const loading = ref(true)
   const initialized = ref(false)
   const activeCharacterId = ref<string | null>(null)
+  const isMaster = ref(false)
   let unsubscribeAuthListener: (() => void) | null = null
 
   const isAuthenticated = computed(() => !!user.value)
@@ -83,26 +86,30 @@ export const useAuthStore = defineStore('auth', () => {
     session.value = null
     user.value = null
     activeCharacterId.value = null
+    isMaster.value = false
     clearStoredAuthMeta()
   }
 
-  const persistAuthMeta = (characterId: string | null) => {
+  const persistAuthMeta = (characterId: string | null, master = false) => {
     const current = readAuthMeta()
     writeAuthMeta({
       authenticatedAt: current?.authenticatedAt ?? Date.now(),
       activeCharacterId: characterId,
+      isMaster: master,
     })
     activeCharacterId.value = characterId
+    isMaster.value = master
   }
 
   const setActiveCharacter = (characterId: string) => {
-    persistAuthMeta(characterId)
+    persistAuthMeta(characterId, isMaster.value)
   }
 
   const canReuseSessionForCharacter = (characterId: string) => {
     const meta = readAuthMeta()
     if (!meta || !session.value || !user.value) return false
     if (Date.now() - meta.authenticatedAt >= AUTH_SESSION_MAX_AGE_MS) return false
+    if (meta.isMaster) return true
     return meta.activeCharacterId === characterId
   }
 
@@ -130,6 +137,7 @@ export const useAuthStore = defineStore('auth', () => {
     session.value = currentSession
     user.value = currentSession.user
     activeCharacterId.value = meta.activeCharacterId
+    isMaster.value = meta.isMaster === true
     loading.value = false
     initialized.value = true
     return true
@@ -154,12 +162,14 @@ export const useAuthStore = defineStore('auth', () => {
           writeAuthMeta({
             authenticatedAt: Date.now(),
             activeCharacterId: activeCharacterId.value,
+            isMaster: isMaster.value,
           })
         }
 
         session.value = newSession
         user.value = newSession?.user ?? null
         activeCharacterId.value = readAuthMeta()?.activeCharacterId ?? null
+        isMaster.value = readAuthMeta()?.isMaster === true
       })
 
       unsubscribeAuthListener = () => {
@@ -170,10 +180,20 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   // Login com email e senha
-  const signIn = async (email: string, password: string, characterId: string) => {
+  const signIn = async (
+    email: string,
+    password: string,
+    characterId: string | null,
+    options?: { asMaster?: boolean },
+  ) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
-    writeAuthMeta({ authenticatedAt: Date.now(), activeCharacterId: characterId })
+    const asMaster = options?.asMaster === true
+    writeAuthMeta({
+      authenticatedAt: Date.now(),
+      activeCharacterId: asMaster ? null : characterId,
+      isMaster: asMaster,
+    })
     await ensureValidSession()
     return true
   }
@@ -198,6 +218,7 @@ export const useAuthStore = defineStore('auth', () => {
     loading,
     initialized,
     activeCharacterId,
+    isMaster,
     isAuthenticated,
     hasValidSession,
     initAuth,

@@ -6,6 +6,7 @@ import {
   IsEnum,
   IsObject,
   IsUrl,
+  IsBoolean,
   Min,
   ValidateNested,
 } from "class-validator";
@@ -56,6 +57,10 @@ export class SalvarPersonagemDto {
   @ValidateNested()
   @Type(() => PersonagemDataDto)
   data?: PersonagemDataDto;
+
+  @IsOptional()
+  @IsUrl()
+  avatarUrl?: string;
 }
 
 // ==================== DTO PARA EDITAR PERSONAGEM ====================
@@ -74,6 +79,100 @@ export class EditarPersonagemDto {
   @ValidateNested()
   @Type(() => PersonagemDataDto)
   data?: PersonagemDataDto;
+}
+
+export class SolicitarAlteracaoPersonagemDto {
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsUrl()
+  avatarUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  history?: string;
+
+  @IsOptional()
+  @IsUrl()
+  historyDocumentPath?: string;
+
+  @IsOptional()
+  @IsString()
+  historyDocumentName?: string;
+
+  @IsOptional()
+  @IsString()
+  historyDocumentMimeType?: string;
+}
+
+export class RevisarSolicitacaoDto {
+  @IsBoolean()
+  approve: boolean;
+}
+
+export class SalvarDeusDto {
+  @IsString()
+  name: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+}
+
+export class SalvarCidadeMapaDto {
+  @IsString()
+  name: string;
+
+  @IsString()
+  mapReference: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+}
+
+export class SalvarClasseMestreDto {
+  @IsString()
+  name: string;
+
+  @IsString()
+  tier: string;
+
+  @IsString()
+  description: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  maxLevel?: number;
+}
+
+export class SalvarTituloMestreDto {
+  @IsString()
+  name: string;
+
+  @IsString()
+  tier: string;
+
+  @IsString()
+  description: string;
+}
+
+export class AdicionarSkillPersonagemDto {
+  @IsString()
+  skillName: string;
+}
+
+export class AdicionarTituloPersonagemDto {
+  @IsString()
+  titleName: string;
+}
+
+export class AdicionarNotaAventuraDto {
+  @IsString()
+  note: string;
 }
 
 // ==================== DTO PARA LISTAR / FILTRAR ====================

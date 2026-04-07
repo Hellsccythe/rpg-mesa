@@ -1,13 +1,24 @@
 // src/stores/characters.ts
 import { defineStore } from 'pinia'
-import { api } from '@/plugins/axios'
+import { useAuthStore } from '@/stores/auth'
+import { uploadAvatar, uploadHistoryDocument } from '@/lib/supabase/storage'
+import {
+  createCharacter as createCharacterApi,
+  editCharacter as editCharacterApi,
+  getCharacterById,
+  getPaginaInicial,
+  listMyCharacters,
+  requestCharacterChange as requestCharacterChangeApi,
+} from '@/lib/api/personagens.api'
 import type {
   EditarPersonagemDto,
+  Json,
   ListarPersonagemDto,
   PaginaInicialApi,
   PersonagemApi,
   PersonagemPublicoApi,
   SalvarPersonagemDto,
+  SolicitarAlteracaoPersonagemDto,
 } from '@/types/supabase'
 
 export const useCharactersStore = defineStore('characters', {
@@ -27,9 +38,9 @@ export const useCharactersStore = defineStore('characters', {
       this.loading = true
       this.error = null
       try {
-        const response = await api.get<PaginaInicialApi>('/personagens/pagina')
-        this.layout = response.data.layout
-        this.publicCharacters = response.data.personagens
+        const data = await getPaginaInicial()
+        this.layout = data.layout
+        this.publicCharacters = data.personagens
       } catch (err: any) {
         this.error = err.message || 'Erro ao carregar página'
         console.error(err)
@@ -45,8 +56,7 @@ export const useCharactersStore = defineStore('characters', {
       this.loading = true
       this.error = null
       try {
-        const response = await api.get('/personagens', { params: filtro })
-        this.myCharacters = response.data as PersonagemApi[]
+        this.myCharacters = await listMyCharacters(filtro)
       } catch (err: any) {
         this.error = err.message || 'Erro ao buscar personagens'
         console.error(err)
@@ -59,7 +69,8 @@ export const useCharactersStore = defineStore('characters', {
       this.loading = true
       this.error = null
       try {
-        const { data } = await api.get<PersonagemApi>(`/personagens/${characterId}`)
+        const authStore = useAuthStore()
+        const data = await getCharacterById(characterId, authStore.isMaster)
         const idx = this.myCharacters.findIndex((char) => char.characterId === characterId)
         if (idx !== -1) this.myCharacters[idx] = data
         else this.myCharacters.unshift(data)
@@ -73,14 +84,36 @@ export const useCharactersStore = defineStore('characters', {
       }
     },
 
-    async createCharacter(payload: SalvarPersonagemDto, avatarFile?: File) {
+    async createCharacter(payload: SalvarPersonagemDto, avatarFile?: File, historyDocFile?: File) {
       this.loading = true
       this.error = null
       try {
+        const authStore = useAuthStore()
+        const userId = authStore.user?.id
+        if (!userId) throw new Error('Usuário não autenticado')
+
+        const dataPayload: Record<string, Json | undefined> =
+          payload.data && typeof payload.data === 'object' && !Array.isArray(payload.data)
+            ? { ...(payload.data as Record<string, Json | undefined>) }
+            : {}
+
+        let avatarUrl = payload.avatarUrl
         if (avatarFile) {
-          console.warn('Upload de avatar via API ainda não implementado.')
+          avatarUrl = await uploadAvatar(avatarFile, userId)
         }
-        const { data } = await api.post<PersonagemApi>('/personagens', payload)
+
+        if (historyDocFile) {
+          const uploadedDoc = await uploadHistoryDocument(historyDocFile, userId)
+          dataPayload.historyDocumentPath = uploadedDoc.path
+          dataPayload.historyDocumentName = uploadedDoc.name
+          dataPayload.historyDocumentMimeType = uploadedDoc.mimeType
+        }
+
+        const data = await createCharacterApi({
+          ...payload,
+          avatarUrl,
+          data: dataPayload,
+        })
         this.myCharacters.unshift(data)
         return data
       } catch (err: any) {
@@ -96,13 +129,69 @@ export const useCharactersStore = defineStore('characters', {
       this.loading = true
       this.error = null
       try {
-        const { data } = await api.patch<PersonagemApi>(`/personagens/${characterId}`, payload)
+        const data = await editCharacterApi(characterId, payload)
         const idx = this.myCharacters.findIndex((char) => char.characterId === characterId)
         if (idx !== -1) this.myCharacters[idx] = data
         return data
       } catch (err: any) {
         this.error = err.message || 'Erro ao editar personagem'
         console.error('Erro editCharacter:', err)
+        throw err
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async requestCharacterChange(characterId: string, payload: SolicitarAlteracaoPersonagemDto) {
+      this.loading = true
+      this.error = null
+      try {
+        const data = await requestCharacterChangeApi(characterId, payload)
+        const idx = this.myCharacters.findIndex((char) => char.characterId === characterId)
+        if (idx !== -1) this.myCharacters[idx] = data
+        return data
+      } catch (err: any) {
+        this.error = err.message || 'Erro ao solicitar alteração'
+        console.error('Erro requestCharacterChange:', err)
+        throw err
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async requestCharacterChangeWithFiles(
+      characterId: string,
+      payload: SolicitarAlteracaoPersonagemDto,
+      avatarFile?: File,
+      historyDocFile?: File,
+    ) {
+      this.loading = true
+      this.error = null
+      try {
+        const authStore = useAuthStore()
+        const userId = authStore.user?.id
+        if (!userId) throw new Error('Usuário não autenticado')
+
+        const finalPayload: SolicitarAlteracaoPersonagemDto = { ...payload }
+
+        if (avatarFile) {
+          finalPayload.avatarUrl = await uploadAvatar(avatarFile, userId)
+        }
+
+        if (historyDocFile) {
+          const uploadedDoc = await uploadHistoryDocument(historyDocFile, userId)
+          finalPayload.historyDocumentPath = uploadedDoc.path
+          finalPayload.historyDocumentName = uploadedDoc.name
+          finalPayload.historyDocumentMimeType = uploadedDoc.mimeType ?? undefined
+        }
+
+        const data = await requestCharacterChangeApi(characterId, finalPayload)
+        const idx = this.myCharacters.findIndex((char) => char.characterId === characterId)
+        if (idx !== -1) this.myCharacters[idx] = data
+        return data
+      } catch (err: any) {
+        this.error = err.message || 'Erro ao solicitar alteração'
+        console.error('Erro requestCharacterChangeWithFiles:', err)
         throw err
       } finally {
         this.loading = false

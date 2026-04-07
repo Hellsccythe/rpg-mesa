@@ -86,6 +86,7 @@ export interface SalvarPersonagemDto {
   name: string
   level?: number
   campaignId?: string
+  avatarUrl?: string
   data?: Json
 }
 
@@ -94,4 +95,29 @@ export interface EditarPersonagemDto {
   level?: number
   campaignId?: string
   data?: Json
+}
+
+export interface SolicitarAlteracaoPersonagemDto {
+  name?: string
+  avatarUrl?: string
+  history?: string
+  historyDocumentPath?: string
+  historyDocumentName?: string
+  historyDocumentMimeType?: string
+}
+
+export interface AprovacaoPendenteApi {
+  characterId: string
+  currentName: string
+  currentAvatarUrl: string | null
+  currentHistory: string | null
+  currentHistoryDocumentPath: string | null
+  currentHistoryDocumentName: string | null
+  requestedName: string | null
+  requestedAvatarUrl: string | null
+  requestedHistory: string | null
+  requestedHistoryDocumentPath: string | null
+  requestedHistoryDocumentName: string | null
+  requestedAt: string
+  requestedByEmail: string | null
 }
