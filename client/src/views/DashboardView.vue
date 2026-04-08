@@ -92,11 +92,24 @@
         </div>
 
         <div v-else-if="error" class="h-full flex items-center justify-center">
-          <div class="bg-black/50 border border-red-900/50 rounded-3xl p-10 text-center max-w-md">
-            <p class="text-red-300">{{ error }}</p>
-            <button @click="goBack" class="mt-6 px-8 py-3 bg-red-800 hover:bg-red-700 rounded-2xl">
-              Voltar
-            </button>
+          <div class="bg-black/50 border border-red-900/50 rounded-3xl p-10 text-center max-w-lg">
+            <p class="text-red-300 text-lg font-semibold">{{ error }}</p>
+            <p v-if="errorHint" class="mt-3 text-zinc-400 text-sm">{{ errorHint }}</p>
+
+            <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <button
+                @click="retryLoad"
+                class="px-6 py-3 bg-[#6B4E9E] hover:brightness-110 rounded-2xl font-semibold"
+              >
+                Tentar novamente
+              </button>
+              <button
+                @click="goBack"
+                class="px-6 py-3 bg-red-800 hover:bg-red-700 rounded-2xl font-semibold"
+              >
+                Voltar ao login
+              </button>
+            </div>
           </div>
         </div>
 
@@ -426,7 +439,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Modal from '@/components/Modal.vue'
 import { getHistoryDocumentSignedUrl } from '@/lib/supabase/storage'
@@ -443,6 +456,7 @@ const masterApprovalsStore = useMasterApprovalsStore()
 
 const loading = ref(true)
 const error = ref<string>('')
+const errorHint = ref('')
 const character = ref<PersonagemApi | null>(null)
 const showSettingsMenu = ref(false)
 const showSettingsModal = ref(false)
@@ -696,22 +710,118 @@ async function openHistoryDocument(pathOrUrl: string) {
   }
 }
 
-onMounted(async () => {
-  const characterId = String(route.query.characterId ?? '').trim()
+function getRequestedCharacterId() {
+  const queryId = String(route.query.characterId ?? '').trim()
+  if (queryId) return queryId
+
+  return String(authStore.activeCharacterId ?? '').trim()
+}
+
+function setLoadError(err: unknown, fallbackMessage: string) {
+  const maybeError = err as { message?: string; code?: string; response?: { status?: number } }
+  const status = maybeError?.response?.status
+  const message = String(maybeError?.message ?? '')
+
+  error.value = fallbackMessage
+  errorHint.value = ''
+
+  if (status === 401) {
+    error.value = 'Sua sessao expirou ou nao esta autorizada.'
+    errorHint.value = 'Faca login novamente para continuar.'
+    return
+  }
+
+  if (status === 404) {
+    error.value = 'Este personagem nao foi encontrado.'
+    errorHint.value = 'Ele pode ter sido removido ou voce pode nao ter permissao para acessa-lo.'
+    return
+  }
+
+  if (
+    maybeError?.code === 'ECONNABORTED' ||
+    message.includes('Network Error') ||
+    message.includes('timeout')
+  ) {
+    error.value = 'Falha de conexao com o servidor.'
+    errorHint.value = 'Verifique a API e tente novamente em alguns segundos.'
+  }
+}
+
+async function loadCharacter() {
+  loading.value = true
+  error.value = ''
+  errorHint.value = ''
+
+  let characterId = getRequestedCharacterId()
+
+  if (!characterId && !authStore.isMaster) {
+    try {
+      await charactersStore.fetchCharacters()
+      characterId = charactersStore.myCharacters[0]?.characterId ?? ''
+      if (characterId) {
+        authStore.setActiveCharacter(characterId)
+        await router.replace({ name: 'dashboard', query: { characterId } })
+      }
+    } catch {
+      // Keep normal error handling below if we still don't have a character id.
+    }
+  }
 
   if (!characterId) {
-    error.value = 'Personagem nao informado. Faca login novamente.'
+    error.value = authStore.isMaster
+      ? 'Personagem nao informado para visualizacao.'
+      : 'Nenhum personagem disponivel para esta conta.'
+    errorHint.value = authStore.isMaster
+      ? 'Abra um personagem a partir da lista para continuar.'
+      : 'Crie ou selecione um personagem na tela inicial.'
     loading.value = false
     return
   }
 
   try {
     character.value = await charactersStore.fetchCharacterById(characterId)
+    authStore.setActiveCharacter(characterId)
     initializeSettingsForm()
-  } catch {
-    error.value = 'Nao foi possivel carregar este personagem.'
+  } catch (err) {
+    const maybeError = err as { response?: { status?: number } }
+
+    // If the stored/query character no longer exists, recover by loading first available one.
+    if (!authStore.isMaster && maybeError?.response?.status === 404) {
+      try {
+        await charactersStore.fetchCharacters()
+        const fallbackCharacterId = charactersStore.myCharacters[0]?.characterId ?? ''
+
+        if (fallbackCharacterId) {
+          authStore.setActiveCharacter(fallbackCharacterId)
+          await router.replace({ name: 'dashboard', query: { characterId: fallbackCharacterId } })
+          character.value = await charactersStore.fetchCharacterById(fallbackCharacterId)
+          initializeSettingsForm()
+          return
+        }
+      } catch {
+        // Keep generic error handling below if fallback cannot be resolved.
+      }
+    }
+
+    setLoadError(err, 'Nao foi possivel carregar este personagem.')
   } finally {
     loading.value = false
   }
+}
+
+async function retryLoad() {
+  await loadCharacter()
+}
+
+onMounted(async () => {
+  await loadCharacter()
 })
+
+watch(
+  () => route.query.characterId,
+  async (next, prev) => {
+    if (String(next ?? '') === String(prev ?? '')) return
+    await loadCharacter()
+  },
+)
 </script>
