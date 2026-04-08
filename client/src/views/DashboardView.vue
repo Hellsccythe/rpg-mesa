@@ -783,6 +783,26 @@ async function loadCharacter() {
     authStore.setActiveCharacter(characterId)
     initializeSettingsForm()
   } catch (err) {
+    const maybeError = err as { response?: { status?: number } }
+
+    // If the stored/query character no longer exists, recover by loading first available one.
+    if (!authStore.isMaster && maybeError?.response?.status === 404) {
+      try {
+        await charactersStore.fetchCharacters()
+        const fallbackCharacterId = charactersStore.myCharacters[0]?.characterId ?? ''
+
+        if (fallbackCharacterId) {
+          authStore.setActiveCharacter(fallbackCharacterId)
+          await router.replace({ name: 'dashboard', query: { characterId: fallbackCharacterId } })
+          character.value = await charactersStore.fetchCharacterById(fallbackCharacterId)
+          initializeSettingsForm()
+          return
+        }
+      } catch {
+        // Keep generic error handling below if fallback cannot be resolved.
+      }
+    }
+
     setLoadError(err, 'Nao foi possivel carregar este personagem.')
   } finally {
     loading.value = false
