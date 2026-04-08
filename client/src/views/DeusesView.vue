@@ -284,7 +284,7 @@ import { useAuthStore } from '@/stores/auth'
 import pharasmaImage from '@/assets/images/pharasma.jpg'
 import asmodeusImage from '@/assets/images/asmodeus.png'
 import inariImage from '@/assets/images/Inari.png'
-import iomedaeImage from '@/assets/images/Iomedae.jpg'
+import iomedaeImage from '@/assets/images/iomedae.jpg'
 import sarenraeImage from '@/assets/images/sarenrae.jpg'
 
 const router = useRouter()
@@ -363,8 +363,7 @@ const gods = [
     title: 'Nosso Senhor de Ferro',
     alinhamento: 'Maligno',
     icon: '☠️',
-    shortDescription:
-      'Deus da batalha, da força bruta, do sangue derramado e da guerra por si só',
+    shortDescription: 'Deus da batalha, da força bruta, do sangue derramado e da guerra por si só',
     description:
       'Conhecimento comum: Gorum é o deus da batalha, da força bruta, do sangue derramado e da guerra por si só. Ele não se importa com causas, bandeiras ou justiça — quer apenas o clangor de aço, o cheiro de sangue quente e o grito de quem morre em combate. Seus templos são arenas encharcadas de sangue onde gladiadores lutam até a morte e onde perdedores são esquartejados vivos como oferenda. Seus seguidores invadem vilarejos pacíficos apenas para transformar a matança em um festival de violência, queimam templos com os fiéis dentro, e promovem guerras eternas entre reinos só para que o deus possa se banquetear com o sofrimento. Em Elyra, cultos de Gorum são responsáveis por massacres onde soldados bebem o sangue dos inimigos ainda quentes e decoram suas armaduras com ossos de crianças. O deus observa cada golpe, cada osso quebrado, cada vida ceifada e sorri, porque para ele a guerra nunca é cruel demais — ela é a única coisa que realmente importa. ',
     anatema:
@@ -378,8 +377,7 @@ const gods = [
     title: 'O Príncipe Pálido',
     alinhamento: 'Maligno',
     icon: '☠️',
-    shortDescription:
-      'Deus da batalha, da força bruta, do sangue derramado e da guerra por si só',
+    shortDescription: 'Deus da batalha, da força bruta, do sangue derramado e da guerra por si só',
     description:
       'Conhecimento comum: Urgathoa é o deus da gula insaciável, da doença, da não-morte e da imortalidade a qualquer custo. Alto, magro e de pele branca como osso, ele rejeitou a morte e se tornou o primeiro grande não-morto voluntário. Sua obsessão por Asmodeus é doentia e absoluta — ele a venera como a única criatura digna de seu desejo eterno, enviando presentes macabros (crânios dourados, corações ainda batendo dentro de caixas de joias) e ordenando que seus seguidores realizem massacres sangrentos em nome dela. Seus templos são necrópoles onde banquetes de carne viva são servidos, onde os fiéis bebem sangue misturado com vinho e devoram os fracos para prolongar a própria existência. Em Elyra, cultos de Urgathoa são responsáveis por epidemias criadas de propósito, vilarejos inteiros transformados em banquetes ambulantes e rituais onde famílias são devoradas vivas diante dos olhos umas das outras. Ele não busca apenas imortalidade — busca agradar Asmodeus com rios de sangue e montanhas de ossos.',
     anatema:
@@ -393,8 +391,7 @@ const gods = [
     title: 'A Destruidora de Mundos',
     alinhamento: 'Maligna',
     icon: '☠️',
-    shortDescription:
-      'Deusa da destruição, do caos absoluto e do fim de tudo',
+    shortDescription: 'Deusa da destruição, do caos absoluto e do fim de tudo',
     description:
       'Conhecimento comum: Rovagug é a encarnação viva da destruição absoluta. Uma aranha colossal e disforme, de carapaça rachada que sangra um ichor negro e viscoso, com centenas de olhos que nunca piscam e pernas longas e serrilhadas que rasgam a própria realidade ao se mover. Sua boca é um abismo repleto de presas irregulares e mandíbulas que trituram matéria e alma com a mesma facilidade. Ela não possui um único texto sagrado — apenas um mandamento: destruir. Seus seguidores — os mais hediondos e sanguinários de toda Elyra — sussurram seus títulos em cavernas úmidas banhadas em sangue: Fera Bruta, Rainha Aprisionada, Maré de Presas, Desfazedora e Destruidora de Mundos. Eles contam que cada vítima que esquartejam viva, cada osso que partem, cada cidade que reduzem a cinzas e cada grito de agonia que arrancam abre mais uma rachadura na prisão que a mantém contida. Seus cultos não matam por prazer ou poder — eles tecem teias de carne e sombra, empalam corpos ainda vivos para que sirvam de casulos, dissolvem vilarejos inteiros em poças de veneno e deixam montanhas de ossos envoltos em seda negra como oferenda. Rovagug não oferece recompensa, não faz pactos, não promete nada — ela apenas deseja o fim de tudo, e seus servos são a ferramenta mais brutal para que isso aconteça. ',
     anatema:
