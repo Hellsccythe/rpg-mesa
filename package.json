@@ -1,14 +1,25 @@
 {
-  "name": "rpg-mesa",
+  "name": "rpg-mesa-workspace",
   "private": true,
+  "workspaces": [
+    "client",
+    "server"
+  ],
   "scripts": {
-    "dev": "cd client && npm run dev",
-    "build": "cd client && npm run build",
-    "preview": "cd client && npm run preview",
-    "install-client": "cd client && npm install"
+    "dev": "concurrently -n client,server \"yarn dev:client\" \"yarn dev:server\"",
+    "dev:client": "yarn workspace rpg-mesa dev",
+    "dev:server": "yarn workspace rpg-mesa-server dev",
+    "build": "yarn build:client && yarn build:server",
+    "build:client": "yarn workspace rpg-mesa build",
+    "build:server": "yarn workspace rpg-mesa-server build",
+    "preview": "yarn workspace rpg-mesa preview",
+    "type-check": "yarn type-check:client && yarn type-check:server",
+    "type-check:client": "yarn workspace rpg-mesa type-check",
+    "type-check:server": "yarn workspace rpg-mesa-server type-check"
   },
-  "dependencies": {
-    "class-transformer": "^0.5.1",
-    "class-validator": "^0.15.1"
-  }
+  "devDependencies": {
+    "@types/node": "^20.19.37",
+    "concurrently": "^9.2.1"
+  },
+  "packageManager": "yarn@4.13.0"
 }

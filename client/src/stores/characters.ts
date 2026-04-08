@@ -1,35 +1,62 @@
 // src/stores/characters.ts
 import { defineStore } from 'pinia'
-import { supabase } from '@/lib/supabase/client'
-import type { Database } from '@/types/supabase'
-
-type Character = Database['public']['Tables']['characters']['Row']
-type CharacterInsert = Database['public']['Tables']['characters']['Insert']
+import { useAuthStore } from '@/stores/auth'
+import { uploadAvatar, uploadHistoryDocument } from '@/lib/supabase/storage'
+import {
+  createCharacter as createCharacterApi,
+  editCharacter as editCharacterApi,
+  getCharacterById,
+  getPaginaInicial,
+  listMyCharacters,
+  requestCharacterChange as requestCharacterChangeApi,
+} from '@/lib/api/personagens.api'
+import type {
+  EditarPersonagemDto,
+  Json,
+  ListarPersonagemDto,
+  PaginaInicialApi,
+  PersonagemApi,
+  PersonagemPublicoApi,
+  SalvarPersonagemDto,
+  SolicitarAlteracaoPersonagemDto,
+} from '@/types/supabase'
 
 export const useCharactersStore = defineStore('characters', {
   state: () => ({
-    characters: [] as Character[],
+    publicCharacters: [] as PersonagemPublicoApi[],
+    myCharacters: [] as PersonagemApi[],
+    layout: null as PaginaInicialApi['layout'] | null,
     loading: false,
     error: null as string | null,
   }),
 
-  getters: {
-    myCharacters: (state) => state.characters,
-  },
-
   actions: {
-    async fetchCharacters() {
+    /**
+     * Carregamento inicial da página: pública, sem autenticação necessária.
+     */
+    async fetchPaginaInicial() {
       this.loading = true
       this.error = null
-
       try {
-        const { data, error } = await supabase
-          .from('characters')
-          .select('*')
-          .order('created_at', { ascending: false })
+        const data = await getPaginaInicial()
+        this.layout = data.layout
+        this.publicCharacters = data.personagens
+      } catch (err: any) {
+        this.error = err.message || 'Erro ao carregar página'
+        console.error(err)
+      } finally {
+        this.loading = false
+      }
+    },
 
-        if (error) throw error
-        this.characters = data || []
+    /**
+     * Recarrega apenas a lista de personagens (para tabelas com filtros).
+     */
+    async fetchCharacters(filtro: ListarPersonagemDto = {}) {
+      this.loading = true
+      this.error = null
+      try {
+        this.myCharacters = await listMyCharacters(filtro)
       } catch (err: any) {
         this.error = err.message || 'Erro ao buscar personagens'
         console.error(err)
@@ -38,74 +65,56 @@ export const useCharactersStore = defineStore('characters', {
       }
     },
 
-    // ==================== CRIAR PERSONAGEM COM AVATAR ====================
-    async createCharacter(payload: {
-      name: string
-      level?: number
-      data?: any          // aqui vai stats, classes, etc.
-    }, avatarFile?: File) {
+    async fetchCharacterById(characterId: string) {
       this.loading = true
       this.error = null
-
       try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) throw new Error('Usuário não autenticado')
+        const authStore = useAuthStore()
+        const data = await getCharacterById(characterId, authStore.isMaster)
+        const idx = this.myCharacters.findIndex((char) => char.characterId === characterId)
+        if (idx !== -1) this.myCharacters[idx] = data
+        else this.myCharacters.unshift(data)
+        return data
+      } catch (err: any) {
+        this.error = err.message || 'Erro ao carregar personagem'
+        console.error('Erro fetchCharacterById:', err)
+        throw err
+      } finally {
+        this.loading = false
+      }
+    },
 
-        let avatar_url: string | null = null
+    async createCharacter(payload: SalvarPersonagemDto, avatarFile?: File, historyDocFile?: File) {
+      this.loading = true
+      this.error = null
+      try {
+        const authStore = useAuthStore()
+        const userId = authStore.user?.id
+        if (!userId) throw new Error('Usuário não autenticado')
 
-        // Upload do avatar (se enviado)
+        const dataPayload: Record<string, Json | undefined> =
+          payload.data && typeof payload.data === 'object' && !Array.isArray(payload.data)
+            ? { ...(payload.data as Record<string, Json | undefined>) }
+            : {}
+
+        let avatarUrl = payload.avatarUrl
         if (avatarFile) {
-          const fileExt = avatarFile.name.split('.').pop() || 'jpg'
-          const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`
-          const filePath = `${user.id}/${fileName}`   // pasta por user_id
-
-          const { error: uploadError } = await supabase.storage
-            .from('character-avatars')
-            .upload(filePath, avatarFile, {
-              cacheControl: '3600',
-              upsert: false,
-            })
-
-          if (uploadError) throw uploadError
-
-          const { data: urlData } = supabase.storage
-            .from('character-avatars')
-            .getPublicUrl(filePath)
-
-          avatar_url = urlData.publicUrl
+          avatarUrl = await uploadAvatar(avatarFile, userId)
         }
 
-        // Dados completos do personagem
-        const characterData: CharacterInsert = {
-          user_id: user.id,
-          name: payload.name,
-          level: payload.level || 1,
-          data: {
-            ...payload.data,
-            avatar_url,
-            xp: payload.data?.xp || 0,
-            stats: payload.data?.stats || {},
-            skills: payload.data?.skills || [],
-            classes: payload.data?.classes || [],
-            titles: payload.data?.titles || [],
-            equipment: payload.data?.equipment || {},
-            inventory: payload.data?.inventory || { gold: 0, items: [] },
-            appearance: payload.data?.appearance || '',
-            background: payload.data?.background || '',
-            indole: payload.data?.indole || 'neutro',
-          }
+        if (historyDocFile) {
+          const uploadedDoc = await uploadHistoryDocument(historyDocFile, userId)
+          dataPayload.historyDocumentPath = uploadedDoc.path
+          dataPayload.historyDocumentName = uploadedDoc.name
+          dataPayload.historyDocumentMimeType = uploadedDoc.mimeType
         }
 
-        const { data, error } = await supabase
-          .from('characters')
-          .insert(characterData)
-          .select()
-          .single()
-
-        if (error) throw error
-
-        // Atualiza lista local
-        this.characters.unshift(data!)
+        const data = await createCharacterApi({
+          ...payload,
+          avatarUrl,
+          data: dataPayload,
+        })
+        this.myCharacters.unshift(data)
         return data
       } catch (err: any) {
         this.error = err.message || 'Erro ao criar personagem'
@@ -116,9 +125,81 @@ export const useCharactersStore = defineStore('characters', {
       }
     },
 
-    // TODO: implementar deleteCharacter + remover arquivo do storage
+    async editCharacter(characterId: string, payload: EditarPersonagemDto) {
+      this.loading = true
+      this.error = null
+      try {
+        const data = await editCharacterApi(characterId, payload)
+        const idx = this.myCharacters.findIndex((char) => char.characterId === characterId)
+        if (idx !== -1) this.myCharacters[idx] = data
+        return data
+      } catch (err: any) {
+        this.error = err.message || 'Erro ao editar personagem'
+        console.error('Erro editCharacter:', err)
+        throw err
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async requestCharacterChange(characterId: string, payload: SolicitarAlteracaoPersonagemDto) {
+      this.loading = true
+      this.error = null
+      try {
+        const data = await requestCharacterChangeApi(characterId, payload)
+        const idx = this.myCharacters.findIndex((char) => char.characterId === characterId)
+        if (idx !== -1) this.myCharacters[idx] = data
+        return data
+      } catch (err: any) {
+        this.error = err.message || 'Erro ao solicitar alteração'
+        console.error('Erro requestCharacterChange:', err)
+        throw err
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async requestCharacterChangeWithFiles(
+      characterId: string,
+      payload: SolicitarAlteracaoPersonagemDto,
+      avatarFile?: File,
+      historyDocFile?: File,
+    ) {
+      this.loading = true
+      this.error = null
+      try {
+        const authStore = useAuthStore()
+        const userId = authStore.user?.id
+        if (!userId) throw new Error('Usuário não autenticado')
+
+        const finalPayload: SolicitarAlteracaoPersonagemDto = { ...payload }
+
+        if (avatarFile) {
+          finalPayload.avatarUrl = await uploadAvatar(avatarFile, userId)
+        }
+
+        if (historyDocFile) {
+          const uploadedDoc = await uploadHistoryDocument(historyDocFile, userId)
+          finalPayload.historyDocumentPath = uploadedDoc.path
+          finalPayload.historyDocumentName = uploadedDoc.name
+          finalPayload.historyDocumentMimeType = uploadedDoc.mimeType ?? undefined
+        }
+
+        const data = await requestCharacterChangeApi(characterId, finalPayload)
+        const idx = this.myCharacters.findIndex((char) => char.characterId === characterId)
+        if (idx !== -1) this.myCharacters[idx] = data
+        return data
+      } catch (err: any) {
+        this.error = err.message || 'Erro ao solicitar alteração'
+        console.error('Erro requestCharacterChangeWithFiles:', err)
+        throw err
+      } finally {
+        this.loading = false
+      }
+    },
+
     async deleteCharacter(id: string) {
-      console.warn('DeleteCharacter ainda não implementado')
-    }
-  }
+      console.warn('DeleteCharacter ainda não implementado', id)
+    },
+  },
 })
