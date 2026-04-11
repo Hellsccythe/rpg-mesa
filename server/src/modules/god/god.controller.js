@@ -1,5 +1,11 @@
 import { godService } from "./god.service.js";
 export const godController = {
+    async uploadImagem(file, accessToken) {
+        return godService.uploadImagem(file, accessToken);
+    },
+    async listarPublico() {
+        return godService.listarPublico();
+    },
     async listar(accessToken) {
         return godService.listar(accessToken);
     },

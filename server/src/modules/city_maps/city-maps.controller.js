@@ -1,7 +1,13 @@
 import { cityMapsService } from "./city-maps.service.js";
 export const cityMapsController = {
+    async listarAutenticado(accessToken) {
+        return cityMapsService.listarAutenticado(accessToken);
+    },
     async listar(accessToken) {
         return cityMapsService.listar(accessToken);
+    },
+    async uploadImagem(file, accessToken) {
+        return cityMapsService.uploadImagem(file, accessToken);
     },
     async salvar(dto, accessToken) {
         if (!dto.name?.trim())

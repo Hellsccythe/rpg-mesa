@@ -1,6 +1,76 @@
 // server/src/modules/personagem/personagens.service.ts
 import { getAdminClient, getSupabaseClient } from "../../config/database/supabase/client.js";
 import { PERSONAGEM_SELECT_FIELDS, PERSONAGEM_TABLE, mapPersonagem, } from "../../models/personagem.model.js";
+const CHARACTER_CREATION_WHITELIST_TABLE = "character_creation_whitelist";
+function normalizeEmail(value) {
+    return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
+function isValidEmail(value) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+function isMissingTableError(error) {
+    const message = String(error?.message ?? "").toLowerCase();
+    return (error?.code === "42P01" || (message.includes("relation") && message.includes("does not exist")));
+}
+function isMissingColumnError(error, columnName) {
+    const message = String(error?.message ?? "").toLowerCase();
+    const normalizedColumn = columnName.trim().toLowerCase();
+    return (error?.code === "42703" ||
+        (message.includes("column") && message.includes(normalizedColumn) && message.includes("does not exist")));
+}
+async function listCharacterCreationEmailsFromDatabase() {
+    const admin = getAdminClient();
+    let response = await admin
+        .from(CHARACTER_CREATION_WHITELIST_TABLE)
+        .select("email")
+        .is("deleted_at", null)
+        .order("email", { ascending: true });
+    if (response.error && isMissingColumnError(response.error, "deleted_at")) {
+        response = await admin
+            .from(CHARACTER_CREATION_WHITELIST_TABLE)
+            .select("email")
+            .order("email", { ascending: true });
+    }
+    const { data, error } = response;
+    if (error) {
+        if (isMissingTableError(error)) {
+            throw new Error("Tabela 'character_creation_whitelist' nao encontrada. Crie a tabela para gerenciar emails pelo painel mestre.");
+        }
+        throw error;
+    }
+    return (data ?? []).map((item) => normalizeEmail(item?.email)).filter(Boolean);
+}
+async function getCharacterCreationAllowedEmailsMerged() {
+    const envEmails = getCharacterCreationAllowedEmails();
+    try {
+        const dbEmails = await listCharacterCreationEmailsFromDatabase();
+        return Array.from(new Set([...envEmails, ...dbEmails]));
+    }
+    catch (error) {
+        if (error?.message?.includes("character_creation_whitelist")) {
+            return envEmails;
+        }
+        throw error;
+    }
+}
+function getCharacterCreationAllowedEmails() {
+    const raw = process.env.CHARACTER_CREATION_ALLOWED_EMAILS ?? "";
+    if (!raw.trim())
+        return [];
+    return raw
+        .split(/[,;\n]/)
+        .map((item) => item.trim().toLowerCase())
+        .filter(Boolean);
+}
+function isCharacterCreationAllowedForEmail(email) {
+    const allowedEmails = getCharacterCreationAllowedEmails();
+    if (!allowedEmails.length)
+        return true;
+    const normalizedEmail = (email ?? "").trim().toLowerCase();
+    if (!normalizedEmail)
+        return false;
+    return allowedEmails.includes(normalizedEmail);
+}
 function getPendingChangeRequest(data) {
     if (!data || typeof data !== "object")
         return null;
@@ -120,6 +190,13 @@ export const personagensService = {
         const { data: { user }, } = await supabase.auth.getUser();
         if (!user)
             throw new Error("Usuário não autenticado");
+        const allowedEmails = await getCharacterCreationAllowedEmailsMerged();
+        const normalizedUserEmail = normalizeEmail(user.email);
+        const emailAllowed = !allowedEmails.length ||
+            (!!normalizedUserEmail && allowedEmails.includes(normalizedUserEmail));
+        if (!emailAllowed) {
+            throw new Error("Erro: email nao liberado pelo mestre.");
+        }
         const { data, error } = await supabase
             .from(PERSONAGEM_TABLE)
             .insert({
@@ -498,6 +575,91 @@ export const personagensService = {
         if (error)
             throw error;
         return { success: !!data?.id };
+    },
+    async listarEmailsPermitidosCriacaoPersonagem(accessToken) {
+        await ensureMasterAccess(accessToken);
+        const emails = await listCharacterCreationEmailsFromDatabase();
+        return { emails };
+    },
+    async adicionarEmailPermitidoCriacaoPersonagem(email, accessToken) {
+        const masterUser = await ensureMasterAccess(accessToken);
+        const admin = getAdminClient();
+        const normalizedEmail = normalizeEmail(email);
+        if (!isValidEmail(normalizedEmail)) {
+            throw new Error("Email invalido para liberacao.");
+        }
+        let operation = await admin
+            .from(CHARACTER_CREATION_WHITELIST_TABLE)
+            .upsert({
+            email: normalizedEmail,
+            deleted_at: null,
+            deleted_by: null,
+            updated_by: masterUser.id,
+        }, { onConflict: "email" });
+        if (operation.error && isMissingColumnError(operation.error, "updated_by")) {
+            operation = await admin
+                .from(CHARACTER_CREATION_WHITELIST_TABLE)
+                .upsert({ email: normalizedEmail, deleted_at: null, deleted_by: null }, { onConflict: "email" });
+        }
+        if (operation.error && isMissingColumnError(operation.error, "deleted_by")) {
+            operation = await admin
+                .from(CHARACTER_CREATION_WHITELIST_TABLE)
+                .upsert({ email: normalizedEmail, deleted_at: null }, { onConflict: "email" });
+        }
+        if (operation.error && isMissingColumnError(operation.error, "deleted_at")) {
+            operation = await admin
+                .from(CHARACTER_CREATION_WHITELIST_TABLE)
+                .upsert({ email: normalizedEmail }, { onConflict: "email" });
+        }
+        const { error } = operation;
+        if (error) {
+            if (isMissingTableError(error)) {
+                throw new Error("Tabela 'character_creation_whitelist' nao encontrada. Crie a tabela para habilitar o cadastro de emails no painel mestre.");
+            }
+            throw error;
+        }
+        return { success: true, email: normalizedEmail };
+    },
+    async removerEmailPermitidoCriacaoPersonagem(email, accessToken) {
+        const masterUser = await ensureMasterAccess(accessToken);
+        const admin = getAdminClient();
+        const normalizedEmail = normalizeEmail(email);
+        if (!isValidEmail(normalizedEmail)) {
+            throw new Error("Email invalido para remocao.");
+        }
+        let operation = await admin
+            .from(CHARACTER_CREATION_WHITELIST_TABLE)
+            .update({ deleted_at: new Date().toISOString(), deleted_by: masterUser.id, updated_by: masterUser.id })
+            .is("deleted_at", null)
+            .eq("email", normalizedEmail);
+        if (operation.error && isMissingColumnError(operation.error, "updated_by")) {
+            operation = await admin
+                .from(CHARACTER_CREATION_WHITELIST_TABLE)
+                .update({ deleted_at: new Date().toISOString(), deleted_by: masterUser.id })
+                .is("deleted_at", null)
+                .eq("email", normalizedEmail);
+        }
+        if (operation.error && isMissingColumnError(operation.error, "deleted_by")) {
+            operation = await admin
+                .from(CHARACTER_CREATION_WHITELIST_TABLE)
+                .update({ deleted_at: new Date().toISOString() })
+                .is("deleted_at", null)
+                .eq("email", normalizedEmail);
+        }
+        if (operation.error && isMissingColumnError(operation.error, "deleted_at")) {
+            operation = await admin
+                .from(CHARACTER_CREATION_WHITELIST_TABLE)
+                .delete()
+                .eq("email", normalizedEmail);
+        }
+        const { error } = operation;
+        if (error) {
+            if (isMissingTableError(error)) {
+                throw new Error("Tabela 'character_creation_whitelist' nao encontrada. Crie a tabela para habilitar o cadastro de emails no painel mestre.");
+            }
+            throw error;
+        }
+        return { success: true, email: normalizedEmail };
     },
 };
 //# sourceMappingURL=personagens.service.js.map
