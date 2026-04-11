@@ -16,7 +16,7 @@
     />
 
     <div class="relative z-10 min-h-screen flex flex-col">
-      <header class="cidade-header h-16 px-6 flex items-center justify-between">
+      <header class="cidade-header h-14 sm:h-16 px-3 sm:px-6 flex items-center justify-between">
         <div class="flex items-center gap-3">
           <HamburgerDrawerMenu
             :items="itensMenuCabecalhoCidade"
@@ -26,8 +26,11 @@
           />
         </div>
 
-        <div class="flex items-center gap-3">
-          <span class="cidade-brand text-2xl font-bold tracking-widest">Caminho Sem Volta</span>
+        <div class="flex min-w-0 items-center gap-3">
+          <span
+            class="cidade-brand truncate text-lg sm:text-2xl font-bold tracking-[0.2em] sm:tracking-widest"
+            >Caminho Sem Volta</span
+          >
         </div>
 
         <div class="flex items-center gap-4 text-2xl">
@@ -68,11 +71,15 @@
         </div>
       </header>
 
-      <main class="flex-1 px-4 py-8 sm:px-6 md:px-10 lg:py-10">
-        <section class="mx-auto max-w-7xl space-y-8">
-          <div class="space-y-3 text-center lg:text-left">
-            <p class="tdl-kicker text-sm uppercase tracking-[0.35em]">Cartografia de Arcadia</p>
-            <h1 class="tdl-titulo text-4xl font-bold tracking-wide sm:text-5xl">
+      <main class="flex-1 px-3 py-5 sm:px-6 sm:py-8 md:px-10 lg:py-10">
+        <section class="mx-auto max-w-7xl space-y-6 sm:space-y-8">
+          <div class="space-y-2 sm:space-y-3 text-center lg:text-left">
+            <p
+              class="tdl-kicker text-xs sm:text-sm uppercase tracking-[0.2em] sm:tracking-[0.35em]"
+            >
+              Cartografia de Arcadia
+            </p>
+            <h1 class="tdl-titulo text-3xl font-bold tracking-wide sm:text-5xl">
               {{ nomeCidadeAtiva }}
             </h1>
           </div>
@@ -114,7 +121,7 @@
             <TemaDarkLight
               elemento="article"
               variante="painel"
-              class="xl:col-span-9 rounded-3xl p-3 sm:p-4 lg:p-5"
+              class="xl:col-span-9 rounded-2xl sm:rounded-3xl p-2 sm:p-4 lg:p-5"
             >
               <div class="cidade-map-frame relative overflow-hidden rounded-2xl">
                 <div
@@ -144,7 +151,7 @@
                     </span>
 
                     <span
-                      class="pointer-events-none absolute left-1/2 -top-6 -translate-x-1/2 whitespace-nowrap rounded-md border border-black/50 bg-black/70 px-2 py-0.5 text-[10px] text-zinc-100"
+                      class="cidade-hotspot-label pointer-events-none absolute left-1/2 -top-6 -translate-x-1/2 whitespace-nowrap rounded-md border border-black/50 bg-black/70 px-2 py-0.5 text-[10px] text-zinc-100"
                     >
                       {{ ponto.name }}
                     </span>
@@ -168,14 +175,22 @@
             </TemaDarkLight>
 
             <aside class="xl:col-span-3 space-y-4">
-              <TemaDarkLight elemento="article" variante="cartao" class="rounded-3xl p-5">
+              <TemaDarkLight
+                elemento="article"
+                variante="cartao"
+                class="rounded-2xl sm:rounded-3xl p-4 sm:p-5"
+              >
                 <h2 class="tdl-subtitulo text-xl font-semibold">Status do mapa</h2>
                 <p class="tdl-texto-suave mt-3 text-sm leading-relaxed">
                   Clique nos pontos para abrir mapas localizados vinculados no painel mestre.
                 </p>
               </TemaDarkLight>
 
-              <TemaDarkLight elemento="article" variante="cartao" class="rounded-3xl p-5">
+              <TemaDarkLight
+                elemento="article"
+                variante="cartao"
+                class="rounded-2xl sm:rounded-3xl p-4 sm:p-5"
+              >
                 <h3 class="tdl-kicker text-sm font-semibold uppercase tracking-widest">
                   Mapas Localizados
                 </h3>
@@ -201,7 +216,11 @@
             </aside>
           </div>
 
-          <TemaDarkLight elemento="article" variante="cartao" class="rounded-3xl p-5">
+          <TemaDarkLight
+            elemento="article"
+            variante="cartao"
+            class="rounded-2xl sm:rounded-3xl p-4 sm:p-5"
+          >
             <h3 class="tdl-kicker text-sm font-semibold uppercase tracking-widest">
               Todos os mapas do RPG
             </h3>
@@ -308,7 +327,7 @@
           <img
             :src="mapaCidadeExibido.imageUrl || mapaCidadeExibido.mapReference"
             :alt="`Mapa ampliado da cidade ${mapaCidadeExibido.name}`"
-            class="block h-auto w-auto max-h-[calc(100vh-14rem)] max-w-full object-contain"
+            class="block h-auto w-auto max-h-[calc(100vh-10rem)] sm:max-h-[calc(100vh-14rem)] max-w-full object-contain"
           />
         </div>
       </div>
@@ -908,5 +927,50 @@ onBeforeUnmount(() => {
 :global(html.theme-dark) .cidade-view :deep(.variante-item.is-clicavel:hover) {
   background: #0c1628;
   border-color: var(--brand-primary);
+}
+
+@media (max-width: 640px) {
+  .cidade-settings-menu {
+    width: 11.5rem;
+  }
+
+  .cidade-map-name-badge,
+  .cidade-map-status-badge {
+    padding: 0.32rem 0.55rem;
+    font-size: 0.64rem;
+  }
+
+  .cidade-map-status-badge {
+    right: 0.55rem;
+    bottom: 0.55rem;
+  }
+
+  .cidade-map-name-badge {
+    left: 0.55rem;
+    top: 0.55rem;
+  }
+
+  .cidade-hotspot-dot {
+    height: 1.28rem;
+    width: 1.28rem;
+  }
+
+  .cidade-hotspot-core {
+    height: 0.38rem;
+    width: 0.38rem;
+  }
+
+  .cidade-hotspot-label {
+    display: none;
+  }
+
+  .cidade-expanded-modal {
+    padding: 0.75rem;
+  }
+
+  .cidade-expanded-header {
+    margin-bottom: 0.6rem;
+    padding-bottom: 0.55rem;
+  }
 }
 </style>

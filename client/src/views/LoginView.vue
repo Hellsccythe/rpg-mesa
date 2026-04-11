@@ -8,7 +8,9 @@
 
       <template v-else>
         <div class="text-center mb-16">
-          <h1 class="text-6xl md:text-7xl font-bold text-red-400 tracking-wider drop-shadow-2xl">
+          <h1
+            class="login-page-title text-6xl md:text-7xl font-bold tracking-wider drop-shadow-2xl"
+          >
             {{ layout?.titulo ?? 'Caminho Sem Volta' }}
           </h1>
           <p class="text-zinc-400 mt-4 text-xl">
@@ -351,6 +353,45 @@
         />
       </div>
 
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <p class="login-modal-muted sm:col-span-2 text-xs">
+          Use o e-mail liberado pelo mestre. Ao criar o personagem, essa conta sera usada no login.
+        </p>
+
+        <div class="sm:col-span-2">
+          <label class="login-modal-label mb-2 block text-sm">E-mail da conta</label>
+          <input
+            v-model="createAccountEmail"
+            type="email"
+            autocomplete="email"
+            class="login-modal-input w-full rounded-2xl border px-6 py-4 outline-none"
+            placeholder="seu@email.com"
+          />
+        </div>
+
+        <div>
+          <label class="login-modal-label mb-2 block text-sm">Senha</label>
+          <input
+            v-model="createAccountPassword"
+            type="password"
+            autocomplete="new-password"
+            class="login-modal-input w-full rounded-2xl border px-6 py-4 outline-none"
+            placeholder="Minimo 6 caracteres"
+          />
+        </div>
+
+        <div>
+          <label class="login-modal-label mb-2 block text-sm">Confirmar senha</label>
+          <input
+            v-model="createAccountPasswordConfirm"
+            type="password"
+            autocomplete="new-password"
+            class="login-modal-input w-full rounded-2xl border px-6 py-4 outline-none"
+            placeholder="Repita sua senha"
+          />
+        </div>
+      </div>
+
       <div>
         <label class="login-modal-label mb-2 block text-sm">Indole (Alinhamento)</label>
         <v-select
@@ -418,21 +459,25 @@
       </div>
 
       <template #footer>
-        <div class="flex justify-end gap-3">
-          <button
-            @click="closeCreateModal"
-            :disabled="createLoading"
-            class="login-modal-cancel-btn action-btn rounded-xl border px-6 py-2 transition-colors disabled:cursor-wait disabled:opacity-60"
-          >
-            Cancelar
-          </button>
-          <button
-            @click="createCharacter"
-            :disabled="createLoading || !createForm.name.trim()"
-            class="login-modal-submit action-btn rounded-xl px-7 py-2 font-medium transition-all disabled:cursor-wait disabled:opacity-60"
-          >
-            {{ createLoading ? 'Criando...' : 'Criar Personagem' }}
-          </button>
+        <div class="space-y-3">
+          <p v-if="createError" class="text-sm text-red-400">{{ createError }}</p>
+
+          <div class="flex justify-end gap-3">
+            <button
+              @click="closeCreateModal"
+              :disabled="createLoading"
+              class="login-modal-cancel-btn action-btn rounded-xl border px-6 py-2 transition-colors disabled:cursor-wait disabled:opacity-60"
+            >
+              Cancelar
+            </button>
+            <button
+              @click="createCharacter"
+              :disabled="createSubmitDisabled"
+              class="login-modal-submit action-btn rounded-xl px-7 py-2 font-medium transition-all disabled:cursor-wait disabled:opacity-60"
+            >
+              {{ createLoading ? 'Criando...' : 'Criar Personagem' }}
+            </button>
+          </div>
         </div>
       </template>
     </Modal>
@@ -475,6 +520,10 @@ const createSelectedFile = ref<File | null>(null)
 const createSelectedDoc = ref<File | null>(null)
 const createIsDragging = ref(false)
 const createLoading = ref(false)
+const createError = ref('')
+const createAccountEmail = ref('')
+const createAccountPassword = ref('')
+const createAccountPasswordConfirm = ref('')
 const createForm = ref({
   name: '',
   indole: 'neutro',
@@ -503,6 +552,15 @@ const backgroundStyle = computed(() => {
 const isAnyActionLoading = computed(
   () => characterLoginLoading.value || masterLoading.value || createLoading.value,
 )
+
+const createSubmitDisabled = computed(() => {
+  if (createLoading.value) return true
+  if (!createForm.value.name.trim()) return true
+  if (!createAccountEmail.value.trim()) return true
+  if (!createAccountPassword.value) return true
+  if (!createAccountPasswordConfirm.value) return true
+  return false
+})
 
 onMounted(async () => {
   await charactersStore.fetchPaginaInicial()
@@ -643,6 +701,10 @@ function resetCreateForm() {
     appearance: '',
     history: '',
   }
+  createError.value = ''
+  createAccountEmail.value = ''
+  createAccountPassword.value = ''
+  createAccountPasswordConfirm.value = ''
   createPreviewUrl.value = null
   createSelectedFile.value = null
   createSelectedDoc.value = null
@@ -654,12 +716,56 @@ function closeCreateModal() {
 }
 
 async function createCharacter() {
-  if (!createForm.value.name.trim()) return
+  if (!createForm.value.name.trim()) {
+    createError.value = 'Informe o nome do personagem.'
+    return
+  }
+
+  const email = createAccountEmail.value.trim().toLowerCase()
+  if (!email) {
+    createError.value = 'Informe o e-mail para criar a conta do personagem.'
+    return
+  }
+
+  if (!createAccountPassword.value || createAccountPassword.value.length < 6) {
+    createError.value = 'A senha deve ter pelo menos 6 caracteres.'
+    return
+  }
+
+  if (createAccountPassword.value !== createAccountPasswordConfirm.value) {
+    createError.value = 'A confirmacao de senha nao confere.'
+    return
+  }
 
   createLoading.value = true
+  createError.value = ''
 
   try {
-    await charactersStore.createCharacter(
+    let autenticado = false
+
+    try {
+      await authStore.signIn(email, createAccountPassword.value, null)
+      autenticado = true
+    } catch {
+      autenticado = false
+    }
+
+    if (!autenticado) {
+      try {
+        await authStore.signUp(email, createAccountPassword.value)
+      } catch (signUpErr: any) {
+        const mensagem = String(signUpErr?.message || '')
+        if (/already|registered|cadastrado/i.test(mensagem)) {
+          createError.value = 'Este e-mail ja esta cadastrado. Verifique a senha informada.'
+          return
+        }
+        throw signUpErr
+      }
+
+      await authStore.signIn(email, createAccountPassword.value, null)
+    }
+
+    const personagemCriado = await charactersStore.createCharacter(
       {
         name: createForm.value.name.trim(),
         data: {
@@ -671,9 +777,23 @@ async function createCharacter() {
       createSelectedFile.value || undefined,
       createSelectedDoc.value || undefined,
     )
+
     closeCreateModal()
+
+    if (personagemCriado?.characterId) {
+      authStore.setActiveCharacter(personagemCriado.characterId)
+      router.push({ name: 'dashboard', query: { characterId: personagemCriado.characterId } })
+    }
   } catch (err: any) {
-    alert(`Erro ao criar personagem: ${err?.message ?? 'erro desconhecido'}`)
+    const mensagemErro = String(err?.message || '')
+
+    if (/email.*nao liberado.*mestre|email.*não liberado.*mestre/i.test(mensagemErro)) {
+      createError.value =
+        'Este e-mail ainda nao foi liberado pelo mestre para criar personagem. Solicite a liberacao e tente novamente.'
+      return
+    }
+
+    createError.value = `Erro ao criar personagem: ${mensagemErro || 'erro desconhecido'}`
   } finally {
     createLoading.value = false
   }
@@ -691,6 +811,10 @@ async function createCharacter() {
 .action-btn:active:not(:disabled) {
   transform: scale(0.98);
   filter: brightness(0.96);
+}
+
+.login-page-title {
+  color: var(--title-color);
 }
 
 .login-master-card {
