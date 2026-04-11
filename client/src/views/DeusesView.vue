@@ -406,7 +406,7 @@ import { listPublicGods as listarDeusesPublicos } from '@/lib/api/gods.api'
 import type { GodApi } from '@/types/supabase'
 import pharasmaImage from '@/assets/images/pharasma.png'
 import asmodeusImage from '@/assets/images/asmodeus.png'
-import inariImage from '@/assets/images/inari.png'
+import inariImage from '@/assets/images/Inari.png'
 import iomedaeImage from '@/assets/images/iomedae.png'
 import sarenraeImage from '@/assets/images/sarenrae.png'
 
