@@ -32,6 +32,36 @@ __decorate([
     IsOptional(),
     __metadata("design:type", Array)
 ], SalvarCityMapDto.prototype, "pointsOfInterest", void 0);
+__decorate([
+    IsOptional(),
+    IsString(),
+    __metadata("design:type", String)
+], SalvarCityMapDto.prototype, "citySlug", void 0);
+__decorate([
+    IsOptional(),
+    IsString(),
+    __metadata("design:type", String)
+], SalvarCityMapDto.prototype, "cityName", void 0);
+__decorate([
+    IsOptional(),
+    IsString(),
+    __metadata("design:type", String)
+], SalvarCityMapDto.prototype, "cityDescription", void 0);
+__decorate([
+    IsOptional(),
+    IsString(),
+    __metadata("design:type", String)
+], SalvarCityMapDto.prototype, "cityCulture", void 0);
+__decorate([
+    IsOptional(),
+    IsString(),
+    __metadata("design:type", String)
+], SalvarCityMapDto.prototype, "mapType", void 0);
+__decorate([
+    IsOptional(),
+    IsString(),
+    __metadata("design:type", String)
+], SalvarCityMapDto.prototype, "parentCityMapId", void 0);
 export class EditarCityMapDto {
 }
 __decorate([
@@ -58,4 +88,34 @@ __decorate([
     IsOptional(),
     __metadata("design:type", Array)
 ], EditarCityMapDto.prototype, "pointsOfInterest", void 0);
+__decorate([
+    IsOptional(),
+    IsString(),
+    __metadata("design:type", String)
+], EditarCityMapDto.prototype, "citySlug", void 0);
+__decorate([
+    IsOptional(),
+    IsString(),
+    __metadata("design:type", String)
+], EditarCityMapDto.prototype, "cityName", void 0);
+__decorate([
+    IsOptional(),
+    IsString(),
+    __metadata("design:type", String)
+], EditarCityMapDto.prototype, "cityDescription", void 0);
+__decorate([
+    IsOptional(),
+    IsString(),
+    __metadata("design:type", String)
+], EditarCityMapDto.prototype, "cityCulture", void 0);
+__decorate([
+    IsOptional(),
+    IsString(),
+    __metadata("design:type", String)
+], EditarCityMapDto.prototype, "mapType", void 0);
+__decorate([
+    IsOptional(),
+    IsString(),
+    __metadata("design:type", String)
+], EditarCityMapDto.prototype, "parentCityMapId", void 0);
 //# sourceMappingURL=city-maps.dto.js.map

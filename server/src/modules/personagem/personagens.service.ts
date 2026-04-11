@@ -63,12 +63,33 @@ function isMissingTableError(error: any) {
   );
 }
 
+function isMissingColumnError(error: any, columnName: string) {
+  const message = String(error?.message ?? "").toLowerCase();
+  const normalizedColumn = columnName.trim().toLowerCase();
+  return (
+    error?.code === "42703" ||
+    (message.includes("column") &&
+      message.includes(normalizedColumn) &&
+      message.includes("does not exist"))
+  );
+}
+
 async function listCharacterCreationEmailsFromDatabase() {
   const admin = getAdminClient();
-  const { data, error } = await admin
+  let response = await admin
     .from(CHARACTER_CREATION_WHITELIST_TABLE)
     .select("email")
+    .is("deleted_at", null)
     .order("email", { ascending: true });
+
+  if (response.error && isMissingColumnError(response.error, "deleted_at")) {
+    response = await admin
+      .from(CHARACTER_CREATION_WHITELIST_TABLE)
+      .select("email")
+      .order("email", { ascending: true });
+  }
+
+  const { data, error } = response;
 
   if (error) {
     if (isMissingTableError(error)) {
@@ -735,7 +756,7 @@ export const personagensService = {
   },
 
   async adicionarEmailPermitidoCriacaoPersonagem(email: string, accessToken?: string) {
-    await ensureMasterAccess(accessToken);
+    const masterUser = await ensureMasterAccess(accessToken);
 
     const admin = getAdminClient();
     const normalizedEmail = normalizeEmail(email);
@@ -743,9 +764,38 @@ export const personagensService = {
       throw new Error("Email invalido para liberacao.");
     }
 
-    const { error } = await admin
-      .from(CHARACTER_CREATION_WHITELIST_TABLE)
-      .upsert({ email: normalizedEmail }, { onConflict: "email" });
+    let operation = await admin.from(CHARACTER_CREATION_WHITELIST_TABLE).upsert(
+      {
+        email: normalizedEmail,
+        deleted_at: null,
+        deleted_by: null,
+        updated_by: masterUser.id,
+      },
+      { onConflict: "email" },
+    );
+
+    if (operation.error && isMissingColumnError(operation.error, "updated_by")) {
+      operation = await admin
+        .from(CHARACTER_CREATION_WHITELIST_TABLE)
+        .upsert(
+          { email: normalizedEmail, deleted_at: null, deleted_by: null },
+          { onConflict: "email" },
+        );
+    }
+
+    if (operation.error && isMissingColumnError(operation.error, "deleted_by")) {
+      operation = await admin
+        .from(CHARACTER_CREATION_WHITELIST_TABLE)
+        .upsert({ email: normalizedEmail, deleted_at: null }, { onConflict: "email" });
+    }
+
+    if (operation.error && isMissingColumnError(operation.error, "deleted_at")) {
+      operation = await admin
+        .from(CHARACTER_CREATION_WHITELIST_TABLE)
+        .upsert({ email: normalizedEmail }, { onConflict: "email" });
+    }
+
+    const { error } = operation;
 
     if (error) {
       if (isMissingTableError(error)) {
@@ -761,7 +811,7 @@ export const personagensService = {
   },
 
   async removerEmailPermitidoCriacaoPersonagem(email: string, accessToken?: string) {
-    await ensureMasterAccess(accessToken);
+    const masterUser = await ensureMasterAccess(accessToken);
 
     const admin = getAdminClient();
     const normalizedEmail = normalizeEmail(email);
@@ -769,10 +819,40 @@ export const personagensService = {
       throw new Error("Email invalido para remocao.");
     }
 
-    const { error } = await admin
+    let operation = await admin
       .from(CHARACTER_CREATION_WHITELIST_TABLE)
-      .delete()
+      .update({
+        deleted_at: new Date().toISOString(),
+        deleted_by: masterUser.id,
+        updated_by: masterUser.id,
+      })
+      .is("deleted_at", null)
       .eq("email", normalizedEmail);
+
+    if (operation.error && isMissingColumnError(operation.error, "updated_by")) {
+      operation = await admin
+        .from(CHARACTER_CREATION_WHITELIST_TABLE)
+        .update({ deleted_at: new Date().toISOString(), deleted_by: masterUser.id })
+        .is("deleted_at", null)
+        .eq("email", normalizedEmail);
+    }
+
+    if (operation.error && isMissingColumnError(operation.error, "deleted_by")) {
+      operation = await admin
+        .from(CHARACTER_CREATION_WHITELIST_TABLE)
+        .update({ deleted_at: new Date().toISOString() })
+        .is("deleted_at", null)
+        .eq("email", normalizedEmail);
+    }
+
+    if (operation.error && isMissingColumnError(operation.error, "deleted_at")) {
+      operation = await admin
+        .from(CHARACTER_CREATION_WHITELIST_TABLE)
+        .delete()
+        .eq("email", normalizedEmail);
+    }
+
+    const { error } = operation;
 
     if (error) {
       if (isMissingTableError(error)) {
