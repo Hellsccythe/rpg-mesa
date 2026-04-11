@@ -8,17 +8,23 @@
   >
     <div class="cidade-backdrop absolute inset-0" />
 
-    <div class="absolute -top-28 -left-20 h-72 w-72 rounded-full bg-amber-600/20 blur-3xl" />
-    <div class="absolute top-28 -right-16 h-80 w-80 rounded-full bg-[#6B4E9E]/20 blur-3xl" />
+    <div
+      class="cidade-orb cidade-orb-a absolute -top-28 -left-20 h-72 w-72 rounded-full blur-3xl"
+    />
+    <div
+      class="cidade-orb cidade-orb-b absolute top-28 -right-16 h-80 w-80 rounded-full blur-3xl"
+    />
 
     <div class="relative z-10 min-h-screen flex flex-col">
       <header class="cidade-header h-16 px-6 flex items-center justify-between">
-        <button
-          @click="voltar"
-          class="cidade-header-link text-3xl transition-colors flex items-center gap-2"
-        >
-          ‹ <span class="text-base font-medium">Voltar</span>
-        </button>
+        <div class="flex items-center gap-3">
+          <HamburgerDrawerMenu
+            :items="itensMenuCabecalhoCidade"
+            :active-item-id="itemCabecalhoCidadeAtivo"
+            aria-label="Abrir menu de navegacao"
+            @select="aoSelecionarMenuCabecalho"
+          />
+        </div>
 
         <div class="flex items-center gap-3">
           <span class="cidade-brand text-2xl font-bold tracking-widest">Caminho Sem Volta</span>
@@ -111,7 +117,11 @@
               class="xl:col-span-9 rounded-3xl p-3 sm:p-4 lg:p-5"
             >
               <div class="cidade-map-frame relative overflow-hidden rounded-2xl">
-                <div class="relative mx-auto w-fit max-w-full">
+                <div
+                  class="cidade-map-clickable relative mx-auto w-fit max-w-full"
+                  @click="abrirMapaExpandido"
+                  :title="`Expandir mapa de ${nomeCidadeAtiva}`"
+                >
                   <img
                     :src="mapaCidadeExibido.imageUrl || mapaCidadeExibido.mapReference"
                     :alt="`Mapa da cidade ${mapaCidadeExibido.name}`"
@@ -141,9 +151,7 @@
                   </button>
                 </div>
 
-                <div
-                  class="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#070B14]/70 via-transparent to-transparent"
-                />
+                <div class="cidade-map-overlay pointer-events-none absolute inset-0" />
 
                 <div
                   class="cidade-map-name-badge pointer-events-none absolute left-4 top-4 rounded-xl px-3 py-2 text-xs backdrop-blur-sm sm:text-sm"
@@ -231,18 +239,15 @@
     >
       <div>
         <header
-          class="flex items-start justify-between gap-4 border-b border-[#6B4E9E]/30 px-6 py-4"
+          class="cidade-modal-header flex items-start justify-between gap-4 border-b px-6 py-4"
         >
           <div>
-            <p class="text-xs uppercase tracking-[0.25em] text-amber-300">Ponto do mapa</p>
-            <h2 class="mt-1 text-2xl font-bold text-[#F5E6C8]">{{ pontoSelecionado.name }}</h2>
-            <p class="mt-2 text-sm text-zinc-300">{{ pontoSelecionado.description }}</p>
+            <p class="cidade-modal-kicker text-xs uppercase tracking-[0.25em]">Ponto do mapa</p>
+            <h2 class="cidade-modal-title mt-1 text-2xl font-bold">{{ pontoSelecionado.name }}</h2>
+            <p class="cidade-modal-desc mt-2 text-sm">{{ pontoSelecionado.description }}</p>
           </div>
 
-          <button
-            @click="fecharPonto"
-            class="rounded-xl border border-zinc-700/70 px-3 py-1 text-zinc-300 hover:border-zinc-400 hover:text-white"
-          >
+          <button @click="fecharPonto" class="cidade-modal-close rounded-xl border px-3 py-1">
             Fechar
           </button>
         </header>
@@ -250,7 +255,7 @@
         <div class="p-4 sm:p-6">
           <div
             v-if="pontoSelecionado.localizedMapUrl"
-            class="overflow-hidden rounded-2xl border border-[#6B4E9E]/30 bg-[#0B1426]"
+            class="cidade-modal-map overflow-hidden rounded-2xl border"
           >
             <img
               :src="pontoSelecionado.localizedMapUrl"
@@ -261,15 +266,50 @@
 
           <div
             v-else
-            class="flex min-h-56 items-center justify-center rounded-2xl border border-dashed border-zinc-600/60 bg-[#0B1426] text-center"
+            class="cidade-modal-empty flex min-h-56 items-center justify-center rounded-2xl border border-dashed text-center"
           >
             <div>
-              <p class="text-base text-zinc-300">Mapa localizado ainda nao definido.</p>
-              <p class="mt-2 text-sm text-zinc-500">
+              <p class="cidade-modal-empty-title text-base">Mapa localizado ainda nao definido.</p>
+              <p class="cidade-modal-empty-subtitle mt-2 text-sm">
                 Vincule um mapa localizado para este ponto no painel mestre.
               </p>
             </div>
           </div>
+        </div>
+      </div>
+    </Modal>
+
+    <Modal
+      v-if="mostrarMapaExpandido && mapaCidadeExibido"
+      :show-close-button="false"
+      overlay-class="p-3 sm:p-4"
+      panel-class="w-full max-w-6xl max-h-[92vh] overflow-hidden rounded-3xl"
+      body-class="p-0 overflow-y-auto"
+      @close="fecharMapaExpandido"
+    >
+      <div class="cidade-expanded-modal p-4 sm:p-5">
+        <div class="cidade-expanded-header mb-4 flex items-center justify-between gap-3">
+          <div>
+            <p class="cidade-modal-kicker text-xs uppercase tracking-[0.25em]">Mapa ampliado</p>
+            <h2 class="cidade-modal-title mt-1 text-xl font-bold">{{ mapaCidadeExibido.name }}</h2>
+          </div>
+
+          <button
+            @click="fecharMapaExpandido"
+            class="cidade-modal-close rounded-xl border px-3 py-1"
+          >
+            Fechar
+          </button>
+        </div>
+
+        <div
+          class="cidade-expanded-frame flex items-center justify-center overflow-hidden rounded-2xl border p-2 sm:p-3"
+        >
+          <img
+            :src="mapaCidadeExibido.imageUrl || mapaCidadeExibido.mapReference"
+            :alt="`Mapa ampliado da cidade ${mapaCidadeExibido.name}`"
+            class="block h-auto w-auto max-h-[calc(100vh-14rem)] max-w-full object-contain"
+          />
         </div>
       </div>
     </Modal>
@@ -281,7 +321,8 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import Modal from '@/components/Modal.vue'
 import VSelect from '@/components/VSelect.vue'
 import TemaDarkLight from '@/components/TemaDarkLight.vue'
-import { useRouter } from 'vue-router'
+import HamburgerDrawerMenu from '@/components/HamburgerDrawerMenu.vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { listCityMapsForCityView as listarMapasCidadeParaCidadeView } from '@/lib/api/city-maps.api'
 import type { CityMapApi, PointOfInterestApi } from '@/types/supabase'
@@ -298,9 +339,11 @@ interface DetalhePonto {
 }
 
 const roteador = useRouter()
+const rota = useRoute()
 const lojaAuth = useAuthStore()
 const mostrarMenuConfiguracoes = ref(false)
 const pontoSelecionado = ref<DetalhePonto | null>(null)
+const mostrarMapaExpandido = ref(false)
 
 const carregando = ref(false)
 const mapasCidade = ref<CityMapApi[]>([])
@@ -417,6 +460,33 @@ const mapasOrdenados = computed(() =>
   }),
 )
 
+const itensMenuCabecalhoCidade = [
+  { id: 'back', label: 'Voltar' },
+  { id: 'dashboard', label: 'Personagem' },
+  { id: 'deuses', label: 'Deuses' },
+  { id: 'cidade', label: 'Cidade' },
+  { id: 'skills', label: 'Skills' },
+  { id: 'titulos', label: 'Titulos' },
+  { id: 'classes', label: 'Classes' },
+  { id: 'npcs', label: 'NPCs' },
+  { id: 'notas', label: 'Notas' },
+]
+
+const itemCabecalhoCidadeAtivo = computed(() => {
+  if (rota.name === 'cidade') return 'cidade'
+  if (rota.name === 'dashboard') return 'dashboard'
+  if (rota.name === 'deuses') return 'deuses'
+
+  const path = rota.path || ''
+  if (path.startsWith('/skills')) return 'skills'
+  if (path.startsWith('/titulos')) return 'titulos'
+  if (path.startsWith('/classes')) return 'classes'
+  if (path.startsWith('/npcs')) return 'npcs'
+  if (path.startsWith('/notas')) return 'notas'
+
+  return null
+})
+
 async function buscarMapas() {
   carregando.value = true
   try {
@@ -457,6 +527,39 @@ const irParaDashboard = () => {
   })
 }
 
+async function aoSelecionarMenuCabecalho(itemId: string) {
+  fecharMenuConfiguracoes()
+
+  if (itemId === 'back') {
+    voltar()
+    return
+  }
+
+  if (itemId === 'dashboard') {
+    irParaDashboard()
+    return
+  }
+
+  if (itemId === 'cidade') {
+    await roteador.push('/cidade')
+    return
+  }
+
+  const routeMap: Record<string, string> = {
+    deuses: '/deuses',
+    skills: '/skills',
+    titulos: '/titulos',
+    classes: '/classes',
+    npcs: '/npcs',
+    notas: '/notas',
+  }
+
+  const target = routeMap[itemId]
+  if (!target) return
+
+  await roteador.push(target)
+}
+
 const sair = async () => {
   fecharMenuConfiguracoes()
   try {
@@ -471,6 +574,10 @@ const aoClicarJanela = () => {
 }
 
 const aoPressionarTeclaJanela = (event: KeyboardEvent) => {
+  if (event.key === 'Escape' && mostrarMapaExpandido.value) {
+    mostrarMapaExpandido.value = false
+  }
+
   if (event.key === 'Escape' && pontoSelecionado.value) {
     pontoSelecionado.value = null
   }
@@ -506,6 +613,14 @@ const fecharPonto = () => {
   pontoSelecionado.value = null
 }
 
+const abrirMapaExpandido = () => {
+  mostrarMapaExpandido.value = true
+}
+
+const fecharMapaExpandido = () => {
+  mostrarMapaExpandido.value = false
+}
+
 watch(slugCidadeSelecionada, () => {
   if (!mapasBaseCidade.value.find((item) => item.id === idMapaCidadeSelecionado.value)) {
     idMapaCidadeSelecionado.value = mapasBaseCidade.value[0]?.id || ''
@@ -535,12 +650,19 @@ onBeforeUnmount(() => {
 }
 
 .cidade-backdrop {
-  background: linear-gradient(
-    145deg,
-    rgb(148 163 184 / 0.14),
-    rgb(79 70 229 / 0.08),
-    rgb(30 41 59 / 0.1)
-  );
+  background: color-mix(in srgb, var(--bg-page) 84%, var(--brand-primary) 16%);
+}
+
+.cidade-orb {
+  pointer-events: none;
+}
+
+.cidade-orb-a {
+  background: color-mix(in srgb, var(--brand-primary-strong) 24%, transparent 76%);
+}
+
+.cidade-orb-b {
+  background: color-mix(in srgb, var(--brand-primary) 22%, transparent 78%);
 }
 
 .cidade-header {
@@ -601,6 +723,10 @@ onBeforeUnmount(() => {
   box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08);
 }
 
+.cidade-map-clickable {
+  cursor: zoom-in;
+}
+
 .cidade-side-title {
   color: var(--text-main);
 }
@@ -638,6 +764,69 @@ onBeforeUnmount(() => {
   color: color-mix(in srgb, var(--text-main) 88%, #f59e0b 12%);
 }
 
+.cidade-map-overlay {
+  background: rgb(2 6 23 / 0.34);
+}
+
+.cidade-modal-header {
+  border-bottom-color: var(--border-soft);
+}
+
+.cidade-modal-kicker {
+  color: var(--brand-primary);
+}
+
+.cidade-modal-title {
+  color: var(--title-color);
+}
+
+.cidade-modal-desc {
+  color: var(--text-main);
+}
+
+.cidade-modal-close {
+  border-color: var(--border-soft);
+  color: var(--text-muted);
+  background: color-mix(in srgb, var(--bg-card) 90%, var(--bg-soft) 10%);
+}
+
+.cidade-modal-close:hover {
+  border-color: var(--brand-primary);
+  color: var(--text-main);
+}
+
+.cidade-modal-map {
+  border-color: var(--border-soft);
+  background: color-mix(in srgb, var(--bg-card) 84%, var(--bg-soft) 16%);
+}
+
+.cidade-expanded-modal {
+  background: color-mix(in srgb, var(--bg-card) 90%, var(--bg-soft) 10%);
+}
+
+.cidade-expanded-header {
+  border-bottom: 1px solid var(--border-soft);
+  padding-bottom: 0.75rem;
+}
+
+.cidade-expanded-frame {
+  border-color: var(--border-soft);
+  background: color-mix(in srgb, var(--bg-card) 82%, var(--bg-soft) 18%);
+}
+
+.cidade-modal-empty {
+  border-color: color-mix(in srgb, var(--border-soft) 74%, transparent 26%);
+  background: color-mix(in srgb, var(--bg-card) 84%, var(--bg-soft) 16%);
+}
+
+.cidade-modal-empty-title {
+  color: var(--text-main);
+}
+
+.cidade-modal-empty-subtitle {
+  color: var(--text-muted);
+}
+
 :global(html.theme-light) .cidade-view {
   --cidade-map-shell: color-mix(in srgb, var(--bg-card) 95%, #fff 5%);
   --cidade-map-bg: #f8fafc;
@@ -656,21 +845,11 @@ onBeforeUnmount(() => {
 }
 
 :global(html.theme-light) .cidade-backdrop {
-  background: linear-gradient(
-    145deg,
-    rgb(148 163 184 / 0.14),
-    rgb(79 70 229 / 0.08),
-    rgb(30 41 59 / 0.1)
-  );
+  background: color-mix(in srgb, var(--bg-page) 90%, var(--brand-primary) 10%);
 }
 
 :global(html.theme-dark) .cidade-backdrop {
-  background: linear-gradient(
-    145deg,
-    rgb(15 23 42 / 0.84),
-    rgb(30 41 59 / 0.78),
-    rgb(31 27 74 / 0.76)
-  );
+  background: color-mix(in srgb, var(--bg-page) 86%, var(--brand-primary) 14%);
 }
 
 :global(html.theme-dark) .cidade-header {
@@ -703,5 +882,31 @@ onBeforeUnmount(() => {
   border-color: rgb(251 191 36 / 0.28);
   background: rgb(13 20 36 / 0.85);
   color: rgb(253 230 138 / 0.95);
+}
+
+:global(html.theme-dark) .cidade-map-overlay {
+  background: rgb(2 6 23 / 0.5);
+}
+
+:global(html.theme-dark) .cidade-modal-map,
+:global(html.theme-dark) .cidade-modal-empty {
+  background: color-mix(in srgb, var(--bg-card) 74%, #020617 26%);
+}
+
+:global(html.theme-dark) .cidade-expanded-modal,
+:global(html.theme-dark) .cidade-expanded-frame {
+  background: color-mix(in srgb, var(--bg-card) 72%, #020617 28%);
+}
+
+:global(html.theme-dark) .cidade-view :deep(.variante-cartao),
+:global(html.theme-dark) .cidade-view :deep(.variante-item),
+:global(html.theme-dark) .cidade-view :deep(.variante-painel) {
+  background: #0a1220;
+  border-color: color-mix(in srgb, var(--brand-primary) 34%, #1e293b 66%);
+}
+
+:global(html.theme-dark) .cidade-view :deep(.variante-item.is-clicavel:hover) {
+  background: #0c1628;
+  border-color: var(--brand-primary);
 }
 </style>
