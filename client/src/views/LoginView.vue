@@ -35,7 +35,12 @@
           <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
             <div
               @click="openMasterLogin"
-              class="group relative bg-[#1E1A0E]/90 border border-amber-600/50 hover:border-amber-400 rounded-3xl overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-3 hover:shadow-2xl aspect-[4/5] flex flex-col"
+              :class="[
+                'group relative bg-[#1E1A0E]/90 border border-amber-600/50 rounded-3xl overflow-hidden transition-all duration-300 aspect-[4/5] flex flex-col',
+                isAnyActionLoading
+                  ? 'cursor-wait opacity-60 pointer-events-none'
+                  : 'cursor-pointer hover:-translate-y-3 hover:shadow-2xl hover:border-amber-400 active:scale-[0.98]',
+              ]"
             >
               <div class="flex-1 relative overflow-hidden">
                 <img
@@ -60,7 +65,12 @@
               v-for="char in characters"
               :key="char.characterId"
               @click="abrirLogin(char)"
-              class="group relative bg-zinc-900 border border-red-900/50 hover:border-red-500 rounded-3xl overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-3 hover:shadow-2xl aspect-[4/5] flex flex-col"
+              :class="[
+                'group relative bg-zinc-900 border border-red-900/50 rounded-3xl overflow-hidden transition-all duration-300 aspect-[4/5] flex flex-col',
+                isAnyActionLoading
+                  ? 'cursor-wait opacity-60 pointer-events-none'
+                  : 'cursor-pointer hover:-translate-y-3 hover:shadow-2xl hover:border-red-500 active:scale-[0.98]',
+              ]"
             >
               <div class="flex-1 relative overflow-hidden">
                 <img
@@ -85,7 +95,12 @@
 
             <div
               @click="showCreateModal = true"
-              class="group relative bg-red-900/80 hover:bg-red-700 border border-red-500/50 hover:border-red-400 rounded-3xl overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-3 hover:shadow-2xl aspect-[4/5] flex flex-col items-center justify-center gap-4"
+              :class="[
+                'group relative bg-red-900/80 border border-red-500/50 rounded-3xl overflow-hidden transition-all duration-300 aspect-[4/5] flex flex-col items-center justify-center gap-4',
+                isAnyActionLoading
+                  ? 'cursor-wait opacity-60 pointer-events-none'
+                  : 'cursor-pointer hover:-translate-y-3 hover:shadow-2xl hover:bg-red-700 hover:border-red-400 active:scale-[0.98]',
+              ]"
             >
               <div
                 class="w-16 h-16 rounded-2xl border-4 border-red-400/50 group-hover:border-red-300 flex items-center justify-center transition-all text-4xl text-red-300"
@@ -136,7 +151,8 @@
 
         <button
           @click="closeCharacterLoginModal"
-          class="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-lg text-zinc-300 transition-colors hover:bg-red-900/80 hover:text-white"
+          :disabled="characterLoginLoading"
+          class="action-btn absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-lg text-zinc-300 transition-colors hover:bg-red-900/80 hover:text-white disabled:cursor-wait disabled:opacity-60"
         >
           ✕
         </button>
@@ -178,7 +194,7 @@
         <button
           @click="loginCharacter"
           :disabled="characterLoginLoading"
-          class="w-full rounded-2xl bg-red-700 py-4 font-semibold text-white transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+          class="action-btn w-full rounded-2xl bg-red-700 py-4 font-semibold text-white transition-colors hover:bg-red-600 disabled:cursor-wait disabled:opacity-50"
         >
           {{ characterLoginLoading ? 'Entrando...' : 'Entrar' }}
         </button>
@@ -229,14 +245,15 @@
       <div class="grid grid-cols-2 gap-3">
         <button
           @click="closeMasterModal"
-          class="rounded-2xl border border-zinc-700 py-3 text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white"
+          :disabled="masterLoading"
+          class="action-btn rounded-2xl border border-zinc-700 py-3 text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white disabled:cursor-wait disabled:opacity-60"
         >
           Cancelar
         </button>
         <button
           @click="loginMaster"
           :disabled="masterLoading"
-          class="rounded-2xl bg-amber-700 py-3 font-semibold text-white transition-colors hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-60"
+          class="action-btn rounded-2xl bg-amber-700 py-3 font-semibold text-white transition-colors hover:bg-amber-600 disabled:cursor-wait disabled:opacity-60"
         >
           {{ masterLoading ? 'Entrando...' : 'Entrar' }}
         </button>
@@ -258,7 +275,8 @@
           <h2 class="text-2xl font-bold text-red-400">Criar Novo Personagem</h2>
           <button
             @click="closeCreateModal"
-            class="px-3 text-2xl text-zinc-400 transition-colors hover:text-red-400"
+            :disabled="createLoading"
+            class="action-btn px-3 text-2xl text-zinc-400 transition-colors hover:text-red-400 disabled:cursor-wait disabled:opacity-60"
           >
             ×
           </button>
@@ -268,8 +286,13 @@
       <div>
         <label class="mb-3 block text-sm text-zinc-400">Avatar do Personagem</label>
         <div
-          class="relative flex h-80 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-red-900/50 transition-all hover:border-red-500"
-          :class="{ 'border-red-500 bg-red-950/20': createIsDragging }"
+          class="relative flex h-80 flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-red-900/50 transition-all"
+          :class="[
+            createLoading
+              ? 'cursor-wait opacity-70 pointer-events-none'
+              : 'cursor-pointer hover:border-red-500 active:scale-[0.995]',
+            { 'border-red-500 bg-red-950/20': createIsDragging },
+          ]"
           @dragover.prevent="createIsDragging = true"
           @dragleave.prevent="createIsDragging = false"
           @drop.prevent="handleCreateDrop"
@@ -294,7 +317,8 @@
             </div>
             <button
               @click.stop="removeCreateImage"
-              class="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-black/80 text-xl text-white hover:bg-red-600"
+              :disabled="createLoading"
+              class="action-btn absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-black/80 text-xl text-white hover:bg-red-600 disabled:cursor-wait disabled:opacity-60"
             >
               ✕
             </button>
@@ -356,7 +380,12 @@
           >Documento da Historia (opcional - Word ou PDF)</label
         >
         <div
-          class="cursor-pointer rounded-2xl border-2 border-dashed border-red-900/50 p-8 text-center transition-colors hover:border-red-500"
+          class="rounded-2xl border-2 border-dashed border-red-900/50 p-8 text-center transition-colors"
+          :class="
+            createLoading
+              ? 'cursor-wait opacity-70 pointer-events-none'
+              : 'cursor-pointer hover:border-red-500 active:scale-[0.995]'
+          "
           @click="triggerCreateDocInput"
         >
           <input
@@ -384,14 +413,15 @@
         <div class="flex justify-end gap-3">
           <button
             @click="closeCreateModal"
-            class="rounded-xl border border-red-900/50 bg-red-950/50 px-6 py-2 text-red-200 transition-colors hover:bg-red-900/60"
+            :disabled="createLoading"
+            class="action-btn rounded-xl border border-red-900/50 bg-red-950/50 px-6 py-2 text-red-200 transition-colors hover:bg-red-900/60 disabled:cursor-wait disabled:opacity-60"
           >
             Cancelar
           </button>
           <button
             @click="createCharacter"
             :disabled="createLoading || !createForm.name.trim()"
-            class="rounded-xl bg-red-600 px-7 py-2 font-medium transition-all hover:bg-red-700 disabled:bg-zinc-700 disabled:text-zinc-400"
+            class="action-btn rounded-xl bg-red-600 px-7 py-2 font-medium transition-all hover:bg-red-700 disabled:cursor-wait disabled:bg-zinc-700 disabled:text-zinc-400"
           >
             {{ createLoading ? 'Criando...' : 'Criar Personagem' }}
           </button>
@@ -453,11 +483,17 @@ const backgroundStyle = computed(() => {
   return { backgroundImage: `url('${img}')` }
 })
 
+const isAnyActionLoading = computed(
+  () => characterLoginLoading.value || masterLoading.value || createLoading.value,
+)
+
 onMounted(async () => {
   await charactersStore.fetchPaginaInicial()
 })
 
 function abrirLogin(char: PersonagemPublicoApi) {
+  if (isAnyActionLoading.value) return
+
   if (authStore.canReuseSessionForCharacter(char.characterId)) {
     authStore.setActiveCharacter(char.characterId)
     router.push({ name: 'dashboard', query: { characterId: char.characterId } })
@@ -505,6 +541,8 @@ async function loginCharacter() {
 }
 
 function openMasterLogin() {
+  if (isAnyActionLoading.value) return
+
   masterEmail.value = ''
   masterPassword.value = ''
   masterError.value = ''
@@ -537,6 +575,7 @@ async function loginMaster() {
 }
 
 function triggerCreateFileInput() {
+  if (createLoading.value) return
   createFileInput.value?.click()
 }
 
@@ -571,6 +610,7 @@ function removeCreateImage() {
 }
 
 function triggerCreateDocInput() {
+  if (createLoading.value) return
   createDocInput.value?.click()
 }
 
@@ -624,6 +664,18 @@ async function createCharacter() {
 </script>
 
 <style scoped>
+.action-btn {
+  transition:
+    transform 140ms ease,
+    filter 140ms ease,
+    opacity 140ms ease;
+}
+
+.action-btn:active:not(:disabled) {
+  transform: scale(0.98);
+  filter: brightness(0.96);
+}
+
 .custom-scroll::-webkit-scrollbar {
   width: 6px;
 }

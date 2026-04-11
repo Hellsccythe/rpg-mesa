@@ -46,6 +46,49 @@ PersonagensRouter.get("/admin/solicitacoes", async (req, res) => {
   }
 });
 
+PersonagensRouter.get("/admin/character-creation-emails", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    const resultado = await personagensController.listarEmailsPermitidosCriacaoPersonagem(token);
+    res.status(200).json(resultado);
+  } catch (error: any) {
+    const status =
+      error?.message?.includes("autenticado") || error?.message?.includes("restrito") ? 401 : 400;
+    res.status(status).json({ message: error?.message ?? "Erro ao listar emails permitidos" });
+  }
+});
+
+PersonagensRouter.post("/admin/character-creation-emails", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    const resultado = await personagensController.adicionarEmailPermitidoCriacaoPersonagem(
+      req.body?.email,
+      token,
+    );
+    res.status(201).json(resultado);
+  } catch (error: any) {
+    const status =
+      error?.message?.includes("autenticado") || error?.message?.includes("restrito") ? 401 : 400;
+    res.status(status).json({ message: error?.message ?? "Erro ao adicionar email permitido" });
+  }
+});
+
+PersonagensRouter.delete("/admin/character-creation-emails/:email", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    const email = decodeURIComponent(req.params.email);
+    const resultado = await personagensController.removerEmailPermitidoCriacaoPersonagem(
+      email,
+      token,
+    );
+    res.status(200).json(resultado);
+  } catch (error: any) {
+    const status =
+      error?.message?.includes("autenticado") || error?.message?.includes("restrito") ? 401 : 400;
+    res.status(status).json({ message: error?.message ?? "Erro ao remover email permitido" });
+  }
+});
+
 PersonagensRouter.post("/admin/solicitacoes/:characterId/revisar", async (req, res) => {
   try {
     const token = getBearerToken(req.headers.authorization);
@@ -122,7 +165,11 @@ PersonagensRouter.post("/", async (req, res) => {
     const resultado = await personagensController.salvar(req.body, token);
     res.status(201).json(resultado);
   } catch (error: any) {
-    const status = error?.message?.includes("autenticado") ? 401 : 400;
+    const status = error?.message?.includes("autenticado")
+      ? 401
+      : error?.message?.includes("autorizado") || error?.message?.includes("restrita")
+        ? 403
+        : 400;
     res.status(status).json({ message: error?.message ?? "Erro ao salvar personagem" });
   }
 });

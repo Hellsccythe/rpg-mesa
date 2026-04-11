@@ -19,4 +19,86 @@ __decorate([
     IsString(),
     __metadata("design:type", String)
 ], SalvarGodDto.prototype, "description", void 0);
+__decorate([
+    IsOptional(),
+    IsString(),
+    __metadata("design:type", String)
+], SalvarGodDto.prototype, "title", void 0);
+__decorate([
+    IsOptional(),
+    IsString(),
+    __metadata("design:type", String)
+], SalvarGodDto.prototype, "indole", void 0);
+__decorate([
+    IsOptional(),
+    IsString(),
+    __metadata("design:type", String)
+], SalvarGodDto.prototype, "dogma", void 0);
+__decorate([
+    IsOptional(),
+    IsString(),
+    __metadata("design:type", String)
+], SalvarGodDto.prototype, "anatema", void 0);
+__decorate([
+    IsOptional(),
+    IsString(),
+    __metadata("design:type", String)
+], SalvarGodDto.prototype, "weapons", void 0);
+__decorate([
+    IsOptional(),
+    IsString(),
+    __metadata("design:type", String)
+], SalvarGodDto.prototype, "shortDescription", void 0);
+__decorate([
+    IsOptional(),
+    IsString(),
+    __metadata("design:type", String)
+], SalvarGodDto.prototype, "imageUrl", void 0);
+export class EditarGodDto {
+}
+__decorate([
+    IsOptional(),
+    IsString(),
+    __metadata("design:type", String)
+], EditarGodDto.prototype, "name", void 0);
+__decorate([
+    IsOptional(),
+    IsString(),
+    __metadata("design:type", String)
+], EditarGodDto.prototype, "description", void 0);
+__decorate([
+    IsOptional(),
+    IsString(),
+    __metadata("design:type", String)
+], EditarGodDto.prototype, "title", void 0);
+__decorate([
+    IsOptional(),
+    IsString(),
+    __metadata("design:type", String)
+], EditarGodDto.prototype, "indole", void 0);
+__decorate([
+    IsOptional(),
+    IsString(),
+    __metadata("design:type", String)
+], EditarGodDto.prototype, "dogma", void 0);
+__decorate([
+    IsOptional(),
+    IsString(),
+    __metadata("design:type", String)
+], EditarGodDto.prototype, "anatema", void 0);
+__decorate([
+    IsOptional(),
+    IsString(),
+    __metadata("design:type", String)
+], EditarGodDto.prototype, "weapons", void 0);
+__decorate([
+    IsOptional(),
+    IsString(),
+    __metadata("design:type", String)
+], EditarGodDto.prototype, "shortDescription", void 0);
+__decorate([
+    IsOptional(),
+    IsString(),
+    __metadata("design:type", String)
+], EditarGodDto.prototype, "imageUrl", void 0);
 //# sourceMappingURL=god.dto.js.map

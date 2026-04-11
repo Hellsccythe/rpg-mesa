@@ -68,3 +68,25 @@ export async function addAdventureNoteToCharacter(characterId: string, note: str
   )
   return data
 }
+
+export async function listCharacterCreationAllowedEmails() {
+  const { data } = await api.get<{ emails: string[] }>(
+    '/personagens/admin/character-creation-emails',
+  )
+  return data
+}
+
+export async function addCharacterCreationAllowedEmail(email: string) {
+  const { data } = await api.post<{ success: boolean; email: string }>(
+    '/personagens/admin/character-creation-emails',
+    { email },
+  )
+  return data
+}
+
+export async function removeCharacterCreationAllowedEmail(email: string) {
+  const { data } = await api.delete<{ success: boolean; email: string }>(
+    `/personagens/admin/character-creation-emails/${encodeURIComponent(email)}`,
+  )
+  return data
+}

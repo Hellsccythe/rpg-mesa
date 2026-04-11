@@ -1,3 +1,194 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-page: #eef4f8;
+    --bg-card: #ffffff;
+    --bg-soft: #f6f9fc;
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --title-color: #4f46e5;
+    --brand-primary: #4f46e5;
+    --brand-primary-strong: #4338ca;
+    --accent-soft: #e0e7ff;
+    --border-soft: #dbe3f1;
+    --ring-soft: #a5b4fc;
+    --menu-bg: #ffffff;
+    --menu-text: #1e293b;
+    --menu-line: #4f46e5;
+    --toggle-bg: rgb(255 255 255 / 0.95);
+    --toggle-border: #dbe3f1;
+    --toggle-text: #334155;
+
+    --ui-feedback-duration: 140ms;
+    --ui-feedback-ease: ease;
+    --ui-feedback-scale: 0.985;
+    --ui-feedback-brightness: 0.96;
+  }
+
+  html,
+  body,
+  #app {
+    min-height: 100%;
+  }
+
+  html.theme-dark {
+    color-scheme: dark;
+    --bg-page: #0b1220;
+    --bg-card: #111a2d;
+    --bg-soft: #0f172a;
+    --text-main: #e2e8f0;
+    --text-muted: #94a3b8;
+    --title-color: #a5b4fc;
+    --brand-primary: #818cf8;
+    --brand-primary-strong: #6366f1;
+    --accent-soft: #1e293b;
+    --border-soft: #334155;
+    --ring-soft: #818cf8;
+    --menu-bg: #0f172a;
+    --menu-text: #e2e8f0;
+    --menu-line: #a5b4fc;
+    --toggle-bg: rgb(15 23 42 / 0.95);
+    --toggle-border: #334155;
+    --toggle-text: #e2e8f0;
+  }
+
+  html.theme-light {
+    color-scheme: light;
+  }
+
+  html.theme-light #app {
+    filter: none;
+  }
+
+  html.theme-dark #app {
+    filter: none;
+  }
+
+  body {
+    color: var(--text-main);
+    background: var(--bg-page);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: Pacifico, cursive;
+    color: var(--title-color);
+  }
+
+  :where(button, a, [role='button'], .ui-clickable, .cursor-pointer) {
+    transition:
+      transform var(--ui-feedback-duration) var(--ui-feedback-ease),
+      filter var(--ui-feedback-duration) var(--ui-feedback-ease),
+      opacity var(--ui-feedback-duration) var(--ui-feedback-ease),
+      box-shadow var(--ui-feedback-duration) var(--ui-feedback-ease),
+      background-color var(--ui-feedback-duration) var(--ui-feedback-ease),
+      border-color var(--ui-feedback-duration) var(--ui-feedback-ease),
+      color var(--ui-feedback-duration) var(--ui-feedback-ease);
+  }
+
+  :where(button, a, [role='button'], .ui-clickable, .cursor-pointer):active {
+    transform: scale(var(--ui-feedback-scale));
+    filter: brightness(var(--ui-feedback-brightness));
+  }
+
+  :where(button, a, [role='button'], .ui-clickable, .cursor-pointer):disabled,
+  :where(button, a, [role='button'], .ui-clickable, .cursor-pointer)[aria-busy='true'],
+  :where(button, a, [role='button'], .ui-clickable, .cursor-pointer).is-busy {
+    cursor: wait;
+  }
+}
+
+/* Remap frequently used legacy utility colors to the new palette. */
+.bg-\[\#0A0F1C\] {
+  background-color: var(--bg-page) !important;
+}
+
+.bg-\[\#111A2D\],
+.bg-\[\#111A2D\]\/80 {
+  background-color: var(--bg-card) !important;
+}
+
+.bg-\[\#0F1C3A\]\/95,
+.bg-\[\#0F1C3A\]\/70,
+.bg-\[\#0b1426\] {
+  background-color: var(--bg-soft) !important;
+}
+
+.bg-zinc-950\/70,
+.bg-zinc-950\/80 {
+  background-color: var(--bg-card) !important;
+}
+
+.from-\[\#0F1C3A\],
+.from-\[\#2A1B4A\] {
+  --tw-gradient-from: var(--bg-page) var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: transparent var(--tw-gradient-to-position) !important;
+}
+
+.via-\[\#1A2438\] {
+  --tw-gradient-to: transparent var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops:
+    var(--tw-gradient-from), var(--bg-soft) var(--tw-gradient-via-position), var(--tw-gradient-to) !important;
+}
+
+.to-\[\#2A1B4A\]\/80,
+.to-\[\#1A2438\] {
+  --tw-gradient-to: var(--bg-page) var(--tw-gradient-to-position) !important;
+}
+
+.border-\[\#6B4E9E\]\/30,
+.border-\[\#6B4E9E\]\/35,
+.border-\[\#6B4E9E\]\/40,
+.border-\[\#6B4E9E\]\/45,
+.border-\[\#6B4E9E\]\/50 {
+  border-color: var(--border-soft) !important;
+}
+
+.border-zinc-700\/50 {
+  border-color: var(--border-soft) !important;
+}
+
+.text-\[\#C8D0E0\] {
+  color: var(--text-main) !important;
+}
+
+.text-white,
+.text-zinc-200 {
+  color: var(--text-main) !important;
+}
+
+.text-black {
+  color: var(--text-main) !important;
+}
+
+.text-zinc-400,
+.text-zinc-500 {
+  color: var(--text-muted) !important;
+}
+
+.hover\:bg-\[\#2A1B4A\]:hover {
+  background-color: var(--accent-soft) !important;
+}
+
+.text-amber-300 {
+  color: var(--brand-primary) !important;
+}
+
+.text-amber-100 {
+  color: var(--brand-primary) !important;
+}
+
+.border-amber-500\/50 {
+  border-color: var(--brand-primary) !important;
+}
+
+.hover\:bg-amber-900\/25:hover {
+  background-color: var(--accent-soft) !important;
+}

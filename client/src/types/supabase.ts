@@ -121,3 +121,45 @@ export interface AprovacaoPendenteApi {
   requestedAt: string
   requestedByEmail: string | null
 }
+
+export interface PointOfInterestApi {
+  id?: string
+  name: string
+  x: number
+  y: number
+  description?: string
+  targetCityMapId?: string
+  targetLabel?: string
+}
+
+export interface GodApi {
+  id: string
+  name: string
+  description: string
+  title: string
+  indole: string
+  dogma: string
+  anatema: string
+  weapons: string
+  shortDescription: string
+  imageUrl: string
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface CityMapApi {
+  id: string
+  name: string
+  mapReference: string
+  description: string
+  imageUrl: string
+  citySlug: string
+  cityName: string
+  cityDescription: string
+  cityCulture: string
+  mapType: 'city' | 'localized'
+  parentCityMapId: string
+  pointsOfInterest: PointOfInterestApi[]
+  createdAt?: string
+  updatedAt?: string
+}

@@ -1,85 +1,141 @@
 <!-- src/views/DeusesView.vue -->
 <template>
-  <div class="min-h-screen bg-[#0A0F1C] text-white relative overflow-hidden">
+  <div class="deuses-view min-h-screen relative overflow-hidden">
     <!-- Fundo sutil -->
-    <div class="absolute inset-0 bg-gradient-to-br from-[#0F1C3A] via-[#1A2438] to-[#2A1B4A]/80" />
+    <div class="deuses-backdrop absolute inset-0" />
 
     <div class="relative z-10 min-h-screen flex flex-col">
       <!-- Header reutilizado -->
-      <header
-        class="h-16 border-b border-[#6B4E9E]/30 bg-black/50 backdrop-blur-md px-6 flex items-center justify-between"
-      >
-        <button
-          @click="goBack"
-          class="text-3xl text-zinc-300 hover:text-white transition-colors flex items-center gap-2"
-        >
-          ‹ <span class="text-base font-medium">Voltar</span>
-        </button>
-
+      <header class="deuses-header h-16 border-b px-6 flex items-center justify-between">
         <div class="flex items-center gap-3">
-          <span class="text-2xl font-bold tracking-widest text-red-400">Caminho Sem Volta</span>
+          <HamburgerDrawerMenu
+            :items="itensMenuCabecalhoDeuses"
+            :active-item-id="itemCabecalhoDeusesAtivo"
+            aria-label="Abrir menu de navegacao"
+            @select="aoSelecionarMenuCabecalho"
+          />
         </div>
 
-        <nav class="flex items-center gap-8 text-lg font-medium">
-          <router-link to="/dashboard" class="text-zinc-400 hover:text-white transition-colors"
-            >Personagem</router-link
-          >
-          <span class="text-red-400 font-semibold">Deuses</span>
-          <router-link to="/cidade" class="text-zinc-400 hover:text-white transition-colors"
-            >Cidade</router-link
-          >
-          <router-link to="/skills" class="text-zinc-400 hover:text-white transition-colors"
-            >Skills</router-link
-          >
-          <router-link to="/titulos" class="text-zinc-400 hover:text-white transition-colors"
-            >Títulos</router-link
-          >
-          <router-link to="/classes" class="text-zinc-400 hover:text-white transition-colors"
-            >Classes</router-link
-          >
-          <router-link to="/npcs" class="text-zinc-400 hover:text-white transition-colors"
-            >NPCs</router-link
-          >
-          <router-link to="/notas" class="text-zinc-400 hover:text-white transition-colors"
-            >Notas</router-link
-          >
-        </nav>
+        <div class="flex items-center gap-3">
+          <span class="header-title text-2xl font-bold tracking-widest">Caminho Sem Volta</span>
+        </div>
 
-        <div class="flex items-center gap-6 text-2xl text-zinc-300">
-          <button class="hover:text-[#C8D0E0] transition-colors">👤</button>
-          <button class="hover:text-[#C8D0E0] transition-colors">⚙️</button>
+        <div class="flex items-center gap-6 text-2xl">
+          <button class="header-link rounded-lg px-2 py-1 text-sm transition-colors">PERFIL</button>
+          <div class="relative" @click.stop>
+            <button
+              @click="alternarMenuConfiguracoes"
+              class="header-link transition-colors"
+              title="Abrir menu"
+              aria-label="Abrir menu de configuracoes"
+            >
+              ⚙️
+            </button>
+
+            <TemaDarkLight
+              v-if="mostrarMenuConfiguracoes"
+              elemento="div"
+              variante="cartao"
+              :tema="temaClaroAtivo ? 'claro' : 'escuro'"
+              preset="deuses"
+              class="absolute right-0 mt-2 w-52 rounded-2xl p-2 text-base shadow-xl backdrop-blur-md"
+            >
+              <button
+                @click="irParaDashboard"
+                class="block w-full rounded-xl px-4 py-2 text-left text-zinc-200 transition-colors hover:bg-[#2A1B4A]"
+              >
+                Personagem
+              </button>
+              <button
+                @click="sair"
+                class="block w-full rounded-xl px-4 py-2 text-left text-red-300 transition-colors hover:bg-red-950/60"
+              >
+                Logout
+              </button>
+            </TemaDarkLight>
+          </div>
         </div>
       </header>
 
       <!-- Conteúdo -->
       <main class="flex-1 px-6 md:px-12 py-10">
         <div class="max-w-7xl mx-auto">
-          <h1 class="text-5xl font-bold tracking-widest text-red-400 mb-2">Deuses & Cosmos</h1>
-          <p class="text-zinc-400 text-lg mb-10">Conhecimento comum dos mortais de Arcadia</p>
+          <h1 class="deuses-title text-5xl font-bold tracking-widest mb-2">Deuses & Cosmos</h1>
+          <p class="deuses-subtitle text-lg mb-10">Conhecimento comum dos mortais de Arcadia</p>
+
+          <div class="mb-10 grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div class="md:col-span-2">
+              <label
+                for="god-name-filter"
+                class="deuses-filter-label mb-2 block text-sm uppercase tracking-wider"
+                >Filtrar por nome</label
+              >
+              <div class="relative">
+                <input
+                  id="god-name-filter"
+                  v-model="filtroNome"
+                  type="text"
+                  placeholder="Digite o nome do deus..."
+                  class="deuses-input w-full rounded-2xl border px-4 py-3 pr-12 outline-none transition-colors"
+                />
+
+                <button
+                  v-if="filtroNome"
+                  @click="limparFiltroNome"
+                  type="button"
+                  class="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-sm deuses-filter-label transition-colors hover:bg-black/10 hover:text-[var(--text-main)]"
+                  title="Limpar busca"
+                  aria-label="Limpar busca por nome"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label
+                for="god-alignment-filter"
+                class="deuses-filter-label mb-2 block text-sm uppercase tracking-wider"
+                >Filtrar por alinhamento</label
+              >
+              <v-select
+                id="god-alignment-filter"
+                v-model="filtroAlinhamento"
+                :options="opcoesAlinhamento"
+                aria-label="Filtrar por alinhamento"
+                root-class="w-full"
+              />
+            </div>
+          </div>
 
           <div class="space-y-12">
-            <section v-if="evilGods.length">
-              <h2 class="mb-5 text-2xl font-bold tracking-wider text-red-300">Malignos</h2>
+            <section v-if="deusesMalignos.length">
+              <h2
+                class="deuses-section-title deuses-section-evil mb-5 text-2xl font-bold tracking-wider"
+              >
+                Malignos
+              </h2>
               <div class="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 <div
-                  v-for="entry in evilGods"
+                  v-for="entry in deusesMalignos"
                   :key="entry.index"
-                  @click="showGodModal(entry.index)"
-                  class="group bg-zinc-950/80 border border-[#6B4E9E]/40 hover:border-red-500 rounded-3xl overflow-hidden cursor-pointer transition-all hover:-translate-y-3 hover:shadow-2xl"
+                  @click="abrirModalDeus(entry.index)"
+                  class="deuses-card group border rounded-3xl overflow-hidden cursor-pointer transition-all hover:-translate-y-3 hover:shadow-2xl"
                 >
-                  <div
-                    class="relative h-64 overflow-hidden bg-gradient-to-br from-[#2A1B4A] to-[#1A2438]"
-                  >
+                  <div class="deuses-card-image relative h-64 overflow-hidden">
                     <img
                       v-if="entry.god.iconImage"
                       :src="entry.god.iconImage"
                       :alt="entry.god.name"
-                      class="absolute inset-0 h-full w-full object-cover opacity-85 transition-transform duration-300 group-hover:scale-105"
+                      class="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                       :style="{ objectPosition: entry.god.cardImagePosition ?? 'center 22%' }"
                     />
-                    <div v-if="entry.god.iconImage" class="absolute inset-0 bg-black/25" />
                     <div
-                      class="absolute inset-0 bg-gradient-to-b from-black/20 via-black/35 to-black/75"
+                      v-if="entry.god.iconImage"
+                      class="absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/40"
+                    />
+                    <div
+                      class="absolute inset-0 bg-gradient-to-b from-black/5 via-black/10 to-black/45 transition-all duration-300 group-hover:from-black/20 group-hover:via-black/35 group-hover:to-black/75"
                     />
                     <span
                       v-if="!entry.god.iconImage"
@@ -88,14 +144,21 @@
                       {{ entry.god.icon }}
                     </span>
                     <div
-                      class="absolute inset-0 flex flex-col items-center justify-center gap-1 px-4 text-center opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                      class="god-overlay-content absolute inset-0 flex flex-col items-center justify-center gap-2 px-4 text-center opacity-0 transition-opacity duration-300 group-hover:opacity-100"
                     >
-                      <h3 class="text-2xl font-bold text-white">{{ entry.god.name }}</h3>
-                      <p class="text-sm text-zinc-200/90">{{ entry.god.title }}</p>
+                      <h3
+                        class="god-overlay-name text-2xl font-bold"
+                        :class="getAlignmentClass(entry.god.alinhamento)"
+                      >
+                        {{ entry.god.name }}
+                      </h3>
+                      <p v-if="entry.god.title" class="god-overlay-title text-sm">
+                        {{ entry.god.title }}
+                      </p>
                     </div>
                   </div>
                   <div class="p-6">
-                    <p class="text-zinc-400 line-clamp-4 text-sm leading-relaxed">
+                    <p class="deuses-card-text line-clamp-4 text-sm leading-relaxed">
                       {{ entry.god.shortDescription }}
                     </p>
                   </div>
@@ -103,28 +166,29 @@
               </div>
             </section>
 
-            <section v-if="neutralGods.length">
-              <h2 class="mb-5 text-2xl font-bold tracking-wider text-zinc-200">Neutros</h2>
+            <section v-if="deusesNeutros.length">
+              <h2 class="deuses-section-title mb-5 text-2xl font-bold tracking-wider">Neutros</h2>
               <div class="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 <div
-                  v-for="entry in neutralGods"
+                  v-for="entry in deusesNeutros"
                   :key="entry.index"
-                  @click="showGodModal(entry.index)"
-                  class="group bg-zinc-950/80 border border-[#6B4E9E]/40 hover:border-red-500 rounded-3xl overflow-hidden cursor-pointer transition-all hover:-translate-y-3 hover:shadow-2xl"
+                  @click="abrirModalDeus(entry.index)"
+                  class="deuses-card group border rounded-3xl overflow-hidden cursor-pointer transition-all hover:-translate-y-3 hover:shadow-2xl"
                 >
-                  <div
-                    class="relative h-64 overflow-hidden bg-gradient-to-br from-[#2A1B4A] to-[#1A2438]"
-                  >
+                  <div class="deuses-card-image relative h-64 overflow-hidden">
                     <img
                       v-if="entry.god.iconImage"
                       :src="entry.god.iconImage"
                       :alt="entry.god.name"
-                      class="absolute inset-0 h-full w-full object-cover opacity-85 transition-transform duration-300 group-hover:scale-105"
+                      class="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                       :style="{ objectPosition: entry.god.cardImagePosition ?? 'center 22%' }"
                     />
-                    <div v-if="entry.god.iconImage" class="absolute inset-0 bg-black/25" />
                     <div
-                      class="absolute inset-0 bg-gradient-to-b from-black/20 via-black/35 to-black/75"
+                      v-if="entry.god.iconImage"
+                      class="absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/40"
+                    />
+                    <div
+                      class="absolute inset-0 bg-gradient-to-b from-black/5 via-black/10 to-black/45 transition-all duration-300 group-hover:from-black/20 group-hover:via-black/35 group-hover:to-black/75"
                     />
                     <span
                       v-if="!entry.god.iconImage"
@@ -133,14 +197,21 @@
                       {{ entry.god.icon }}
                     </span>
                     <div
-                      class="absolute inset-0 flex flex-col items-center justify-center gap-1 px-4 text-center opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                      class="god-overlay-content absolute inset-0 flex flex-col items-center justify-center gap-2 px-4 text-center opacity-0 transition-opacity duration-300 group-hover:opacity-100"
                     >
-                      <h3 class="text-2xl font-bold text-white">{{ entry.god.name }}</h3>
-                      <p class="text-sm text-zinc-200/90">{{ entry.god.title }}</p>
+                      <h3
+                        class="god-overlay-name text-2xl font-bold"
+                        :class="getAlignmentClass(entry.god.alinhamento)"
+                      >
+                        {{ entry.god.name }}
+                      </h3>
+                      <p v-if="entry.god.title" class="god-overlay-title text-sm">
+                        {{ entry.god.title }}
+                      </p>
                     </div>
                   </div>
                   <div class="p-6">
-                    <p class="text-zinc-400 line-clamp-4 text-sm leading-relaxed">
+                    <p class="deuses-card-text line-clamp-4 text-sm leading-relaxed">
                       {{ entry.god.shortDescription }}
                     </p>
                   </div>
@@ -148,28 +219,33 @@
               </div>
             </section>
 
-            <section v-if="goodGods.length">
-              <h2 class="mb-5 text-2xl font-bold tracking-wider text-blue-300">Bons</h2>
+            <section v-if="deusesBons.length">
+              <h2
+                class="deuses-section-title deuses-section-good mb-5 text-2xl font-bold tracking-wider"
+              >
+                Bons
+              </h2>
               <div class="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 <div
-                  v-for="entry in goodGods"
+                  v-for="entry in deusesBons"
                   :key="entry.index"
-                  @click="showGodModal(entry.index)"
-                  class="group bg-zinc-950/80 border border-[#6B4E9E]/40 hover:border-red-500 rounded-3xl overflow-hidden cursor-pointer transition-all hover:-translate-y-3 hover:shadow-2xl"
+                  @click="abrirModalDeus(entry.index)"
+                  class="deuses-card group border rounded-3xl overflow-hidden cursor-pointer transition-all hover:-translate-y-3 hover:shadow-2xl"
                 >
-                  <div
-                    class="relative h-64 overflow-hidden bg-gradient-to-br from-[#2A1B4A] to-[#1A2438]"
-                  >
+                  <div class="deuses-card-image relative h-64 overflow-hidden">
                     <img
                       v-if="entry.god.iconImage"
                       :src="entry.god.iconImage"
                       :alt="entry.god.name"
-                      class="absolute inset-0 h-full w-full object-cover opacity-85 transition-transform duration-300 group-hover:scale-105"
+                      class="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                       :style="{ objectPosition: entry.god.cardImagePosition ?? 'center 22%' }"
                     />
-                    <div v-if="entry.god.iconImage" class="absolute inset-0 bg-black/25" />
                     <div
-                      class="absolute inset-0 bg-gradient-to-b from-black/20 via-black/35 to-black/75"
+                      v-if="entry.god.iconImage"
+                      class="absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/40"
+                    />
+                    <div
+                      class="absolute inset-0 bg-gradient-to-b from-black/5 via-black/10 to-black/45 transition-all duration-300 group-hover:from-black/20 group-hover:via-black/35 group-hover:to-black/75"
                     />
                     <span
                       v-if="!entry.god.iconImage"
@@ -178,19 +254,38 @@
                       {{ entry.god.icon }}
                     </span>
                     <div
-                      class="absolute inset-0 flex flex-col items-center justify-center gap-1 px-4 text-center opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                      class="god-overlay-content absolute inset-0 flex flex-col items-center justify-center gap-2 px-4 text-center opacity-0 transition-opacity duration-300 group-hover:opacity-100"
                     >
-                      <h3 class="text-2xl font-bold text-white">{{ entry.god.name }}</h3>
-                      <p class="text-sm text-zinc-200/90">{{ entry.god.title }}</p>
+                      <h3
+                        class="god-overlay-name text-2xl font-bold"
+                        :class="getAlignmentClass(entry.god.alinhamento)"
+                      >
+                        {{ entry.god.name }}
+                      </h3>
+                      <p v-if="entry.god.title" class="god-overlay-title text-sm">
+                        {{ entry.god.title }}
+                      </p>
                     </div>
                   </div>
                   <div class="p-6">
-                    <p class="text-zinc-400 line-clamp-4 text-sm leading-relaxed">
+                    <p class="deuses-card-text line-clamp-4 text-sm leading-relaxed">
                       {{ entry.god.shortDescription }}
                     </p>
                   </div>
                 </div>
               </div>
+            </section>
+
+            <section v-if="haFiltroAtivo && !haResultadosFiltrados">
+              <TemaDarkLight
+                elemento="div"
+                variante="aviso"
+                :tema="temaClaroAtivo ? 'claro' : 'escuro'"
+                preset="deuses"
+                class="rounded-2xl p-6 text-center"
+              >
+                Nenhum deus encontrado com esse nome.
+              </TemaDarkLight>
             </section>
           </div>
         </div>
@@ -198,100 +293,172 @@
     </div>
 
     <!-- Modal -->
-    <div
-      v-if="selectedGod !== null"
-      class="fixed inset-0 z-50 overflow-y-auto bg-black/90 p-4 md:p-6"
-      @click.self="closeGodModal"
+    <Modal
+      v-if="dadosDeusSelecionado"
+      :show-close-button="false"
+      overlay-class="bg-black/90 p-4 md:p-6"
+      panel-class="deuses-modal-panel mx-auto flex h-[calc(100dvh-3rem)] w-full max-w-2xl flex-col overflow-hidden rounded-3xl shadow-2xl md:h-[calc(100dvh-4rem)]"
+      body-class="flex min-h-0 flex-1 p-0"
+      @close="fecharModalDeus"
     >
-      <div
-        class="mx-auto my-4 flex max-h-[calc(100vh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-[#6B4E9E]/50 bg-[#1A2438] shadow-2xl shadow-black/40 md:max-h-[calc(100vh-3rem)]"
-      >
-        <div class="relative h-72 overflow-hidden border-b border-[#6B4E9E]/30 bg-[#111A2D]">
+      <div class="flex h-full flex-col">
+        <div class="deuses-modal-media relative h-72 overflow-hidden border-b">
           <img
-            v-if="gods[selectedGod].iconImage"
-            :src="gods[selectedGod].iconImage"
-            :alt="gods[selectedGod].name"
+            v-if="dadosDeusSelecionado.iconImage"
+            :src="dadosDeusSelecionado.iconImage"
+            :alt="dadosDeusSelecionado.name"
             class="absolute inset-0 h-full w-full object-cover"
-            :style="{ objectPosition: gods[selectedGod].modalImagePosition ?? 'center 16%' }"
+            :style="{ objectPosition: dadosDeusSelecionado.modalImagePosition ?? 'center 16%' }"
           />
-          <div v-if="gods[selectedGod].iconImage" class="absolute inset-0 bg-black/35" />
           <div
-            class="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-[#111A2D] via-[#111A2D]/70 to-transparent"
+            v-if="dadosDeusSelecionado.iconImage"
+            class="deuses-modal-media-mask absolute inset-0"
           />
-          <div class="absolute inset-x-0 bottom-8 px-8 text-center">
-            <span v-if="!gods[selectedGod].iconImage" class="mb-3 block text-6xl text-zinc-200">{{
-              gods[selectedGod].icon
-            }}</span>
+          <div
+            class="deuses-modal-media-gradient absolute inset-x-0 bottom-0 h-44"
+            :class="{ 'deuses-modal-media-gradient-hidden': temaClaroAtivo }"
+          />
+          <div class="absolute inset-x-0 bottom-7 px-8 text-center">
+            <span
+              v-if="!dadosDeusSelecionado.iconImage"
+              class="mb-3 block text-6xl text-zinc-200"
+              >{{ dadosDeusSelecionado.icon }}</span
+            >
             <div>
-              <h2 class="text-4xl font-bold text-red-400">{{ gods[selectedGod].name }}</h2>
-              <p class="text-zinc-400">{{ gods[selectedGod].title }}</p>
+              <h2
+                class="deuses-modal-name text-4xl font-bold"
+                :class="getAlignmentClass(dadosDeusSelecionado.alinhamento)"
+              >
+                {{ dadosDeusSelecionado.name }}
+              </h2>
+              <p v-if="dadosDeusSelecionado.title" class="deuses-modal-subtitle">
+                {{ dadosDeusSelecionado.title }}
+              </p>
             </div>
           </div>
         </div>
 
-        <div class="deuses-modal-scroll flex-1 overflow-y-auto p-8">
-          <div class="space-y-8 text-zinc-300">
+        <div
+          class="deuses-modal-scroll min-h-0 flex-1 overflow-y-auto"
+          :class="{ 'deuses-modal-scroll-light': temaClaroAtivo }"
+        >
+          <div class="deuses-modal-content space-y-8 p-8">
             <div>
-              <h3 class="uppercase text-red-400 text-sm tracking-widest mb-3">
+              <h3 class="deuses-modal-section-title uppercase text-sm tracking-widest mb-3">
                 Conhecimento Comum
               </h3>
-              <p class="leading-relaxed">{{ gods[selectedGod].description }}</p>
+              <p class="leading-relaxed">{{ dadosDeusSelecionado.description }}</p>
             </div>
 
             <div>
-              <h3 class="uppercase text-red-400 text-sm tracking-widest mb-3">Alinhamento</h3>
-              <p class="leading-relaxed" :class="getAlignmentClass(gods[selectedGod].alinhamento)">
-                {{ gods[selectedGod].alinhamento }}
+              <h3 class="deuses-modal-section-title uppercase text-sm tracking-widest mb-3">
+                Alinhamento
+              </h3>
+              <p
+                class="leading-relaxed"
+                :class="getAlignmentClass(dadosDeusSelecionado.alinhamento)"
+              >
+                {{ dadosDeusSelecionado.alinhamento }}
               </p>
             </div>
 
             <div>
-              <h3 class="uppercase text-red-400 text-sm tracking-widest mb-3">Anátema</h3>
-              <p class="italic text-red-300">{{ gods[selectedGod].anatema }}</p>
+              <h3 class="deuses-modal-section-title uppercase text-sm tracking-widest mb-3">
+                Anátema
+              </h3>
+              <p class="italic text-red-300">{{ dadosDeusSelecionado.anatema }}</p>
             </div>
 
             <div>
               <h3 class="uppercase text-emerald-400 text-sm tracking-widest mb-3">Dogma</h3>
-              <p class="italic text-emerald-300">{{ gods[selectedGod].dogma }}</p>
+              <p class="italic text-emerald-300">{{ dadosDeusSelecionado.dogma }}</p>
             </div>
 
             <div>
-              <h3 class="uppercase text-amber-400 text-sm tracking-widest mb-3">
-                Armas Favorecidas
-              </h3>
-              <p class="text-amber-300">{{ gods[selectedGod].weapons }}</p>
+              <h3 class="uppercase texmber-400 text-sm tracking-widest mb-3">Armas Favorecidas</h3>
+              <p class="text-amber-300">{{ dadosDeusSelecionado.weapons }}</p>
             </div>
           </div>
         </div>
 
-        <div class="flex justify-end border-t border-[#6B4E9E]/30 px-4 py-3 md:px-5 md:py-3">
+        <div class="deuses-modal-footer flex justify-end border-t px-4 py-3 md:px-5 md:py-3">
           <button
-            @click="closeGodModal"
-            class="rounded-xl bg-zinc-900 px-6 py-2 text-base hover:bg-red-950 transition-colors"
+            @click="fecharModalDeus"
+            class="deuses-modal-close-btn rounded-xl px-6 py-2 text-base transition-colors"
           >
             Fechar
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import Modal from '@/components/Modal.vue'
+import VSelect from '@/components/VSelect.vue'
+import TemaDarkLight from '@/components/TemaDarkLight.vue'
+import HamburgerDrawerMenu from '@/components/HamburgerDrawerMenu.vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import pharasmaImage from '@/assets/images/pharasma.jpg'
+import { listPublicGods as listarDeusesPublicos } from '@/lib/api/gods.api'
+import type { GodApi } from '@/types/supabase'
+import pharasmaImage from '@/assets/images/pharasma.png'
 import asmodeusImage from '@/assets/images/asmodeus.png'
-import inariImage from '@/assets/images/Inari.png'
-import iomedaeImage from '@/assets/images/iomedae.jpg'
-import sarenraeImage from '@/assets/images/sarenrae.jpg'
+import inariImage from '@/assets/images/inari.png'
+import iomedaeImage from '@/assets/images/iomedae.png'
+import sarenraeImage from '@/assets/images/sarenrae.png'
 
-const router = useRouter()
-const authStore = useAuthStore()
-const selectedGod = ref<number | null>(null)
+const roteador = useRouter()
+const rota = useRoute()
+const lojaAuth = useAuthStore()
+const deusSelecionado = ref<number | null>(null)
+const mostrarMenuConfiguracoes = ref(false)
+const temaClaroAtivo = ref(false)
+const filtroNome = ref('')
+type AlignmentFilter = 'all' | 'good' | 'neutral' | 'evil' | 'neutral-good' | 'neutral-evil'
 
-const gods = [
+const filtroAlinhamento = ref<AlignmentFilter>('all')
+const deusesApi = ref<any[]>([])
+
+const opcoesAlinhamento: Array<{ value: AlignmentFilter; label: string }> = [
+  { value: 'all', label: 'Todos' },
+  { value: 'good', label: 'Bom' },
+  { value: 'evil', label: 'Maligno' },
+  { value: 'neutral', label: 'Neutro' },
+  { value: 'neutral-good', label: 'Neutro Bom' },
+  { value: 'neutral-evil', label: 'Neutro Maligno' },
+]
+
+const itensMenuCabecalhoDeuses = [
+  { id: 'back', label: 'Voltar' },
+  { id: 'dashboard', label: 'Personagem' },
+  { id: 'deuses', label: 'Deuses' },
+  { id: 'cidade', label: 'Cidade' },
+  { id: 'skills', label: 'Skills' },
+  { id: 'titulos', label: 'Titulos' },
+  { id: 'classes', label: 'Classes' },
+  { id: 'npcs', label: 'NPCs' },
+  { id: 'notas', label: 'Notas' },
+]
+
+const itemCabecalhoDeusesAtivo = computed(() => {
+  if (rota.name === 'deuses') return 'deuses'
+  if (rota.name === 'dashboard') return 'dashboard'
+  if (rota.name === 'cidade') return 'cidade'
+
+  const path = rota.path || ''
+  if (path.startsWith('/skills')) return 'skills'
+  if (path.startsWith('/titulos')) return 'titulos'
+  if (path.startsWith('/classes')) return 'classes'
+  if (path.startsWith('/npcs')) return 'npcs'
+  if (path.startsWith('/notas')) return 'notas'
+
+  return null
+})
+
+const staticGods = [
   {
     name: 'Pharasma',
     title: 'A Senhora das Sepulturas',
@@ -303,7 +470,7 @@ const gods = [
     shortDescription:
       'Deusa do nascimento, morte, destino e tempo. Julga todas as almas com frieza.',
     description:
-      'Conhecimento comum: Pharasma é a deusa do nascimento, morte, destino, profecia e tempo. Ela observa todo o fluxo do tempo e julga as almas recém-partidas de Elyra. Ao morrer, as almas viajam pelo Rio das Almas até o Boneyard, onde ela as julga do alto de uma torre impossivelmente alta que perfura o Plano Astral. Pharasma não se importa se uma morte foi justa ou injusta — ela vê todas com frieza e imparcialidade, decidindo apenas para qual dos Planos Exteriores cada alma seguirá pela eternidade. Ela também é a deusa do nascimento e da profecia: desde o momento em que uma criatura nasce, ela já enxerga seu destino final, mas só dá o veredito quando a alma chega diante dela. Capaz de reter um julgamento, ela nunca o fez, enviando até mesmo almas que beneficiariam deuses que ela despreza. Como deusa da morte e do renascimento, ela abomina os mortos-vivos, considerando-os uma perversão do ciclo natural, e ordena que seus seguidores destruam todas as criaturas não-mortas. Entre os próprios deuses, Pharasma cumpre um papel único: ela é a balança. Fiscaliza os atos de todas as divindades, sejam do bem ou do mal, para que nenhum ultrapasse os limites que regem o multiverso. Como uma das três Deusas Pilares que construíram Elyra ao lado de Asmodeus, seus poderes são análogos em escala e profundidade. Asmodeus a respeita — não por hesitação ou medo, mas porque ambas sabem que um conflito direto entre elas traria o fim absoluto do universo que ajudaram a criar. Há boatos entre os seguidores de Liriel que a Guardiã da Misericórdia a visita frequentemente, buscando conselho e talvez um afeto silencioso que a própria Pharasma nunca confirma nem nega.',
+      'Conhecimento comum: Pharasma é a deusa do nascimento, morte, destino, profecia e tempo. Ela observa todo o fluxo do tempo e julga as almas recém-partidas de Elyra. Ao morrer, as almas viajam pelo Rio das Almas até o Boneyard, onde ela as julga do alto de uma torre impossivelmente alta que perfura o Plano Astral. Pharasma não se importa se uma morte foi justa ou injusta — ela vê todas com frieza e imparcialidade, decidindo apenas para qual dos Planos Exteriores cada alma seguirá pela eternidade. Ela também é a deusa do nascimento e da profecidesde o momento em que uma criatura nasce, ela já enxerga seu destino final, mas só dá o veredito quando a alma chega diante dela. Capaz de reter um julgamento, ela nunca o fez, enviando até mesmo almas que beneficiariam deuses que ela despreza. Como deusa da morte e do renascimento, ela abomina os mortos-vivos, considerando-os uma perversão do ciclo natural, e ordena que seus seguidores destruam todas as criaturas não-mortas. Entre os próprios deuses, Pharasma cumpre um papel único: ela é a balança. Fiscaliza os atos de todas as divindades, sejam do bem ou do mal, para que nenhum ultrapasse os limites que regem o multiverso. Como uma das três Deusas Pilares que construíram Elyra ao lado de Asmodeus, seus poderes são análogos em escala e profundidade. Asmodeus a respeita — não por hesitação ou medo, mas porque ambas sabem que um conflito direto entre elas traria o fim absoluto do universo que ajudaram a criar. Há boatos entre os seguidores de Liriel que a Guardiã da Misericórdia a visita frequentemente, buscando conselho e talvez um afeto silencioso que a própria Pharasma nunca confirma nem nega.',
     anatema:
       'Criar ou tolerar mortos-vivos, interferir diretamente no ciclo natural de uma alma, julgar com paixão ou favoritismo.',
     dogma:
@@ -620,50 +787,244 @@ const gods = [
   // ... (os outros deuses seguem o mesmo padrão - posso adicionar todos se quiser)
 ]
 
-const goBack = () => {
-  router.push({
-    name: 'dashboard',
-    query: authStore.activeCharacterId ? { characterId: authStore.activeCharacterId } : undefined,
-  })
+const pickFirstText = (...values: Array<string | undefined | null>) => {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) return value.trim()
+  }
+
+  return ''
 }
 
-const showGodModal = (index: number) => {
-  selectedGod.value = index
+const findStaticGodByName = (name?: string) => {
+  const normalizedName = normalizeText(name || '')
+  if (!normalizedName) return null
+
+  return staticGods.find((god) => normalizeText(god.name || '') === normalizedName) ?? null
 }
 
-const closeGodModal = () => {
-  selectedGod.value = null
-}
+const mapApiGodToDisplayGod = (god: Partial<GodApi> | null | undefined) => {
+  const source = god && typeof god === 'object' ? god : {}
+  const fallbackGod = findStaticGodByName(source.name)
+  const fallbackDescription = pickFirstText(
+    source.shortDescription,
+    source.description,
+    fallbackGod?.shortDescription,
+    fallbackGod?.description,
+    'Sem descricao cadastrada.',
+  )
 
-const handleWindowKeydown = (event: KeyboardEvent) => {
-  if (event.key === 'Escape' && selectedGod.value !== null) {
-    closeGodModal()
+  return {
+    name: pickFirstText(source.name, fallbackGod?.name, 'Sem nome'),
+    title: pickFirstText(source.title, fallbackGod?.title),
+    alinhamento: pickFirstText(source.indole, fallbackGod?.alinhamento, 'Neutro'),
+    icon: pickFirstText(fallbackGod?.icon, '✦'),
+    iconImage: pickFirstText(source.imageUrl, fallbackGod?.iconImage),
+    cardImagePosition: pickFirstText(fallbackGod?.cardImagePosition, 'center 22%'),
+    modalImagePosition: pickFirstText(fallbackGod?.modalImagePosition, 'center 16%'),
+    shortDescription: fallbackDescription,
+    description: pickFirstText(source.description, fallbackGod?.description, fallbackDescription),
+    anatema: pickFirstText(source.anatema, fallbackGod?.anatema, 'Nao informado.'),
+    dogma: pickFirstText(source.dogma, fallbackGod?.dogma, 'Nao informado.'),
+    weapons: pickFirstText(source.weapons, fallbackGod?.weapons, 'Nao informado.'),
   }
 }
 
-const normalizeAlignment = (alignment: string) =>
-  alignment
+const deuses = computed(() => {
+  const nomesNormalizados = new Set<string>()
+  const listaCombinada: any[] = []
+
+  for (const deus of deusesApi.value) {
+    const chave = normalizeText(deus.name || '')
+    if (!chave) continue
+    nomesNormalizados.add(chave)
+    listaCombinada.push(deus)
+  }
+
+  for (const deus of staticGods) {
+    const chave = normalizeText(deus.name || '')
+    if (!chave || nomesNormalizados.has(chave)) continue
+    listaCombinada.push(deus)
+  }
+
+  return listaCombinada
+})
+
+const dadosDeusSelecionado = computed(() => {
+  const indice = deusSelecionado.value
+  if (indice === null) return null
+  return deuses.value[indice] ?? null
+})
+
+const buscarDeusesPublicos = async () => {
+  try {
+    const deusesBuscados = await listarDeusesPublicos()
+    deusesApi.value = (Array.isArray(deusesBuscados) ? deusesBuscados : []).map(
+      mapApiGodToDisplayGod,
+    )
+  } catch {
+    deusesApi.value = []
+  }
+}
+
+const voltar = () => {
+  roteador.push({
+    name: 'dashboard',
+    query: lojaAuth.activeCharacterId ? { characterId: lojaAuth.activeCharacterId } : undefined,
+  })
+}
+
+const alternarMenuConfiguracoes = () => {
+  mostrarMenuConfiguracoes.value = !mostrarMenuConfiguracoes.value
+}
+
+const fecharMenuConfiguracoes = () => {
+  mostrarMenuConfiguracoes.value = false
+}
+
+const irParaDashboard = () => {
+  fecharMenuConfiguracoes()
+  roteador.push({
+    name: 'dashboard',
+    query: lojaAuth.activeCharacterId ? { characterId: lojaAuth.activeCharacterId } : undefined,
+  })
+}
+
+async function aoSelecionarMenuCabecalho(itemId: string) {
+  fecharMenuConfiguracoes()
+
+  if (itemId === 'back') {
+    voltar()
+    return
+  }
+
+  if (itemId === 'dashboard') {
+    irParaDashboard()
+    return
+  }
+
+  if (itemId === 'deuses') {
+    await roteador.push('/deuses')
+    return
+  }
+
+  const routeMap: Record<string, string> = {
+    cidade: '/cidade',
+    skills: '/skills',
+    titulos: '/titulos',
+    classes: '/classes',
+    npcs: '/npcs',
+    notas: '/notas',
+  }
+
+  const target = routeMap[itemId]
+  if (!target) return
+
+  await roteador.push(target)
+}
+
+const sair = async () => {
+  fecharMenuConfiguracoes()
+  try {
+    await lojaAuth.signOut()
+  } finally {
+    roteador.push({ name: 'login' })
+  }
+}
+
+const abrirModalDeus = (index: number) => {
+  if (index < 0 || index >= deuses.value.length) return
+  deusSelecionado.value = index
+}
+
+const fecharModalDeus = () => {
+  deusSelecionado.value = null
+}
+
+const limparFiltroNome = () => {
+  filtroNome.value = ''
+}
+
+const aoPressionarTeclaJanela = (event: KeyboardEvent) => {
+  if (event.key === 'Escape' && deusSelecionado.value !== null) {
+    fecharModalDeus()
+  }
+
+  if (event.key === 'Escape' && mostrarMenuConfiguracoes.value) {
+    fecharMenuConfiguracoes()
+  }
+}
+
+const aoClicarJanela = () => {
+  fecharMenuConfiguracoes()
+}
+
+const normalizeText = (value: unknown) => {
+  if (typeof value !== 'string') return ''
+
+  return value
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .trim()
+}
 
-const godsWithIndex = computed(() => gods.map((god, index) => ({ god, index })))
+const normalizarAlinhamento = (alignment: string) => normalizeText(alignment)
 
-const isNeutralAlignment = (alignment: string) => normalizeAlignment(alignment).includes('neutr')
+const ehAlinhamentoNeutro = (alignment: string) =>
+  normalizarAlinhamento(alignment).includes('neutr')
 
-const isEvilAlignment = (alignment: string) => {
-  const normalized = normalizeAlignment(alignment)
+const ehAlinhamentoMaligno = (alignment: string) => {
+  const normalized = normalizarAlinhamento(alignment)
   return normalized.includes('maligno') || normalized.includes('maligna')
 }
 
-const isGoodAlignment = (alignment: string) => {
-  const normalized = normalizeAlignment(alignment)
+const ehAlinhamentoBom = (alignment: string) => {
+  const normalized = normalizarAlinhamento(alignment)
   return normalized.includes('bom') || normalized.includes('boa')
 }
 
-const neutralPriority = (alignment: string) => {
-  const normalized = normalizeAlignment(alignment)
+const ehAlinhamentoNeutroBom = (alignment: string) =>
+  ehAlinhamentoNeutro(alignment) && ehAlinhamentoBom(alignment)
+
+const ehAlinhamentoNeutroMaligno = (alignment: string) =>
+  ehAlinhamentoNeutro(alignment) && ehAlinhamentoMaligno(alignment)
+
+const ehAlinhamentoBomEstrito = (alignment: string) =>
+  ehAlinhamentoBom(alignment) && !ehAlinhamentoNeutro(alignment)
+
+const ehAlinhamentoMalignoEstrito = (alignment: string) =>
+  ehAlinhamentoMaligno(alignment) && !ehAlinhamentoNeutro(alignment)
+
+const deusesComIndice = computed(() => deuses.value.map((god, index) => ({ god, index })))
+
+const correspondeFiltroAlinhamento = (alignment: string) => {
+  if (filtroAlinhamento.value === 'all') return true
+  if (filtroAlinhamento.value === 'good') return ehAlinhamentoBomEstrito(alignment)
+  if (filtroAlinhamento.value === 'neutral') return ehAlinhamentoNeutro(alignment)
+  if (filtroAlinhamento.value === 'evil') return ehAlinhamentoMalignoEstrito(alignment)
+  if (filtroAlinhamento.value === 'neutral-good') return ehAlinhamentoNeutroBom(alignment)
+  if (filtroAlinhamento.value === 'neutral-evil') return ehAlinhamentoNeutroMaligno(alignment)
+  return true
+}
+
+const deusesFiltradosComIndice = computed(() => {
+  const filtro = normalizeText(filtroNome.value)
+  if (!filtro && filtroAlinhamento.value === 'all') return deusesComIndice.value
+
+  return deusesComIndice.value.filter(
+    ({ god }) =>
+      normalizeText(god.name || '').includes(filtro) &&
+      correspondeFiltroAlinhamento(god.alinhamento),
+  )
+})
+
+const haFiltroAtivo = computed(
+  () => normalizeText(filtroNome.value).length > 0 || filtroAlinhamento.value !== 'all',
+)
+const haResultadosFiltrados = computed(() => deusesFiltradosComIndice.value.length > 0)
+
+const prioridadeNeutra = (alignment: string) => {
+  const normalized = normalizarAlinhamento(alignment)
   const isNeutralEvil =
     normalized.includes('neutr') &&
     (normalized.includes('maligno') || normalized.includes('maligna'))
@@ -684,34 +1045,62 @@ const neutralPriority = (alignment: string) => {
   return 3
 }
 
-const evilGods = computed(() =>
-  godsWithIndex.value.filter(
-    ({ god }) => isEvilAlignment(god.alinhamento) && !isNeutralAlignment(god.alinhamento),
-  ),
+const ordenarPorNomeDeus = (a: { god: { name?: string } }, b: { god: { name?: string } }) =>
+  (a.god.name || '').localeCompare(b.god.name || '', 'pt-BR', { sensitivity: 'base' })
+
+const deusesMalignos = computed(() =>
+  deusesFiltradosComIndice.value
+    .filter(
+      ({ god }) => ehAlinhamentoMaligno(god.alinhamento) && !ehAlinhamentoNeutro(god.alinhamento),
+    )
+    .sort(ordenarPorNomeDeus),
 )
 
-const neutralGods = computed(() =>
-  godsWithIndex.value
-    .filter(({ god }) => isNeutralAlignment(god.alinhamento))
-    .sort((a, b) => neutralPriority(a.god.alinhamento) - neutralPriority(b.god.alinhamento)),
+const deusesNeutros = computed(() =>
+  deusesFiltradosComIndice.value
+    .filter(({ god }) => ehAlinhamentoNeutro(god.alinhamento))
+    .sort(
+      (a, b) =>
+        prioridadeNeutra(a.god.alinhamento) - prioridadeNeutra(b.god.alinhamento) ||
+        ordenarPorNomeDeus(a, b),
+    ),
 )
 
-const goodGods = computed(() =>
-  godsWithIndex.value.filter(
-    ({ god }) => isGoodAlignment(god.alinhamento) && !isNeutralAlignment(god.alinhamento),
-  ),
+const deusesBons = computed(() =>
+  deusesFiltradosComIndice.value
+    .filter(({ god }) => ehAlinhamentoBom(god.alinhamento) && !ehAlinhamentoNeutro(god.alinhamento))
+    .sort(ordenarPorNomeDeus),
 )
+
+let observadorTema: MutationObserver | null = null
+
+function sincronizarTemaHtml() {
+  temaClaroAtivo.value = document.documentElement.classList.contains('theme-light')
+}
 
 onMounted(() => {
-  window.addEventListener('keydown', handleWindowKeydown)
+  sincronizarTemaHtml()
+  observadorTema = new MutationObserver(sincronizarTemaHtml)
+  observadorTema.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['class'],
+  })
+
+  buscarDeusesPublicos()
+  window.addEventListener('keydown', aoPressionarTeclaJanela)
+  window.addEventListener('click', aoClicarJanela)
 })
 
 onBeforeUnmount(() => {
-  window.removeEventListener('keydown', handleWindowKeydown)
+  observadorTema?.disconnect()
+  observadorTema = null
+
+  window.removeEventListener('keydown', aoPressionarTeclaJanela)
+  window.removeEventListener('click', aoClicarJanela)
 })
 
 const getAlignmentClass = (alignment: string) => {
-  const normalized = normalizeAlignment(alignment)
+  const normalized = normalizarAlinhamento(alignment)
 
   const isNeutralGood =
     (normalized.includes('neutr') && normalized.includes('bom')) ||
@@ -739,9 +1128,193 @@ const getAlignmentClass = (alignment: string) => {
 </script>
 
 <style scoped>
+.deuses-view {
+  background: var(--bg-page);
+  color: var(--text-main);
+}
+
+.deuses-backdrop {
+  background: linear-gradient(
+    145deg,
+    rgb(148 163 184 / 0.14),
+    rgb(79 70 229 / 0.08),
+    rgb(30 41 59 / 0.1)
+  );
+}
+
+.deuses-header {
+  border-color: var(--border-soft);
+  background: color-mix(in srgb, var(--bg-card) 88%, transparent 12%);
+  backdrop-filter: blur(8px);
+}
+
+.header-title {
+  color: var(--brand-primary);
+}
+
+.header-link {
+  color: var(--text-muted);
+}
+
+.header-link:hover {
+  color: var(--text-main);
+}
+
+.deuses-title {
+  color: var(--brand-primary);
+  text-shadow: 0 6px 20px rgb(30 41 59 / 0.16);
+}
+
+.deuses-subtitle {
+  color: var(--text-muted);
+}
+
+.deuses-filter-label {
+  color: var(--text-muted);
+}
+
+.deuses-input {
+  border-color: var(--border-soft);
+  background: color-mix(in srgb, var(--bg-card) 92%, #fff 8%);
+  color: var(--text-main);
+}
+
+.deuses-input:focus {
+  border-color: var(--brand-primary);
+}
+
+.deuses-section-title {
+  color: color-mix(in srgb, var(--text-main) 85%, var(--brand-primary) 15%);
+}
+
+.deuses-section-evil {
+  color: color-mix(in srgb, var(--brand-primary-strong) 70%, #f97316 30%);
+}
+
+.deuses-section-good {
+  color: color-mix(in srgb, var(--brand-primary) 70%, #0ea5e9 30%);
+}
+
+.deuses-card {
+  border-color: var(--border-soft);
+  background: color-mix(in srgb, var(--bg-card) 92%, #fff 8%);
+}
+
+.deuses-card:hover {
+  border-color: var(--brand-primary);
+}
+
+.deuses-card-image {
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--brand-primary) 30%, #1e293b 70%),
+    #1e293b
+  );
+}
+
+.deuses-card-text {
+  color: color-mix(in srgb, var(--text-main) 85%, #64748b 15%);
+}
+
+:deep(.deuses-modal-panel) {
+  border: 1px solid var(--border-soft);
+  background: var(--bg-card) !important;
+  box-shadow: 0 24px 50px rgb(15 23 42 / 0.22);
+}
+
+.deuses-modal-media {
+  border-color: var(--border-soft);
+  background: linear-gradient(180deg, #fff, color-mix(in srgb, var(--bg-soft) 82%, #fff 18%));
+}
+
+.deuses-modal-media-mask {
+  background: rgb(0 0 0 / 0.18);
+}
+
+.deuses-modal-media-gradient {
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--bg-card) 96%, #fff 4%),
+    color-mix(in srgb, var(--bg-card) 54%, transparent 46%),
+    transparent
+  );
+}
+
+.deuses-modal-media-gradient-hidden {
+  display: none;
+}
+
+.deuses-modal-name {
+  line-height: 1.08;
+  text-shadow: 0 6px 16px rgb(15 23 42 / 0.28);
+}
+
+.deuses-modal-subtitle {
+  margin-top: 0.45rem;
+  font-size: 1.6rem;
+  line-height: 1.35;
+  color: var(--text-muted);
+}
+
+.deuses-modal-content {
+  background: var(--bg-card);
+  color: var(--text-main);
+}
+
+.deuses-modal-section-title {
+  color: color-mix(in srgb, var(--brand-primary) 70%, #f97316 30%);
+}
+
+.deuses-modal-footer {
+  border-color: var(--border-soft);
+  background: color-mix(in srgb, var(--bg-soft) 70%, #fff 30%);
+}
+
+.deuses-modal-close-btn {
+  border: 1px solid var(--border-soft);
+  background: var(--bg-card);
+  color: var(--text-main);
+}
+
+.deuses-modal-close-btn:hover {
+  background: var(--accent-soft);
+}
+
+.god-overlay-content {
+  z-index: 2;
+}
+
+.god-overlay-name {
+  line-height: 1.15;
+  text-shadow: 0 10px 24px rgb(15 23 42 / 0.45);
+}
+
+.god-overlay-title {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+  padding: 0.3rem 0.75rem;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: 999px;
+  background: rgb(15 23 42 / 0.42);
+  color: rgb(248 250 252 / 0.98);
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.35;
+  text-shadow: 0 8px 22px rgb(15 23 42 / 0.45);
+  backdrop-filter: blur(3px);
+}
+
 .deuses-modal-scroll {
+  background: var(--bg-card);
   scrollbar-width: thin;
   scrollbar-color: rgba(107, 78, 158, 0.9) rgba(10, 15, 28, 0.75);
+}
+
+.deuses-modal-scroll-light {
+  background: #ffffff;
+  scrollbar-color: rgba(107, 78, 158, 0.95) #ffffff;
 }
 
 .deuses-modal-scroll::-webkit-scrollbar {
@@ -761,5 +1334,118 @@ const getAlignmentClass = (alignment: string) => {
 
 .deuses-modal-scroll::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(180deg, rgba(248, 113, 113, 0.9), rgba(107, 78, 158, 1));
+}
+
+.deuses-modal-scroll-light::-webkit-scrollbar-track {
+  background: #ffffff;
+  border-left: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.deuses-modal-scroll-light::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(139, 92, 246, 0.78), rgba(107, 78, 158, 0.95));
+  border: 2px solid #ffffff;
+}
+
+:global(html.theme-dark) .deuses-backdrop {
+  background: linear-gradient(
+    145deg,
+    rgb(15 23 42 / 0.84),
+    rgb(30 41 59 / 0.78),
+    rgb(31 27 74 / 0.76)
+  );
+}
+
+:global(html.theme-dark) .deuses-header {
+  background: rgb(2 6 23 / 0.68);
+}
+
+:global(html.theme-dark) .header-link {
+  color: #cbd5e1;
+}
+
+:global(html.theme-dark) .header-link:hover {
+  color: #f8fafc;
+}
+
+:global(html.theme-dark) .deuses-input {
+  border-color: rgb(107 78 158 / 0.4);
+  background: rgb(2 6 23 / 0.6);
+  color: #e2e8f0;
+}
+
+:global(html.theme-dark) .deuses-card {
+  border-color: rgb(107 78 158 / 0.4);
+  background: rgb(2 6 23 / 0.72);
+}
+
+:global(html.theme-dark) .deuses-card-text {
+  color: #94a3b8;
+}
+
+:global(html.theme-dark) :deep(.deuses-modal-panel) {
+  border-color: rgb(107 78 158 / 0.5);
+  background: #1a2438 !important;
+  box-shadow: 0 28px 56px rgb(0 0 0 / 0.45);
+}
+
+:global(html.theme-dark) .deuses-modal-scroll {
+  background: #0b1220;
+}
+
+:global(html.theme-dark) .deuses-modal-media {
+  border-color: rgb(107 78 158 / 0.3);
+  background: #111a2d;
+}
+
+:global(html.theme-dark) .deuses-modal-media-mask {
+  background: rgb(0 0 0 / 0.35);
+}
+
+:global(html.theme-dark) .deuses-modal-media-gradient {
+  background: linear-gradient(to top, #111a2d, rgb(17 26 45 / 0.7), transparent);
+}
+
+:global(html.theme-dark) .deuses-modal-subtitle {
+  color: #94a3b8;
+}
+
+:global(html.theme-dark) .deuses-modal-content {
+  background: #0b1220;
+  color: #cbd5e1;
+}
+
+:global(html.theme-dark) .deuses-modal-footer {
+  border-color: rgb(107 78 158 / 0.3);
+  background: #0b1426;
+}
+
+:global(html.theme-dark) .deuses-modal-close-btn {
+  border-color: #334155;
+  background: #111827;
+  color: #e2e8f0;
+}
+
+:global(html.theme-dark) .deuses-modal-close-btn:hover {
+  background: #1f2937;
+}
+
+:global(html.theme-light) .deuses-modal-name.text-red-300 {
+  color: #b91c1c;
+}
+
+:global(html.theme-light) .deuses-modal-name.text-blue-300 {
+  color: #1d4ed8;
+}
+
+:global(html.theme-light) .deuses-modal-name.text-sky-300 {
+  color: #0369a1;
+}
+
+:global(html.theme-light) .deuses-modal-name.text-rose-300 {
+  color: #be123c;
+}
+
+:global(html.theme-light) .deuses-modal-name.text-zinc-400 {
+  color: #475569;
 }
 </style>

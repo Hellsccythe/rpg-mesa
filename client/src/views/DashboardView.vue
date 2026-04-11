@@ -1,64 +1,30 @@
 <template>
-  <div class="min-h-screen bg-[#0A0F1C] text-white relative overflow-hidden">
+  <div class="min-h-screen bg-[#0A0F1C] text-white relative overflow-x-hidden">
     <div class="absolute inset-0 bg-gradient-to-br from-[#0F1C3A] via-[#1A2438] to-[#2A1B4A]/80" />
 
     <div class="relative z-10 min-h-screen flex flex-col">
       <header
-        class="h-16 border-b border-[#6B4E9E]/30 bg-black/50 backdrop-blur-md px-6 flex items-center justify-between"
+        class="dashboard-header relative z-50 h-16 border-b px-6 flex items-center justify-between"
       >
-        <button
-          @click="goBack"
-          class="text-3xl text-zinc-300 hover:text-white transition-colors flex items-center gap-2"
-        >
-          ‹ <span class="text-base font-medium">Voltar</span>
-        </button>
-
         <div class="flex items-center gap-3">
-          <span class="text-2xl font-bold tracking-widest text-red-400">Caminho Sem Volta</span>
+          <HamburgerDrawerMenu
+            :items="dashboardHeaderMenuItems"
+            :active-item-id="activeDashboardHeaderItem"
+            aria-label="Abrir menu de navegacao"
+            @select="handleHeaderMenuSelect"
+          />
         </div>
 
-        <nav class="flex items-center gap-8 text-lg font-medium">
-          <router-link to="/dashboard" class="text-zinc-400 hover:text-white transition-colors">
-            Personagem
-          </router-link>
+        <div class="flex items-center gap-3">
+          <span class="header-title text-2xl font-bold tracking-widest">Caminho Sem Volta</span>
+        </div>
 
-          <router-link to="/deuses" class="text-zinc-400 hover:text-white transition-colors">
-            Deuses
-          </router-link>
-
-          <router-link to="/cidade" class="text-zinc-400 hover:text-white transition-colors">
-            Cidade
-          </router-link>
-
-          <router-link to="/skills" class="text-zinc-400 hover:text-white transition-colors">
-            Skills
-          </router-link>
-
-          <router-link to="/titulos" class="text-zinc-400 hover:text-white transition-colors">
-            Titulos
-          </router-link>
-
-          <router-link to="/classes" class="text-zinc-400 hover:text-white transition-colors">
-            Classes
-          </router-link>
-
-          <router-link to="/npcs" class="text-zinc-400 hover:text-white transition-colors">
-            NPCs
-          </router-link>
-
-          <router-link to="/notas" class="text-zinc-400 hover:text-white transition-colors">
-            Notas de Aventura
-          </router-link>
-        </nav>
-
-        <div class="flex items-center gap-6 text-2xl text-zinc-300">
-          <button class="rounded-lg px-2 py-1 text-sm hover:text-[#C8D0E0] transition-colors">
-            PERFIL
-          </button>
+        <div class="flex items-center gap-6 text-2xl">
+          <button class="header-link rounded-lg px-2 py-1 text-sm transition-colors">PERFIL</button>
           <div class="relative" @click.stop>
             <button
               @click="toggleSettingsMenu"
-              class="hover:text-[#C8D0E0] transition-colors"
+              class="header-link transition-colors"
               title="Abrir menu"
               aria-label="Abrir menu de configuracoes"
             >
@@ -86,7 +52,7 @@
         </div>
       </header>
 
-      <main class="flex-1 px-6 md:px-12 py-10">
+      <main class="relative z-0 flex-1 px-6 md:px-12 py-10">
         <div v-if="loading" class="h-full flex items-center justify-center text-xl text-zinc-400">
           Carregando personagem...
         </div>
@@ -115,9 +81,7 @@
 
         <div v-else-if="character" class="grid grid-cols-1 lg:grid-cols-12 gap-8">
           <div class="lg:col-span-4">
-            <div
-              class="bg-gradient-to-br from-[#2A1B4A] to-[#1A2438] border border-[#6B4E9E]/40 rounded-3xl p-6"
-            >
+            <div class="character-panel border border-[#6B4E9E]/40 rounded-3xl p-6">
               <div
                 class="aspect-[4/5] relative rounded-2xl overflow-hidden border border-[#C8D0E0]/10 shadow-2xl"
               >
@@ -129,14 +93,14 @@
                 />
                 <div
                   v-else
-                  class="w-full h-full flex items-center justify-center bg-[#0F1C3A] text-3xl font-semibold text-zinc-500"
+                  class="avatar-placeholder w-full h-full flex items-center justify-center text-3xl font-semibold"
                 >
                   SEM AVATAR
                 </div>
               </div>
 
               <button
-                class="mt-6 w-full py-5 bg-[#0F1C3A] hover:bg-[#2A1B4A] border border-[#6B4E9E]/50 rounded-2xl flex items-center justify-center gap-3 transition-all"
+                class="inventory-btn mt-6 w-full py-5 border border-[#6B4E9E]/50 rounded-2xl flex items-center justify-center gap-3 transition-all"
               >
                 <span class="font-medium">Inventario Rapido</span>
               </button>
@@ -166,16 +130,16 @@
 
             <button
               @click="openManagementModal"
-              class="mt-4 w-full max-w-lg py-6 text-2xl font-semibold bg-gradient-to-r from-[#6B4E9E] to-[#4C2D7A] hover:brightness-110 rounded-3xl transition-all shadow-xl shadow-purple-950"
+              class="management-btn mt-4 w-full max-w-lg py-6 text-2xl font-semibold rounded-3xl transition-all"
             >
               Gerenciamento de Personagem
             </button>
           </div>
 
           <div class="lg:col-span-3">
-            <div class="bg-[#1A2438]/80 border border-[#6B4E9E]/30 rounded-3xl p-7 h-full">
+            <div class="notes-panel border border-[#6B4E9E]/30 rounded-3xl p-7 h-full">
               <h3 class="text-2xl font-semibold mb-5 text-[#C8D0E0]">Notas da Campanha</h3>
-              <div class="text-zinc-300 leading-relaxed text-[15px] min-h-[260px]">
+              <div class="notes-body leading-relaxed text-[15px] min-h-[260px]">
                 {{ historyPreview }}
               </div>
             </div>
@@ -442,8 +406,9 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Modal from '@/components/Modal.vue'
+import HamburgerDrawerMenu from '@/components/HamburgerDrawerMenu.vue'
 import { getHistoryDocumentSignedUrl } from '@/lib/supabase/storage'
-import { useAuthStore } from '@/stores/auth'
+import { clearStoredAuthMeta, useAuthStore } from '@/stores/auth'
 import { useCharactersStore } from '@/stores/characters'
 import { useMasterApprovalsStore } from '@/stores/masterApprovals'
 import type { PersonagemApi } from '@/types/supabase'
@@ -476,6 +441,32 @@ const feedback = ref('')
 const feedbackIsError = ref(false)
 
 const pendingApprovals = computed(() => masterApprovalsStore.pendingApprovals)
+const dashboardHeaderMenuItems = [
+  { id: 'back', label: 'Voltar' },
+  { id: 'dashboard', label: 'Personagem' },
+  { id: 'deuses', label: 'Deuses' },
+  { id: 'cidade', label: 'Cidade' },
+  { id: 'skills', label: 'Skills' },
+  { id: 'titulos', label: 'Titulos' },
+  { id: 'classes', label: 'Classes' },
+  { id: 'npcs', label: 'NPCs' },
+  { id: 'notas', label: 'Notas de Aventura' },
+]
+
+const activeDashboardHeaderItem = computed(() => {
+  if (route.name === 'dashboard') return 'dashboard'
+  if (route.name === 'deuses') return 'deuses'
+  if (route.name === 'cidade') return 'cidade'
+
+  const path = route.path || ''
+  if (path.startsWith('/skills')) return 'skills'
+  if (path.startsWith('/titulos')) return 'titulos'
+  if (path.startsWith('/classes')) return 'classes'
+  if (path.startsWith('/npcs')) return 'npcs'
+  if (path.startsWith('/notas')) return 'notas'
+
+  return null
+})
 
 const historyPreview = computed(() => {
   const txt = (character.value?.data?.history as string) || ''
@@ -490,7 +481,8 @@ const indoleLabel = computed(() => {
 })
 
 const goBack = () => {
-  router.push({ name: 'login' })
+  clearStoredAuthMeta()
+  router.push({ name: 'login', query: { force: '1' } })
 }
 
 const toggleSettingsMenu = () => {
@@ -499,6 +491,36 @@ const toggleSettingsMenu = () => {
 
 const closeSettingsMenu = () => {
   showSettingsMenu.value = false
+}
+
+async function handleHeaderMenuSelect(itemId: string) {
+  if (itemId === 'back') {
+    goBack()
+    return
+  }
+
+  if (itemId === 'dashboard') {
+    const characterId = getRequestedCharacterId()
+    await router.push(
+      characterId ? { name: 'dashboard', query: { characterId } } : { name: 'dashboard' },
+    )
+    return
+  }
+
+  const routeMap: Record<string, string> = {
+    deuses: '/deuses',
+    cidade: '/cidade',
+    skills: '/skills',
+    titulos: '/titulos',
+    classes: '/classes',
+    npcs: '/npcs',
+    notas: '/notas',
+  }
+
+  const target = routeMap[itemId]
+  if (!target) return
+
+  await router.push(target)
 }
 
 function initializeSettingsForm() {
@@ -825,3 +847,105 @@ watch(
   },
 )
 </script>
+
+<style scoped>
+.dashboard-header {
+  border-color: var(--border-soft);
+  background: color-mix(in srgb, var(--bg-card) 88%, transparent 12%);
+  backdrop-filter: blur(8px);
+}
+
+.header-title {
+  color: var(--brand-primary);
+}
+
+.header-link {
+  color: var(--text-muted);
+}
+
+.header-link:hover {
+  color: var(--text-main);
+}
+
+.character-panel {
+  background: var(--bg-card);
+}
+
+.avatar-placeholder {
+  background: var(--bg-soft);
+  color: var(--text-muted);
+}
+
+.inventory-btn {
+  background: var(--bg-soft);
+  color: var(--text-main);
+}
+
+.inventory-btn:hover {
+  background: var(--accent-soft);
+}
+
+.management-btn {
+  background: linear-gradient(90deg, var(--brand-primary), var(--brand-primary-strong));
+  color: #fff;
+  box-shadow: 0 12px 22px rgb(79 70 229 / 0.28);
+}
+
+.management-btn:hover {
+  filter: brightness(1.04);
+}
+
+.notes-panel {
+  background: var(--bg-soft);
+}
+
+.notes-body {
+  color: color-mix(in srgb, var(--text-main) 82%, #64748b 18%);
+}
+
+:global(html.theme-light) .notes-panel h3 {
+  color: var(--brand-primary) !important;
+}
+
+:global(html.theme-dark) .dashboard-header {
+  background: rgb(2 6 23 / 0.68);
+}
+
+:global(html.theme-dark) .header-link {
+  color: #cbd5e1;
+}
+
+:global(html.theme-dark) .header-link:hover {
+  color: #f8fafc;
+}
+
+:global(html.theme-dark) .character-panel {
+  background: #111a2d;
+}
+
+:global(html.theme-dark) .avatar-placeholder {
+  background: #0f1c3a;
+  color: #64748b;
+}
+
+:global(html.theme-dark) .inventory-btn {
+  background: #0f1c3a;
+  color: #cbd5e1;
+}
+
+:global(html.theme-dark) .inventory-btn:hover {
+  background: #1a2438;
+}
+
+:global(html.theme-dark) .management-btn {
+  box-shadow: 0 12px 22px rgb(12 16 40 / 0.55);
+}
+
+:global(html.theme-dark) .notes-panel {
+  background: rgb(26 36 56 / 0.8);
+}
+
+:global(html.theme-dark) .notes-body {
+  color: #d1d9e6;
+}
+</style>

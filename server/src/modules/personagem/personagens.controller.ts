@@ -80,6 +80,20 @@ export const personagensController = {
     return personagensService.listarSolicitacoesPendentes(accessToken);
   },
 
+  async listarEmailsPermitidosCriacaoPersonagem(accessToken?: string) {
+    return personagensService.listarEmailsPermitidosCriacaoPersonagem(accessToken);
+  },
+
+  async adicionarEmailPermitidoCriacaoPersonagem(email: string, accessToken?: string) {
+    if (!email?.trim()) throw new Error("Email e obrigatorio para liberacao");
+    return personagensService.adicionarEmailPermitidoCriacaoPersonagem(email, accessToken);
+  },
+
+  async removerEmailPermitidoCriacaoPersonagem(email: string, accessToken?: string) {
+    if (!email?.trim()) throw new Error("Email e obrigatorio para remocao");
+    return personagensService.removerEmailPermitidoCriacaoPersonagem(email, accessToken);
+  },
+
   async revisarSolicitacao(characterId: string, dto: RevisarSolicitacaoDto, accessToken?: string) {
     if (!characterId) throw new Error("ID do personagem é obrigatório");
     return personagensService.revisarSolicitacao(characterId, dto, accessToken);
