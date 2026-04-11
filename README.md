@@ -132,16 +132,27 @@ Notas:
 
 ### 4. Tabela para liberar emails de criacao (painel mestre)
 
-Para usar o cadastro de emails no menu do mestre, crie esta tabela no Supabase:
+Para usar o cadastro de emails no menu do mestre com soft delete + auditoria, crie esta tabela no Supabase:
 
 ```sql
+create extension if not exists pgcrypto;
+
 create table if not exists public.character_creation_whitelist (
-  email text primary key,
-  created_at timestamptz not null default now()
+  id uuid primary key default gen_random_uuid(),
+  email text not null unique,
+  created_at timestamptz not null default now(),
+  created_by uuid null references auth.users(id) on delete set null,
+  updated_at timestamptz not null default now(),
+  updated_by uuid null references auth.users(id) on delete set null,
+  deleted_at timestamptz null,
+  deleted_by uuid null references auth.users(id) on delete set null
 );
 ```
 
-Observacao: o sistema usa a uniao entre `CHARACTER_CREATION_ALLOWED_EMAILS` (env) e os emails desta tabela.
+Observacoes:
+
+- O sistema usa a uniao entre `CHARACTER_CREATION_ALLOWED_EMAILS` (env) e os emails ativos desta tabela.
+- O SQL completo alinhado com as tabelas usadas atualmente esta em `docs/SCHEMA_CURRENT.sql`.
 
 ## Executando em Desenvolvimento
 

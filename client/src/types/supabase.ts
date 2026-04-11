@@ -12,8 +12,11 @@ export interface Database {
           name: string
           level: number
           data: Json
+          avatar_url: string | null
           created_at: string
           updated_at: string
+          deleted_at: string | null
+          deleted_by: string | null
         }
         Insert: {
           id?: string
@@ -22,8 +25,11 @@ export interface Database {
           name: string
           level?: number
           data?: Json
+          avatar_url?: string | null
           created_at?: string
           updated_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
         }
         Update: {
           id?: string
@@ -32,11 +38,45 @@ export interface Database {
           name?: string
           level?: number
           data?: Json
+          avatar_url?: string | null
           created_at?: string
           updated_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
         }
       }
-      // Podemos adicionar classes e skills depois
+      character_creation_whitelist: {
+        Row: {
+          id: string
+          email: string
+          created_at: string
+          created_by: string | null
+          updated_at: string
+          updated_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+        }
+        Insert: {
+          id?: string
+          email: string
+          created_at?: string
+          created_by?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+        }
+        Update: {
+          id?: string
+          email?: string
+          created_at?: string
+          created_by?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+        }
+      }
     }
   }
 }

@@ -40,9 +40,9 @@ withDefaults(
 .tema-dark-light {
   --tdl-fonte-titulo: v-bind(fonteTitulo);
   --tdl-fonte-texto: v-bind(fonteTexto);
-  --tdl-cor-titulo: var(--brand-primary);
-  --tdl-cor-subtitulo: color-mix(in srgb, var(--text-main) 88%, var(--brand-primary) 12%);
-  --tdl-cor-kicker: color-mix(in srgb, var(--brand-primary) 72%, #4f46e5 28%);
+  --tdl-cor-titulo: var(--title-color);
+  --tdl-cor-subtitulo: color-mix(in srgb, var(--text-main) 86%, var(--title-color) 14%);
+  --tdl-cor-kicker: var(--brand-primary);
   --tdl-cor-texto: var(--text-main);
   --tdl-cor-texto-suave: var(--text-muted);
   --tdl-cor-label: var(--text-muted);
@@ -60,21 +60,21 @@ withDefaults(
 
 .variante-painel {
   border-color: color-mix(in srgb, var(--brand-primary) 35%, var(--border-soft) 65%);
-  background: color-mix(in srgb, var(--bg-card) 92%, #fff 8%);
-  box-shadow: 0 24px 50px rgb(15 23 42 / 0.18);
+  background: color-mix(in srgb, var(--bg-card) 92%, var(--bg-soft) 8%);
+  box-shadow: 0 24px 50px rgb(15 23 42 / 0.14);
 }
 
 .variante-cartao {
-  background: color-mix(in srgb, var(--bg-card) 92%, #fff 8%);
+  background: color-mix(in srgb, var(--bg-card) 94%, var(--bg-soft) 6%);
 }
 
 .variante-item {
-  background: color-mix(in srgb, var(--bg-card) 90%, #0b1426 10%);
+  background: color-mix(in srgb, var(--bg-card) 88%, var(--bg-soft) 12%);
   border-color: color-mix(in srgb, var(--border-soft) 86%, transparent 14%);
 }
 
 .variante-aviso {
-  background: color-mix(in srgb, var(--bg-card) 92%, #fff 8%);
+  background: color-mix(in srgb, var(--bg-card) 92%, var(--bg-soft) 8%);
   color: var(--tdl-cor-texto-suave);
 }
 
@@ -94,50 +94,50 @@ withDefaults(
 
 .tema-claro.variante-painel {
   border-color: color-mix(in srgb, var(--brand-primary) 35%, var(--border-soft) 65%);
-  background: color-mix(in srgb, var(--bg-card) 92%, #fff 8%);
+  background: color-mix(in srgb, var(--bg-card) 92%, var(--bg-soft) 8%);
 }
 
 .tema-claro.variante-cartao,
 .tema-claro.variante-aviso {
   border-color: var(--border-soft);
-  background: color-mix(in srgb, var(--bg-card) 92%, #fff 8%);
+  background: color-mix(in srgb, var(--bg-card) 92%, var(--bg-soft) 8%);
 }
 
 .tema-claro.variante-item {
   border-color: color-mix(in srgb, var(--border-soft) 86%, transparent 14%);
-  background: color-mix(in srgb, var(--bg-card) 90%, #0b1426 10%);
+  background: color-mix(in srgb, var(--bg-card) 88%, var(--bg-soft) 12%);
 }
 
 .tema-escuro.variante-painel {
-  border-color: rgb(107 78 158 / 0.36);
-  background: rgb(17 26 45 / 0.8);
+  border-color: color-mix(in srgb, var(--brand-primary) 30%, var(--border-soft) 70%);
+  background: color-mix(in srgb, var(--bg-card) 92%, var(--bg-soft) 8%);
 }
 
 .tema-escuro.variante-cartao,
 .tema-escuro.variante-aviso {
-  border-color: rgb(107 78 158 / 0.36);
-  background: rgb(17 26 45 / 0.8);
+  border-color: color-mix(in srgb, var(--brand-primary) 26%, var(--border-soft) 74%);
+  background: color-mix(in srgb, var(--bg-card) 94%, var(--bg-soft) 6%);
 }
 
 .tema-escuro.variante-item {
-  border-color: rgb(107 78 158 / 0.28);
-  background: rgb(11 20 38 / 0.9);
+  border-color: color-mix(in srgb, var(--brand-primary) 24%, var(--border-soft) 76%);
+  background: color-mix(in srgb, var(--bg-card) 88%, var(--bg-soft) 12%);
 }
 
 :global(html.theme-dark) .variante-painel {
-  border-color: rgb(107 78 158 / 0.36);
-  background: rgb(17 26 45 / 0.8);
+  border-color: color-mix(in srgb, var(--brand-primary) 30%, var(--border-soft) 70%);
+  background: color-mix(in srgb, var(--bg-card) 92%, var(--bg-soft) 8%);
 }
 
 :global(html.theme-dark) .variante-cartao,
 :global(html.theme-dark) .variante-aviso {
-  border-color: rgb(107 78 158 / 0.36);
-  background: rgb(17 26 45 / 0.8);
+  border-color: color-mix(in srgb, var(--brand-primary) 26%, var(--border-soft) 74%);
+  background: color-mix(in srgb, var(--bg-card) 94%, var(--bg-soft) 6%);
 }
 
 :global(html.theme-dark) .variante-item {
-  border-color: rgb(107 78 158 / 0.28);
-  background: rgb(11 20 38 / 0.9);
+  border-color: color-mix(in srgb, var(--brand-primary) 24%, var(--border-soft) 76%);
+  background: color-mix(in srgb, var(--bg-card) 88%, var(--bg-soft) 12%);
 }
 
 .tema-dark-light :deep(.tdl-titulo),

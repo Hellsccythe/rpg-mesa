@@ -225,7 +225,7 @@
       v-if="pontoSelecionado"
       :show-close-button="false"
       overlay-class="bg-black/75 p-4"
-      panel-class="w-full max-w-3xl overflow-hidden rounded-3xl border border-[#6B4E9E]/45 bg-[#111A2D] shadow-2xl shadow-black/60"
+      panel-class="w-full max-w-3xl overflow-hidden rounded-3xl shadow-2xl shadow-black/60"
       body-class="p-0"
       @close="fecharPonto"
     >

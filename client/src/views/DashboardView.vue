@@ -150,9 +150,9 @@
 
     <Modal
       v-if="showSettingsModal && character"
-      panel-class="max-w-3xl border-[#6B4E9E]/50 bg-[#111A2D]"
+      panel-class="max-w-3xl"
       body-class="max-h-[75vh] overflow-y-auto p-6"
-      header-class="border-[#6B4E9E]/30 px-6 py-4"
+      header-class="px-6 py-4"
       @close="closeSettingsModal"
     >
       <template #header>

@@ -254,7 +254,7 @@
       v-if="showCreate"
       :show-close-button="false"
       overlay-class="bg-black/80 p-4"
-      panel-class="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-[#6B4E9E]/45 bg-[#111A2D]"
+      panel-class="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-3xl"
       body-class="p-5 sm:p-6"
       @close="closeCreateModal"
     >
