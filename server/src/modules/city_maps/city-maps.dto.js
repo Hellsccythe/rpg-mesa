@@ -23,4 +23,39 @@ __decorate([
     IsString(),
     __metadata("design:type", String)
 ], SalvarCityMapDto.prototype, "description", void 0);
+__decorate([
+    IsOptional(),
+    IsString(),
+    __metadata("design:type", String)
+], SalvarCityMapDto.prototype, "imageUrl", void 0);
+__decorate([
+    IsOptional(),
+    __metadata("design:type", Array)
+], SalvarCityMapDto.prototype, "pointsOfInterest", void 0);
+export class EditarCityMapDto {
+}
+__decorate([
+    IsOptional(),
+    IsString(),
+    __metadata("design:type", String)
+], EditarCityMapDto.prototype, "name", void 0);
+__decorate([
+    IsOptional(),
+    IsString(),
+    __metadata("design:type", String)
+], EditarCityMapDto.prototype, "mapReference", void 0);
+__decorate([
+    IsOptional(),
+    IsString(),
+    __metadata("design:type", String)
+], EditarCityMapDto.prototype, "description", void 0);
+__decorate([
+    IsOptional(),
+    IsString(),
+    __metadata("design:type", String)
+], EditarCityMapDto.prototype, "imageUrl", void 0);
+__decorate([
+    IsOptional(),
+    __metadata("design:type", Array)
+], EditarCityMapDto.prototype, "pointsOfInterest", void 0);
 //# sourceMappingURL=city-maps.dto.js.map

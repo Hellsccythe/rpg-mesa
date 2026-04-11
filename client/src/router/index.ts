@@ -2,6 +2,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { supabase } from '@/lib/supabase/client'
 import { clearStoredAuthMeta, getStoredAuthMeta, isStoredSessionExpired } from '@/stores/auth'
+import DeusesView from '@/views/DeusesView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -20,7 +21,13 @@ const router = createRouter({
     {
       path: '/deuses',
       name: 'deuses',
-      component: () => import('@/views/DeusesView.vue'),
+      component: DeusesView,
+      meta: { requiresAuth: false },
+    },
+    {
+      path: '/cidade',
+      name: 'cidade',
+      component: () => import('@/views/CidadeView.vue'),
       meta: { requiresAuth: true },
     },
     {
@@ -29,93 +36,138 @@ const router = createRouter({
       component: () => import('@/views/MasterPanelView.vue'),
       meta: { requiresAuth: true, requiresMaster: true },
     },
+    {
+      path: '/master/deuses',
+      name: 'master-gods',
+      component: () => import('@/views/MasterGodsView.vue'),
+      meta: { requiresAuth: true, requiresMaster: true },
+    },
+    {
+      path: '/master/mapas',
+      name: 'master-maps',
+      component: () => import('@/views/MasterMapsView.vue'),
+      meta: { requiresAuth: true, requiresMaster: true },
+    },
   ],
 })
 
+router.onError((error, to) => {
+  const message = String(error?.message ?? '').toLowerCase()
+  const isChunkError =
+    message.includes('failed to fetch dynamically imported module') ||
+    message.includes('importing a module script failed') ||
+    message.includes('loading chunk') ||
+    message.includes('chunkloaderror')
+
+  if (!isChunkError) return
+
+  const target = typeof to?.fullPath === 'string' && to.fullPath ? to.fullPath : '/'
+  const separator = target.includes('?') ? '&' : '?'
+  const retryUrl = `${target}${separator}retry=${Date.now()}`
+  window.location.replace(retryUrl)
+})
+
 router.beforeEach(async (to) => {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-  let sessionExpired = false
+  try {
+    const forceLogin = to.name === 'login' && String(to.query.force ?? '') === '1'
 
-  if (session && isStoredSessionExpired()) {
-    await supabase.auth.signOut()
-    clearStoredAuthMeta()
-    sessionExpired = true
-  }
-
-  const {
-    data: { session: refreshedSession },
-  } = await supabase.auth.getSession()
-  const authMeta = getStoredAuthMeta()
-  const requiresAuth = to.matched.some((route) => route.meta.requiresAuth)
-
-  if (to.name === 'login' && refreshedSession && authMeta?.isMaster) {
-    return { name: 'master-panel' }
-  }
-
-  if (to.name === 'login' && refreshedSession && authMeta?.activeCharacterId) {
-    return {
-      name: 'dashboard',
-      query: { characterId: authMeta.activeCharacterId },
-    }
-  }
-
-  if (!requiresAuth) {
-    if (to.name === 'login' && sessionExpired) {
-      return {
-        name: 'login',
-        query: { reason: 'session-expired' },
-        replace: true,
-      }
-    }
-
-    return true
-  }
-
-  if (!refreshedSession || !authMeta) {
-    return sessionExpired
-      ? {
-          name: 'login',
-          query: { reason: 'session-expired' },
-          replace: true,
-        }
-      : { name: 'login' }
-  }
-
-  const requiresMaster = to.matched.some((route) => route.meta.requiresMaster)
-  if (requiresMaster && !authMeta.isMaster) {
-    return authMeta.activeCharacterId
-      ? {
-          name: 'dashboard',
-          query: { characterId: authMeta.activeCharacterId },
-        }
-      : { name: 'login' }
-  }
-
-  if (to.name === 'dashboard') {
-    const requestedCharacterId = String(to.query.characterId ?? '').trim()
-
-    if (authMeta.isMaster) {
-      if (!requestedCharacterId) {
-        return { name: 'login' }
-      }
+    if (forceLogin) {
       return true
     }
 
-    if (!requestedCharacterId) {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+    let sessionExpired = false
+
+    if (session && isStoredSessionExpired()) {
+      await supabase.auth.signOut()
+      clearStoredAuthMeta()
+      sessionExpired = true
+    }
+
+    const {
+      data: { session: refreshedSession },
+    } = await supabase.auth.getSession()
+    const authMeta = getStoredAuthMeta()
+    const requiresAuth = to.matched.some((route) => route.meta.requiresAuth)
+
+    if (to.name === 'login' && refreshedSession && authMeta?.isMaster) {
+      return { name: 'master-panel' }
+    }
+
+    if (to.name === 'login' && refreshedSession && authMeta?.activeCharacterId) {
       return {
         name: 'dashboard',
         query: { characterId: authMeta.activeCharacterId },
       }
     }
 
-    if (requestedCharacterId !== authMeta.activeCharacterId) {
-      return { name: 'login' }
+    if (!requiresAuth) {
+      if (to.name === 'login' && sessionExpired) {
+        return {
+          name: 'login',
+          query: { reason: 'session-expired' },
+          replace: true,
+        }
+      }
+
+      return true
+    }
+
+    if (!refreshedSession || !authMeta) {
+      return sessionExpired
+        ? {
+            name: 'login',
+            query: { reason: 'session-expired' },
+            replace: true,
+          }
+        : { name: 'login' }
+    }
+
+    const requiresMaster = to.matched.some((route) => route.meta.requiresMaster)
+    if (requiresMaster && !authMeta.isMaster) {
+      return authMeta.activeCharacterId
+        ? {
+            name: 'dashboard',
+            query: { characterId: authMeta.activeCharacterId },
+          }
+        : { name: 'login' }
+    }
+
+    if (to.name === 'dashboard') {
+      const requestedCharacterId = String(to.query.characterId ?? '').trim()
+
+      if (authMeta.isMaster) {
+        if (!requestedCharacterId) {
+          return { name: 'login' }
+        }
+        return true
+      }
+
+      if (!requestedCharacterId) {
+        return {
+          name: 'dashboard',
+          query: { characterId: authMeta.activeCharacterId },
+        }
+      }
+
+      if (requestedCharacterId !== authMeta.activeCharacterId) {
+        return { name: 'login' }
+      }
+    }
+
+    return true
+  } catch (error) {
+    console.error('router.beforeEach failed:', error)
+    clearStoredAuthMeta()
+
+    return {
+      name: 'login',
+      query: { reason: 'auth-error' },
+      replace: true,
     }
   }
-
-  return true
 })
 
 export default router

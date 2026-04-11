@@ -12,6 +12,17 @@ function getBearerToken(authorization) {
     return token;
 }
 export const GodRouter = Router();
+GodRouter.get("/admin", async (req, res) => {
+    try {
+        const token = getBearerToken(req.headers.authorization);
+        const resultado = await godController.listar(token);
+        res.status(200).json(resultado);
+    }
+    catch (error) {
+        const status = error?.message?.includes("autenticado") || error?.message?.includes("restrito") ? 401 : 400;
+        res.status(status).json({ message: error?.message ?? "Erro ao listar deuses" });
+    }
+});
 GodRouter.post("/admin", async (req, res) => {
     try {
         const token = getBearerToken(req.headers.authorization);
@@ -21,6 +32,17 @@ GodRouter.post("/admin", async (req, res) => {
     catch (error) {
         const status = error?.message?.includes("autenticado") || error?.message?.includes("restrito") ? 401 : 400;
         res.status(status).json({ message: error?.message ?? "Erro ao salvar deus" });
+    }
+});
+GodRouter.patch("/admin/:godId", async (req, res) => {
+    try {
+        const token = getBearerToken(req.headers.authorization);
+        const resultado = await godController.editar(req.params.godId, req.body, token);
+        res.status(200).json(resultado);
+    }
+    catch (error) {
+        const status = error?.message?.includes("autenticado") || error?.message?.includes("restrito") ? 401 : 400;
+        res.status(status).json({ message: error?.message ?? "Erro ao editar deus" });
     }
 });
 export { godController as GodController };

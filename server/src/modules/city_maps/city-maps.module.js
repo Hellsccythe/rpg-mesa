@@ -12,6 +12,17 @@ function getBearerToken(authorization) {
     return token;
 }
 export const CityMapsRouter = Router();
+CityMapsRouter.get("/admin", async (req, res) => {
+    try {
+        const token = getBearerToken(req.headers.authorization);
+        const resultado = await cityMapsController.listar(token);
+        res.status(200).json(resultado);
+    }
+    catch (error) {
+        const status = error?.message?.includes("autenticado") || error?.message?.includes("restrito") ? 401 : 400;
+        res.status(status).json({ message: error?.message ?? "Erro ao listar mapas" });
+    }
+});
 CityMapsRouter.post("/admin", async (req, res) => {
     try {
         const token = getBearerToken(req.headers.authorization);
@@ -21,6 +32,17 @@ CityMapsRouter.post("/admin", async (req, res) => {
     catch (error) {
         const status = error?.message?.includes("autenticado") || error?.message?.includes("restrito") ? 401 : 400;
         res.status(status).json({ message: error?.message ?? "Erro ao salvar cidade" });
+    }
+});
+CityMapsRouter.patch("/admin/:cityMapId", async (req, res) => {
+    try {
+        const token = getBearerToken(req.headers.authorization);
+        const resultado = await cityMapsController.editar(req.params.cityMapId, req.body, token);
+        res.status(200).json(resultado);
+    }
+    catch (error) {
+        const status = error?.message?.includes("autenticado") || error?.message?.includes("restrito") ? 401 : 400;
+        res.status(status).json({ message: error?.message ?? "Erro ao editar mapa" });
     }
 });
 export { cityMapsController as CityMapsController };

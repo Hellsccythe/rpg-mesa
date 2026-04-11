@@ -117,9 +117,10 @@ export const useCharactersStore = defineStore('characters', {
         this.myCharacters.unshift(data)
         return data
       } catch (err: any) {
-        this.error = err.message || 'Erro ao criar personagem'
+        const message = err?.response?.data?.message || err?.message || 'Erro ao criar personagem'
+        this.error = message
         console.error('Erro createCharacter:', err)
-        throw err
+        throw new Error(message)
       } finally {
         this.loading = false
       }
