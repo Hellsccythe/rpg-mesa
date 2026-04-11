@@ -27,7 +27,8 @@
         </div>
 
         <div class="flex min-w-0 items-center gap-3">
-          <span class="cidade-brand truncate text-lg sm:text-2xl font-bold tracking-[0.2em] sm:tracking-widest"
+          <span
+            class="cidade-brand truncate text-lg sm:text-2xl font-bold tracking-[0.2em] sm:tracking-widest"
             >Caminho Sem Volta</span
           >
         </div>
@@ -73,7 +74,9 @@
       <main class="flex-1 px-3 py-5 sm:px-6 sm:py-8 md:px-10 lg:py-10">
         <section class="mx-auto max-w-7xl space-y-6 sm:space-y-8">
           <div class="space-y-2 sm:space-y-3 text-center lg:text-left">
-            <p class="tdl-kicker text-xs sm:text-sm uppercase tracking-[0.2em] sm:tracking-[0.35em]">
+            <p
+              class="tdl-kicker text-xs sm:text-sm uppercase tracking-[0.2em] sm:tracking-[0.35em]"
+            >
               Cartografia de Arcadia
             </p>
             <h1 class="tdl-titulo text-3xl font-bold tracking-wide sm:text-5xl">
@@ -172,14 +175,22 @@
             </TemaDarkLight>
 
             <aside class="xl:col-span-3 space-y-4">
-              <TemaDarkLight elemento="article" variante="cartao" class="rounded-2xl sm:rounded-3xl p-4 sm:p-5">
+              <TemaDarkLight
+                elemento="article"
+                variante="cartao"
+                class="rounded-2xl sm:rounded-3xl p-4 sm:p-5"
+              >
                 <h2 class="tdl-subtitulo text-xl font-semibold">Status do mapa</h2>
                 <p class="tdl-texto-suave mt-3 text-sm leading-relaxed">
                   Clique nos pontos para abrir mapas localizados vinculados no painel mestre.
                 </p>
               </TemaDarkLight>
 
-              <TemaDarkLight elemento="article" variante="cartao" class="rounded-2xl sm:rounded-3xl p-4 sm:p-5">
+              <TemaDarkLight
+                elemento="article"
+                variante="cartao"
+                class="rounded-2xl sm:rounded-3xl p-4 sm:p-5"
+              >
                 <h3 class="tdl-kicker text-sm font-semibold uppercase tracking-widest">
                   Mapas Localizados
                 </h3>
@@ -205,7 +216,11 @@
             </aside>
           </div>
 
-          <TemaDarkLight elemento="article" variante="cartao" class="rounded-2xl sm:rounded-3xl p-4 sm:p-5">
+          <TemaDarkLight
+            elemento="article"
+            variante="cartao"
+            class="rounded-2xl sm:rounded-3xl p-4 sm:p-5"
+          >
             <h3 class="tdl-kicker text-sm font-semibold uppercase tracking-widest">
               Todos os mapas do RPG
             </h3>

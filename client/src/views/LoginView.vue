@@ -8,7 +8,9 @@
 
       <template v-else>
         <div class="text-center mb-16">
-          <h1 class="login-page-title text-6xl md:text-7xl font-bold tracking-wider drop-shadow-2xl">
+          <h1
+            class="login-page-title text-6xl md:text-7xl font-bold tracking-wider drop-shadow-2xl"
+          >
             {{ layout?.titulo ?? 'Caminho Sem Volta' }}
           </h1>
           <p class="text-zinc-400 mt-4 text-xl">
