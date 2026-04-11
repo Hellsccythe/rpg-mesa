@@ -138,6 +138,30 @@ onBeforeUnmount(() => {
   transition: background-color 0.3s ease;
 }
 
+@media (max-width: 640px) {
+  .mobile-menu {
+    height: 2.75rem;
+    width: 2.75rem;
+    border-radius: 1rem;
+    gap: 0.3rem;
+  }
+
+  .menu-line {
+    width: 1.2rem;
+    height: 2px;
+  }
+
+  .menu-dropdown {
+    width: min(78vw, 300px);
+    padding: 1rem 0.8rem;
+  }
+
+  .menu-item {
+    padding: 0.78rem 0.85rem;
+    font-size: 0.82rem;
+  }
+}
+
 .mobile-menu:hover {
   background: color-mix(in srgb, var(--accent-soft) 70%, var(--bg-card) 30%);
 }
