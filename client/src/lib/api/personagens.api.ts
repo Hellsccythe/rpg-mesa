@@ -106,3 +106,12 @@ export async function deleteCharacterAsMaster(characterId: string) {
   const { data } = await api.delete<{ success: boolean }>(`/personagens/admin/${characterId}`)
   return data
 }
+
+export async function verificarSeMestre(): Promise<boolean> {
+  try {
+    await api.get('/personagens/admin/verificar-mestre')
+    return true
+  } catch {
+    return false
+  }
+}

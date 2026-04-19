@@ -105,6 +105,10 @@ export const useAuthStore = defineStore('auth', () => {
     persistirMetaAuth(idPersonagem, eMestre.value)
   }
 
+  const ativarModoMestreParaPersonagem = (idPersonagem: string) => {
+    persistirMetaAuth(idPersonagem, true)
+  }
+
   const podeReutilizarSessao = (idPersonagem: string) => {
     const meta = lerMetaAuth()
     if (!meta || !sessao.value || !usuario.value) return false
@@ -221,6 +225,7 @@ export const useAuthStore = defineStore('auth', () => {
     inicializarAuth,
     garantirSessaoValida,
     definirPersonagemAtivo,
+    ativarModoMestreParaPersonagem,
     podeReutilizarSessao,
     entrar,
     cadastrar,

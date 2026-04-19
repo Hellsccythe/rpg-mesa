@@ -101,6 +101,7 @@
                 v-if="draftFor(god.id).imageUrl"
                 :src="draftFor(god.id).imageUrl"
                 :alt="draftFor(god.id).name || 'Imagem do deus'"
+                loading="lazy"
                 class="h-full w-full object-cover"
                 :style="{ objectPosition: getGodImagePosition(draftFor(god.id).name) }"
               />

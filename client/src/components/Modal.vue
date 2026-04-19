@@ -9,6 +9,8 @@
     <div class="box-border flex h-full w-full items-center justify-center px-4 py-6">
       <div
         ref="panelRef"
+        role="dialog"
+        aria-modal="true"
         class="max-h-full w-full overflow-hidden rounded-3xl border shadow-2xl modal-panel"
         :class="computedPanelClass"
         :data-modal-theme="temaResolvido"
@@ -63,7 +65,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 
 let openModalCount = 0
 let originalBodyOverflow = ''
@@ -120,6 +122,32 @@ const emit = defineEmits<{ close: [] }>()
 const panelRef = ref<HTMLElement | null>(null)
 const temaClaroAtivo = ref(false)
 let observadorTema: MutationObserver | null = null
+
+const FOCUSABLE = 'button:not([disabled]),[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'
+let previouslyFocused: HTMLElement | null = null
+
+function trapFocus(event: KeyboardEvent) {
+  if (event.key !== 'Tab') return
+  const panel = panelRef.value
+  if (!panel) return
+  const nodes = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+    (el) => el.offsetParent !== null,
+  )
+  if (!nodes.length) return
+  const first = nodes[0]
+  const last = nodes[nodes.length - 1]
+  if (event.shiftKey) {
+    if (document.activeElement === first) {
+      event.preventDefault()
+      last.focus()
+    }
+  } else {
+    if (document.activeElement === last) {
+      event.preventDefault()
+      first.focus()
+    }
+  }
+}
 
 function sincronizarTemaHtml() {
   const html = document.documentElement
@@ -182,7 +210,7 @@ const computedForcedThemeVars = computed(() => {
       '--modal-bg-card': '#ffffff',
       '--modal-text-main': '#0f172a',
       '--modal-border-soft': '#dbe3f1',
-      '--modal-text-muted': '#64748b',
+      '--modal-text-muted': '#475569',
       '--modal-close-hover-bg': '#e2e8f0',
       '--modal-close-hover-text': '#0f172a',
       '--modal-overlay': 'rgb(15 23 42 / 0.45)',
@@ -287,6 +315,15 @@ onMounted(() => {
 
   openModalCount += 1
   window.addEventListener('keydown', handleWindowKeydown)
+  window.addEventListener('keydown', trapFocus)
+
+  previouslyFocused = document.activeElement as HTMLElement
+  nextTick(() => {
+    const panel = panelRef.value
+    if (!panel) return
+    const first = panel.querySelector<HTMLElement>(FOCUSABLE)
+    first?.focus()
+  })
 })
 
 onBeforeUnmount(() => {
@@ -300,6 +337,8 @@ onBeforeUnmount(() => {
   }
 
   window.removeEventListener('keydown', handleWindowKeydown)
+  window.removeEventListener('keydown', trapFocus)
+  previouslyFocused?.focus()
 })
 </script>
 

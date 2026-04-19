@@ -197,6 +197,18 @@ async function ensureMasterAccess(accessToken?: string) {
   return user;
 }
 
+async function findUserByEmail(admin: ReturnType<typeof getAdminClient>, email: string) {
+  let page = 1;
+  while (true) {
+    const { data, error } = await admin.auth.admin.listUsers({ perPage: 1000, page });
+    if (error) throw error;
+    const found = data.users.find((u: any) => u.email === email);
+    if (found) return found;
+    if (data.users.length < 1000) return null;
+    page++;
+  }
+}
+
 export const personagensService = {
   /**
    * Lista todos os personagens publicamente (sem auth).
@@ -437,41 +449,40 @@ export const personagensService = {
     await ensureMasterAccess(accessToken);
     const admin = getAdminClient();
 
+    // Filtra no banco usando o índice parcial idx_characters_pending_request
     const { data, error } = await admin
       .from(PERSONAGEM_TABLE)
       .select(PERSONAGEM_SELECT_FIELDS)
       .is("deleted_at", null)
+      .not("data->pendingChangeRequest", "is", null)
       .order("updated_at", { ascending: false });
 
     if (error) throw error;
 
-    const personagens = (data || []).map(mapPersonagem);
-    return personagens
-      .map((personagem) => {
-        const pending = getPendingChangeRequest(personagem.data as Record<string, any>);
-        if (!pending) return null;
+    return (data || []).map(mapPersonagem).map((personagem) => {
+      const pending = getPendingChangeRequest(personagem.data as Record<string, any>);
+      if (!pending) return null;
 
-        return {
-          characterId: personagem.characterId,
-          currentName: personagem.name,
-          currentAvatarUrl: personagem.avatarUrl,
-          currentHistory: ((personagem.data as any)?.history as string) ?? null,
-          currentHistoryDocumentPath:
-            ((personagem.data as any)?.historyDocumentPath as string) ??
-            ((personagem.data as any)?.historyDocumentUrl as string) ??
-            null,
-          currentHistoryDocumentName:
-            ((personagem.data as any)?.historyDocumentName as string) ?? null,
-          requestedName: pending.name ?? null,
-          requestedAvatarUrl: pending.avatarUrl ?? null,
-          requestedHistory: pending.history ?? null,
-          requestedHistoryDocumentPath: pending.historyDocumentPath ?? null,
-          requestedHistoryDocumentName: pending.historyDocumentName ?? null,
-          requestedAt: pending.requestedAt,
-          requestedByEmail: pending.requestedByEmail,
-        };
-      })
-      .filter(Boolean);
+      return {
+        characterId: personagem.characterId,
+        currentName: personagem.name,
+        currentAvatarUrl: personagem.avatarUrl,
+        currentHistory: ((personagem.data as any)?.history as string) ?? null,
+        currentHistoryDocumentPath:
+          ((personagem.data as any)?.historyDocumentPath as string) ??
+          ((personagem.data as any)?.historyDocumentUrl as string) ??
+          null,
+        currentHistoryDocumentName:
+          ((personagem.data as any)?.historyDocumentName as string) ?? null,
+        requestedName: pending.name ?? null,
+        requestedAvatarUrl: pending.avatarUrl ?? null,
+        requestedHistory: pending.history ?? null,
+        requestedHistoryDocumentPath: pending.historyDocumentPath ?? null,
+        requestedHistoryDocumentName: pending.historyDocumentName ?? null,
+        requestedAt: pending.requestedAt,
+        requestedByEmail: pending.requestedByEmail,
+      };
+    }).filter(Boolean);
   },
 
   async revisarSolicitacao(characterId: string, dto: RevisarSolicitacaoDto, accessToken?: string) {
@@ -728,7 +739,7 @@ export const personagensService = {
   },
 
   async deletarPersonagemComoMestre(characterId: string, accessToken?: string) {
-    await ensureMasterAccess(accessToken);
+    const masterUser = await ensureMasterAccess(accessToken);
     const admin = getAdminClient();
 
     // Busca o avatar antes do soft delete
@@ -741,14 +752,22 @@ export const personagensService = {
 
     if (fetchError || !char) throw new Error("Personagem nao encontrado.");
 
-    // Soft delete do registro
-    const { error: deleteError } = await admin
+    // Soft delete do registro com deleted_by
+    let softDelete = await admin
       .from(PERSONAGEM_TABLE)
-      .update({ deleted_at: new Date().toISOString() })
+      .update({ deleted_at: new Date().toISOString(), deleted_by: masterUser.id })
       .eq("id", characterId)
       .is("deleted_at", null);
 
-    if (deleteError) throw deleteError;
+    if (softDelete.error && isMissingColumnError(softDelete.error, "deleted_by")) {
+      softDelete = await admin
+        .from(PERSONAGEM_TABLE)
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", characterId)
+        .is("deleted_at", null);
+    }
+
+    if (softDelete.error) throw softDelete.error;
 
     // Hard delete da imagem no storage
     if (char.avatar_url) {
@@ -820,10 +839,8 @@ export const personagensService = {
     if (createError) {
       const msg = createError.message?.toLowerCase() ?? ""
       if (msg.includes("already") || msg.includes("already registered") || (createError as any).status === 422) {
-        // Usuario ja existe — busca o id pelo email
-        const { data: listData, error: listError } = await admin.auth.admin.listUsers({ perPage: 1000 })
-        if (listError) throw listError
-        const existingUser = listData.users.find((u) => u.email === normalizedEmail)
+        // Usuario ja existe — busca paginando todos os users para garantir cobertura > 1000
+        const existingUser = await findUserByEmail(admin, normalizedEmail)
         if (!existingUser) throw new Error("Email ja cadastrado. Verifique a senha informada.")
         userId = existingUser.id
       } else {

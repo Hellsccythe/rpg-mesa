@@ -8,7 +8,7 @@
     --bg-card: #ffffff;
     --bg-soft: #f6f9fc;
     --text-main: #0f172a;
-    --text-muted: #64748b;
+    --text-muted: #475569;
     --title-color: #4f46e5;
     --brand-primary: #4f46e5;
     --brand-primary-strong: #4338ca;
@@ -78,7 +78,7 @@
   h4,
   h5,
   h6 {
-    font-family: Pacifico, cursive;
+    font-family: 'Cinzel', serif;
     color: var(--title-color);
   }
 

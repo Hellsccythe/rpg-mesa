@@ -15,7 +15,10 @@ export async function ensureMasterAccess(accessToken?: string) {
   const user = await ensureAuthenticatedAccess(accessToken);
 
   const masterEmail = (process.env.MASTER_EMAIL ?? "").trim().toLowerCase();
-  if (masterEmail && user.email?.toLowerCase() !== masterEmail) {
+  if (!masterEmail) {
+    throw new Error("MASTER_EMAIL nao configurado no servidor");
+  }
+  if (user.email?.toLowerCase() !== masterEmail) {
     throw new Error("Acesso restrito ao mestre");
   }
 

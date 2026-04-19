@@ -27,6 +27,7 @@
               type="button"
               class="notification-bell"
               :title="`${pendingCount} pendencia(s)`"
+              :aria-label="`${pendingCount} pendencia(s) de aprovacao`"
               @click="goSection('pendencias')"
             >
               <svg
@@ -60,6 +61,39 @@
       </header>
 
       <main class="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-8 px-4 py-6 sm:px-6 sm:py-8">
+
+        <!-- Seletor de personagens -->
+        <section class="panel-highlight rounded-3xl border border-amber-600/30 bg-[#111A2D]/80 p-5 sm:p-6">
+          <h2 class="title-section mb-4 font-semibold text-amber-300">Personagens da Campanha</h2>
+          <div v-if="characters.length === 0" class="text-zinc-400 text-sm">Nenhum personagem cadastrado.</div>
+          <div v-else class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            <button
+              v-for="char in characters"
+              :key="char.characterId"
+              @click="irParaDashboardPersonagem(char.characterId)"
+              class="master-char-card group relative overflow-hidden rounded-2xl border border-[#6B4E9E]/40 bg-[#0F1C3A] transition-all hover:-translate-y-1 hover:border-amber-500/60 hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-400"
+              :aria-label="`Ver ficha de ${char.name}`"
+            >
+              <div class="aspect-[3/4] relative overflow-hidden">
+                <img
+                  v-if="char.avatarUrl"
+                  :src="char.avatarUrl"
+                  :alt="char.name"
+                  class="h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-105"
+                  loading="lazy"
+                />
+                <div v-else class="h-full w-full flex items-center justify-center bg-[#1A2438] text-zinc-500 text-xs font-semibold">
+                  SEM AVATAR
+                </div>
+                <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+              </div>
+              <div class="absolute bottom-0 left-0 right-0 p-2 text-center">
+                <p class="text-xs font-semibold text-white line-clamp-2 leading-tight">{{ char.name }}</p>
+              </div>
+            </button>
+          </div>
+        </section>
+
         <section
           id="pendencias"
           class="panel-highlight rounded-3xl border border-[#6B4E9E]/40 bg-[#111A2D]/80 p-5 sm:p-6"
@@ -182,7 +216,9 @@
             </p>
 
             <div class="mt-3 flex flex-col gap-3 sm:flex-row">
+              <label class="sr-only" for="novo-email-liberado">Email do player</label>
               <input
+                id="novo-email-liberado"
                 v-model="novoEmailLiberado"
                 type="email"
                 placeholder="email-do-player@dominio.com"
@@ -226,27 +262,47 @@
             Ferramentas Rapidas de Personagem
           </h2>
           <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <select v-model="selectedCharacterId" class="tdl-campo">
-              <option value="">Selecione um personagem</option>
-              <option v-for="char in characters" :key="char.characterId" :value="char.characterId">
-                {{ char.name }}
-              </option>
-            </select>
-            <input v-model="skillName" type="text" placeholder="Nova skill" class="tdl-campo" />
-            <input v-model="titleName" type="text" placeholder="Novo titulo" class="tdl-campo" />
-            <input v-model="className" type="text" placeholder="Nova classe" class="tdl-campo" />
-            <textarea
-              v-model="classDescription"
-              rows="3"
-              placeholder="Descricao da classe"
-              class="tdl-campo"
-            />
-            <textarea
-              v-model="adventureNote"
-              rows="3"
-              placeholder="Nota de aventura para personagem selecionado"
-              class="tdl-campo"
-            />
+            <div>
+              <label class="sr-only" for="ferramentas-personagem">Personagem</label>
+              <select id="ferramentas-personagem" v-model="selectedCharacterId" class="tdl-campo">
+                <option value="">Selecione um personagem</option>
+                <option v-for="char in characters" :key="char.characterId" :value="char.characterId">
+                  {{ char.name }}
+                </option>
+              </select>
+            </div>
+            <div>
+              <label class="sr-only" for="nova-skill">Nova skill</label>
+              <input id="nova-skill" v-model="skillName" type="text" placeholder="Nova skill" class="tdl-campo" />
+            </div>
+            <div>
+              <label class="sr-only" for="novo-titulo">Novo titulo</label>
+              <input id="novo-titulo" v-model="titleName" type="text" placeholder="Novo titulo" class="tdl-campo" />
+            </div>
+            <div>
+              <label class="sr-only" for="nova-classe">Nova classe</label>
+              <input id="nova-classe" v-model="className" type="text" placeholder="Nova classe" class="tdl-campo" />
+            </div>
+            <div>
+              <label class="sr-only" for="descricao-classe">Descricao da classe</label>
+              <textarea
+                id="descricao-classe"
+                v-model="classDescription"
+                rows="3"
+                placeholder="Descricao da classe"
+                class="tdl-campo"
+              />
+            </div>
+            <div>
+              <label class="sr-only" for="nota-aventura">Nota de aventura</label>
+              <textarea
+                id="nota-aventura"
+                v-model="adventureNote"
+                rows="3"
+                placeholder="Nota de aventura para personagem selecionado"
+                class="tdl-campo"
+              />
+            </div>
           </div>
 
           <div class="mt-3 flex flex-wrap gap-2">
@@ -254,6 +310,13 @@
             <button @click="addTitleToCharacter" class="tdl-botao-primario">Adicionar Titulo</button>
             <button @click="saveClass" class="tdl-botao-primario">Salvar Classe</button>
             <button @click="addAdventureNote" class="tdl-botao-primario">Adicionar Nota</button>
+            <button
+              @click="verFichaPersonagem"
+              :disabled="!selectedCharacterId"
+              class="tdl-botao-primario disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Ver Ficha
+            </button>
           </div>
         </section>
 
@@ -269,7 +332,8 @@
           </div>
 
           <div class="space-y-3">
-            <select v-model="deleteCharacterId" class="tdl-campo">
+            <label class="sr-only" for="delete-personagem-select">Personagem a deletar</label>
+            <select id="delete-personagem-select" v-model="deleteCharacterId" class="tdl-campo">
               <option value="">Selecione o personagem a deletar</option>
               <option v-for="char in characters" :key="char.characterId" :value="char.characterId">
                 {{ char.name }}
@@ -282,7 +346,9 @@
                 <span class="font-bold text-red-300">{{ deleteCharacterName }}</span>
                 para confirmar:
               </p>
+              <label class="sr-only" for="delete-confirm-name">Confirmar nome do personagem</label>
               <input
+                id="delete-confirm-name"
                 v-model="deleteConfirmName"
                 type="text"
                 :placeholder="deleteCharacterName"
@@ -594,6 +660,16 @@ async function deletarPersonagem() {
   }
 }
 
+function irParaDashboardPersonagem(characterId: string) {
+  authStore.definirPersonagemAtivo(characterId)
+  router.push({ name: 'dashboard', query: { characterId } })
+}
+
+function verFichaPersonagem() {
+  if (!selectedCharacterId.value) return
+  irParaDashboardPersonagem(selectedCharacterId.value)
+}
+
 function goLogin() {
   router.push({ name: 'login', query: { force: '1' } })
 }
@@ -632,6 +708,14 @@ onMounted(async () => {
   border: 1px solid var(--border-soft) !important;
   border-radius: 16px !important;
   box-shadow: 0 10px 28px rgb(15 23 42 / 0.12);
+}
+
+.master-char-card {
+  cursor: pointer;
+  text-align: left;
+  background: none;
+  padding: 0;
+  font: inherit;
 }
 
 .notification-bell {

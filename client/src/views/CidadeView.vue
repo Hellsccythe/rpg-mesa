@@ -113,6 +113,10 @@
             >Carregando mapas...</TemaDarkLight
           >
 
+          <TemaDarkLight v-else-if="erroMapa" variante="aviso" class="rounded-2xl p-4 text-center">
+            {{ erroMapa }}
+          </TemaDarkLight>
+
           <TemaDarkLight v-else-if="!mapaCidadeExibido" variante="aviso" class="rounded-2xl p-4">
             Nenhum mapa principal encontrado para esta cidade.
           </TemaDarkLight>
@@ -132,6 +136,7 @@
                   <img
                     :src="mapaCidadeExibido.imageUrl || mapaCidadeExibido.mapReference"
                     :alt="`Mapa da cidade ${mapaCidadeExibido.name}`"
+                    loading="lazy"
                     class="block h-auto max-h-[75vh] max-w-full object-contain"
                   />
 
@@ -279,6 +284,7 @@
             <img
               :src="pontoSelecionado.localizedMapUrl"
               :alt="`Mapa localizado de ${pontoSelecionado.name}`"
+              loading="lazy"
               class="h-auto max-h-[65vh] w-full object-contain"
             />
           </div>
@@ -327,6 +333,7 @@
           <img
             :src="mapaCidadeExibido.imageUrl || mapaCidadeExibido.mapReference"
             :alt="`Mapa ampliado da cidade ${mapaCidadeExibido.name}`"
+            loading="lazy"
             class="block h-auto w-auto max-h-[calc(100vh-10rem)] sm:max-h-[calc(100vh-14rem)] max-w-full object-contain"
           />
         </div>
@@ -365,6 +372,7 @@ const pontoSelecionado = ref<DetalhePonto | null>(null)
 const mostrarMapaExpandido = ref(false)
 
 const carregando = ref(false)
+const erroMapa = ref('')
 const mapasCidade = ref<CityMapApi[]>([])
 const slugCidadeSelecionada = ref('hamlet')
 const idMapaCidadeSelecionado = ref('')
@@ -508,6 +516,7 @@ const itemCabecalhoCidadeAtivo = computed(() => {
 
 async function buscarMapas() {
   carregando.value = true
+  erroMapa.value = ''
   try {
     const dados = await listarMapasCidadeParaCidadeView()
     mapasCidade.value = dados
@@ -518,6 +527,8 @@ async function buscarMapas() {
     if (!mapasBaseCidade.value.find((item) => item.id === idMapaCidadeSelecionado.value)) {
       idMapaCidadeSelecionado.value = mapasBaseCidade.value[0]?.id || ''
     }
+  } catch {
+    erroMapa.value = 'Nao foi possivel carregar os mapas. Verifique a conexao e tente novamente.'
   } finally {
     carregando.value = false
   }
@@ -762,6 +773,17 @@ onBeforeUnmount(() => {
   color: var(--text-main);
 }
 
+.cidade-hotspot {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
 .cidade-hotspot-dot {
   border-color: color-mix(in srgb, var(--text-main) 70%, transparent 30%);
   background: color-mix(in srgb, var(--cidade-map-bg) 40%, transparent 60%);
@@ -955,13 +977,13 @@ onBeforeUnmount(() => {
   }
 
   .cidade-hotspot-dot {
-    height: 1.28rem;
-    width: 1.28rem;
+    height: 1.5rem;
+    width: 1.5rem;
   }
 
   .cidade-hotspot-core {
-    height: 0.38rem;
-    width: 0.38rem;
+    height: 0.45rem;
+    width: 0.45rem;
   }
 
   .cidade-hotspot-label {

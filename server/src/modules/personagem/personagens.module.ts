@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { personagensController } from "./personagens.controller.js";
+import { ensureMasterAccess } from "../../common/helpers/master-access.helper.js";
 
 export * from "./personagens.dto.js";
 export * from "./personagens.service.js";
@@ -31,6 +32,16 @@ PersonagensRouter.get("/", async (req, res) => {
   } catch (error: any) {
     const status = error?.message?.includes("autenticado") ? 401 : 500;
     res.status(status).json({ message: error?.message ?? "Erro ao listar personagens" });
+  }
+});
+
+PersonagensRouter.get("/admin/verificar-mestre", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    await ensureMasterAccess(token);
+    res.status(200).json({ isMaster: true });
+  } catch {
+    res.status(403).json({ isMaster: false });
   }
 });
 

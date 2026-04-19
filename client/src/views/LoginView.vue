@@ -147,9 +147,12 @@
       >
         <img
           v-if="personagemSelecionado.avatarUrl"
+          ref="heroImgRef"
           :src="personagemSelecionado.avatarUrl"
-          class="h-full w-full object-cover object-top"
+          class="h-full w-full object-cover transition-[object-position] duration-500"
+          :style="{ objectPosition: heroImagePosition }"
           :alt="personagemSelecionado.name"
+          @load="analisarHeroImage(heroImgRef)"
         />
         <div
           v-else
@@ -286,24 +289,24 @@
     <Modal
       v-if="mostrarModalCriacao"
       overlay-class="bg-black/90"
-      panel-class="max-w-2xl max-h-[95vh] flex flex-col login-themed-modal"
+      panel-class="max-w-2xl max-h-[95vh] flex flex-col login-themed-modal relative"
       body-class="custom-scroll flex-1 space-y-8 overflow-y-auto p-8"
       header-class="shrink-0 px-8 py-4"
       footer-class="shrink-0 px-8 py-4"
       :show-close-button="false"
+      :close-on-backdrop="false"
       @close="fecharModalCriacao"
     >
       <template #header>
-        <div class="flex items-center justify-between">
-          <h2 class="login-modal-title-blue text-2xl font-bold">Criar Novo Personagem</h2>
-          <button
-            @click="fecharModalCriacao"
-            :disabled="carregandoCriacao"
-            class="login-modal-close-x action-btn px-3 text-2xl transition-colors disabled:cursor-wait disabled:opacity-60"
-          >
-            ×
-          </button>
-        </div>
+        <h2 class="login-modal-title-blue text-2xl font-bold">Criar Novo Personagem</h2>
+        <button
+          @click="fecharModalCriacao"
+          :disabled="carregandoCriacao"
+          aria-label="Fechar modal de criacao de personagem"
+          class="login-modal-close-x action-btn absolute top-4 right-4 px-3 text-2xl transition-colors disabled:cursor-wait disabled:opacity-60"
+        >
+          ×
+        </button>
       </template>
 
       <div>
@@ -496,12 +499,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Modal from '@/components/Modal.vue'
 import VSelect from '@/components/VSelect.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useCharactersStore } from '@/stores/characters'
+import { useSmartImageFocus } from '@/composables/useSmartImageFocus'
 import { registrarECriarPersonagem } from '@/lib/api/personagens.api'
 import { uploadAvatar, uploadHistoryDocument } from '@/lib/supabase/storage'
 import type { PersonagemPublicoApi } from '@/types/supabase'
@@ -515,6 +519,15 @@ const mostrarModalCriacao = ref(false)
 const personagemSelecionado = ref<PersonagemPublicoApi | null>(null)
 const mostrarModalLoginMestre = ref(false)
 const avatarUrlMestre = import.meta.env.VITE_GM_AVATAR_URL || ''
+
+const heroImgRef = ref<HTMLImageElement | null>(null)
+const { position: heroImagePosition, analyzeImage: analisarHeroImage, reset: resetarHeroFoco } = useSmartImageFocus()
+
+watch(personagemSelecionado, (novo) => {
+  if (!novo?.avatarUrl) { resetarHeroFoco(); return }
+  // Aguarda a imagem ser montada antes de analisar
+  setTimeout(() => analisarHeroImage(heroImgRef.value), 50)
+})
 
 const emailLoginPersonagem = ref('')
 const senhaLoginPersonagem = ref('')
