@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { getValidAccessToken } from '@/stores/auth'
+import { obterTokenDeAcesso } from '@/stores/auth'
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL ?? '/api',
@@ -7,7 +7,7 @@ export const api = axios.create({
 })
 
 api.interceptors.request.use(async (config) => {
-  const accessToken = await getValidAccessToken()
+  const accessToken = await obterTokenDeAcesso()
 
   if (accessToken) {
     config.headers.set('Authorization', `Bearer ${accessToken}`)

@@ -134,6 +134,7 @@ export interface EditarPersonagemDto {
   name?: string
   level?: number
   campaignId?: string
+  avatarUrl?: string
   data?: Json
 }
 

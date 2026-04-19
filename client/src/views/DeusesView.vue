@@ -869,7 +869,7 @@ const buscarDeusesPublicos = async () => {
 const voltar = () => {
   roteador.push({
     name: 'dashboard',
-    query: lojaAuth.activeCharacterId ? { characterId: lojaAuth.activeCharacterId } : undefined,
+    query: lojaAuth.idPersonagemAtivo ? { characterId: lojaAuth.idPersonagemAtivo } : undefined,
   })
 }
 
@@ -885,7 +885,7 @@ const irParaDashboard = () => {
   fecharMenuConfiguracoes()
   roteador.push({
     name: 'dashboard',
-    query: lojaAuth.activeCharacterId ? { characterId: lojaAuth.activeCharacterId } : undefined,
+    query: lojaAuth.idPersonagemAtivo ? { characterId: lojaAuth.idPersonagemAtivo } : undefined,
   })
 }
 
@@ -925,7 +925,7 @@ async function aoSelecionarMenuCabecalho(itemId: string) {
 const sair = async () => {
   fecharMenuConfiguracoes()
   try {
-    await lojaAuth.signOut()
+    await lojaAuth.sair()
   } finally {
     roteador.push({ name: 'login' })
   }

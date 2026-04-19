@@ -319,6 +319,7 @@ export const personagensService = {
     const updates: Record<string, unknown> = {};
     if (dto.name !== undefined) updates.name = dto.name;
     if (dto.level !== undefined) updates.level = dto.level;
+    if ((dto as any).avatarUrl !== undefined) updates.avatar_url = (dto as any).avatarUrl;
     if (dto.data !== undefined) updates.data = dto.data;
 
     const { data, error } = await supabase
@@ -726,6 +727,47 @@ export const personagensService = {
     return mapPersonagem(data);
   },
 
+  async deletarPersonagemComoMestre(characterId: string, accessToken?: string) {
+    await ensureMasterAccess(accessToken);
+    const admin = getAdminClient();
+
+    // Busca o avatar antes do soft delete
+    const { data: char, error: fetchError } = await admin
+      .from(PERSONAGEM_TABLE)
+      .select("id, avatar_url")
+      .eq("id", characterId)
+      .is("deleted_at", null)
+      .single();
+
+    if (fetchError || !char) throw new Error("Personagem nao encontrado.");
+
+    // Soft delete do registro
+    const { error: deleteError } = await admin
+      .from(PERSONAGEM_TABLE)
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", characterId)
+      .is("deleted_at", null);
+
+    if (deleteError) throw deleteError;
+
+    // Hard delete da imagem no storage
+    if (char.avatar_url) {
+      try {
+        const avatarBucket = process.env.VITE_AVATAR_BUCKET || "character-avatars";
+        const marker = `/storage/v1/object/public/${avatarBucket}/`;
+        const idx = (char.avatar_url as string).indexOf(marker);
+        if (idx !== -1) {
+          const storagePath = (char.avatar_url as string).slice(idx + marker.length);
+          await admin.storage.from(avatarBucket).remove([storagePath]);
+        }
+      } catch {
+        // Falha no storage nao bloqueia o delete do personagem
+      }
+    }
+
+    return { success: true };
+  },
+
   async deletarMeuPersonagem(characterId: string, accessToken?: string) {
     const supabase = getSupabaseClient(accessToken);
 
@@ -746,6 +788,65 @@ export const personagensService = {
 
     if (error) throw error;
     return { success: !!data?.id };
+  },
+
+  async registrarECriarPersonagem(payload: {
+    email: string
+    senha: string
+    nome: string
+    data?: Record<string, any>
+    avatarUrl?: string | null
+  }) {
+    const admin = getAdminClient()
+
+    const normalizedEmail = normalizeEmail(payload.email)
+    if (!isValidEmail(normalizedEmail)) throw new Error("Email invalido.")
+
+    const allowedEmails = await getCharacterCreationAllowedEmailsMerged()
+    const emailAllowed =
+      !allowedEmails.length || allowedEmails.includes(normalizedEmail)
+    if (!emailAllowed) {
+      throw new Error("Email nao liberado pelo mestre para criacao de personagem.")
+    }
+
+    // Cria usuario via admin — bypassa confirmacao de email
+    let userId: string
+    const { data: createData, error: createError } = await admin.auth.admin.createUser({
+      email: normalizedEmail,
+      password: payload.senha,
+      email_confirm: true,
+    })
+
+    if (createError) {
+      const msg = createError.message?.toLowerCase() ?? ""
+      if (msg.includes("already") || msg.includes("already registered") || (createError as any).status === 422) {
+        // Usuario ja existe — busca o id pelo email
+        const { data: listData, error: listError } = await admin.auth.admin.listUsers({ perPage: 1000 })
+        if (listError) throw listError
+        const existingUser = listData.users.find((u) => u.email === normalizedEmail)
+        if (!existingUser) throw new Error("Email ja cadastrado. Verifique a senha informada.")
+        userId = existingUser.id
+      } else {
+        throw createError
+      }
+    } else {
+      userId = createData.user.id
+    }
+
+    const { data, error } = await admin
+      .from(PERSONAGEM_TABLE)
+      .insert({
+        user_id: userId,
+        name: payload.nome.trim(),
+        level: 1,
+        avatar_url: payload.avatarUrl ?? null,
+        data: payload.data ?? {},
+      })
+      .select(PERSONAGEM_SELECT_FIELDS)
+      .single()
+
+    if (error) throw error
+    return mapPersonagem(data)
   },
 
   async listarEmailsPermitidosCriacaoPersonagem(accessToken?: string) {

@@ -80,6 +80,25 @@ export const personagensController = {
     return personagensService.listarSolicitacoesPendentes(accessToken);
   },
 
+  async registrarECriar(dto: {
+    email?: string
+    senha?: string
+    nome?: string
+    data?: Record<string, any>
+    avatarUrl?: string | null
+  }) {
+    if (!dto.email?.trim()) throw new Error("Email e obrigatorio")
+    if (!dto.senha) throw new Error("Senha e obrigatoria")
+    if (!dto.nome?.trim()) throw new Error("Nome do personagem e obrigatorio")
+    return personagensService.registrarECriarPersonagem({
+      email: dto.email,
+      senha: dto.senha,
+      nome: dto.nome,
+      data: dto.data,
+      avatarUrl: dto.avatarUrl ?? null,
+    })
+  },
+
   async listarEmailsPermitidosCriacaoPersonagem(accessToken?: string) {
     return personagensService.listarEmailsPermitidosCriacaoPersonagem(accessToken);
   },
@@ -160,5 +179,13 @@ export const personagensController = {
   async deletar(characterId: string, accessToken?: string) {
     if (!characterId) throw new Error("ID do personagem é obrigatório");
     return personagensService.deletarMeuPersonagem(characterId, accessToken);
+  },
+
+  /**
+   * Soft delete do registro + hard delete da imagem. Apenas mestre.
+   */
+  async deletarComoMestre(characterId: string, accessToken?: string) {
+    if (!characterId) throw new Error("ID do personagem é obrigatório");
+    return personagensService.deletarPersonagemComoMestre(characterId, accessToken);
   },
 };

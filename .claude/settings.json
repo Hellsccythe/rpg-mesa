@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(yarn type-check:client)",
+      "Bash(yarn build:client)"
+    ]
+  }
+}

@@ -2,7 +2,7 @@
   <div class="relative min-h-screen overflow-hidden bg-[#0A0F1C] text-white">
     <div class="absolute inset-0 bg-gradient-to-br from-[#0F1C3A] via-[#1A2438] to-[#2A1B4A]/80" />
 
-    <div class="relative z-10 flex min-h-screen flex-col">
+    <TemaDarkLight variante="contexto" class="relative z-10 flex min-h-screen flex-col">
       <header
         class="sticky top-0 z-20 h-16 border-b border-[#6B4E9E]/30 bg-black/55 px-4 backdrop-blur-md sm:px-6"
       >
@@ -166,7 +166,7 @@
               </div>
 
               <div class="flex justify-end">
-                <button class="primary-btn" @click="goToCreateCityTabFromLegacy">
+                <button class="tdl-botao-primario" @click="goToCreateCityTabFromLegacy">
                   Criar Mapa Pai Oficial
                 </button>
               </div>
@@ -176,19 +176,19 @@
               <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <input
                   v-model="existingEditor.name"
-                  class="field"
+                  class="tdl-campo"
                   placeholder="Nome do mapa"
                   :disabled="!existingEditMode"
                 />
                 <input
                   v-model="existingEditor.cityName"
-                  class="field"
+                  class="tdl-campo"
                   placeholder="Nome da cidade"
                   :disabled="!existingEditMode"
                 />
                 <input
                   v-model="existingEditor.citySlug"
-                  class="field"
+                  class="tdl-campo"
                   placeholder="Slug da cidade"
                   :disabled="!existingEditMode"
                 />
@@ -197,7 +197,7 @@
               <textarea
                 v-model="existingEditor.description"
                 rows="2"
-                class="field"
+                class="tdl-campo"
                 placeholder="Descricao do mapa"
                 :disabled="!existingEditMode"
               />
@@ -205,14 +205,14 @@
                 v-if="existingEditor.mapType === 'city'"
                 v-model="existingEditor.cityDescription"
                 rows="2"
-                class="field"
+                class="tdl-campo"
                 placeholder="Descricao da area/cidade"
                 :disabled="!existingEditMode"
               />
               <input
                 v-if="existingEditor.mapType === 'city'"
                 v-model="existingEditor.cityCulture"
-                class="field"
+                class="tdl-campo"
                 placeholder="Cultura da area"
                 :disabled="!existingEditMode"
               />
@@ -221,7 +221,7 @@
                 <input
                   type="file"
                   accept="image/*"
-                  class="field"
+                  class="tdl-campo"
                   @change="onUploadForEditor('existing', $event)"
                   :disabled="!existingEditMode"
                 />
@@ -233,7 +233,7 @@
                 >
                 <select
                   v-model="existingEditor.parentCityMapId"
-                  class="field"
+                  class="tdl-campo"
                   :disabled="!existingEditMode"
                   @change="onExistingParentChange"
                 >
@@ -267,20 +267,20 @@
 
           <div class="space-y-3">
             <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <input v-model="newCity.cityName" class="field" placeholder="Nome da area/cidade" />
+              <input v-model="newCity.cityName" class="tdl-campo" placeholder="Nome da area/cidade" />
             </div>
 
             <textarea
               v-model="newCity.cityDescription"
               rows="2"
-              class="field"
+              class="tdl-campo"
               placeholder="Descricao da area"
             />
-            <input v-model="newCity.cityCulture" class="field" placeholder="Cultura da area" />
+            <input v-model="newCity.cityCulture" class="tdl-campo" placeholder="Cultura da area" />
             <textarea
               v-model="newCity.description"
               rows="2"
-              class="field"
+              class="tdl-campo"
               placeholder="Descricao do mapa pai"
             />
 
@@ -288,7 +288,7 @@
               <input
                 type="file"
                 accept="image/*"
-                class="field"
+                class="tdl-campo"
                 @change="onUploadForEditor('newCity', $event)"
               />
             </div>
@@ -301,7 +301,7 @@
             />
 
             <div class="flex justify-end">
-              <button class="primary-btn" @click="createCityMap">Criar Cidade + Mapa Pai</button>
+              <button class="tdl-botao-primario" @click="createCityMap">Criar Cidade + Mapa Pai</button>
             </div>
           </div>
         </section>
@@ -316,7 +316,7 @@
             <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
               <select
                 v-model="newChild.parentCityMapId"
-                class="field"
+                class="tdl-campo"
                 @change="syncChildFromParentMap"
               >
                 <option value="">Selecione o mapa pai</option>
@@ -324,13 +324,13 @@
                   {{ parent.cityName }} - {{ parent.name }}
                 </option>
               </select>
-              <input v-model="newChild.name" class="field" placeholder="Nome do mapa filho" />
+              <input v-model="newChild.name" class="tdl-campo" placeholder="Nome do mapa filho" />
             </div>
 
             <textarea
               v-model="newChild.description"
               rows="2"
-              class="field"
+              class="tdl-campo"
               placeholder="Descricao do mapa filho"
             />
 
@@ -338,7 +338,7 @@
               <input
                 type="file"
                 accept="image/*"
-                class="field"
+                class="tdl-campo"
                 @change="onUploadForEditor('newChild', $event)"
               />
             </div>
@@ -351,7 +351,7 @@
             />
 
             <div class="flex justify-end">
-              <button class="primary-btn" @click="createChildMap">Criar Mapa Filho</button>
+              <button class="tdl-botao-primario" @click="createChildMap">Criar Mapa Filho</button>
             </div>
           </div>
         </section>
@@ -364,7 +364,7 @@
           {{ feedback }}
         </p>
       </main>
-    </div>
+    </TemaDarkLight>
   </div>
 </template>
 
@@ -372,6 +372,7 @@
 import { computed, defineComponent, h, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import Modal from '@/components/Modal.vue'
+import TemaDarkLight from '@/components/TemaDarkLight.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useMasterCatalogStore } from '@/stores/masterCatalog'
 import { uploadCityMapImage } from '@/lib/api/city-maps.api'
@@ -622,7 +623,7 @@ const MapPointEditor = defineComponent({
                             'Nome do ponto',
                           ),
                           h('input', {
-                            class: 'field',
+                            class: 'tdl-campo',
                             disabled: !props.editable,
                             value: poi.name,
                             placeholder: 'Ex: Castelo do Mestre',
@@ -639,7 +640,7 @@ const MapPointEditor = defineComponent({
                           h(
                             'select',
                             {
-                              class: 'field',
+                              class: 'tdl-campo',
                               disabled: !props.editable,
                               value: poi.targetCityMapId || '',
                               onChange: (ev: Event) =>
@@ -663,7 +664,7 @@ const MapPointEditor = defineComponent({
                           'Descricao do ponto',
                         ),
                         h('textarea', {
-                          class: 'field',
+                          class: 'tdl-campo',
                           disabled: !props.editable,
                           rows: 2,
                           value: poi.description || '',
@@ -682,7 +683,7 @@ const MapPointEditor = defineComponent({
                             'Posicao X (%)',
                           ),
                           h('input', {
-                            class: 'field',
+                            class: 'tdl-campo',
                             type: 'number',
                             min: 0,
                             max: 100,
@@ -706,7 +707,7 @@ const MapPointEditor = defineComponent({
                             'Posicao Y (%)',
                           ),
                           h('input', {
-                            class: 'field',
+                            class: 'tdl-campo',
                             type: 'number',
                             min: 0,
                             max: 100,
@@ -1212,7 +1213,7 @@ function goMasterPanel() {
 }
 
 async function logout() {
-  await authStore.signOut()
+  await authStore.sair()
   router.push({ name: 'login' })
 }
 
@@ -1222,48 +1223,3 @@ onMounted(async () => {
 })
 </script>
 
-<style scoped>
-.field {
-  width: 100%;
-  border-radius: 0.75rem;
-  border: 1px solid rgb(107 78 158 / 0.4);
-  background: #0b1426;
-  padding: 0.75rem 1rem;
-  color: #e4e4e7;
-  outline: none;
-  transition: border-color 0.2s ease;
-}
-
-.field:focus {
-  border-color: rgb(200 208 224 / 0.7);
-}
-
-:deep(.map-point-editor .field) {
-  width: 100%;
-  border-radius: 0.75rem;
-  border: 1px solid rgb(107 78 158 / 0.4);
-  background: #0b1426;
-  padding: 0.55rem 0.75rem;
-  color: #e4e4e7;
-  outline: none;
-  transition: border-color 0.2s ease;
-}
-
-:deep(.map-point-editor .field:focus) {
-  border-color: rgb(200 208 224 / 0.7);
-}
-
-.primary-btn {
-  border-radius: 0.75rem;
-  background: #6b4e9e;
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #fff;
-  transition: filter 0.2s ease;
-}
-
-.primary-btn:hover {
-  filter: brightness(1.1);
-}
-</style>

@@ -2,7 +2,7 @@
   <div class="relative min-h-screen overflow-hidden bg-[#0A0F1C] text-white">
     <div class="absolute inset-0 bg-gradient-to-br from-[#0F1C3A] via-[#1A2438] to-[#2A1B4A]/80" />
 
-    <div class="relative z-10 flex min-h-screen flex-col">
+    <TemaDarkLight variante="contexto" class="relative z-10 flex min-h-screen flex-col">
       <header
         class="sticky top-0 z-20 h-16 border-b border-[#6B4E9E]/30 bg-black/55 px-4 backdrop-blur-md sm:px-6"
       >
@@ -186,12 +186,12 @@
                 v-model="novoEmailLiberado"
                 type="email"
                 placeholder="email-do-player@dominio.com"
-                class="field"
+                class="tdl-campo"
               />
               <button
                 @click="adicionarEmailLiberado"
                 :disabled="loadingEmailsLiberados || !novoEmailLiberado.trim()"
-                class="action-btn disabled:cursor-wait disabled:opacity-60"
+                class="tdl-botao-primario disabled:cursor-wait disabled:opacity-60"
               >
                 {{ loadingEmailsLiberados ? 'Salvando...' : 'Liberar Email' }}
               </button>
@@ -226,34 +226,79 @@
             Ferramentas Rapidas de Personagem
           </h2>
           <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <select v-model="selectedCharacterId" class="field">
+            <select v-model="selectedCharacterId" class="tdl-campo">
               <option value="">Selecione um personagem</option>
               <option v-for="char in characters" :key="char.characterId" :value="char.characterId">
                 {{ char.name }}
               </option>
             </select>
-            <input v-model="skillName" type="text" placeholder="Nova skill" class="field" />
-            <input v-model="titleName" type="text" placeholder="Novo titulo" class="field" />
-            <input v-model="className" type="text" placeholder="Nova classe" class="field" />
+            <input v-model="skillName" type="text" placeholder="Nova skill" class="tdl-campo" />
+            <input v-model="titleName" type="text" placeholder="Novo titulo" class="tdl-campo" />
+            <input v-model="className" type="text" placeholder="Nova classe" class="tdl-campo" />
             <textarea
               v-model="classDescription"
               rows="3"
               placeholder="Descricao da classe"
-              class="field"
+              class="tdl-campo"
             />
             <textarea
               v-model="adventureNote"
               rows="3"
               placeholder="Nota de aventura para personagem selecionado"
-              class="field"
+              class="tdl-campo"
             />
           </div>
 
           <div class="mt-3 flex flex-wrap gap-2">
-            <button @click="addSkill" class="action-btn">Adicionar Skill</button>
-            <button @click="addTitleToCharacter" class="action-btn">Adicionar Titulo</button>
-            <button @click="saveClass" class="action-btn">Salvar Classe</button>
-            <button @click="addAdventureNote" class="action-btn">Adicionar Nota</button>
+            <button @click="addSkill" class="tdl-botao-primario">Adicionar Skill</button>
+            <button @click="addTitleToCharacter" class="tdl-botao-primario">Adicionar Titulo</button>
+            <button @click="saveClass" class="tdl-botao-primario">Salvar Classe</button>
+            <button @click="addAdventureNote" class="tdl-botao-primario">Adicionar Nota</button>
+          </div>
+        </section>
+
+        <section
+          id="deletar-personagem"
+          class="panel-highlight rounded-3xl border border-red-900/40 bg-[#111A2D]/80 p-5 sm:p-6"
+        >
+          <div class="mb-4">
+            <h2 class="title-section font-semibold text-red-400">Deletar Personagem</h2>
+            <p class="mt-1 text-sm text-zinc-400">
+              Remove o registro do banco (soft delete) e apaga a imagem do storage permanentemente.
+            </p>
+          </div>
+
+          <div class="space-y-3">
+            <select v-model="deleteCharacterId" class="tdl-campo">
+              <option value="">Selecione o personagem a deletar</option>
+              <option v-for="char in characters" :key="char.characterId" :value="char.characterId">
+                {{ char.name }}
+              </option>
+            </select>
+
+            <template v-if="deleteCharacterId">
+              <p class="text-sm text-zinc-300">
+                Digite
+                <span class="font-bold text-red-300">{{ deleteCharacterName }}</span>
+                para confirmar:
+              </p>
+              <input
+                v-model="deleteConfirmName"
+                type="text"
+                :placeholder="deleteCharacterName"
+                class="tdl-campo border-red-800/60 focus:border-red-500"
+              />
+              <button
+                @click="deletarPersonagem"
+                :disabled="
+                  loadingDelete ||
+                  deleteConfirmName.trim().toLowerCase() !== deleteCharacterName.toLowerCase()
+                "
+                class="rounded-xl bg-red-800 px-6 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {{ loadingDelete ? 'Deletando...' : 'Deletar Permanentemente' }}
+              </button>
+            </template>
           </div>
         </section>
 
@@ -265,7 +310,7 @@
           {{ feedback }}
         </p>
       </main>
-    </div>
+    </TemaDarkLight>
   </div>
 </template>
 
@@ -277,8 +322,10 @@ import { useCharactersStore } from '@/stores/characters'
 import { useMasterApprovalsStore } from '@/stores/masterApprovals'
 import { useMasterCatalogStore } from '@/stores/masterCatalog'
 import HamburgerDrawerMenu from '@/components/HamburgerDrawerMenu.vue'
+import TemaDarkLight from '@/components/TemaDarkLight.vue'
 import {
   addCharacterCreationAllowedEmail,
+  deleteCharacterAsMaster,
   listCharacterCreationAllowedEmails,
   removeCharacterCreationAllowedEmail,
 } from '@/lib/api/personagens.api'
@@ -306,6 +353,13 @@ const emailsLiberadosCriacao = ref<string[]>([])
 const novoEmailLiberado = ref('')
 const loadingEmailsLiberados = ref(false)
 
+const deleteCharacterId = ref('')
+const deleteConfirmName = ref('')
+const loadingDelete = ref(false)
+const deleteCharacterName = computed(
+  () => characters.value.find((c) => c.characterId === deleteCharacterId.value)?.name ?? '',
+)
+
 const pendingApprovals = computed(() => masterApprovalsStore.pendingApprovals)
 const pendingCount = computed(() => pendingApprovals.value.length)
 const characters = computed(() => charactersStore.publicCharacters)
@@ -314,6 +368,7 @@ const panelMenuItems = [
   { id: 'emails-cadastro', label: 'Cadastro Email' },
   { id: 'guia-deuses', label: 'Guia Deuses' },
   { id: 'mapas', label: 'Mapas' },
+  { id: 'deletar-personagem', label: 'Deletar Personagem', danger: true },
   { id: 'logout', label: 'Logout', danger: true },
 ]
 
@@ -335,6 +390,11 @@ async function handlePanelMenuSelect(itemId: string) {
 
   if (itemId === 'mapas') {
     goMasterMaps()
+    return
+  }
+
+  if (itemId === 'deletar-personagem') {
+    goSection('deletar-personagem')
     return
   }
 
@@ -504,6 +564,36 @@ async function addAdventureNote() {
   }
 }
 
+async function deletarPersonagem() {
+  if (!deleteCharacterId.value) {
+    feedback.value = 'Selecione um personagem para deletar.'
+    feedbackError.value = true
+    return
+  }
+
+  if (deleteConfirmName.value.trim().toLowerCase() !== deleteCharacterName.value.toLowerCase()) {
+    feedback.value = 'Nome de confirmacao nao confere. Digite exatamente o nome do personagem.'
+    feedbackError.value = true
+    return
+  }
+
+  loadingDelete.value = true
+  feedback.value = ''
+  try {
+    await deleteCharacterAsMaster(deleteCharacterId.value)
+    feedback.value = `Personagem "${deleteCharacterName.value}" deletado. Imagem removida do storage.`
+    feedbackError.value = false
+    deleteCharacterId.value = ''
+    deleteConfirmName.value = ''
+    await charactersStore.fetchPaginaInicial()
+  } catch (err: any) {
+    feedback.value = err?.response?.data?.message || 'Erro ao deletar personagem.'
+    feedbackError.value = true
+  } finally {
+    loadingDelete.value = false
+  }
+}
+
 function goLogin() {
   router.push({ name: 'login', query: { force: '1' } })
 }
@@ -517,7 +607,7 @@ function goMasterMaps() {
 }
 
 async function logout() {
-  await authStore.signOut()
+  await authStore.sair()
   router.push({ name: 'login' })
 }
 
@@ -563,14 +653,14 @@ onMounted(async () => {
 }
 
 :global(html.theme-light) .notification-bell {
-  border-color: rgb(255 255 255 / 0.28);
-  background: rgb(15 23 42 / 0.14);
-  color: #c7d2fe;
-  box-shadow: none;
+  border-color: var(--border-soft);
+  background: var(--bg-soft);
+  color: var(--brand-primary);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.06);
 }
 
 :global(html.theme-light) .notification-bell:hover {
-  background: rgb(15 23 42 / 0.22);
+  background: var(--accent-soft);
 }
 
 .notification-badge {
@@ -588,35 +678,4 @@ onMounted(async () => {
   color: #fff;
 }
 
-.field {
-  width: 100%;
-  border-radius: 0.75rem;
-  border: 1px solid var(--border-soft);
-  background: var(--bg-soft);
-  padding: 0.75rem 1rem;
-  color: var(--text-main);
-  outline: none;
-  transition: border-color 0.2s ease;
-}
-
-.field:focus {
-  border-color: var(--ring-soft);
-}
-
-.action-btn {
-  border-radius: 0.75rem;
-  background: var(--brand-primary);
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: white;
-  transition:
-    filter 0.2s ease,
-    background-color 0.2s ease;
-}
-
-.action-btn:hover {
-  background: var(--brand-primary-strong);
-  filter: none;
-}
 </style>

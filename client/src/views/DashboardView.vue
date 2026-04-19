@@ -160,7 +160,7 @@
           <h2 class="text-2xl font-bold text-[#C8D0E0]">Configuracoes</h2>
           <p class="text-sm text-zinc-400">
             {{
-              authStore.isMaster
+              authStore.eMestre
                 ? 'Painel de aprovacao do mestre'
                 : 'Solicitar alteracao de personagem'
             }}
@@ -168,7 +168,7 @@
         </div>
       </template>
 
-      <div v-if="authStore.isMaster" class="space-y-4">
+      <div v-if="authStore.eMestre" class="space-y-4">
         <div class="flex items-center justify-between">
           <h3 class="text-lg font-semibold text-amber-300">Solicitacoes pendentes</h3>
           <button
@@ -408,7 +408,7 @@ import { useRoute, useRouter } from 'vue-router'
 import Modal from '@/components/Modal.vue'
 import HamburgerDrawerMenu from '@/components/HamburgerDrawerMenu.vue'
 import { getHistoryDocumentSignedUrl } from '@/lib/supabase/storage'
-import { clearStoredAuthMeta, useAuthStore } from '@/stores/auth'
+import { limparMetaAuthLocal, useAuthStore } from '@/stores/auth'
 import { useCharactersStore } from '@/stores/characters'
 import { useMasterApprovalsStore } from '@/stores/masterApprovals'
 import type { PersonagemApi } from '@/types/supabase'
@@ -481,7 +481,7 @@ const indoleLabel = computed(() => {
 })
 
 const goBack = () => {
-  clearStoredAuthMeta()
+  limparMetaAuthLocal()
   router.push({ name: 'login', query: { force: '1' } })
 }
 
@@ -542,7 +542,7 @@ const openSettings = async () => {
   initializeSettingsForm()
   showSettingsModal.value = true
 
-  if (authStore.isMaster) {
+  if (authStore.eMestre) {
     await loadPending()
   }
 }
@@ -555,7 +555,7 @@ function closeSettingsModal() {
 const logout = async () => {
   closeSettingsMenu()
   try {
-    await authStore.signOut()
+    await authStore.sair()
   } finally {
     router.push({ name: 'login' })
   }
@@ -736,7 +736,7 @@ function getRequestedCharacterId() {
   const queryId = String(route.query.characterId ?? '').trim()
   if (queryId) return queryId
 
-  return String(authStore.activeCharacterId ?? '').trim()
+  return String(authStore.idPersonagemAtivo ?? '').trim()
 }
 
 function setLoadError(err: unknown, fallbackMessage: string) {
@@ -776,12 +776,12 @@ async function loadCharacter() {
 
   let characterId = getRequestedCharacterId()
 
-  if (!characterId && !authStore.isMaster) {
+  if (!characterId && !authStore.eMestre) {
     try {
       await charactersStore.fetchCharacters()
       characterId = charactersStore.myCharacters[0]?.characterId ?? ''
       if (characterId) {
-        authStore.setActiveCharacter(characterId)
+        authStore.definirPersonagemAtivo(characterId)
         await router.replace({ name: 'dashboard', query: { characterId } })
       }
     } catch {
@@ -790,10 +790,10 @@ async function loadCharacter() {
   }
 
   if (!characterId) {
-    error.value = authStore.isMaster
+    error.value = authStore.eMestre
       ? 'Personagem nao informado para visualizacao.'
       : 'Nenhum personagem disponivel para esta conta.'
-    errorHint.value = authStore.isMaster
+    errorHint.value = authStore.eMestre
       ? 'Abra um personagem a partir da lista para continuar.'
       : 'Crie ou selecione um personagem na tela inicial.'
     loading.value = false
@@ -802,19 +802,19 @@ async function loadCharacter() {
 
   try {
     character.value = await charactersStore.fetchCharacterById(characterId)
-    authStore.setActiveCharacter(characterId)
+    authStore.definirPersonagemAtivo(characterId)
     initializeSettingsForm()
   } catch (err) {
     const maybeError = err as { response?: { status?: number } }
 
     // If the stored/query character no longer exists, recover by loading first available one.
-    if (!authStore.isMaster && maybeError?.response?.status === 404) {
+    if (!authStore.eMestre && maybeError?.response?.status === 404) {
       try {
         await charactersStore.fetchCharacters()
         const fallbackCharacterId = charactersStore.myCharacters[0]?.characterId ?? ''
 
         if (fallbackCharacterId) {
-          authStore.setActiveCharacter(fallbackCharacterId)
+          authStore.definirPersonagemAtivo(fallbackCharacterId)
           await router.replace({ name: 'dashboard', query: { characterId: fallbackCharacterId } })
           character.value = await charactersStore.fetchCharacterById(fallbackCharacterId)
           initializeSettingsForm()

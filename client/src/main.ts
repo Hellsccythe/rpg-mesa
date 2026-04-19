@@ -21,7 +21,7 @@ async function initAuthWithFallback(timeoutMs = 4000) {
   })
 
   try {
-    await Promise.race([authStore.initAuth(), timeoutPromise])
+    await Promise.race([authStore.inicializarAuth(), timeoutPromise])
   } catch (error) {
     console.error('[bootstrap] initAuth failed, mounting app anyway:', error)
   }

@@ -3,60 +3,60 @@ import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabase/client'
 import type { User, Session } from '@supabase/supabase-js'
 
-const AUTH_META_KEY = 'rpg-mesa.auth-meta'
-const AUTH_SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000
+const CHAVE_META_AUTH = 'rpg-mesa.auth-meta'
+const DURACAO_SESSAO_MS = 24 * 60 * 60 * 1000
 
-interface AuthMeta {
-  authenticatedAt: number
-  activeCharacterId: string | null
-  isMaster: boolean
+interface MetaAuth {
+  autenticadoEm: number
+  idPersonagemAtivo: string | null
+  eMestre: boolean
 }
 
-function readAuthMeta(): AuthMeta | null {
+function lerMetaAuth(): MetaAuth | null {
   if (typeof window === 'undefined') return null
 
-  const raw = window.localStorage.getItem(AUTH_META_KEY)
+  const raw = window.localStorage.getItem(CHAVE_META_AUTH)
   if (!raw) return null
 
   try {
-    const parsed = JSON.parse(raw) as Partial<AuthMeta>
-    if (typeof parsed.authenticatedAt !== 'number') return null
+    const parsed = JSON.parse(raw) as Partial<MetaAuth>
+    if (typeof parsed.autenticadoEm !== 'number') return null
 
     return {
-      authenticatedAt: parsed.authenticatedAt,
-      activeCharacterId:
-        typeof parsed.activeCharacterId === 'string' ? parsed.activeCharacterId : null,
-      isMaster: parsed.isMaster === true,
+      autenticadoEm: parsed.autenticadoEm,
+      idPersonagemAtivo:
+        typeof parsed.idPersonagemAtivo === 'string' ? parsed.idPersonagemAtivo : null,
+      eMestre: parsed.eMestre === true,
     }
   } catch {
     return null
   }
 }
 
-function writeAuthMeta(meta: AuthMeta) {
+function gravarMetaAuth(meta: MetaAuth) {
   if (typeof window === 'undefined') return
-  window.localStorage.setItem(AUTH_META_KEY, JSON.stringify(meta))
+  window.localStorage.setItem(CHAVE_META_AUTH, JSON.stringify(meta))
 }
 
-export function clearStoredAuthMeta() {
+export function limparMetaAuthLocal() {
   if (typeof window === 'undefined') return
-  window.localStorage.removeItem(AUTH_META_KEY)
+  window.localStorage.removeItem(CHAVE_META_AUTH)
 }
 
-export function getStoredAuthMeta() {
-  return readAuthMeta()
+export function obterMetaAuthLocal() {
+  return lerMetaAuth()
 }
 
-export function isStoredSessionExpired() {
-  const meta = readAuthMeta()
+export function sessaoLocalExpirada() {
+  const meta = lerMetaAuth()
   if (!meta) return true
-  return Date.now() - meta.authenticatedAt >= AUTH_SESSION_MAX_AGE_MS
+  return Date.now() - meta.autenticadoEm >= DURACAO_SESSAO_MS
 }
 
-export async function getValidAccessToken() {
-  if (isStoredSessionExpired()) {
+export async function obterTokenDeAcesso() {
+  if (sessaoLocalExpirada()) {
     await supabase.auth.signOut()
-    clearStoredAuthMeta()
+    limparMetaAuthLocal()
     return null
   }
 
@@ -68,165 +68,162 @@ export async function getValidAccessToken() {
 }
 
 export const useAuthStore = defineStore('auth', () => {
-  const user = ref<User | null>(null)
-  const session = ref<Session | null>(null)
-  const loading = ref(true)
-  const initialized = ref(false)
-  const activeCharacterId = ref<string | null>(null)
-  const isMaster = ref(false)
-  let unsubscribeAuthListener: (() => void) | null = null
+  const usuario = ref<User | null>(null)
+  const sessao = ref<Session | null>(null)
+  const carregando = ref(true)
+  const inicializado = ref(false)
+  const idPersonagemAtivo = ref<string | null>(null)
+  const eMestre = ref(false)
+  let cancelarEscutaAuth: (() => void) | null = null
 
-  const isAuthenticated = computed(() => !!user.value)
-  const hasValidSession = computed(() => {
-    if (!session.value || !user.value) return false
-    return !isStoredSessionExpired()
+  const estaAutenticado = computed(() => !!usuario.value)
+  const temSessaoValida = computed(() => {
+    if (!sessao.value || !usuario.value) return false
+    return !sessaoLocalExpirada()
   })
 
-  const clearLocalState = () => {
-    session.value = null
-    user.value = null
-    activeCharacterId.value = null
-    isMaster.value = false
-    clearStoredAuthMeta()
+  const limparEstadoLocal = () => {
+    sessao.value = null
+    usuario.value = null
+    idPersonagemAtivo.value = null
+    eMestre.value = false
+    limparMetaAuthLocal()
   }
 
-  const persistAuthMeta = (characterId: string | null, master = false) => {
-    const current = readAuthMeta()
-    writeAuthMeta({
-      authenticatedAt: current?.authenticatedAt ?? Date.now(),
-      activeCharacterId: characterId,
-      isMaster: master,
+  const persistirMetaAuth = (idPersonagem: string | null, master = false) => {
+    const atual = lerMetaAuth()
+    gravarMetaAuth({
+      autenticadoEm: atual?.autenticadoEm ?? Date.now(),
+      idPersonagemAtivo: idPersonagem,
+      eMestre: master,
     })
-    activeCharacterId.value = characterId
-    isMaster.value = master
+    idPersonagemAtivo.value = idPersonagem
+    eMestre.value = master
   }
 
-  const setActiveCharacter = (characterId: string) => {
-    persistAuthMeta(characterId, isMaster.value)
+  const definirPersonagemAtivo = (idPersonagem: string) => {
+    persistirMetaAuth(idPersonagem, eMestre.value)
   }
 
-  const canReuseSessionForCharacter = (characterId: string) => {
-    const meta = readAuthMeta()
-    if (!meta || !session.value || !user.value) return false
-    if (Date.now() - meta.authenticatedAt >= AUTH_SESSION_MAX_AGE_MS) return false
-    if (meta.isMaster) return true
-    return meta.activeCharacterId === characterId
+  const podeReutilizarSessao = (idPersonagem: string) => {
+    const meta = lerMetaAuth()
+    if (!meta || !sessao.value || !usuario.value) return false
+    if (Date.now() - meta.autenticadoEm >= DURACAO_SESSAO_MS) return false
+    if (meta.eMestre) return true
+    return meta.idPersonagemAtivo === idPersonagem
   }
 
-  const ensureValidSession = async () => {
+  const garantirSessaoValida = async () => {
     const {
-      data: { session: currentSession },
+      data: { session: sessaoAtual },
     } = await supabase.auth.getSession()
 
-    if (!currentSession) {
-      clearLocalState()
-      loading.value = false
-      initialized.value = true
+    if (!sessaoAtual) {
+      limparEstadoLocal()
+      carregando.value = false
+      inicializado.value = true
       return false
     }
 
-    const meta = readAuthMeta()
-    if (!meta || Date.now() - meta.authenticatedAt >= AUTH_SESSION_MAX_AGE_MS) {
+    const meta = lerMetaAuth()
+    if (!meta || Date.now() - meta.autenticadoEm >= DURACAO_SESSAO_MS) {
       await supabase.auth.signOut()
-      clearLocalState()
-      loading.value = false
-      initialized.value = true
+      limparEstadoLocal()
+      carregando.value = false
+      inicializado.value = true
       return false
     }
 
-    session.value = currentSession
-    user.value = currentSession.user
-    activeCharacterId.value = meta.activeCharacterId
-    isMaster.value = meta.isMaster === true
-    loading.value = false
-    initialized.value = true
+    sessao.value = sessaoAtual
+    usuario.value = sessaoAtual.user
+    idPersonagemAtivo.value = meta.idPersonagemAtivo
+    eMestre.value = meta.eMestre === true
+    carregando.value = false
+    inicializado.value = true
     return true
   }
 
-  // Inicializar autenticação
-  const initAuth = async () => {
-    if (initialized.value) return
+  const inicializarAuth = async () => {
+    if (inicializado.value) return
 
-    await ensureValidSession()
+    await garantirSessaoValida()
 
-    // Escutar mudanças de autenticação em tempo real
-    if (!unsubscribeAuthListener) {
-      const { data } = supabase.auth.onAuthStateChange((event, newSession) => {
-        if (!newSession) {
-          clearLocalState()
+    if (!cancelarEscutaAuth) {
+      const { data } = supabase.auth.onAuthStateChange((evento, novaSessao) => {
+        if (!novaSessao) {
+          limparEstadoLocal()
           return
         }
 
-        const currentMeta = readAuthMeta()
-        if (event === 'SIGNED_IN' && !currentMeta) {
-          writeAuthMeta({
-            authenticatedAt: Date.now(),
-            activeCharacterId: activeCharacterId.value,
-            isMaster: isMaster.value,
+        const metaAtual = lerMetaAuth()
+        if (evento === 'SIGNED_IN' && !metaAtual) {
+          gravarMetaAuth({
+            autenticadoEm: Date.now(),
+            idPersonagemAtivo: idPersonagemAtivo.value,
+            eMestre: eMestre.value,
           })
         }
 
-        session.value = newSession
-        user.value = newSession?.user ?? null
-        activeCharacterId.value = readAuthMeta()?.activeCharacterId ?? null
-        isMaster.value = readAuthMeta()?.isMaster === true
+        sessao.value = novaSessao
+        usuario.value = novaSessao?.user ?? null
+        idPersonagemAtivo.value = lerMetaAuth()?.idPersonagemAtivo ?? null
+        eMestre.value = lerMetaAuth()?.eMestre === true
       })
 
-      unsubscribeAuthListener = () => {
+      cancelarEscutaAuth = () => {
         data.subscription.unsubscribe()
-        unsubscribeAuthListener = null
+        cancelarEscutaAuth = null
       }
     }
   }
 
-  // Login com email e senha
-  const signIn = async (
+  const entrar = async (
     email: string,
-    password: string,
-    characterId: string | null,
-    options?: { asMaster?: boolean },
+    senha: string,
+    idPersonagem: string | null,
+    opcoes?: { comoMestre?: boolean },
   ) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { error } = await supabase.auth.signInWithPassword({ email, password: senha })
     if (error) throw error
-    const asMaster = options?.asMaster === true
-    writeAuthMeta({
-      authenticatedAt: Date.now(),
-      activeCharacterId: asMaster ? null : characterId,
-      isMaster: asMaster,
+    const comoMestre = opcoes?.comoMestre === true
+    gravarMetaAuth({
+      autenticadoEm: Date.now(),
+      idPersonagemAtivo: comoMestre ? null : idPersonagem,
+      eMestre: comoMestre,
     })
-    await ensureValidSession()
+    await garantirSessaoValida()
     return true
   }
 
-  // Cadastro
-  const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({ email, password })
+  const cadastrar = async (email: string, senha: string) => {
+    const { data, error } = await supabase.auth.signUp({ email, password: senha })
     if (error) throw error
+    // Supabase retorna user: null silenciosamente quando o email já existe
+    if (!data.user) throw new Error('User already registered')
     return true
   }
 
-  // Logout
-  const signOut = async () => {
+  const sair = async () => {
     const { error } = await supabase.auth.signOut()
     if (error) throw error
-    clearLocalState()
+    limparEstadoLocal()
   }
 
   return {
-    user,
-    session,
-    loading,
-    initialized,
-    activeCharacterId,
-    isMaster,
-    isAuthenticated,
-    hasValidSession,
-    initAuth,
-    ensureValidSession,
-    setActiveCharacter,
-    canReuseSessionForCharacter,
-    signIn,
-    signUp,
-    signOut,
+    usuario,
+    sessao,
+    carregando,
+    inicializado,
+    idPersonagemAtivo,
+    eMestre,
+    estaAutenticado,
+    temSessaoValida,
+    inicializarAuth,
+    garantirSessaoValida,
+    definirPersonagemAtivo,
+    podeReutilizarSessao,
+    entrar,
+    cadastrar,
+    sair,
   }
 })

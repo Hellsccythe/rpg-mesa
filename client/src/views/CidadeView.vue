@@ -526,7 +526,7 @@ async function buscarMapas() {
 const voltar = () => {
   roteador.push({
     name: 'dashboard',
-    query: lojaAuth.activeCharacterId ? { characterId: lojaAuth.activeCharacterId } : undefined,
+    query: lojaAuth.idPersonagemAtivo ? { characterId: lojaAuth.idPersonagemAtivo } : undefined,
   })
 }
 
@@ -542,7 +542,7 @@ const irParaDashboard = () => {
   fecharMenuConfiguracoes()
   roteador.push({
     name: 'dashboard',
-    query: lojaAuth.activeCharacterId ? { characterId: lojaAuth.activeCharacterId } : undefined,
+    query: lojaAuth.idPersonagemAtivo ? { characterId: lojaAuth.idPersonagemAtivo } : undefined,
   })
 }
 
@@ -582,7 +582,7 @@ async function aoSelecionarMenuCabecalho(itemId: string) {
 const sair = async () => {
   fecharMenuConfiguracoes()
   try {
-    await lojaAuth.signOut()
+    await lojaAuth.sair()
   } finally {
     roteador.push({ name: 'login' })
   }
@@ -729,11 +729,15 @@ onBeforeUnmount(() => {
 }
 
 .cidade-settings-item-danger {
-  color: #fca5a5;
+  color: #ef4444;
 }
 
 .cidade-settings-item-danger:hover {
-  background: rgb(127 29 29 / 0.25);
+  background: color-mix(in srgb, #ef4444 12%, transparent 88%);
+}
+
+:global(html.theme-light) .cidade-settings-item-danger {
+  color: #dc2626;
 }
 
 .cidade-map-frame {
