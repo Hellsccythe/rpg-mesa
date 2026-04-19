@@ -197,6 +197,18 @@ async function ensureMasterAccess(accessToken?: string) {
   return user;
 }
 
+async function findUserByEmail(admin: ReturnType<typeof getAdminClient>, email: string) {
+  let page = 1;
+  while (true) {
+    const { data, error } = await admin.auth.admin.listUsers({ perPage: 1000, page });
+    if (error) throw error;
+    const found = data.users.find((u: any) => u.email === email);
+    if (found) return found;
+    if (data.users.length < 1000) return null;
+    page++;
+  }
+}
+
 export const personagensService = {
   /**
    * Lista todos os personagens publicamente (sem auth).
@@ -319,6 +331,7 @@ export const personagensService = {
     const updates: Record<string, unknown> = {};
     if (dto.name !== undefined) updates.name = dto.name;
     if (dto.level !== undefined) updates.level = dto.level;
+    if ((dto as any).avatarUrl !== undefined) updates.avatar_url = (dto as any).avatarUrl;
     if (dto.data !== undefined) updates.data = dto.data;
 
     const { data, error } = await supabase
@@ -436,41 +449,40 @@ export const personagensService = {
     await ensureMasterAccess(accessToken);
     const admin = getAdminClient();
 
+    // Filtra no banco usando o índice parcial idx_characters_pending_request
     const { data, error } = await admin
       .from(PERSONAGEM_TABLE)
       .select(PERSONAGEM_SELECT_FIELDS)
       .is("deleted_at", null)
+      .not("data->pendingChangeRequest", "is", null)
       .order("updated_at", { ascending: false });
 
     if (error) throw error;
 
-    const personagens = (data || []).map(mapPersonagem);
-    return personagens
-      .map((personagem) => {
-        const pending = getPendingChangeRequest(personagem.data as Record<string, any>);
-        if (!pending) return null;
+    return (data || []).map(mapPersonagem).map((personagem) => {
+      const pending = getPendingChangeRequest(personagem.data as Record<string, any>);
+      if (!pending) return null;
 
-        return {
-          characterId: personagem.characterId,
-          currentName: personagem.name,
-          currentAvatarUrl: personagem.avatarUrl,
-          currentHistory: ((personagem.data as any)?.history as string) ?? null,
-          currentHistoryDocumentPath:
-            ((personagem.data as any)?.historyDocumentPath as string) ??
-            ((personagem.data as any)?.historyDocumentUrl as string) ??
-            null,
-          currentHistoryDocumentName:
-            ((personagem.data as any)?.historyDocumentName as string) ?? null,
-          requestedName: pending.name ?? null,
-          requestedAvatarUrl: pending.avatarUrl ?? null,
-          requestedHistory: pending.history ?? null,
-          requestedHistoryDocumentPath: pending.historyDocumentPath ?? null,
-          requestedHistoryDocumentName: pending.historyDocumentName ?? null,
-          requestedAt: pending.requestedAt,
-          requestedByEmail: pending.requestedByEmail,
-        };
-      })
-      .filter(Boolean);
+      return {
+        characterId: personagem.characterId,
+        currentName: personagem.name,
+        currentAvatarUrl: personagem.avatarUrl,
+        currentHistory: ((personagem.data as any)?.history as string) ?? null,
+        currentHistoryDocumentPath:
+          ((personagem.data as any)?.historyDocumentPath as string) ??
+          ((personagem.data as any)?.historyDocumentUrl as string) ??
+          null,
+        currentHistoryDocumentName:
+          ((personagem.data as any)?.historyDocumentName as string) ?? null,
+        requestedName: pending.name ?? null,
+        requestedAvatarUrl: pending.avatarUrl ?? null,
+        requestedHistory: pending.history ?? null,
+        requestedHistoryDocumentPath: pending.historyDocumentPath ?? null,
+        requestedHistoryDocumentName: pending.historyDocumentName ?? null,
+        requestedAt: pending.requestedAt,
+        requestedByEmail: pending.requestedByEmail,
+      };
+    }).filter(Boolean);
   },
 
   async revisarSolicitacao(characterId: string, dto: RevisarSolicitacaoDto, accessToken?: string) {
@@ -726,6 +738,55 @@ export const personagensService = {
     return mapPersonagem(data);
   },
 
+  async deletarPersonagemComoMestre(characterId: string, accessToken?: string) {
+    const masterUser = await ensureMasterAccess(accessToken);
+    const admin = getAdminClient();
+
+    // Busca o avatar antes do soft delete
+    const { data: char, error: fetchError } = await admin
+      .from(PERSONAGEM_TABLE)
+      .select("id, avatar_url")
+      .eq("id", characterId)
+      .is("deleted_at", null)
+      .single();
+
+    if (fetchError || !char) throw new Error("Personagem nao encontrado.");
+
+    // Soft delete do registro com deleted_by
+    let softDelete = await admin
+      .from(PERSONAGEM_TABLE)
+      .update({ deleted_at: new Date().toISOString(), deleted_by: masterUser.id })
+      .eq("id", characterId)
+      .is("deleted_at", null);
+
+    if (softDelete.error && isMissingColumnError(softDelete.error, "deleted_by")) {
+      softDelete = await admin
+        .from(PERSONAGEM_TABLE)
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", characterId)
+        .is("deleted_at", null);
+    }
+
+    if (softDelete.error) throw softDelete.error;
+
+    // Hard delete da imagem no storage
+    if (char.avatar_url) {
+      try {
+        const avatarBucket = process.env.VITE_AVATAR_BUCKET || "character-avatars";
+        const marker = `/storage/v1/object/public/${avatarBucket}/`;
+        const idx = (char.avatar_url as string).indexOf(marker);
+        if (idx !== -1) {
+          const storagePath = (char.avatar_url as string).slice(idx + marker.length);
+          await admin.storage.from(avatarBucket).remove([storagePath]);
+        }
+      } catch {
+        // Falha no storage nao bloqueia o delete do personagem
+      }
+    }
+
+    return { success: true };
+  },
+
   async deletarMeuPersonagem(characterId: string, accessToken?: string) {
     const supabase = getSupabaseClient(accessToken);
 
@@ -746,6 +807,63 @@ export const personagensService = {
 
     if (error) throw error;
     return { success: !!data?.id };
+  },
+
+  async registrarECriarPersonagem(payload: {
+    email: string
+    senha: string
+    nome: string
+    data?: Record<string, any>
+    avatarUrl?: string | null
+  }) {
+    const admin = getAdminClient()
+
+    const normalizedEmail = normalizeEmail(payload.email)
+    if (!isValidEmail(normalizedEmail)) throw new Error("Email invalido.")
+
+    const allowedEmails = await getCharacterCreationAllowedEmailsMerged()
+    const emailAllowed =
+      !allowedEmails.length || allowedEmails.includes(normalizedEmail)
+    if (!emailAllowed) {
+      throw new Error("Email nao liberado pelo mestre para criacao de personagem.")
+    }
+
+    // Cria usuario via admin — bypassa confirmacao de email
+    let userId: string
+    const { data: createData, error: createError } = await admin.auth.admin.createUser({
+      email: normalizedEmail,
+      password: payload.senha,
+      email_confirm: true,
+    })
+
+    if (createError) {
+      const msg = createError.message?.toLowerCase() ?? ""
+      if (msg.includes("already") || msg.includes("already registered") || (createError as any).status === 422) {
+        // Usuario ja existe — busca paginando todos os users para garantir cobertura > 1000
+        const existingUser = await findUserByEmail(admin, normalizedEmail)
+        if (!existingUser) throw new Error("Email ja cadastrado. Verifique a senha informada.")
+        userId = existingUser.id
+      } else {
+        throw createError
+      }
+    } else {
+      userId = createData.user.id
+    }
+
+    const { data, error } = await admin
+      .from(PERSONAGEM_TABLE)
+      .insert({
+        user_id: userId,
+        name: payload.nome.trim(),
+        level: 1,
+        avatar_url: payload.avatarUrl ?? null,
+        data: payload.data ?? {},
+      })
+      .select(PERSONAGEM_SELECT_FIELDS)
+      .single()
+
+    if (error) throw error
+    return mapPersonagem(data)
   },
 
   async listarEmailsPermitidosCriacaoPersonagem(accessToken?: string) {

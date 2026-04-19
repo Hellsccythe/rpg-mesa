@@ -2,7 +2,7 @@
   <div class="relative min-h-screen overflow-hidden bg-[#0A0F1C] text-white">
     <div class="absolute inset-0 bg-gradient-to-br from-[#0F1C3A] via-[#1A2438] to-[#2A1B4A]/80" />
 
-    <div class="relative z-10 min-h-screen px-4 py-6 sm:px-6 sm:py-8">
+    <TemaDarkLight variante="contexto" class="relative z-10 min-h-screen px-4 py-6 sm:px-6 sm:py-8">
       <div class="mx-auto max-w-7xl space-y-6">
         <header class="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -38,7 +38,7 @@
                 v-model="nameFilter"
                 type="text"
                 placeholder="Digite o nome do deus..."
-                class="field"
+                class="tdl-campo"
               />
             </div>
 
@@ -47,7 +47,7 @@
                 >Filtrar por indole</label
               >
               <div class="select-wrap">
-                <select v-model="alignmentFilter" class="field appearance-none pr-12">
+                <select v-model="alignmentFilter" class="tdl-campo appearance-none pr-12">
                   <option value="all">Todos</option>
                   <option value="bom">Bom/Boa</option>
                   <option value="mau">Maligno(a)</option>
@@ -101,6 +101,7 @@
                 v-if="draftFor(god.id).imageUrl"
                 :src="draftFor(god.id).imageUrl"
                 :alt="draftFor(god.id).name || 'Imagem do deus'"
+                loading="lazy"
                 class="h-full w-full object-cover"
                 :style="{ objectPosition: getGodImagePosition(draftFor(god.id).name) }"
               />
@@ -122,25 +123,25 @@
               <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <input
                   v-model="draftFor(god.id).name"
-                  class="field"
+                  class="tdl-campo"
                   placeholder="Nome"
                   :disabled="!isEditing(god.id)"
                 />
                 <input
                   v-model="draftFor(god.id).title"
-                  class="field"
+                  class="tdl-campo"
                   placeholder="Titulo"
                   :disabled="!isEditing(god.id)"
                 />
                 <input
                   v-model="draftFor(god.id).indole"
-                  class="field"
+                  class="tdl-campo"
                   placeholder="Indole"
                   :disabled="!isEditing(god.id)"
                 />
                 <input
                   v-model="draftFor(god.id).weapons"
-                  class="field"
+                  class="tdl-campo"
                   placeholder="Weapons"
                   :disabled="!isEditing(god.id)"
                 />
@@ -153,7 +154,7 @@
                 <input
                   type="file"
                   accept="image/*"
-                  class="field"
+                  class="tdl-campo"
                   :disabled="!isEditing(god.id)"
                   @change="onEditImageSelected(god.id, $event)"
                 />
@@ -162,7 +163,7 @@
 
               <input
                 v-model="draftFor(god.id).shortDescription"
-                class="field"
+                class="tdl-campo"
                 placeholder="Descricao curta"
                 :disabled="!isEditing(god.id)"
               />
@@ -170,7 +171,7 @@
               <textarea
                 v-model="draftFor(god.id).description"
                 rows="3"
-                class="field"
+                class="tdl-campo"
                 placeholder="Descricao"
                 :disabled="!isEditing(god.id)"
               />
@@ -178,7 +179,7 @@
               <textarea
                 v-model="draftFor(god.id).dogma"
                 rows="3"
-                class="field"
+                class="tdl-campo"
                 placeholder="Dogma"
                 :disabled="!isEditing(god.id)"
               />
@@ -186,7 +187,7 @@
               <textarea
                 v-model="draftFor(god.id).anatema"
                 rows="3"
-                class="field"
+                class="tdl-campo"
                 placeholder="Anatema"
                 :disabled="!isEditing(god.id)"
               />
@@ -248,8 +249,6 @@
           {{ feedback }}
         </p>
       </div>
-    </div>
-
     <Modal
       v-if="showCreate"
       :show-close-button="false"
@@ -271,31 +270,31 @@
 
         <div class="space-y-3">
           <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <input v-model="createForm.name" class="field" placeholder="Nome" />
-            <input v-model="createForm.title" class="field" placeholder="Titulo" />
-            <input v-model="createForm.indole" class="field" placeholder="Indole" />
-            <input v-model="createForm.weapons" class="field" placeholder="Weapons" />
+            <input v-model="createForm.name" class="tdl-campo" placeholder="Nome" />
+            <input v-model="createForm.title" class="tdl-campo" placeholder="Titulo" />
+            <input v-model="createForm.indole" class="tdl-campo" placeholder="Indole" />
+            <input v-model="createForm.weapons" class="tdl-campo" placeholder="Weapons" />
           </div>
           <div class="space-y-1">
             <label class="block text-xs uppercase tracking-wide text-zinc-500"
               >Imagem do deus</label
             >
-            <input type="file" accept="image/*" class="field" @change="onCreateImageSelected" />
+            <input type="file" accept="image/*" class="tdl-campo" @change="onCreateImageSelected" />
             <p class="text-xs text-zinc-500">A imagem e obrigatoria e sera enviada ao bucket.</p>
           </div>
           <input
             v-model="createForm.shortDescription"
-            class="field"
+            class="tdl-campo"
             placeholder="Descricao curta"
           />
           <textarea
             v-model="createForm.description"
             rows="3"
-            class="field"
+            class="tdl-campo"
             placeholder="Descricao"
           />
-          <textarea v-model="createForm.dogma" rows="3" class="field" placeholder="Dogma" />
-          <textarea v-model="createForm.anatema" rows="3" class="field" placeholder="Anatema" />
+          <textarea v-model="createForm.dogma" rows="3" class="tdl-campo" placeholder="Dogma" />
+          <textarea v-model="createForm.anatema" rows="3" class="tdl-campo" placeholder="Anatema" />
         </div>
 
         <div class="mt-4 flex flex-wrap justify-end gap-2">
@@ -314,12 +313,14 @@
         </div>
       </div>
     </Modal>
-  </div>
+  </TemaDarkLight>
+</div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import Modal from '@/components/Modal.vue'
+import TemaDarkLight from '@/components/TemaDarkLight.vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useMasterCatalogStore } from '@/stores/masterCatalog'
@@ -646,7 +647,7 @@ function goMasterPanel() {
 }
 
 async function logout() {
-  await authStore.signOut()
+  await authStore.sair()
   router.push({ name: 'login' })
 }
 
@@ -656,26 +657,6 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.field {
-  width: 100%;
-  border-radius: 0.75rem;
-  border: 1px solid rgb(107 78 158 / 0.4);
-  background: #0b1426;
-  padding: 0.75rem 1rem;
-  color: #e4e4e7;
-  outline: none;
-  transition: border-color 0.2s ease;
-}
-
-.field:focus {
-  border-color: rgb(200 208 224 / 0.7);
-}
-
-.field:disabled {
-  opacity: 0.8;
-  cursor: default;
-}
-
 .select-wrap {
   position: relative;
 }
@@ -686,32 +667,9 @@ onMounted(async () => {
   right: 1rem;
   top: 50%;
   transform: translateY(-52%);
-  color: rgb(212 212 216 / 0.95);
+  color: var(--text-muted);
   font-size: 1rem;
   line-height: 1;
 }
 
-textarea.field {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(107, 78, 158, 0.9) rgba(10, 15, 28, 0.75);
-}
-
-textarea.field::-webkit-scrollbar {
-  width: 10px;
-}
-
-textarea.field::-webkit-scrollbar-track {
-  background: linear-gradient(180deg, rgba(10, 15, 28, 0.95), rgba(26, 36, 56, 0.92));
-  border-left: 1px solid rgba(107, 78, 158, 0.18);
-}
-
-textarea.field::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, rgba(200, 208, 224, 0.75), rgba(107, 78, 158, 0.9));
-  border-radius: 999px;
-  border: 2px solid rgba(26, 36, 56, 0.95);
-}
-
-textarea.field::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, rgba(251, 191, 36, 0.9), rgba(107, 78, 158, 1));
-}
 </style>

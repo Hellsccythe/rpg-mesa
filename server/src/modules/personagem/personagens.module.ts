@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { personagensController } from "./personagens.controller.js";
+import { ensureMasterAccess } from "../../common/helpers/master-access.helper.js";
 
 export * from "./personagens.dto.js";
 export * from "./personagens.service.js";
@@ -31,6 +32,16 @@ PersonagensRouter.get("/", async (req, res) => {
   } catch (error: any) {
     const status = error?.message?.includes("autenticado") ? 401 : 500;
     res.status(status).json({ message: error?.message ?? "Erro ao listar personagens" });
+  }
+});
+
+PersonagensRouter.get("/admin/verificar-mestre", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    await ensureMasterAccess(token);
+    res.status(200).json({ isMaster: true });
+  } catch {
+    res.status(403).json({ isMaster: false });
   }
 });
 
@@ -159,6 +170,17 @@ PersonagensRouter.patch("/:characterId/solicitacao", async (req, res) => {
   }
 });
 
+PersonagensRouter.post("/registrar", async (req, res) => {
+  try {
+    const resultado = await personagensController.registrarECriar(req.body)
+    res.status(201).json(resultado)
+  } catch (error: any) {
+    const msg = error?.message ?? ""
+    const status = msg.includes("liberado") ? 403 : msg.includes("cadastrado") ? 409 : 400
+    res.status(status).json({ message: msg || "Erro ao registrar personagem" })
+  }
+})
+
 PersonagensRouter.post("/", async (req, res) => {
   try {
     const token = getBearerToken(req.headers.authorization);
@@ -182,6 +204,18 @@ PersonagensRouter.patch("/:characterId", async (req, res) => {
   } catch (error: any) {
     const status = error?.message?.includes("autenticado") ? 401 : 400;
     res.status(status).json({ message: error?.message ?? "Erro ao editar personagem" });
+  }
+});
+
+PersonagensRouter.delete("/admin/:characterId", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    const resultado = await personagensController.deletarComoMestre(req.params.characterId, token);
+    res.status(200).json(resultado);
+  } catch (error: any) {
+    const status =
+      error?.message?.includes("autenticado") || error?.message?.includes("restrito") ? 401 : 404;
+    res.status(status).json({ message: error?.message ?? "Erro ao deletar personagem" });
   }
 });
 

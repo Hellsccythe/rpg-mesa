@@ -178,4 +178,75 @@ withDefaults(
   color: var(--tdl-cor-texto-suave);
   font-family: var(--tdl-fonte-texto);
 }
+
+/* ── Campos (input, select, textarea) ── */
+.tema-dark-light :deep(.tdl-campo) {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border-soft);
+  background: var(--bg-soft);
+  padding: 0.75rem 1rem;
+  color: var(--text-main);
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.tema-dark-light :deep(.tdl-campo::placeholder) {
+  color: var(--text-muted);
+}
+
+.tema-dark-light :deep(.tdl-campo:focus) {
+  border-color: var(--ring-soft);
+}
+
+.tema-dark-light :deep(.tdl-campo:disabled) {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.tema-dark-light :deep(textarea.tdl-campo) {
+  scrollbar-width: thin;
+  scrollbar-color: var(--brand-primary) var(--bg-soft);
+}
+
+.tema-dark-light :deep(textarea.tdl-campo::-webkit-scrollbar) {
+  width: 8px;
+}
+
+.tema-dark-light :deep(textarea.tdl-campo::-webkit-scrollbar-track) {
+  background: var(--bg-soft);
+  border-left: 1px solid var(--border-soft);
+}
+
+.tema-dark-light :deep(textarea.tdl-campo::-webkit-scrollbar-thumb) {
+  background: var(--brand-primary);
+  border-radius: 999px;
+  border: 2px solid var(--bg-soft);
+}
+
+.tema-dark-light :deep(textarea.tdl-campo::-webkit-scrollbar-thumb:hover) {
+  background: var(--brand-primary-strong);
+}
+
+/* ── Botão primário ── */
+.tema-dark-light :deep(.tdl-botao-primario) {
+  border-radius: 0.75rem;
+  background: var(--brand-primary);
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #fff;
+  transition:
+    filter 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.tema-dark-light :deep(.tdl-botao-primario:hover) {
+  background: var(--brand-primary-strong);
+}
+
+.tema-dark-light :deep(.tdl-botao-primario:disabled) {
+  cursor: wait;
+  opacity: 0.6;
+}
 </style>

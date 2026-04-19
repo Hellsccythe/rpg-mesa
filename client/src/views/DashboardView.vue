@@ -36,6 +36,13 @@
               class="absolute right-0 mt-2 w-52 rounded-2xl border border-[#6B4E9E]/50 bg-[#0F1C3A]/95 p-2 shadow-xl backdrop-blur-md"
             >
               <button
+                v-if="authStore.eMestre"
+                @click="retornarPainelMestre"
+                class="block w-full rounded-xl px-4 py-2 text-left text-base text-amber-300 transition-colors hover:bg-amber-900/30"
+              >
+                Painel do Mestre
+              </button>
+              <button
                 @click="openSettings"
                 class="block w-full rounded-xl px-4 py-2 text-left text-base text-zinc-200 transition-colors hover:bg-[#2A1B4A]"
               >
@@ -80,7 +87,7 @@
         </div>
 
         <div v-else-if="character" class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <div class="lg:col-span-4">
+          <div class="order-2 lg:order-1 lg:col-span-4">
             <div class="character-panel border border-[#6B4E9E]/40 rounded-3xl p-6">
               <div
                 class="aspect-[4/5] relative rounded-2xl overflow-hidden border border-[#C8D0E0]/10 shadow-2xl"
@@ -107,12 +114,12 @@
             </div>
           </div>
 
-          <div class="lg:col-span-5 flex flex-col items-center justify-center gap-8">
+          <div class="order-1 lg:order-2 lg:col-span-5 flex flex-col items-center justify-center gap-8">
             <div class="flex items-center gap-4">
               <div class="text-5xl font-bold tracking-wide text-[#C8D0E0]">
                 {{ character.name }}
               </div>
-              <button class="text-3xl text-[#6B4E9E] hover:text-white transition-colors">✏️</button>
+              <button class="text-3xl text-[#6B4E9E] hover:text-white transition-colors" aria-label="Editar nome do personagem">✏️</button>
             </div>
 
             <div class="flex gap-10 text-center">
@@ -136,7 +143,7 @@
             </button>
           </div>
 
-          <div class="lg:col-span-3">
+          <div class="order-3 lg:col-span-3">
             <div class="notes-panel border border-[#6B4E9E]/30 rounded-3xl p-7 h-full">
               <h3 class="text-2xl font-semibold mb-5 text-[#C8D0E0]">Notas da Campanha</h3>
               <div class="notes-body leading-relaxed text-[15px] min-h-[260px]">
@@ -160,7 +167,7 @@
           <h2 class="text-2xl font-bold text-[#C8D0E0]">Configuracoes</h2>
           <p class="text-sm text-zinc-400">
             {{
-              authStore.isMaster
+              authStore.eMestre
                 ? 'Painel de aprovacao do mestre'
                 : 'Solicitar alteracao de personagem'
             }}
@@ -168,7 +175,7 @@
         </div>
       </template>
 
-      <div v-if="authStore.isMaster" class="space-y-4">
+      <div v-if="authStore.eMestre" class="space-y-4">
         <div class="flex items-center justify-between">
           <h3 class="text-lg font-semibold text-amber-300">Solicitacoes pendentes</h3>
           <button
@@ -322,6 +329,7 @@
               </div>
               <button
                 @click.stop="removeRequestedAvatar"
+                aria-label="Remover avatar selecionado"
                 class="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/70 text-lg text-white transition-colors hover:bg-red-700"
               >
                 ✕
@@ -408,7 +416,7 @@ import { useRoute, useRouter } from 'vue-router'
 import Modal from '@/components/Modal.vue'
 import HamburgerDrawerMenu from '@/components/HamburgerDrawerMenu.vue'
 import { getHistoryDocumentSignedUrl } from '@/lib/supabase/storage'
-import { clearStoredAuthMeta, useAuthStore } from '@/stores/auth'
+import { limparMetaAuthLocal, useAuthStore } from '@/stores/auth'
 import { useCharactersStore } from '@/stores/characters'
 import { useMasterApprovalsStore } from '@/stores/masterApprovals'
 import type { PersonagemApi } from '@/types/supabase'
@@ -469,10 +477,15 @@ const activeDashboardHeaderItem = computed(() => {
 })
 
 const historyPreview = computed(() => {
-  const txt = (character.value?.data?.history as string) || ''
-  return txt.trim()
-    ? txt.slice(0, 320) + (txt.length > 320 ? '...' : '')
-    : 'Nenhuma anotacao registrada ainda.'
+  const notes = character.value?.data?.adventureNotes
+  if (Array.isArray(notes) && notes.length) {
+    return notes
+      .slice(-3)
+      .map((n: { text?: string }) => n.text ?? '')
+      .filter(Boolean)
+      .join('\n\n')
+  }
+  return 'Nenhuma anotacao registrada ainda.'
 })
 
 const indoleLabel = computed(() => {
@@ -481,8 +494,13 @@ const indoleLabel = computed(() => {
 })
 
 const goBack = () => {
-  clearStoredAuthMeta()
+  limparMetaAuthLocal()
   router.push({ name: 'login', query: { force: '1' } })
+}
+
+const retornarPainelMestre = () => {
+  closeSettingsMenu()
+  router.push({ name: 'master-panel' })
 }
 
 const toggleSettingsMenu = () => {
@@ -542,7 +560,7 @@ const openSettings = async () => {
   initializeSettingsForm()
   showSettingsModal.value = true
 
-  if (authStore.isMaster) {
+  if (authStore.eMestre) {
     await loadPending()
   }
 }
@@ -555,7 +573,7 @@ function closeSettingsModal() {
 const logout = async () => {
   closeSettingsMenu()
   try {
-    await authStore.signOut()
+    await authStore.sair()
   } finally {
     router.push({ name: 'login' })
   }
@@ -736,7 +754,7 @@ function getRequestedCharacterId() {
   const queryId = String(route.query.characterId ?? '').trim()
   if (queryId) return queryId
 
-  return String(authStore.activeCharacterId ?? '').trim()
+  return String(authStore.idPersonagemAtivo ?? '').trim()
 }
 
 function setLoadError(err: unknown, fallbackMessage: string) {
@@ -776,12 +794,12 @@ async function loadCharacter() {
 
   let characterId = getRequestedCharacterId()
 
-  if (!characterId && !authStore.isMaster) {
+  if (!characterId && !authStore.eMestre) {
     try {
       await charactersStore.fetchCharacters()
       characterId = charactersStore.myCharacters[0]?.characterId ?? ''
       if (characterId) {
-        authStore.setActiveCharacter(characterId)
+        authStore.definirPersonagemAtivo(characterId)
         await router.replace({ name: 'dashboard', query: { characterId } })
       }
     } catch {
@@ -790,10 +808,10 @@ async function loadCharacter() {
   }
 
   if (!characterId) {
-    error.value = authStore.isMaster
+    error.value = authStore.eMestre
       ? 'Personagem nao informado para visualizacao.'
       : 'Nenhum personagem disponivel para esta conta.'
-    errorHint.value = authStore.isMaster
+    errorHint.value = authStore.eMestre
       ? 'Abra um personagem a partir da lista para continuar.'
       : 'Crie ou selecione um personagem na tela inicial.'
     loading.value = false
@@ -802,19 +820,19 @@ async function loadCharacter() {
 
   try {
     character.value = await charactersStore.fetchCharacterById(characterId)
-    authStore.setActiveCharacter(characterId)
+    authStore.definirPersonagemAtivo(characterId)
     initializeSettingsForm()
   } catch (err) {
     const maybeError = err as { response?: { status?: number } }
 
     // If the stored/query character no longer exists, recover by loading first available one.
-    if (!authStore.isMaster && maybeError?.response?.status === 404) {
+    if (!authStore.eMestre && maybeError?.response?.status === 404) {
       try {
         await charactersStore.fetchCharacters()
         const fallbackCharacterId = charactersStore.myCharacters[0]?.characterId ?? ''
 
         if (fallbackCharacterId) {
-          authStore.setActiveCharacter(fallbackCharacterId)
+          authStore.definirPersonagemAtivo(fallbackCharacterId)
           await router.replace({ name: 'dashboard', query: { characterId: fallbackCharacterId } })
           character.value = await charactersStore.fetchCharacterById(fallbackCharacterId)
           initializeSettingsForm()

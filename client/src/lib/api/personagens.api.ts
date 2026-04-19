@@ -30,6 +30,17 @@ export async function createCharacter(payload: SalvarPersonagemDto) {
   return data
 }
 
+export async function registrarECriarPersonagem(payload: {
+  email: string
+  senha: string
+  nome: string
+  data?: Record<string, unknown>
+  avatarUrl?: string | null
+}) {
+  const { data } = await api.post<PersonagemApi>('/personagens/registrar', payload)
+  return data
+}
+
 export async function editCharacter(characterId: string, payload: EditarPersonagemDto) {
   const { data } = await api.patch<PersonagemApi>(`/personagens/${characterId}`, payload)
   return data
@@ -89,4 +100,18 @@ export async function removeCharacterCreationAllowedEmail(email: string) {
     `/personagens/admin/character-creation-emails/${encodeURIComponent(email)}`,
   )
   return data
+}
+
+export async function deleteCharacterAsMaster(characterId: string) {
+  const { data } = await api.delete<{ success: boolean }>(`/personagens/admin/${characterId}`)
+  return data
+}
+
+export async function verificarSeMestre(): Promise<boolean> {
+  try {
+    await api.get('/personagens/admin/verificar-mestre')
+    return true
+  } catch {
+    return false
+  }
 }

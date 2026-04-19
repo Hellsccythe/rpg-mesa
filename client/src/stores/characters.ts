@@ -70,7 +70,7 @@ export const useCharactersStore = defineStore('characters', {
       this.error = null
       try {
         const authStore = useAuthStore()
-        const data = await getCharacterById(characterId, authStore.isMaster)
+        const data = await getCharacterById(characterId, authStore.eMestre)
         const idx = this.myCharacters.findIndex((char) => char.characterId === characterId)
         if (idx !== -1) this.myCharacters[idx] = data
         else this.myCharacters.unshift(data)
@@ -89,7 +89,7 @@ export const useCharactersStore = defineStore('characters', {
       this.error = null
       try {
         const authStore = useAuthStore()
-        const userId = authStore.user?.id
+        const userId = authStore.usuario?.id
         if (!userId) throw new Error('Usuário não autenticado')
 
         const dataPayload: Record<string, Json | undefined> =
@@ -170,7 +170,7 @@ export const useCharactersStore = defineStore('characters', {
       this.error = null
       try {
         const authStore = useAuthStore()
-        const userId = authStore.user?.id
+        const userId = authStore.usuario?.id
         if (!userId) throw new Error('Usuário não autenticado')
 
         const finalPayload: SolicitarAlteracaoPersonagemDto = { ...payload }

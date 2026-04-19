@@ -1,7 +1,7 @@
 // src/router/index.ts
 import { createRouter, createWebHistory } from 'vue-router'
 import { supabase } from '@/lib/supabase/client'
-import { clearStoredAuthMeta, getStoredAuthMeta, isStoredSessionExpired } from '@/stores/auth'
+import { limparMetaAuthLocal, obterMetaAuthLocal, sessaoLocalExpirada } from '@/stores/auth'
 import DeusesView from '@/views/DeusesView.vue'
 
 const router = createRouter({
@@ -69,42 +69,42 @@ router.onError((error, to) => {
 
 router.beforeEach(async (to) => {
   try {
-    const forceLogin = to.name === 'login' && String(to.query.force ?? '') === '1'
+    const forcarLogin = to.name === 'login' && String(to.query.force ?? '') === '1'
 
-    if (forceLogin) {
+    if (forcarLogin) {
       return true
     }
 
     const {
       data: { session },
     } = await supabase.auth.getSession()
-    let sessionExpired = false
+    let sessaoExpirou = false
 
-    if (session && isStoredSessionExpired()) {
+    if (session && sessaoLocalExpirada()) {
       await supabase.auth.signOut()
-      clearStoredAuthMeta()
-      sessionExpired = true
+      limparMetaAuthLocal()
+      sessaoExpirou = true
     }
 
     const {
-      data: { session: refreshedSession },
+      data: { session: sessaoAtualizada },
     } = await supabase.auth.getSession()
-    const authMeta = getStoredAuthMeta()
-    const requiresAuth = to.matched.some((route) => route.meta.requiresAuth)
+    const metaAuth = obterMetaAuthLocal()
+    const requerAuth = to.matched.some((route) => route.meta.requiresAuth)
 
-    if (to.name === 'login' && refreshedSession && authMeta?.isMaster) {
+    if (to.name === 'login' && sessaoAtualizada && metaAuth?.eMestre) {
       return { name: 'master-panel' }
     }
 
-    if (to.name === 'login' && refreshedSession && authMeta?.activeCharacterId) {
+    if (to.name === 'login' && sessaoAtualizada && metaAuth?.idPersonagemAtivo) {
       return {
         name: 'dashboard',
-        query: { characterId: authMeta.activeCharacterId },
+        query: { characterId: metaAuth.idPersonagemAtivo },
       }
     }
 
-    if (!requiresAuth) {
-      if (to.name === 'login' && sessionExpired) {
+    if (!requerAuth) {
+      if (to.name === 'login' && sessaoExpirou) {
         return {
           name: 'login',
           query: { reason: 'session-expired' },
@@ -115,8 +115,8 @@ router.beforeEach(async (to) => {
       return true
     }
 
-    if (!refreshedSession || !authMeta) {
-      return sessionExpired
+    if (!sessaoAtualizada || !metaAuth) {
+      return sessaoExpirou
         ? {
             name: 'login',
             query: { reason: 'session-expired' },
@@ -125,42 +125,42 @@ router.beforeEach(async (to) => {
         : { name: 'login' }
     }
 
-    const requiresMaster = to.matched.some((route) => route.meta.requiresMaster)
-    if (requiresMaster && !authMeta.isMaster) {
-      return authMeta.activeCharacterId
+    const requerMestre = to.matched.some((route) => route.meta.requiresMaster)
+    if (requerMestre && !metaAuth.eMestre) {
+      return metaAuth.idPersonagemAtivo
         ? {
             name: 'dashboard',
-            query: { characterId: authMeta.activeCharacterId },
+            query: { characterId: metaAuth.idPersonagemAtivo },
           }
         : { name: 'login' }
     }
 
     if (to.name === 'dashboard') {
-      const requestedCharacterId = String(to.query.characterId ?? '').trim()
+      const idSolicitado = String(to.query.characterId ?? '').trim()
 
-      if (authMeta.isMaster) {
-        if (!requestedCharacterId) {
+      if (metaAuth.eMestre) {
+        if (!idSolicitado) {
           return { name: 'login' }
         }
         return true
       }
 
-      if (!requestedCharacterId) {
+      if (!idSolicitado) {
         return {
           name: 'dashboard',
-          query: { characterId: authMeta.activeCharacterId },
+          query: { characterId: metaAuth.idPersonagemAtivo },
         }
       }
 
-      if (requestedCharacterId !== authMeta.activeCharacterId) {
+      if (idSolicitado !== metaAuth.idPersonagemAtivo) {
         return { name: 'login' }
       }
     }
 
     return true
   } catch (error) {
-    console.error('router.beforeEach failed:', error)
-    clearStoredAuthMeta()
+    console.error('router.beforeEach falhou:', error)
+    limparMetaAuthLocal()
 
     return {
       name: 'login',

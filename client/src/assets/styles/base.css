@@ -8,7 +8,7 @@
     --bg-card: #ffffff;
     --bg-soft: #f6f9fc;
     --text-main: #0f172a;
-    --text-muted: #64748b;
+    --text-muted: #475569;
     --title-color: #4f46e5;
     --brand-primary: #4f46e5;
     --brand-primary-strong: #4338ca;
@@ -78,7 +78,7 @@
   h4,
   h5,
   h6 {
-    font-family: Pacifico, cursive;
+    font-family: 'Cinzel', serif;
     color: var(--title-color);
   }
 
@@ -117,7 +117,10 @@
 
 .bg-\[\#0F1C3A\]\/95,
 .bg-\[\#0F1C3A\]\/70,
-.bg-\[\#0b1426\] {
+.bg-\[\#0F1C3A\]\/60,
+.bg-\[\#0b1426\],
+.bg-\[\#0B1426\],
+.bg-\[\#050A17\] {
   background-color: var(--bg-soft) !important;
 }
 
@@ -160,7 +163,8 @@
 }
 
 .text-white,
-.text-zinc-200 {
+.text-zinc-200,
+.text-zinc-300 {
   color: var(--text-main) !important;
 }
 
@@ -175,6 +179,14 @@
 
 .hover\:bg-\[\#2A1B4A\]:hover {
   background-color: var(--accent-soft) !important;
+}
+
+.focus\:border-\[\#C8D0E0\]\/60:focus {
+  border-color: var(--ring-soft) !important;
+}
+
+.hover\:border-\[\#C8D0E0\]\/60:hover {
+  border-color: var(--ring-soft) !important;
 }
 
 .text-amber-300 {

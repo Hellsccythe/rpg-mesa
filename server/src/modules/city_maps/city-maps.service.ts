@@ -147,6 +147,7 @@ export const cityMapsService = {
     const { data, error } = await admin
       .from("city_maps")
       .select("id, name, map_reference, description, data, created_at, updated_at")
+      .is("deleted_at", null)
       .order("created_at", { ascending: false });
 
     if (error) throw error;
@@ -195,6 +196,41 @@ export const cityMapsService = {
 
     if (error) throw error;
     return mapCityMap(data);
+  },
+
+  async deletar(cityMapId: string, accessToken?: string) {
+    const masterUser = await ensureMasterAccess(accessToken);
+    const admin = getAdminClient();
+
+    const { data: map, error: fetchError } = await admin
+      .from("city_maps")
+      .select("id, data")
+      .eq("id", cityMapId)
+      .is("deleted_at", null)
+      .single();
+
+    if (fetchError || !map) throw new Error("Mapa não encontrado");
+
+    const { error } = await admin
+      .from("city_maps")
+      .update({ deleted_at: new Date().toISOString(), deleted_by: masterUser.id })
+      .eq("id", cityMapId)
+      .is("deleted_at", null);
+
+    if (error) throw error;
+
+    const mapData = map.data && typeof map.data === "object" ? map.data : {};
+    const imageUrl = typeof (mapData as any).imageUrl === "string" ? (mapData as any).imageUrl : "";
+    if (imageUrl) {
+      try {
+        const path = imageUrl.replace(/^\/+/, "");
+        if (path) await admin.storage.from(MAPS_BUCKET).remove([path]);
+      } catch {
+        // falha no storage não bloqueia o delete
+      }
+    }
+
+    return { success: true };
   },
 
   async editar(cityMapId: string, dto: EditarCityMapDto, accessToken?: string) {

@@ -1,10 +1,10 @@
 <template>
   <div class="min-h-screen overflow-hidden relative">
-    <div class="absolute inset-0 bg-cover bg-center" :style="backgroundStyle" />
+    <div class="absolute inset-0 bg-cover bg-center" :style="estiloFundo" />
     <div class="absolute inset-0 bg-gradient-to-b from-black/20 via-black/65 to-black/95" />
 
     <div class="relative z-10 min-h-screen flex flex-col items-center justify-center px-6 py-12">
-      <div v-if="loading" class="text-zinc-500 text-lg animate-pulse">Carregando...</div>
+      <div v-if="carregando" class="text-zinc-500 text-lg animate-pulse">Carregando...</div>
 
       <template v-else>
         <div class="text-center mb-16">
@@ -19,14 +19,21 @@
         </div>
 
         <div
-          v-if="sessionExpiredMessage"
-          class="w-full max-w-4xl mb-10 rounded-3xl border border-[#6B4E9E]/40 bg-[#1A2438]/80 backdrop-blur-md shadow-2xl shadow-black/30 overflow-hidden"
+          v-if="sessaoExpirada && !notificacaoFechada"
+          class="notificacao-sessao relative w-full max-w-4xl mb-10 rounded-3xl border backdrop-blur-md shadow-2xl shadow-black/30 overflow-hidden"
         >
-          <div class="h-1 w-full bg-gradient-to-r from-red-500 via-[#6B4E9E] to-[#C8D0E0]" />
+          <div class="h-1 w-full bg-gradient-to-r from-red-500 via-[#6B4E9E] to-indigo-300" />
           <div class="px-6 py-5 md:px-8 md:py-6">
-            <p class="text-xs uppercase tracking-[0.35em] text-red-300/80 mb-2">Sessao expirada</p>
-            <h2 class="text-2xl md:text-3xl font-bold text-[#C8D0E0]">Faca login novamente</h2>
-            <p class="mt-3 text-zinc-300 leading-relaxed">
+            <button
+              @click="notificacaoFechada = true"
+              class="notificacao-fechar absolute top-4 right-4 flex items-center justify-center w-6 h-6 rounded-full transition-colors"
+              aria-label="Fechar notificacao"
+            >
+              ✕
+            </button>
+            <p class="notificacao-label text-xs uppercase tracking-[0.35em] mb-2">Sessao expirada</p>
+            <h2 class="notificacao-titulo text-2xl md:text-3xl font-bold">Faca login novamente</h2>
+            <p class="notificacao-corpo mt-3 leading-relaxed">
               Sua sessao ativa atingiu o limite de 24 horas. Escolha novamente o personagem e
               informe e-mail e senha para continuar.
             </p>
@@ -36,18 +43,18 @@
         <div class="w-full max-w-6xl">
           <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
             <div
-              @click="openMasterLogin"
+              @click="abrirLoginMestre"
               :class="[
                 'group relative bg-[#1E1A0E]/90 border border-amber-600/50 rounded-3xl overflow-hidden transition-all duration-300 aspect-[4/5] flex flex-col',
-                isAnyActionLoading
+                algumCarregamento
                   ? 'cursor-wait opacity-60 pointer-events-none'
                   : 'cursor-pointer hover:-translate-y-3 hover:shadow-2xl hover:border-amber-400 active:scale-[0.98]',
               ]"
             >
               <div class="flex-1 relative overflow-hidden">
                 <img
-                  v-if="gameMasterAvatarUrl"
-                  :src="gameMasterAvatarUrl"
+                  v-if="avatarUrlMestre"
+                  :src="avatarUrlMestre"
                   class="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-110"
                   alt="Game Master"
                 />
@@ -64,12 +71,12 @@
             </div>
 
             <div
-              v-for="char in characters"
+              v-for="char in personagens"
               :key="char.characterId"
               @click="abrirLogin(char)"
               :class="[
                 'login-character-card group relative border rounded-3xl overflow-hidden transition-all duration-300 aspect-[4/5] flex flex-col',
-                isAnyActionLoading
+                algumCarregamento
                   ? 'cursor-wait opacity-60 pointer-events-none'
                   : 'cursor-pointer hover:-translate-y-3 hover:shadow-2xl active:scale-[0.98]',
               ]"
@@ -103,10 +110,10 @@
             </div>
 
             <div
-              @click="showCreateModal = true"
+              @click="mostrarModalCriacao = true"
               :class="[
                 'login-create-card group relative border rounded-3xl overflow-hidden transition-all duration-300 aspect-[4/5] flex flex-col items-center justify-center gap-4',
-                isAnyActionLoading
+                algumCarregamento
                   ? 'cursor-wait opacity-60 pointer-events-none'
                   : 'cursor-pointer hover:-translate-y-3 hover:shadow-2xl active:scale-[0.98]',
               ]"
@@ -126,22 +133,26 @@
       </template>
     </div>
 
+    <!-- Modal de login de personagem -->
     <Modal
-      v-if="selectedChar"
+      v-if="personagemSelecionado"
       panel-class="max-w-md login-themed-modal"
       body-class="p-0"
       :show-close-button="false"
-      @close="closeCharacterLoginModal"
+      @close="fecharModalLoginPersonagem"
     >
       <div
         class="login-modal-hero relative h-52 overflow-hidden"
-        :class="{ 'has-avatar': !!selectedChar.avatarUrl }"
+        :class="{ 'has-avatar': !!personagemSelecionado.avatarUrl }"
       >
         <img
-          v-if="selectedChar.avatarUrl"
-          :src="selectedChar.avatarUrl"
-          class="h-full w-full object-cover object-top"
-          :alt="selectedChar.name"
+          v-if="personagemSelecionado.avatarUrl"
+          ref="heroImgRef"
+          :src="personagemSelecionado.avatarUrl"
+          class="h-full w-full object-cover transition-[object-position] duration-500"
+          :style="{ objectPosition: heroImagePosition }"
+          :alt="personagemSelecionado.name"
+          @load="analisarHeroImage(heroImgRef)"
         />
         <div
           v-else
@@ -154,16 +165,17 @@
 
         <div class="absolute bottom-4 left-6 right-14">
           <h2 class="login-modal-hero-name text-2xl font-bold leading-tight">
-            {{ selectedChar.name }}
+            {{ personagemSelecionado.name }}
           </h2>
           <p class="login-modal-hero-subtitle mt-2 text-sm">
-            Nv. {{ selectedChar.level }} • {{ selectedChar.classe ?? 'Sem Classe' }}
+            Nv. {{ personagemSelecionado.level }} •
+            {{ personagemSelecionado.classe ?? 'Sem Classe' }}
           </p>
         </div>
 
         <button
-          @click="closeCharacterLoginModal"
-          :disabled="characterLoginLoading"
+          @click="fecharModalLoginPersonagem"
+          :disabled="carregandoLoginPersonagem"
           class="login-modal-hero-close action-btn absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full text-lg transition-colors disabled:cursor-wait disabled:opacity-60"
         >
           ✕
@@ -178,48 +190,49 @@
         <div class="space-y-1">
           <label class="login-modal-label block text-sm">E-mail</label>
           <input
-            v-model="characterLoginEmail"
+            v-model="emailLoginPersonagem"
             type="email"
             autocomplete="email"
             class="login-modal-input w-full rounded-2xl border px-5 py-3 outline-none transition-colors"
             placeholder="seu@email.com"
-            @keydown.enter="loginCharacter"
+            @keydown.enter="logarPersonagem"
           />
         </div>
 
         <div class="space-y-1">
           <label class="login-modal-label block text-sm">Senha</label>
           <input
-            v-model="characterLoginPassword"
+            v-model="senhaLoginPersonagem"
             type="password"
             autocomplete="current-password"
             class="login-modal-input w-full rounded-2xl border px-5 py-3 outline-none transition-colors"
             placeholder="••••••••"
-            @keydown.enter="loginCharacter"
+            @keydown.enter="logarPersonagem"
           />
         </div>
 
-        <p v-if="characterLoginError" class="text-center text-sm text-red-400">
-          {{ characterLoginError }}
+        <p v-if="erroLoginPersonagem" class="text-center text-sm text-red-400">
+          {{ erroLoginPersonagem }}
         </p>
 
         <button
-          @click="loginCharacter"
-          :disabled="characterLoginLoading"
+          @click="logarPersonagem"
+          :disabled="carregandoLoginPersonagem"
           class="login-modal-submit action-btn w-full rounded-2xl py-4 font-semibold transition-colors disabled:cursor-wait disabled:opacity-50"
         >
-          {{ characterLoginLoading ? 'Entrando...' : 'Entrar' }}
+          {{ carregandoLoginPersonagem ? 'Entrando...' : 'Entrar' }}
         </button>
       </div>
     </Modal>
 
+    <!-- Modal de login do mestre -->
     <Modal
-      v-if="showMasterLoginModal"
+      v-if="mostrarModalLoginMestre"
       panel-class="max-w-md login-themed-modal"
       body-class="space-y-5 p-8"
       header-class="px-8 py-6 text-center"
       :show-close-button="false"
-      @close="closeMasterModal"
+      @close="fecharModalLoginMestre"
     >
       <template #header>
         <div>
@@ -231,68 +244,69 @@
       <div class="space-y-1">
         <label class="login-modal-label block text-sm">E-mail</label>
         <input
-          v-model="masterEmail"
+          v-model="emailMestre"
           type="email"
           autocomplete="email"
           class="login-modal-input w-full rounded-2xl border px-5 py-3 outline-none transition-colors"
           placeholder="mestre@email.com"
-          @keydown.enter="loginMaster"
+          @keydown.enter="logarMestre"
         />
       </div>
 
       <div class="space-y-1">
         <label class="login-modal-label block text-sm">Senha</label>
         <input
-          v-model="masterPassword"
+          v-model="senhaMestre"
           type="password"
           autocomplete="current-password"
           class="login-modal-input w-full rounded-2xl border px-5 py-3 outline-none transition-colors"
           placeholder="••••••••"
-          @keydown.enter="loginMaster"
+          @keydown.enter="logarMestre"
         />
       </div>
 
-      <p v-if="masterError" class="text-center text-sm text-red-400">{{ masterError }}</p>
+      <p v-if="erroMestre" class="text-center text-sm text-red-400">{{ erroMestre }}</p>
 
       <div class="grid grid-cols-2 gap-3">
         <button
-          @click="closeMasterModal"
-          :disabled="masterLoading"
+          @click="fecharModalLoginMestre"
+          :disabled="carregandoMestre"
           class="login-modal-cancel-btn action-btn rounded-2xl border py-3 transition-colors disabled:cursor-wait disabled:opacity-60"
         >
           Cancelar
         </button>
         <button
-          @click="loginMaster"
-          :disabled="masterLoading"
+          @click="logarMestre"
+          :disabled="carregandoMestre"
           class="login-modal-submit action-btn rounded-2xl py-3 font-semibold transition-colors disabled:cursor-wait disabled:opacity-60"
         >
-          {{ masterLoading ? 'Entrando...' : 'Entrar' }}
+          {{ carregandoMestre ? 'Entrando...' : 'Entrar' }}
         </button>
       </div>
     </Modal>
 
+    <!-- Modal de criação de personagem -->
     <Modal
-      v-if="showCreateModal"
+      v-if="mostrarModalCriacao"
       overlay-class="bg-black/90"
-      panel-class="max-w-2xl max-h-[95vh] flex flex-col login-themed-modal"
+      panel-class="max-w-2xl max-h-[95vh] flex flex-col login-themed-modal relative"
       body-class="custom-scroll flex-1 space-y-8 overflow-y-auto p-8"
       header-class="shrink-0 px-8 py-4"
       footer-class="shrink-0 px-8 py-4"
       :show-close-button="false"
-      @close="closeCreateModal"
+      :close-on-backdrop="false"
+      @close="fecharModalCriacao"
     >
       <template #header>
-        <div class="flex items-center justify-between">
-          <h2 class="login-modal-title-blue text-2xl font-bold">Criar Novo Personagem</h2>
-          <button
-            @click="closeCreateModal"
-            :disabled="createLoading"
-            class="login-modal-close-x action-btn px-3 text-2xl transition-colors disabled:cursor-wait disabled:opacity-60"
-          >
-            ×
-          </button>
-        </div>
+        <h2 class="login-modal-title-blue text-2xl font-bold">Criar Novo Personagem</h2>
+        <button
+          @click="fecharModalCriacao"
+          :disabled="carregandoCriacao"
+          aria-label="Fechar modal de criacao de personagem"
+          class="login-modal-close-x action-btn absolute top-4 right-4 px-3 text-2xl transition-colors disabled:cursor-wait disabled:opacity-60"
+        >
+          ×
+        </button>
       </template>
 
       <div>
@@ -300,36 +314,36 @@
         <div
           class="login-create-dropzone relative flex h-80 flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed transition-all"
           :class="[
-            createLoading
+            carregandoCriacao
               ? 'cursor-wait opacity-70 pointer-events-none'
               : 'cursor-pointer active:scale-[0.995]',
-            { 'login-create-dropzone-dragging': createIsDragging },
+            { 'login-create-dropzone-dragging': arrastando },
           ]"
-          @dragover.prevent="createIsDragging = true"
-          @dragleave.prevent="createIsDragging = false"
-          @drop.prevent="handleCreateDrop"
-          @click="triggerCreateFileInput"
+          @dragover.prevent="arrastando = true"
+          @dragleave.prevent="arrastando = false"
+          @drop.prevent="soltarArquivo"
+          @click="acionarInputArquivo"
         >
           <input
-            ref="createFileInput"
+            ref="inputArquivoCriacao"
             type="file"
             accept="image/*"
             class="hidden"
-            @change="handleCreateFileSelect"
+            @change="selecionarArquivo"
           />
 
           <div
-            v-if="createPreviewUrl"
+            v-if="urlPreviewCriacao"
             class="relative flex h-full w-full items-center justify-center px-6"
           >
             <div
               class="login-create-preview relative aspect-square w-full max-w-[18rem] overflow-hidden rounded-2xl border"
             >
-              <img :src="createPreviewUrl" class="h-full w-full object-cover" alt="preview" />
+              <img :src="urlPreviewCriacao" class="h-full w-full object-cover" alt="preview" />
             </div>
             <button
-              @click.stop="removeCreateImage"
-              :disabled="createLoading"
+              @click.stop="removerImagem"
+              :disabled="carregandoCriacao"
               class="login-create-remove action-btn absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full text-xl disabled:cursor-wait disabled:opacity-60"
             >
               ✕
@@ -346,7 +360,7 @@
       <div>
         <label class="login-modal-label mb-2 block text-sm">Nome do Personagem</label>
         <input
-          v-model="createForm.name"
+          v-model="formularioCriacao.nome"
           type="text"
           class="login-modal-input w-full rounded-2xl border px-6 py-4 text-lg outline-none"
           placeholder="Ex: Sir Elandor, o Guardiao Templario"
@@ -361,7 +375,7 @@
         <div class="sm:col-span-2">
           <label class="login-modal-label mb-2 block text-sm">E-mail da conta</label>
           <input
-            v-model="createAccountEmail"
+            v-model="emailContaCriacao"
             type="email"
             autocomplete="email"
             class="login-modal-input w-full rounded-2xl border px-6 py-4 outline-none"
@@ -372,7 +386,7 @@
         <div>
           <label class="login-modal-label mb-2 block text-sm">Senha</label>
           <input
-            v-model="createAccountPassword"
+            v-model="senhaContaCriacao"
             type="password"
             autocomplete="new-password"
             class="login-modal-input w-full rounded-2xl border px-6 py-4 outline-none"
@@ -383,7 +397,7 @@
         <div>
           <label class="login-modal-label mb-2 block text-sm">Confirmar senha</label>
           <input
-            v-model="createAccountPasswordConfirm"
+            v-model="confirmacaoSenha"
             type="password"
             autocomplete="new-password"
             class="login-modal-input w-full rounded-2xl border px-6 py-4 outline-none"
@@ -396,8 +410,8 @@
         <label class="login-modal-label mb-2 block text-sm">Indole (Alinhamento)</label>
         <v-select
           id="create-character-indole"
-          v-model="createForm.indole"
-          :options="opcoesIndoleCriacao"
+          v-model="formularioCriacao.indole"
+          :options="opcoesIndole"
           aria-label="Selecionar indole do personagem"
           root-class="w-full"
           trigger-class="login-modal-input px-6 py-4 !rounded-2xl"
@@ -407,7 +421,7 @@
       <div>
         <label class="login-modal-label mb-2 block text-sm">Aparencia Fisica</label>
         <textarea
-          v-model="createForm.appearance"
+          v-model="formularioCriacao.aparencia"
           rows="4"
           class="login-modal-input min-h-[120px] w-full resize-y rounded-2xl border px-6 py-4 outline-none"
           placeholder="Descreva a aparencia fisica do personagem..."
@@ -417,7 +431,7 @@
       <div>
         <label class="login-modal-label mb-2 block text-sm">Historia do Personagem</label>
         <textarea
-          v-model="createForm.history"
+          v-model="formularioCriacao.historia"
           rows="8"
           class="login-modal-input min-h-[200px] w-full resize-y rounded-2xl border px-6 py-4 outline-none"
           placeholder="Escreva a historia completa do seu personagem aqui..."
@@ -431,25 +445,25 @@
         <div
           class="login-create-doczone rounded-2xl border-2 border-dashed p-8 text-center transition-colors"
           :class="
-            createLoading
+            carregandoCriacao
               ? 'cursor-wait opacity-70 pointer-events-none'
               : 'cursor-pointer active:scale-[0.995]'
           "
-          @click="triggerCreateDocInput"
+          @click="acionarInputDoc"
         >
           <input
-            ref="createDocInput"
+            ref="inputDocCriacao"
             type="file"
             accept=".doc,.docx,.pdf"
             class="hidden"
-            @change="handleCreateDocSelect"
+            @change="selecionarDoc"
           />
 
           <div
-            v-if="createSelectedDoc"
+            v-if="docSelecionado"
             class="login-create-doc-selected flex items-center justify-center gap-2"
           >
-            <span class="font-medium">{{ createSelectedDoc.name }}</span>
+            <span class="font-medium">{{ docSelecionado.name }}</span>
           </div>
           <div v-else>
             <p class="login-modal-label">Clique para enviar documento</p>
@@ -460,22 +474,22 @@
 
       <template #footer>
         <div class="space-y-3">
-          <p v-if="createError" class="text-sm text-red-400">{{ createError }}</p>
+          <p v-if="erroCriacao" class="text-sm text-red-400">{{ erroCriacao }}</p>
 
           <div class="flex justify-end gap-3">
             <button
-              @click="closeCreateModal"
-              :disabled="createLoading"
+              @click="fecharModalCriacao"
+              :disabled="carregandoCriacao"
               class="login-modal-cancel-btn action-btn rounded-xl border px-6 py-2 transition-colors disabled:cursor-wait disabled:opacity-60"
             >
               Cancelar
             </button>
             <button
-              @click="createCharacter"
-              :disabled="createSubmitDisabled"
+              @click="criarPersonagem"
+              :disabled="envioDesabilitado"
               class="login-modal-submit action-btn rounded-xl px-7 py-2 font-medium transition-all disabled:cursor-wait disabled:opacity-60"
             >
-              {{ createLoading ? 'Criando...' : 'Criar Personagem' }}
+              {{ carregandoCriacao ? 'Criando...' : 'Criar Personagem' }}
             </button>
           </div>
         </div>
@@ -485,53 +499,65 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Modal from '@/components/Modal.vue'
 import VSelect from '@/components/VSelect.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useCharactersStore } from '@/stores/characters'
+import { useSmartImageFocus } from '@/composables/useSmartImageFocus'
+import { registrarECriarPersonagem } from '@/lib/api/personagens.api'
+import { uploadAvatar, uploadHistoryDocument } from '@/lib/supabase/storage'
 import type { PersonagemPublicoApi } from '@/types/supabase'
 
-const charactersStore = useCharactersStore()
+const storePersonagens = useCharactersStore()
 const authStore = useAuthStore()
 const route = useRoute()
 const router = useRouter()
 
-const showCreateModal = ref(false)
-const selectedChar = ref<PersonagemPublicoApi | null>(null)
-const showMasterLoginModal = ref(false)
-const gameMasterAvatarUrl = import.meta.env.VITE_GM_AVATAR_URL || ''
+const mostrarModalCriacao = ref(false)
+const personagemSelecionado = ref<PersonagemPublicoApi | null>(null)
+const mostrarModalLoginMestre = ref(false)
+const avatarUrlMestre = import.meta.env.VITE_GM_AVATAR_URL || ''
 
-const characterLoginEmail = ref('')
-const characterLoginPassword = ref('')
-const characterLoginLoading = ref(false)
-const characterLoginError = ref('')
+const heroImgRef = ref<HTMLImageElement | null>(null)
+const { position: heroImagePosition, analyzeImage: analisarHeroImage, reset: resetarHeroFoco } = useSmartImageFocus()
 
-const masterEmail = ref('')
-const masterPassword = ref('')
-const masterLoading = ref(false)
-const masterError = ref('')
-
-const createFileInput = ref<HTMLInputElement | null>(null)
-const createDocInput = ref<HTMLInputElement | null>(null)
-const createPreviewUrl = ref<string | null>(null)
-const createSelectedFile = ref<File | null>(null)
-const createSelectedDoc = ref<File | null>(null)
-const createIsDragging = ref(false)
-const createLoading = ref(false)
-const createError = ref('')
-const createAccountEmail = ref('')
-const createAccountPassword = ref('')
-const createAccountPasswordConfirm = ref('')
-const createForm = ref({
-  name: '',
-  indole: 'neutro',
-  appearance: '',
-  history: '',
+watch(personagemSelecionado, (novo) => {
+  if (!novo?.avatarUrl) { resetarHeroFoco(); return }
+  // Aguarda a imagem ser montada antes de analisar
+  setTimeout(() => analisarHeroImage(heroImgRef.value), 50)
 })
 
-const opcoesIndoleCriacao = [
+const emailLoginPersonagem = ref('')
+const senhaLoginPersonagem = ref('')
+const carregandoLoginPersonagem = ref(false)
+const erroLoginPersonagem = ref('')
+
+const emailMestre = ref('')
+const senhaMestre = ref('')
+const carregandoMestre = ref(false)
+const erroMestre = ref('')
+
+const inputArquivoCriacao = ref<HTMLInputElement | null>(null)
+const inputDocCriacao = ref<HTMLInputElement | null>(null)
+const urlPreviewCriacao = ref<string | null>(null)
+const arquivoSelecionado = ref<File | null>(null)
+const docSelecionado = ref<File | null>(null)
+const arrastando = ref(false)
+const carregandoCriacao = ref(false)
+const erroCriacao = ref('')
+const emailContaCriacao = ref('')
+const senhaContaCriacao = ref('')
+const confirmacaoSenha = ref('')
+const formularioCriacao = ref({
+  nome: '',
+  indole: 'neutro',
+  aparencia: '',
+  historia: '',
+})
+
+const opcoesIndole = [
   { value: 'bom', label: 'Bom' },
   { value: 'neutro-bom', label: 'Neutro com tendencias boas' },
   { value: 'neutro', label: 'Neutro' },
@@ -539,264 +565,303 @@ const opcoesIndoleCriacao = [
   { value: 'ruim', label: 'Ruim' },
 ]
 
-const characters = computed(() => charactersStore.publicCharacters)
-const layout = computed(() => charactersStore.layout)
-const loading = computed(() => charactersStore.loading)
-const sessionExpiredMessage = computed(() => route.query.reason === 'session-expired')
+const personagens = computed(() => storePersonagens.publicCharacters)
+const layout = computed(() => storePersonagens.layout)
+const carregando = computed(() => storePersonagens.loading)
+const sessaoExpirada = ref(false)
+const notificacaoFechada = ref(false)
 
-const backgroundStyle = computed(() => {
+const estiloFundo = computed(() => {
   const img = layout.value?.backgroundImage ?? '/login-bg.jpg'
   return { backgroundImage: `url('${img}')` }
 })
 
-const isAnyActionLoading = computed(
-  () => characterLoginLoading.value || masterLoading.value || createLoading.value,
+const algumCarregamento = computed(
+  () => carregandoLoginPersonagem.value || carregandoMestre.value || carregandoCriacao.value,
 )
 
-const createSubmitDisabled = computed(() => {
-  if (createLoading.value) return true
-  if (!createForm.value.name.trim()) return true
-  if (!createAccountEmail.value.trim()) return true
-  if (!createAccountPassword.value) return true
-  if (!createAccountPasswordConfirm.value) return true
+const envioDesabilitado = computed(() => {
+  if (carregandoCriacao.value) return true
+  if (!formularioCriacao.value.nome.trim()) return true
+  if (!emailContaCriacao.value.trim()) return true
+  if (!senhaContaCriacao.value) return true
+  if (!confirmacaoSenha.value) return true
   return false
 })
 
 onMounted(async () => {
-  await charactersStore.fetchPaginaInicial()
+  if (route.query.reason === 'session-expired') {
+    sessaoExpirada.value = true
+    router.replace({ path: route.path, query: {} })
+  }
+  await storePersonagens.fetchPaginaInicial()
 })
 
-function abrirLogin(char: PersonagemPublicoApi) {
-  if (isAnyActionLoading.value) return
+function traduzirErroAuth(mensagem: string): string {
+  const msg = mensagem.toLowerCase()
+  if (msg.includes('invalid login credentials') || msg.includes('invalid credentials')) {
+    return 'E-mail ou senha invalidos. Verifique suas credenciais.'
+  }
+  if (msg.includes('email not confirmed')) {
+    return 'E-mail ainda nao confirmado. Verifique sua caixa de entrada e clique no link de confirmacao.'
+  }
+  if (msg.includes('user already registered') || msg.includes('already registered')) {
+    return 'Este e-mail ja esta cadastrado.'
+  }
+  if (msg.includes('password should be') || msg.includes('password is too short')) {
+    return 'A senha deve ter pelo menos 6 caracteres.'
+  }
+  if (msg.includes('rate limit') || msg.includes('too many requests')) {
+    return 'Muitas tentativas seguidas. Aguarde alguns minutos e tente novamente.'
+  }
+  if (msg.includes('network') || msg.includes('fetch')) {
+    return 'Falha de conexao. Verifique sua internet e tente novamente.'
+  }
+  return mensagem
+}
 
-  if (authStore.canReuseSessionForCharacter(char.characterId)) {
-    authStore.setActiveCharacter(char.characterId)
+function abrirLogin(char: PersonagemPublicoApi) {
+  if (algumCarregamento.value) return
+
+  if (authStore.podeReutilizarSessao(char.characterId)) {
+    authStore.definirPersonagemAtivo(char.characterId)
     router.push({ name: 'dashboard', query: { characterId: char.characterId } })
     return
   }
 
-  selectedChar.value = char
-  characterLoginEmail.value = ''
-  characterLoginPassword.value = ''
-  characterLoginError.value = ''
+  personagemSelecionado.value = char
+  emailLoginPersonagem.value = ''
+  senhaLoginPersonagem.value = ''
+  erroLoginPersonagem.value = ''
 }
 
-function closeCharacterLoginModal() {
-  selectedChar.value = null
-  characterLoginEmail.value = ''
-  characterLoginPassword.value = ''
-  characterLoginError.value = ''
+function fecharModalLoginPersonagem() {
+  personagemSelecionado.value = null
+  emailLoginPersonagem.value = ''
+  senhaLoginPersonagem.value = ''
+  erroLoginPersonagem.value = ''
 }
 
-async function loginCharacter() {
-  if (!selectedChar.value) return
+async function logarPersonagem() {
+  if (!personagemSelecionado.value) return
 
-  if (!characterLoginEmail.value.trim() || !characterLoginPassword.value) {
-    characterLoginError.value = 'Preencha e-mail e senha'
+  if (!emailLoginPersonagem.value.trim() || !senhaLoginPersonagem.value) {
+    erroLoginPersonagem.value = 'Preencha e-mail e senha.'
     return
   }
 
-  characterLoginLoading.value = true
-  characterLoginError.value = ''
-  const characterId = selectedChar.value.characterId
+  carregandoLoginPersonagem.value = true
+  erroLoginPersonagem.value = ''
+  const idPersonagem = personagemSelecionado.value.characterId
 
   try {
-    await authStore.signIn(
-      characterLoginEmail.value.trim(),
-      characterLoginPassword.value,
-      characterId,
-    )
-    closeCharacterLoginModal()
-    router.push({ name: 'dashboard', query: { characterId } })
-  } catch {
-    characterLoginError.value = 'Credenciais invalidas. Tente novamente.'
-  } finally {
-    characterLoginLoading.value = false
-  }
-}
-
-function openMasterLogin() {
-  if (isAnyActionLoading.value) return
-
-  masterEmail.value = ''
-  masterPassword.value = ''
-  masterError.value = ''
-  showMasterLoginModal.value = true
-}
-
-function closeMasterModal() {
-  showMasterLoginModal.value = false
-  masterError.value = ''
-}
-
-async function loginMaster() {
-  if (!masterEmail.value.trim() || !masterPassword.value) {
-    masterError.value = 'Preencha e-mail e senha'
-    return
-  }
-
-  masterLoading.value = true
-  masterError.value = ''
-
-  try {
-    await authStore.signIn(masterEmail.value.trim(), masterPassword.value, null, { asMaster: true })
-    closeMasterModal()
-    router.push({ name: 'master-panel' })
-  } catch {
-    masterError.value = 'Credenciais invalidas. Tente novamente.'
-  } finally {
-    masterLoading.value = false
-  }
-}
-
-function triggerCreateFileInput() {
-  if (createLoading.value) return
-  createFileInput.value?.click()
-}
-
-function handleCreateFileSelect(event: Event) {
-  const target = event.target as HTMLInputElement
-  if (target.files?.[0]) processCreateAvatar(target.files[0])
-}
-
-function handleCreateDrop(event: DragEvent) {
-  createIsDragging.value = false
-  if (event.dataTransfer?.files?.[0]) processCreateAvatar(event.dataTransfer.files[0])
-}
-
-function processCreateAvatar(file: File) {
-  if (!file.type.startsWith('image/')) {
-    alert('Apenas imagens!')
-    return
-  }
-
-  if (file.size > 5 * 1024 * 1024) {
-    alert('Maximo 5MB!')
-    return
-  }
-
-  createSelectedFile.value = file
-  createPreviewUrl.value = URL.createObjectURL(file)
-}
-
-function removeCreateImage() {
-  createPreviewUrl.value = null
-  createSelectedFile.value = null
-}
-
-function triggerCreateDocInput() {
-  if (createLoading.value) return
-  createDocInput.value?.click()
-}
-
-function handleCreateDocSelect(event: Event) {
-  const target = event.target as HTMLInputElement
-  if (target.files?.[0]) createSelectedDoc.value = target.files[0]
-}
-
-function resetCreateForm() {
-  createForm.value = {
-    name: '',
-    indole: 'neutro',
-    appearance: '',
-    history: '',
-  }
-  createError.value = ''
-  createAccountEmail.value = ''
-  createAccountPassword.value = ''
-  createAccountPasswordConfirm.value = ''
-  createPreviewUrl.value = null
-  createSelectedFile.value = null
-  createSelectedDoc.value = null
-}
-
-function closeCreateModal() {
-  showCreateModal.value = false
-  resetCreateForm()
-}
-
-async function createCharacter() {
-  if (!createForm.value.name.trim()) {
-    createError.value = 'Informe o nome do personagem.'
-    return
-  }
-
-  const email = createAccountEmail.value.trim().toLowerCase()
-  if (!email) {
-    createError.value = 'Informe o e-mail para criar a conta do personagem.'
-    return
-  }
-
-  if (!createAccountPassword.value || createAccountPassword.value.length < 6) {
-    createError.value = 'A senha deve ter pelo menos 6 caracteres.'
-    return
-  }
-
-  if (createAccountPassword.value !== createAccountPasswordConfirm.value) {
-    createError.value = 'A confirmacao de senha nao confere.'
-    return
-  }
-
-  createLoading.value = true
-  createError.value = ''
-
-  try {
-    let autenticado = false
-
-    try {
-      await authStore.signIn(email, createAccountPassword.value, null)
-      autenticado = true
-    } catch {
-      autenticado = false
-    }
-
-    if (!autenticado) {
-      try {
-        await authStore.signUp(email, createAccountPassword.value)
-      } catch (signUpErr: any) {
-        const mensagem = String(signUpErr?.message || '')
-        if (/already|registered|cadastrado/i.test(mensagem)) {
-          createError.value = 'Este e-mail ja esta cadastrado. Verifique a senha informada.'
-          return
-        }
-        throw signUpErr
-      }
-
-      await authStore.signIn(email, createAccountPassword.value, null)
-    }
-
-    const personagemCriado = await charactersStore.createCharacter(
-      {
-        name: createForm.value.name.trim(),
-        data: {
-          indole: createForm.value.indole,
-          appearance: createForm.value.appearance,
-          history: createForm.value.history,
-        },
-      },
-      createSelectedFile.value || undefined,
-      createSelectedDoc.value || undefined,
-    )
-
-    closeCreateModal()
-
-    if (personagemCriado?.characterId) {
-      authStore.setActiveCharacter(personagemCriado.characterId)
-      router.push({ name: 'dashboard', query: { characterId: personagemCriado.characterId } })
-    }
+    await authStore.entrar(emailLoginPersonagem.value.trim(), senhaLoginPersonagem.value, idPersonagem)
+    fecharModalLoginPersonagem()
+    router.push({ name: 'dashboard', query: { characterId: idPersonagem } })
   } catch (err: any) {
-    const mensagemErro = String(err?.message || '')
+    erroLoginPersonagem.value = traduzirErroAuth(String(err?.message ?? '')) || 'Credenciais invalidas. Tente novamente.'
+  } finally {
+    carregandoLoginPersonagem.value = false
+  }
+}
 
-    if (/email.*nao liberado.*mestre|email.*não liberado.*mestre/i.test(mensagemErro)) {
-      createError.value =
-        'Este e-mail ainda nao foi liberado pelo mestre para criar personagem. Solicite a liberacao e tente novamente.'
+function abrirLoginMestre() {
+  if (algumCarregamento.value) return
+
+  emailMestre.value = ''
+  senhaMestre.value = ''
+  erroMestre.value = ''
+  mostrarModalLoginMestre.value = true
+}
+
+function fecharModalLoginMestre() {
+  mostrarModalLoginMestre.value = false
+  erroMestre.value = ''
+}
+
+async function logarMestre() {
+  if (!emailMestre.value.trim() || !senhaMestre.value) {
+    erroMestre.value = 'Preencha e-mail e senha.'
+    return
+  }
+
+  carregandoMestre.value = true
+  erroMestre.value = ''
+
+  try {
+    await authStore.entrar(emailMestre.value.trim(), senhaMestre.value, null, { comoMestre: true })
+    fecharModalLoginMestre()
+    router.push({ name: 'master-panel' })
+  } catch (err: any) {
+    erroMestre.value = traduzirErroAuth(String(err?.message ?? '')) || 'Credenciais invalidas. Tente novamente.'
+  } finally {
+    carregandoMestre.value = false
+  }
+}
+
+function acionarInputArquivo() {
+  if (carregandoCriacao.value) return
+  inputArquivoCriacao.value?.click()
+}
+
+function selecionarArquivo(event: Event) {
+  const alvo = event.target as HTMLInputElement
+  if (alvo.files?.[0]) processarAvatar(alvo.files[0])
+}
+
+function soltarArquivo(event: DragEvent) {
+  arrastando.value = false
+  if (event.dataTransfer?.files?.[0]) processarAvatar(event.dataTransfer.files[0])
+}
+
+function processarAvatar(arquivo: File) {
+  if (!arquivo.type.startsWith('image/')) {
+    alert('Apenas imagens sao permitidas!')
+    return
+  }
+
+  if (arquivo.size > 5 * 1024 * 1024) {
+    alert('O arquivo deve ter no maximo 5MB!')
+    return
+  }
+
+  arquivoSelecionado.value = arquivo
+  urlPreviewCriacao.value = URL.createObjectURL(arquivo)
+}
+
+function removerImagem() {
+  urlPreviewCriacao.value = null
+  arquivoSelecionado.value = null
+}
+
+function acionarInputDoc() {
+  if (carregandoCriacao.value) return
+  inputDocCriacao.value?.click()
+}
+
+function selecionarDoc(event: Event) {
+  const alvo = event.target as HTMLInputElement
+  if (alvo.files?.[0]) docSelecionado.value = alvo.files[0]
+}
+
+function resetarFormulario() {
+  formularioCriacao.value = {
+    nome: '',
+    indole: 'neutro',
+    aparencia: '',
+    historia: '',
+  }
+  erroCriacao.value = ''
+  emailContaCriacao.value = ''
+  senhaContaCriacao.value = ''
+  confirmacaoSenha.value = ''
+  urlPreviewCriacao.value = null
+  arquivoSelecionado.value = null
+  docSelecionado.value = null
+}
+
+function fecharModalCriacao() {
+  mostrarModalCriacao.value = false
+  resetarFormulario()
+}
+
+async function criarPersonagem() {
+  if (!formularioCriacao.value.nome.trim()) {
+    erroCriacao.value = 'Informe o nome do personagem.'
+    return
+  }
+
+  const email = emailContaCriacao.value.trim().toLowerCase()
+  if (!email) {
+    erroCriacao.value = 'Informe o e-mail para criar a conta do personagem.'
+    return
+  }
+
+  if (!senhaContaCriacao.value || senhaContaCriacao.value.length < 6) {
+    erroCriacao.value = 'A senha deve ter pelo menos 6 caracteres.'
+    return
+  }
+
+  if (senhaContaCriacao.value !== confirmacaoSenha.value) {
+    erroCriacao.value = 'A confirmacao de senha nao confere.'
+    return
+  }
+
+  carregandoCriacao.value = true
+  erroCriacao.value = ''
+
+  let personagemCriado: Awaited<ReturnType<typeof registrarECriarPersonagem>>
+
+  // Passo 1: servidor cria usuario + personagem
+  try {
+    personagemCriado = await registrarECriarPersonagem({
+      email,
+      senha: senhaContaCriacao.value,
+      nome: formularioCriacao.value.nome.trim(),
+      data: {
+        indole: formularioCriacao.value.indole,
+        appearance: formularioCriacao.value.aparencia,
+        history: formularioCriacao.value.historia,
+      },
+    })
+  } catch (err: any) {
+    carregandoCriacao.value = false
+    const mensagemErro = String(err?.response?.data?.message ?? err?.message ?? '')
+
+    if (/liberado/i.test(mensagemErro)) {
+      erroCriacao.value = 'Este e-mail nao foi liberado pelo mestre. Solicite a liberacao e tente novamente.'
       return
     }
-
-    createError.value = `Erro ao criar personagem: ${mensagemErro || 'erro desconhecido'}`
-  } finally {
-    createLoading.value = false
+    if (/cadastrado/i.test(mensagemErro)) {
+      erroCriacao.value = 'Este e-mail ja esta cadastrado. Verifique a senha informada.'
+      return
+    }
+    erroCriacao.value = `Erro ao criar personagem: ${mensagemErro || 'Tente novamente.'}`
+    return
   }
+
+  // Passo 2: login com as credenciais recem-criadas
+  try {
+    await authStore.entrar(email, senhaContaCriacao.value, personagemCriado.characterId)
+  } catch (err: any) {
+    carregandoCriacao.value = false
+    const mensagemErro = String(err?.message ?? '')
+    erroCriacao.value = `Personagem criado! Erro ao fazer login automatico: ${traduzirErroAuth(mensagemErro) || mensagemErro}. Clique no personagem para entrar.`
+    await storePersonagens.fetchPaginaInicial()
+    fecharModalCriacao()
+    return
+  }
+
+  const userId = authStore.usuario?.id
+
+  if (arquivoSelecionado.value && userId) {
+    try {
+      const publicUrl = await uploadAvatar(arquivoSelecionado.value, userId)
+      await storePersonagens.editCharacter(personagemCriado.characterId, { avatarUrl: publicUrl })
+    } catch {
+      // Avatar falhou mas personagem foi criado
+    }
+  }
+
+  if (docSelecionado.value && userId) {
+    try {
+      const doc = await uploadHistoryDocument(docSelecionado.value, userId)
+      await storePersonagens.editCharacter(personagemCriado.characterId, {
+        data: {
+          historyDocumentPath: doc.path,
+          historyDocumentName: doc.name,
+          historyDocumentMimeType: doc.mimeType,
+        },
+      })
+    } catch {
+      // Doc falhou mas personagem foi criado
+    }
+  }
+
+  carregandoCriacao.value = false
+  fecharModalCriacao()
+  authStore.definirPersonagemAtivo(personagemCriado.characterId)
+  router.push({ name: 'dashboard', query: { characterId: personagemCriado.characterId } })
 }
 </script>
 
@@ -1157,5 +1222,56 @@ async function createCharacter() {
 :global(html.theme-dark) .login-create-card {
   background: color-mix(in srgb, var(--brand-primary-strong) 56%, #3a0c26 44%);
   border-color: color-mix(in srgb, var(--brand-primary) 58%, #fb7185 42%);
+}
+
+/* ── Notificação de sessão expirada ── */
+.notificacao-sessao {
+  background: color-mix(in srgb, var(--bg-card) 88%, #1e293b 12%);
+  border-color: color-mix(in srgb, var(--brand-primary) 28%, var(--border-soft) 72%);
+}
+
+.notificacao-label {
+  color: color-mix(in srgb, #ef4444 76%, var(--text-muted) 24%);
+}
+
+.notificacao-titulo {
+  color: var(--text-main);
+}
+
+.notificacao-corpo {
+  color: var(--text-muted);
+}
+
+.notificacao-fechar {
+  color: var(--text-muted);
+}
+
+.notificacao-fechar:hover {
+  color: var(--text-main);
+  background: color-mix(in srgb, var(--accent-soft) 80%, transparent 20%);
+}
+
+:global(html.theme-light) .notificacao-sessao {
+  background: color-mix(in srgb, var(--bg-card) 94%, #fee2e2 6%);
+  border-color: color-mix(in srgb, #ef4444 20%, var(--border-soft) 80%);
+  box-shadow: 0 8px 32px rgb(0 0 0 / 0.08);
+}
+
+:global(html.theme-light) .notificacao-label {
+  color: #dc2626;
+}
+
+/* ── Cards de personagem (light mode) ── */
+:global(html.theme-light) .login-character-fallback {
+  background: color-mix(in srgb, var(--bg-soft) 100%, transparent 0%);
+}
+
+:global(html.theme-light) .login-character-fallback-text {
+  color: color-mix(in srgb, var(--text-muted) 70%, transparent 30%);
+}
+
+:global(html.theme-light) .login-character-footer {
+  background: color-mix(in srgb, var(--bg-card) 95%, var(--bg-soft) 5%);
+  border-top: 1px solid var(--border-soft);
 }
 </style>

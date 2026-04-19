@@ -116,17 +116,19 @@
                 Malignos
               </h2>
               <div class="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                <div
+                <button
                   v-for="entry in deusesMalignos"
                   :key="entry.index"
                   @click="abrirModalDeus(entry.index)"
-                  class="deuses-card group border rounded-3xl overflow-hidden cursor-pointer transition-all hover:-translate-y-3 hover:shadow-2xl"
+                  :aria-label="`Ver detalhes de ${entry.god.name}`"
+                  class="deuses-card group border rounded-3xl overflow-hidden cursor-pointer transition-all hover:-translate-y-3 hover:shadow-2xl text-left w-full"
                 >
                   <div class="deuses-card-image relative h-64 overflow-hidden">
                     <img
                       v-if="entry.god.iconImage"
                       :src="entry.god.iconImage"
                       :alt="entry.god.name"
+                      loading="lazy"
                       class="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                       :style="{ objectPosition: entry.god.cardImagePosition ?? 'center 22%' }"
                     />
@@ -162,24 +164,26 @@
                       {{ entry.god.shortDescription }}
                     </p>
                   </div>
-                </div>
+                </button>
               </div>
             </section>
 
             <section v-if="deusesNeutros.length">
               <h2 class="deuses-section-title mb-5 text-2xl font-bold tracking-wider">Neutros</h2>
               <div class="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                <div
+                <button
                   v-for="entry in deusesNeutros"
                   :key="entry.index"
                   @click="abrirModalDeus(entry.index)"
-                  class="deuses-card group border rounded-3xl overflow-hidden cursor-pointer transition-all hover:-translate-y-3 hover:shadow-2xl"
+                  :aria-label="`Ver detalhes de ${entry.god.name}`"
+                  class="deuses-card group border rounded-3xl overflow-hidden cursor-pointer transition-all hover:-translate-y-3 hover:shadow-2xl text-left w-full"
                 >
                   <div class="deuses-card-image relative h-64 overflow-hidden">
                     <img
                       v-if="entry.god.iconImage"
                       :src="entry.god.iconImage"
                       :alt="entry.god.name"
+                      loading="lazy"
                       class="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                       :style="{ objectPosition: entry.god.cardImagePosition ?? 'center 22%' }"
                     />
@@ -215,7 +219,7 @@
                       {{ entry.god.shortDescription }}
                     </p>
                   </div>
-                </div>
+                </button>
               </div>
             </section>
 
@@ -226,17 +230,19 @@
                 Bons
               </h2>
               <div class="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                <div
+                <button
                   v-for="entry in deusesBons"
                   :key="entry.index"
                   @click="abrirModalDeus(entry.index)"
-                  class="deuses-card group border rounded-3xl overflow-hidden cursor-pointer transition-all hover:-translate-y-3 hover:shadow-2xl"
+                  :aria-label="`Ver detalhes de ${entry.god.name}`"
+                  class="deuses-card group border rounded-3xl overflow-hidden cursor-pointer transition-all hover:-translate-y-3 hover:shadow-2xl text-left w-full"
                 >
                   <div class="deuses-card-image relative h-64 overflow-hidden">
                     <img
                       v-if="entry.god.iconImage"
                       :src="entry.god.iconImage"
                       :alt="entry.god.name"
+                      loading="lazy"
                       class="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                       :style="{ objectPosition: entry.god.cardImagePosition ?? 'center 22%' }"
                     />
@@ -272,8 +278,20 @@
                       {{ entry.god.shortDescription }}
                     </p>
                   </div>
-                </div>
+                </button>
               </div>
+            </section>
+
+            <section v-if="erroDeuses">
+              <TemaDarkLight
+                elemento="div"
+                variante="aviso"
+                :tema="temaClaroAtivo ? 'claro' : 'escuro'"
+                preset="deuses"
+                class="rounded-2xl p-6 text-center"
+              >
+                Nao foi possivel carregar os deuses do servidor. Exibindo dados locais.
+              </TemaDarkLight>
             </section>
 
             <section v-if="haFiltroAtivo && !haResultadosFiltrados">
@@ -307,6 +325,7 @@
             v-if="dadosDeusSelecionado.iconImage"
             :src="dadosDeusSelecionado.iconImage"
             :alt="dadosDeusSelecionado.name"
+            loading="lazy"
             class="absolute inset-0 h-full w-full object-cover"
             :style="{ objectPosition: dadosDeusSelecionado.modalImagePosition ?? 'center 16%' }"
           />
@@ -421,6 +440,7 @@ type AlignmentFilter = 'all' | 'good' | 'neutral' | 'evil' | 'neutral-good' | 'n
 
 const filtroAlinhamento = ref<AlignmentFilter>('all')
 const deusesApi = ref<any[]>([])
+const erroDeuses = ref(false)
 
 const opcoesAlinhamento: Array<{ value: AlignmentFilter; label: string }> = [
   { value: 'all', label: 'Todos' },
@@ -856,6 +876,7 @@ const dadosDeusSelecionado = computed(() => {
 })
 
 const buscarDeusesPublicos = async () => {
+  erroDeuses.value = false
   try {
     const deusesBuscados = await listarDeusesPublicos()
     deusesApi.value = (Array.isArray(deusesBuscados) ? deusesBuscados : []).map(
@@ -863,13 +884,14 @@ const buscarDeusesPublicos = async () => {
     )
   } catch {
     deusesApi.value = []
+    erroDeuses.value = true
   }
 }
 
 const voltar = () => {
   roteador.push({
     name: 'dashboard',
-    query: lojaAuth.activeCharacterId ? { characterId: lojaAuth.activeCharacterId } : undefined,
+    query: lojaAuth.idPersonagemAtivo ? { characterId: lojaAuth.idPersonagemAtivo } : undefined,
   })
 }
 
@@ -885,7 +907,7 @@ const irParaDashboard = () => {
   fecharMenuConfiguracoes()
   roteador.push({
     name: 'dashboard',
-    query: lojaAuth.activeCharacterId ? { characterId: lojaAuth.activeCharacterId } : undefined,
+    query: lojaAuth.idPersonagemAtivo ? { characterId: lojaAuth.idPersonagemAtivo } : undefined,
   })
 }
 
@@ -925,7 +947,7 @@ async function aoSelecionarMenuCabecalho(itemId: string) {
 const sair = async () => {
   fecharMenuConfiguracoes()
   try {
-    await lojaAuth.signOut()
+    await lojaAuth.sair()
   } finally {
     roteador.push({ name: 'login' })
   }
@@ -1200,8 +1222,21 @@ const getAlignmentClass = (alignment: string) => {
   background: color-mix(in srgb, var(--bg-card) 92%, #fff 8%);
 }
 
+.deuses-card {
+  background: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
 .deuses-card:hover {
-  border-color: var(--brand-primary);
+  border-color: color-mix(in srgb, var(--brand-primary) 70%, #f59e0b 30%);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand-primary) 50%, #f59e0b 50%), 0 20px 40px color-mix(in srgb, var(--brand-primary) 18%, transparent 82%);
+}
+
+.deuses-card:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
 }
 
 .deuses-card-image {
