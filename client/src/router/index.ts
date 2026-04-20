@@ -31,6 +31,24 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/classes',
+      name: 'classes',
+      component: () => import('@/views/ClassesView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/skills',
+      name: 'skills',
+      component: () => import('@/views/SkillsView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/titulos',
+      name: 'titulos',
+      component: () => import('@/views/TitulosView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/master',
       name: 'master-panel',
       component: () => import('@/views/MasterPanelView.vue'),

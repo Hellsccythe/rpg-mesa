@@ -525,14 +525,18 @@ async function handleHeaderMenuSelect(itemId: string) {
     return
   }
 
-  const routeMap: Record<string, string> = {
-    deuses: '/deuses',
-    cidade: '/cidade',
-    skills: '/skills',
-    titulos: '/titulos',
-    classes: '/classes',
-    npcs: '/npcs',
-    notas: '/notas',
+  const characterId = getRequestedCharacterId()
+  const withCharId = (path: string) =>
+    characterId ? { path, query: { characterId } } : { path }
+
+  const routeMap: Record<string, ReturnType<typeof withCharId>> = {
+    deuses: { path: '/deuses' },
+    cidade: { path: '/cidade' },
+    skills: withCharId('/skills'),
+    titulos: withCharId('/titulos'),
+    classes: withCharId('/classes'),
+    npcs: withCharId('/npcs'),
+    notas: withCharId('/notas'),
   }
 
   const target = routeMap[itemId]

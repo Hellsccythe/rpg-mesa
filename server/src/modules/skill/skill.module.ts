@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { skillController } from "./skill.controller.js";
+import { skillService } from "./skill.service.js";
 
 export * from "./skill.dto.js";
 export * from "./skill.service.js";
@@ -13,6 +14,15 @@ function getBearerToken(authorization?: string): string | undefined {
 }
 
 export const SkillRouter = Router();
+
+SkillRouter.get("/catalogo", async (req, res) => {
+  try {
+    const resultado = await skillService.listarCatalogo();
+    res.status(200).json(resultado);
+  } catch (error: any) {
+    res.status(500).json({ message: error?.message ?? "Erro ao listar catálogo de skills" });
+  }
+});
 
 SkillRouter.post("/admin/personagens/:characterId", async (req, res) => {
   try {

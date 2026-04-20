@@ -13,6 +13,25 @@ function normalizeData(data: Record<string, any> | null | undefined) {
 }
 
 export const skillService = {
+  async listarCatalogo() {
+    const admin = getAdminClient();
+    try {
+      const { data, error } = await admin
+        .from("skills")
+        .select("*")
+        .is("deleted_at", null)
+        .order("name");
+      if (error) throw error;
+      return data ?? [];
+    } catch {
+      // Fallback sem filtro de deleted_at
+      const admin2 = getAdminClient();
+      const { data, error } = await admin2.from("skills").select("*").order("name");
+      if (error) throw error;
+      return data ?? [];
+    }
+  },
+
   async adicionarEmPersonagem(
     characterId: string,
     dto: AdicionarSkillPersonagemDto,

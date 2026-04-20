@@ -305,6 +305,41 @@
             </div>
           </div>
 
+          <!-- Pontos de Classe -->
+          <div class="mt-4 rounded-2xl border border-amber-600/30 bg-amber-950/20 p-4">
+            <p class="text-sm font-semibold text-amber-300 mb-1">Pontos de Classe</p>
+            <p class="text-xs text-zinc-500 mb-3">Conceder pontos para um personagem escolher ou evoluir classes</p>
+            <div class="grid grid-cols-[1fr_80px_auto] gap-2 items-center">
+              <div>
+                <label class="sr-only" for="class-points-character">Personagem para pontos</label>
+                <select id="class-points-character" v-model="classPointsCharacterId" class="tdl-campo w-full">
+                  <option value="">Selecione um personagem</option>
+                  <option v-for="char in characters" :key="char.characterId" :value="char.characterId">
+                    {{ char.name }}
+                  </option>
+                </select>
+              </div>
+              <div>
+                <label class="sr-only" for="class-points-amount">Quantidade de pontos</label>
+                <input
+                  id="class-points-amount"
+                  v-model.number="classPointsAmount"
+                  type="number"
+                  min="1"
+                  max="99"
+                  class="tdl-campo w-full text-center"
+                />
+              </div>
+              <button
+                @click="grantClassPoints"
+                :disabled="loadingClassPoints || !classPointsCharacterId || classPointsAmount < 1"
+                class="rounded-xl border border-amber-500/50 px-4 py-2 text-sm font-semibold text-amber-100 transition-colors hover:bg-amber-900/30 disabled:cursor-not-allowed disabled:opacity-50 whitespace-nowrap"
+              >
+                {{ loadingClassPoints ? 'Salvando...' : 'Conceder Pontos' }}
+              </button>
+            </div>
+          </div>
+
           <div class="mt-3 flex flex-wrap gap-2">
             <button @click="addSkill" class="tdl-botao-primario">Adicionar Skill</button>
             <button @click="addTitleToCharacter" class="tdl-botao-primario">Adicionar Titulo</button>
@@ -395,6 +430,7 @@ import {
   listCharacterCreationAllowedEmails,
   removeCharacterCreationAllowedEmail,
 } from '@/lib/api/personagens.api'
+import { adicionarPontosDeClasse } from '@/lib/api/classes.api'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -418,6 +454,10 @@ const adventureNote = ref('')
 const emailsLiberadosCriacao = ref<string[]>([])
 const novoEmailLiberado = ref('')
 const loadingEmailsLiberados = ref(false)
+
+const classPointsCharacterId = ref('')
+const classPointsAmount = ref(1)
+const loadingClassPoints = ref(false)
 
 const deleteCharacterId = ref('')
 const deleteConfirmName = ref('')
@@ -627,6 +667,32 @@ async function addAdventureNote() {
   } catch (err: any) {
     feedback.value = err?.response?.data?.message || 'Erro ao adicionar nota.'
     feedbackError.value = true
+  }
+}
+
+async function grantClassPoints() {
+  if (!classPointsCharacterId.value) {
+    feedback.value = 'Selecione um personagem para conceder pontos.'
+    feedbackError.value = true
+    return
+  }
+  if (!classPointsAmount.value || classPointsAmount.value < 1) {
+    feedback.value = 'Informe uma quantidade válida de pontos (mínimo 1).'
+    feedbackError.value = true
+    return
+  }
+
+  loadingClassPoints.value = true
+  try {
+    await adicionarPontosDeClasse(classPointsCharacterId.value, { pontos: classPointsAmount.value })
+    feedback.value = `${classPointsAmount.value} ponto(s) de classe concedido(s) com sucesso.`
+    feedbackError.value = false
+    classPointsAmount.value = 1
+  } catch (err: any) {
+    feedback.value = err?.response?.data?.message || 'Erro ao conceder pontos de classe.'
+    feedbackError.value = true
+  } finally {
+    loadingClassPoints.value = false
   }
 }
 

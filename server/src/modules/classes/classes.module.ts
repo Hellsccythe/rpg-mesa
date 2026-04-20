@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { classesController } from "./classes.controller.js";
+import { classesService } from "./classes.service.js";
 
 export * from "./classes.dto.js";
 export * from "./classes.service.js";
@@ -13,6 +14,24 @@ function getBearerToken(authorization?: string): string | undefined {
 }
 
 export const ClassesRouter = Router();
+
+ClassesRouter.get("/", async (_req, res) => {
+  try {
+    const resultado = await classesService.listar();
+    res.status(200).json(resultado);
+  } catch (error: any) {
+    res.status(500).json({ message: error?.message ?? "Erro ao listar classes" });
+  }
+});
+
+ClassesRouter.get("/level-progression", async (_req, res) => {
+  try {
+    const resultado = await classesService.listarProgressaoLevel();
+    res.status(200).json(resultado);
+  } catch (error: any) {
+    res.status(500).json({ message: error?.message ?? "Erro ao listar progressao" });
+  }
+});
 
 ClassesRouter.post("/admin", async (req, res) => {
   try {

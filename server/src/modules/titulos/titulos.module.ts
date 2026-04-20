@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { titulosController } from "./titulos.controller.js";
+import { titulosService } from "./titulos.service.js";
 
 export * from "./titulos.dto.js";
 export * from "./titulos.service.js";
@@ -13,6 +14,15 @@ function getBearerToken(authorization?: string): string | undefined {
 }
 
 export const TitulosRouter = Router();
+
+TitulosRouter.get("/catalogo", async (req, res) => {
+  try {
+    const resultado = await titulosService.listarCatalogo();
+    res.status(200).json(resultado);
+  } catch (error: any) {
+    res.status(500).json({ message: error?.message ?? "Erro ao listar catálogo de títulos" });
+  }
+});
 
 TitulosRouter.post("/admin", async (req, res) => {
   try {
