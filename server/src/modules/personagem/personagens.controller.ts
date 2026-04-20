@@ -82,16 +82,19 @@ export const personagensController = {
 
   async registrarECriar(dto: {
     email?: string
+    username?: string
     senha?: string
     nome?: string
     data?: Record<string, any>
     avatarUrl?: string | null
   }) {
     if (!dto.email?.trim()) throw new Error("Email e obrigatorio")
+    if (!dto.username?.trim()) throw new Error("Nome de usuario e obrigatorio")
     if (!dto.senha) throw new Error("Senha e obrigatoria")
     if (!dto.nome?.trim()) throw new Error("Nome do personagem e obrigatorio")
     return personagensService.registrarECriarPersonagem({
       email: dto.email,
+      username: dto.username,
       senha: dto.senha,
       nome: dto.nome,
       data: dto.data,

@@ -6,7 +6,9 @@
       "Bash(npx tsc *)",
       "Bash(node_modules/.bin/tsc --noEmit)",
       "Bash(./node_modules/.bin/tsc --noEmit)",
-      "Bash(npx vue-tsc *)"
+      "Bash(npx vue-tsc *)",
+      "Bash(xargs cat *)",
+      "Bash(yarn type-check:server)"
     ]
   }
 }

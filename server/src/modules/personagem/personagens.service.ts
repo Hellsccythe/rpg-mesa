@@ -812,6 +812,7 @@ export const personagensService = {
 
   async registrarECriarPersonagem(payload: {
     email: string
+    username: string
     senha: string
     nome: string
     data?: Record<string, any>
@@ -819,42 +820,55 @@ export const personagensService = {
   }) {
     const admin = getAdminClient()
 
+    // Valida email para whitelist
     const normalizedEmail = normalizeEmail(payload.email)
     if (!isValidEmail(normalizedEmail)) throw new Error("Email invalido.")
 
     const allowedEmails = await getCharacterCreationAllowedEmailsMerged()
-    const emailAllowed =
-      !allowedEmails.length || allowedEmails.includes(normalizedEmail)
+    const emailAllowed = !allowedEmails.length || allowedEmails.includes(normalizedEmail)
     if (!emailAllowed) {
       throw new Error("Email nao liberado pelo mestre para criacao de personagem.")
     }
 
-    // Cria usuario via admin — bypassa confirmacao de email
-    let userId: string
+    // Valida username: 3-20 chars, apenas letras/numeros/_ e -
+    const username = payload.username.trim().toLowerCase()
+    if (!/^[a-z0-9_-]{3,20}$/.test(username)) {
+      throw new Error("Usuario deve ter entre 3 e 20 caracteres (letras, numeros, _ ou -).")
+    }
+
+    // Verifica unicidade do username na tabela de personagens
+    const { data: existingChar } = await admin
+      .from(PERSONAGEM_TABLE)
+      .select("id")
+      .eq("username", username)
+      .is("deleted_at", null)
+      .maybeSingle()
+    if (existingChar) throw new Error("Este nome de usuario ja esta em uso.")
+
+    // Cria usuario no Supabase Auth com email sintetico username@rpg.internal
+    const authEmail = `${username}@rpg.internal`
     const { data: createData, error: createError } = await admin.auth.admin.createUser({
-      email: normalizedEmail,
+      email: authEmail,
       password: payload.senha,
       email_confirm: true,
     })
 
     if (createError) {
       const msg = createError.message?.toLowerCase() ?? ""
-      if (msg.includes("already") || msg.includes("already registered") || (createError as any).status === 422) {
-        // Usuario ja existe — busca paginando todos os users para garantir cobertura > 1000
-        const existingUser = await findUserByEmail(admin, normalizedEmail)
-        if (!existingUser) throw new Error("Email ja cadastrado. Verifique a senha informada.")
-        userId = existingUser.id
-      } else {
-        throw createError
+      // username unico deve evitar colisoes, mas caso ocorra:
+      if (msg.includes("already") || (createError as any).status === 422) {
+        throw new Error("Este nome de usuario ja esta em uso. Escolha outro.")
       }
-    } else {
-      userId = createData.user.id
+      throw createError
     }
+
+    const userId = createData.user.id
 
     const { data, error } = await admin
       .from(PERSONAGEM_TABLE)
       .insert({
         user_id: userId,
+        username,
         name: payload.nome.trim(),
         level: 1,
         avatar_url: payload.avatarUrl ?? null,
@@ -863,7 +877,12 @@ export const personagensService = {
       .select(PERSONAGEM_SELECT_FIELDS)
       .single()
 
-    if (error) throw error
+    if (error) {
+      // Rollback: remove o usuario criado no Auth para evitar orfaos
+      await admin.auth.admin.deleteUser(userId).catch(() => null)
+      throw error
+    }
+
     return mapPersonagem(data)
   },
 
