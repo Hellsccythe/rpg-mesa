@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { personagensController } from "./personagens.controller.js";
+import { personagensService } from "./personagens.service.js";
 import { ensureMasterAccess } from "../../common/helpers/master-access.helper.js";
 
 export * from "./personagens.dto.js";
@@ -141,6 +142,50 @@ PersonagensRouter.get("/admin/:characterId", async (req, res) => {
     const status =
       error?.message?.includes("autenticado") || error?.message?.includes("restrito") ? 401 : 404;
     res.status(status).json({ message: error?.message ?? "Erro ao carregar personagem" });
+  }
+});
+
+PersonagensRouter.post("/:characterId/escolher-classe", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    const resultado = await personagensService.escolherClasse(req.params.characterId, req.body, token);
+    res.status(200).json(resultado);
+  } catch (error: any) {
+    const status = error?.message?.includes("autenticado") ? 401 : error?.message?.includes("permissão") ? 403 : 400;
+    res.status(status).json({ message: error?.message ?? "Erro ao escolher classe" });
+  }
+});
+
+PersonagensRouter.post("/:characterId/escolher-skill-inicial", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    const resultado = await personagensService.escolherSkillInicial(req.params.characterId, req.body, token);
+    res.status(200).json(resultado);
+  } catch (error: any) {
+    const status = error?.message?.includes("autenticado") ? 401 : error?.message?.includes("permissão") ? 403 : 400;
+    res.status(status).json({ message: error?.message ?? "Erro ao escolher skill" });
+  }
+});
+
+PersonagensRouter.post("/:characterId/levar-classe", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    const resultado = await personagensService.levelarClasse(req.params.characterId, req.body, token);
+    res.status(200).json(resultado);
+  } catch (error: any) {
+    const status = error?.message?.includes("autenticado") ? 401 : error?.message?.includes("permissão") ? 403 : 400;
+    res.status(status).json({ message: error?.message ?? "Erro ao levar classe" });
+  }
+});
+
+PersonagensRouter.post("/admin/:characterId/class-points", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    const resultado = await personagensService.adicionarPontosDeClasse(req.params.characterId, req.body, token);
+    res.status(200).json(resultado);
+  } catch (error: any) {
+    const status = error?.message?.includes("autenticado") ? 401 : error?.message?.includes("mestre") ? 403 : 400;
+    res.status(status).json({ message: error?.message ?? "Erro ao adicionar pontos" });
   }
 });
 

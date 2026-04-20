@@ -13,6 +13,17 @@ function normalizeData(data: Record<string, any> | null | undefined) {
 }
 
 export const titulosService = {
+  async listarCatalogo() {
+    const admin = getAdminClient();
+    const { data, error } = await admin
+      .from("titles")
+      .select("*")
+      .is("deleted_at", null)
+      .order("name");
+    if (error) throw error;
+    return data ?? [];
+  },
+
   async salvar(dto: SalvarTituloDto, accessToken?: string) {
     await ensureMasterAccess(accessToken);
     const admin = getAdminClient();

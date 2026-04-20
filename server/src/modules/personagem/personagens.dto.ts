@@ -175,6 +175,25 @@ export class AdicionarNotaAventuraDto {
   note: string;
 }
 
+export class EscolherClasseDto {
+  @IsString()
+  classId: string;
+
+  @IsString()
+  className: string;
+
+  @IsString()
+  classTier: string;
+}
+
+export class EscolherSkillInicialDto {
+  @IsString()
+  classId: string;
+
+  @IsString()
+  skillName: string;
+}
+
 // ==================== DTO PARA LISTAR / FILTRAR ====================
 export class ListarPersonagemDto {
   @IsOptional()

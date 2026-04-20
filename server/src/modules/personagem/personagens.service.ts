@@ -303,6 +303,7 @@ export const personagensService = {
       throw new Error("Erro: email nao liberado pelo mestre.");
     }
 
+    const initialData = { classPoints: 1, ...(payload.data ?? {}) };
     const { data, error } = await supabase
       .from(PERSONAGEM_TABLE)
       .insert({
@@ -310,7 +311,7 @@ export const personagensService = {
         name: payload.name,
         level: payload.level ?? 1,
         avatar_url: payload.avatarUrl ?? null,
-        data: payload.data ?? {},
+        data: initialData,
       })
       .select(PERSONAGEM_SELECT_FIELDS)
       .single();
@@ -983,5 +984,250 @@ export const personagensService = {
     }
 
     return { success: true, email: normalizedEmail };
+  },
+
+  async escolherClasse(
+    characterId: string,
+    dto: { classId: string; className: string; classTier: string },
+    accessToken?: string,
+  ) {
+    const supabase = getSupabaseClient(accessToken);
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) throw new Error("Usuário não autenticado");
+
+    const masterEmail = (process.env.MASTER_EMAIL ?? "").toLowerCase().trim();
+    const isMaster = masterEmail !== "" && user.email?.toLowerCase() === masterEmail;
+
+    const admin = getAdminClient();
+    const { data: current, error: currentError } = await admin
+      .from(PERSONAGEM_TABLE)
+      .select(PERSONAGEM_SELECT_FIELDS)
+      .eq("id", characterId)
+      .is("deleted_at", null)
+      .single();
+    if (currentError || !current) throw new Error("Personagem não encontrado");
+
+    const personagem = mapPersonagem(current);
+    if (!isMaster && personagem.userId !== user.id) throw new Error("Sem permissão");
+
+    const dataAtual = normalizeData(personagem.data as Record<string, any>);
+    const classPoints: number = typeof dataAtual.classPoints === "number" ? dataAtual.classPoints : 0;
+    if (classPoints < 1) throw new Error("Pontos de classe insuficientes");
+
+    const classes: any[] = Array.isArray(dataAtual.classes) ? [...dataAtual.classes] : [];
+    const baseClasses = classes.filter((c: any) => c.tier?.toLowerCase() === "base");
+    const tierLower = dto.classTier.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+    if (classes.some((c: any) => c.classId === dto.classId)) {
+      throw new Error("Você já possui esta classe");
+    }
+
+    if (tierLower === "base") {
+      if (baseClasses.length === 1 && (baseClasses[0]?.level ?? 1) < 10) {
+        throw new Error("Atinja o nível 10 na sua primeira classe antes de escolher outra");
+      }
+      if (baseClasses.length >= 2) {
+        throw new Error("Limite de classes base atingido (máximo 2)");
+      }
+    } else if (tierLower.startsWith("hibrid")) {
+      // Busca requisitos específicos da classe híbrida
+      const { data: classeData } = await admin
+        .from("classes")
+        .select("requirements")
+        .eq("id", dto.classId)
+        .single();
+
+      // Formato: { min_level: 10, required_classes: [1, 3] }
+      const reqs = classeData?.requirements as { min_level?: number; required_classes?: number[] } | null;
+      const requiredIds: number[] = Array.isArray(reqs?.required_classes) ? reqs!.required_classes : [];
+      const minLevel: number = reqs?.min_level ?? 10;
+
+      if (requiredIds.length > 0) {
+        for (const reqId of requiredIds) {
+          const found = classes.find((c: any) => String(c.classId) === String(reqId));
+          if (!found || (found.level ?? 1) < minLevel) {
+            const { data: reqClasseData } = await admin
+              .from("classes")
+              .select("name")
+              .eq("id", reqId)
+              .single();
+            const reqNome = reqClasseData?.name ?? String(reqId);
+            throw new Error(
+              `Requisito não atendido: ${reqNome} nível ${minLevel}`,
+            );
+          }
+        }
+      } else {
+        // Fallback genérico: 2 classes base no nível 10
+        const basesNivel10 = baseClasses.filter((c: any) => (c.level ?? 1) >= 10);
+        if (basesNivel10.length < 2) {
+          throw new Error("Você precisa ter 2 classes base no nível 10 para escolher uma classe híbrida");
+        }
+      }
+    }
+
+    classes.push({ classId: dto.classId, name: dto.className, tier: dto.classTier, level: 1, chosenSkills: [] });
+    const nextData = { ...dataAtual, classes, classPoints: classPoints - 1 };
+
+    const { data, error } = await admin
+      .from(PERSONAGEM_TABLE)
+      .update({ data: nextData })
+      .eq("id", characterId)
+      .is("deleted_at", null)
+      .select(PERSONAGEM_SELECT_FIELDS)
+      .single();
+    if (error) throw error;
+    return mapPersonagem(data);
+  },
+
+  async levelarClasse(
+    characterId: string,
+    dto: { classId: string },
+    accessToken?: string,
+  ) {
+    const supabase = getSupabaseClient(accessToken);
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) throw new Error("Usuário não autenticado");
+
+    const masterEmail = (process.env.MASTER_EMAIL ?? "").toLowerCase().trim();
+    const isMaster = masterEmail !== "" && user.email?.toLowerCase() === masterEmail;
+
+    const admin = getAdminClient();
+    const { data: current, error: currentError } = await admin
+      .from(PERSONAGEM_TABLE)
+      .select(PERSONAGEM_SELECT_FIELDS)
+      .eq("id", characterId)
+      .is("deleted_at", null)
+      .single();
+    if (currentError || !current) throw new Error("Personagem não encontrado");
+
+    const personagem = mapPersonagem(current);
+    if (!isMaster && personagem.userId !== user.id) throw new Error("Sem permissão");
+
+    const dataAtual = normalizeData(personagem.data as Record<string, any>);
+    const classPoints: number = typeof dataAtual.classPoints === "number" ? dataAtual.classPoints : 0;
+    if (classPoints < 1) throw new Error("Pontos de classe insuficientes");
+
+    const classes: any[] = Array.isArray(dataAtual.classes) ? [...dataAtual.classes] : [];
+    const classIdx = classes.findIndex((c: any) => c.classId === dto.classId);
+    if (classIdx === -1) throw new Error("Classe não encontrada no personagem");
+
+    const currentLevel: number = classes[classIdx].level ?? 1;
+    if (currentLevel >= 20) throw new Error("Nível máximo já atingido (20)");
+
+    classes[classIdx] = { ...classes[classIdx], level: currentLevel + 1 };
+    const nextData = { ...dataAtual, classes, classPoints: classPoints - 1 };
+
+    const { data, error } = await admin
+      .from(PERSONAGEM_TABLE)
+      .update({ data: nextData })
+      .eq("id", characterId)
+      .is("deleted_at", null)
+      .select(PERSONAGEM_SELECT_FIELDS)
+      .single();
+    if (error) throw error;
+    return mapPersonagem(data);
+  },
+
+  async adicionarPontosDeClasse(
+    characterId: string,
+    dto: { pontos: number },
+    accessToken?: string,
+  ) {
+    const supabase = getSupabaseClient(accessToken);
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) throw new Error("Usuário não autenticado");
+
+    const masterEmail = (process.env.MASTER_EMAIL ?? "").toLowerCase().trim();
+    if (!masterEmail || user.email?.toLowerCase() !== masterEmail) {
+      throw new Error("Acesso restrito ao mestre");
+    }
+
+    if (!Number.isInteger(dto.pontos) || dto.pontos < 1) {
+      throw new Error("Pontos deve ser um número inteiro positivo");
+    }
+
+    const admin = getAdminClient();
+    const { data: current, error: currentError } = await admin
+      .from(PERSONAGEM_TABLE)
+      .select(PERSONAGEM_SELECT_FIELDS)
+      .eq("id", characterId)
+      .is("deleted_at", null)
+      .single();
+    if (currentError || !current) throw new Error("Personagem não encontrado");
+
+    const personagem = mapPersonagem(current);
+    const dataAtual = normalizeData(personagem.data as Record<string, any>);
+    const currentPoints: number = typeof dataAtual.classPoints === "number" ? dataAtual.classPoints : 0;
+    const nextData = { ...dataAtual, classPoints: currentPoints + dto.pontos };
+
+    const { data, error } = await admin
+      .from(PERSONAGEM_TABLE)
+      .update({ data: nextData })
+      .eq("id", characterId)
+      .is("deleted_at", null)
+      .select(PERSONAGEM_SELECT_FIELDS)
+      .single();
+    if (error) throw error;
+    return mapPersonagem(data);
+  },
+
+  async escolherSkillInicial(
+    characterId: string,
+    dto: { classId: string; skillName: string },
+    accessToken?: string,
+  ) {
+    const supabase = getSupabaseClient(accessToken);
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) throw new Error("Usuário não autenticado");
+
+    const masterEmail = (process.env.MASTER_EMAIL ?? "").toLowerCase().trim();
+    const isMaster = masterEmail !== "" && user.email?.toLowerCase() === masterEmail;
+
+    const admin = getAdminClient();
+    const { data: current, error: currentError } = await admin
+      .from(PERSONAGEM_TABLE)
+      .select(PERSONAGEM_SELECT_FIELDS)
+      .eq("id", characterId)
+      .is("deleted_at", null)
+      .single();
+    if (currentError || !current) throw new Error("Personagem não encontrado");
+
+    const personagem = mapPersonagem(current);
+    if (!isMaster && personagem.userId !== user.id) throw new Error("Sem permissão");
+
+    const dataAtual = normalizeData(personagem.data as Record<string, any>);
+    const classes: any[] = Array.isArray(dataAtual.classes) ? [...dataAtual.classes] : [];
+    const classIdx = classes.findIndex((c: any) => c.classId === dto.classId);
+    if (classIdx === -1) throw new Error("Classe não encontrada no personagem");
+
+    const chosenSkills: string[] = Array.isArray(classes[classIdx].chosenSkills)
+      ? [...classes[classIdx].chosenSkills]
+      : [];
+
+    const skillName = dto.skillName.trim();
+    if (!skillName) throw new Error("Nome da skill é obrigatório");
+    if (chosenSkills.some((s) => s.toLowerCase() === skillName.toLowerCase())) {
+      throw new Error("Skill já escolhida para esta classe");
+    }
+
+    chosenSkills.push(skillName);
+    classes[classIdx] = { ...classes[classIdx], chosenSkills };
+
+    const globalSkills: any[] = Array.isArray(dataAtual.skills) ? [...dataAtual.skills] : [];
+    if (!globalSkills.some((s: any) => String(s?.name ?? "").toLowerCase() === skillName.toLowerCase())) {
+      globalSkills.push({ name: skillName, addedBy: user.email ?? "player", addedAt: new Date().toISOString() });
+    }
+
+    const nextData = { ...dataAtual, classes, skills: globalSkills };
+    const { data, error } = await admin
+      .from(PERSONAGEM_TABLE)
+      .update({ data: nextData })
+      .eq("id", characterId)
+      .is("deleted_at", null)
+      .select(PERSONAGEM_SELECT_FIELDS)
+      .single();
+    if (error) throw error;
+    return mapPersonagem(data);
   },
 };
