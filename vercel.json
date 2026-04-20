@@ -1,5 +1,8 @@
 {
   "installCommand": "corepack enable && yarn install --immutable",
-  "buildCommand": "yarn build:client",
-  "outputDirectory": "client/dist"
+  "buildCommand": "yarn build",
+  "outputDirectory": "client/dist",
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "/api/index" }
+  ]
 }

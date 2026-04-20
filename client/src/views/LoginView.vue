@@ -188,13 +188,13 @@
         </p>
 
         <div class="space-y-1">
-          <label class="login-modal-label block text-sm">E-mail</label>
+          <label class="login-modal-label block text-sm">Nome de usuario</label>
           <input
-            v-model="emailLoginPersonagem"
-            type="email"
-            autocomplete="email"
+            v-model="usernameLoginPersonagem"
+            type="text"
+            autocomplete="username"
             class="login-modal-input w-full rounded-2xl border px-5 py-3 outline-none transition-colors"
-            placeholder="seu@email.com"
+            placeholder="seu_usuario"
             @keydown.enter="logarPersonagem"
           />
         </div>
@@ -369,18 +369,30 @@
 
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <p class="login-modal-muted sm:col-span-2 text-xs">
-          Use o e-mail liberado pelo mestre. Ao criar o personagem, essa conta sera usada no login.
+          Use o e-mail liberado pelo mestre. Crie um usuario unico para fazer login — ele pode ser diferente do seu e-mail.
         </p>
 
         <div class="sm:col-span-2">
-          <label class="login-modal-label mb-2 block text-sm">E-mail da conta</label>
+          <label class="login-modal-label mb-2 block text-sm">E-mail liberado pelo mestre</label>
           <input
             v-model="emailContaCriacao"
             type="email"
             autocomplete="email"
             class="login-modal-input w-full rounded-2xl border px-6 py-4 outline-none"
-            placeholder="seu@email.com"
+            placeholder="email@cadastrado.com"
           />
+        </div>
+
+        <div class="sm:col-span-2">
+          <label class="login-modal-label mb-2 block text-sm">Nome de usuario (para login)</label>
+          <input
+            v-model="usernameContaCriacao"
+            type="text"
+            autocomplete="username"
+            class="login-modal-input w-full rounded-2xl border px-6 py-4 outline-none"
+            placeholder="ex: hellsccythe (3-20 chars)"
+          />
+          <p class="mt-1 text-xs text-zinc-500">Apenas letras, numeros, _ e -. Sera usado para entrar no jogo.</p>
         </div>
 
         <div>
@@ -529,7 +541,7 @@ watch(personagemSelecionado, (novo) => {
   setTimeout(() => analisarHeroImage(heroImgRef.value), 50)
 })
 
-const emailLoginPersonagem = ref('')
+const usernameLoginPersonagem = ref('')
 const senhaLoginPersonagem = ref('')
 const carregandoLoginPersonagem = ref(false)
 const erroLoginPersonagem = ref('')
@@ -548,6 +560,7 @@ const arrastando = ref(false)
 const carregandoCriacao = ref(false)
 const erroCriacao = ref('')
 const emailContaCriacao = ref('')
+const usernameContaCriacao = ref('')
 const senhaContaCriacao = ref('')
 const confirmacaoSenha = ref('')
 const formularioCriacao = ref({
@@ -630,14 +643,14 @@ function abrirLogin(char: PersonagemPublicoApi) {
   }
 
   personagemSelecionado.value = char
-  emailLoginPersonagem.value = ''
+  usernameLoginPersonagem.value = ''
   senhaLoginPersonagem.value = ''
   erroLoginPersonagem.value = ''
 }
 
 function fecharModalLoginPersonagem() {
   personagemSelecionado.value = null
-  emailLoginPersonagem.value = ''
+  usernameLoginPersonagem.value = ''
   senhaLoginPersonagem.value = ''
   erroLoginPersonagem.value = ''
 }
@@ -645,8 +658,9 @@ function fecharModalLoginPersonagem() {
 async function logarPersonagem() {
   if (!personagemSelecionado.value) return
 
-  if (!emailLoginPersonagem.value.trim() || !senhaLoginPersonagem.value) {
-    erroLoginPersonagem.value = 'Preencha e-mail e senha.'
+  const username = usernameLoginPersonagem.value.trim().toLowerCase()
+  if (!username || !senhaLoginPersonagem.value) {
+    erroLoginPersonagem.value = 'Preencha usuario e senha.'
     return
   }
 
@@ -655,11 +669,11 @@ async function logarPersonagem() {
   const idPersonagem = personagemSelecionado.value.characterId
 
   try {
-    await authStore.entrar(emailLoginPersonagem.value.trim(), senhaLoginPersonagem.value, idPersonagem)
+    await authStore.entrar(`${username}@rpg.internal`, senhaLoginPersonagem.value, idPersonagem)
     fecharModalLoginPersonagem()
     router.push({ name: 'dashboard', query: { characterId: idPersonagem } })
   } catch (err: any) {
-    erroLoginPersonagem.value = traduzirErroAuth(String(err?.message ?? '')) || 'Credenciais invalidas. Tente novamente.'
+    erroLoginPersonagem.value = traduzirErroAuth(String(err?.message ?? '')) || 'Usuario ou senha invalidos.'
   } finally {
     carregandoLoginPersonagem.value = false
   }
@@ -753,6 +767,7 @@ function resetarFormulario() {
   }
   erroCriacao.value = ''
   emailContaCriacao.value = ''
+  usernameContaCriacao.value = ''
   senhaContaCriacao.value = ''
   confirmacaoSenha.value = ''
   urlPreviewCriacao.value = null
@@ -773,7 +788,17 @@ async function criarPersonagem() {
 
   const email = emailContaCriacao.value.trim().toLowerCase()
   if (!email) {
-    erroCriacao.value = 'Informe o e-mail para criar a conta do personagem.'
+    erroCriacao.value = 'Informe o e-mail liberado pelo mestre.'
+    return
+  }
+
+  const username = usernameContaCriacao.value.trim().toLowerCase()
+  if (!username) {
+    erroCriacao.value = 'Informe o nome de usuario para login.'
+    return
+  }
+  if (!/^[a-z0-9_-]{3,20}$/.test(username)) {
+    erroCriacao.value = 'Usuario deve ter 3-20 caracteres (letras, numeros, _ ou -).'
     return
   }
 
@@ -796,6 +821,7 @@ async function criarPersonagem() {
   try {
     personagemCriado = await registrarECriarPersonagem({
       email,
+      username,
       senha: senhaContaCriacao.value,
       nome: formularioCriacao.value.nome.trim(),
       data: {
@@ -820,9 +846,9 @@ async function criarPersonagem() {
     return
   }
 
-  // Passo 2: login com as credenciais recem-criadas
+  // Passo 2: login com as credenciais recem-criadas (username@rpg.internal)
   try {
-    await authStore.entrar(email, senhaContaCriacao.value, personagemCriado.characterId)
+    await authStore.entrar(`${username}@rpg.internal`, senhaContaCriacao.value, personagemCriado.characterId)
   } catch (err: any) {
     carregandoCriacao.value = false
     const mensagemErro = String(err?.message ?? '')

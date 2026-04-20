@@ -12,6 +12,7 @@ export interface PersonagemEntity {
   characterId: string;
   userId: string;
   campaignId: string | null;
+  username: string | null;
   name: string;
   level: number;
   data: Record<string, unknown>;
@@ -32,6 +33,9 @@ class PersonagemModel {
 
   @Column({ name: "campaign_id", nullable: true })
   campaignId!: string | null;
+
+  @Column({ name: "username", nullable: true })
+  username!: string | null;
 
   @Column({ name: "name" })
   name!: string;

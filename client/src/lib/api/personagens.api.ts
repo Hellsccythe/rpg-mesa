@@ -32,6 +32,7 @@ export async function createCharacter(payload: SalvarPersonagemDto) {
 
 export async function registrarECriarPersonagem(payload: {
   email: string
+  username: string
   senha: string
   nome: string
   data?: Record<string, unknown>

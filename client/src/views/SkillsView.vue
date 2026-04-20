@@ -12,7 +12,30 @@
           @select="handleNavSelect"
         />
         <h1 class="skills-title text-xl font-bold tracking-widest">Skills</h1>
-        <div class="w-10" />
+        <div class="relative" @click.stop>
+          <button
+            @click="showSettingsMenu = !showSettingsMenu"
+            class="text-zinc-400 hover:text-white transition-colors text-xl"
+            aria-label="Abrir menu"
+          >⚙️</button>
+          <div
+            v-if="showSettingsMenu"
+            class="absolute right-0 mt-2 w-44 rounded-2xl border border-[#6B4E9E]/50 bg-[#0F1C3A]/95 p-2 shadow-xl backdrop-blur-md z-50"
+          >
+            <button
+              @click="irParaPersonagem"
+              class="block w-full rounded-xl px-4 py-2 text-left text-sm text-zinc-200 hover:bg-[#2A1B4A] transition-colors"
+            >
+              Personagem
+            </button>
+            <button
+              @click="logout"
+              class="block w-full rounded-xl px-4 py-2 text-left text-sm text-red-300 hover:bg-red-950/60 transition-colors"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
       </header>
 
       <main class="flex-1 px-4 sm:px-6 py-8 max-w-7xl mx-auto w-full">
@@ -229,7 +252,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Modal from '@/components/Modal.vue'
 import HamburgerDrawerMenu from '@/components/HamburgerDrawerMenu.vue'
@@ -249,6 +272,20 @@ const error = ref<string | null>(null)
 const busca = ref('')
 const filtroTipo = ref('')
 const modalSkill = ref<SkillApi | null>(null)
+const showSettingsMenu = ref(false)
+
+function irParaPersonagem() {
+  showSettingsMenu.value = false
+  const characterId = String(route.query.characterId ?? authStore.idPersonagemAtivo ?? '')
+  if (characterId) router.push({ name: 'dashboard', query: { characterId } })
+  else router.push({ name: 'dashboard' })
+}
+
+async function logout() {
+  showSettingsMenu.value = false
+  await authStore.sair()
+  router.push({ name: 'login' })
+}
 
 // ── Navegação ──────────────────────────────────────────────────────────────
 const navItems = [
@@ -445,7 +482,14 @@ async function init() {
   }
 }
 
-onMounted(init)
+onMounted(() => {
+  init()
+  window.addEventListener('click', () => { showSettingsMenu.value = false })
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('click', () => { showSettingsMenu.value = false })
+})
 </script>
 
 <style scoped>

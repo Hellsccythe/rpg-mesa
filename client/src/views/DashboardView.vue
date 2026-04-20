@@ -20,7 +20,6 @@
         </div>
 
         <div class="flex items-center gap-6 text-2xl">
-          <button class="header-link rounded-lg px-2 py-1 text-sm transition-colors">PERFIL</button>
           <div class="relative" @click.stop>
             <button
               @click="toggleSettingsMenu"
