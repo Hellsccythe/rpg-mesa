@@ -2,11 +2,6 @@
   "installCommand": "corepack enable && yarn install --immutable",
   "buildCommand": "yarn build:server && yarn build:client",
   "outputDirectory": "client/dist",
-  "functions": {
-    "api/index.js": {
-      "runtime": "nodejs20.x"
-    }
-  },
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api/index" }
   ],
