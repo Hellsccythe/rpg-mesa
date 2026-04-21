@@ -105,37 +105,7 @@ async function listCharacterCreationEmailsFromDatabase() {
 }
 
 async function getCharacterCreationAllowedEmailsMerged() {
-  const envEmails = getCharacterCreationAllowedEmails();
-
-  try {
-    const dbEmails = await listCharacterCreationEmailsFromDatabase();
-    return Array.from(new Set([...envEmails, ...dbEmails]));
-  } catch (error: any) {
-    if (error?.message?.includes("character_creation_whitelist")) {
-      return envEmails;
-    }
-
-    throw error;
-  }
-}
-
-function getCharacterCreationAllowedEmails() {
-  const raw = process.env.CHARACTER_CREATION_ALLOWED_EMAILS ?? "";
-  if (!raw.trim()) return [] as string[];
-
-  return raw
-    .split(/[,;\n]/)
-    .map((item) => item.trim().toLowerCase())
-    .filter(Boolean);
-}
-
-function isCharacterCreationAllowedForEmail(email?: string | null) {
-  const allowedEmails = getCharacterCreationAllowedEmails();
-  if (!allowedEmails.length) return true;
-
-  const normalizedEmail = (email ?? "").trim().toLowerCase();
-  if (!normalizedEmail) return false;
-  return allowedEmails.includes(normalizedEmail);
+  return listCharacterCreationEmailsFromDatabase();
 }
 
 function getPendingChangeRequest(data: Record<string, any> | null | undefined) {
@@ -773,7 +743,7 @@ export const personagensService = {
     // Hard delete da imagem no storage
     if (char.avatar_url) {
       try {
-        const avatarBucket = process.env.VITE_AVATAR_BUCKET || "character-avatars";
+        const avatarBucket = process.env.AVATAR_BUCKET || "character-avatars";
         const marker = `/storage/v1/object/public/${avatarBucket}/`;
         const idx = (char.avatar_url as string).indexOf(marker);
         if (idx !== -1) {

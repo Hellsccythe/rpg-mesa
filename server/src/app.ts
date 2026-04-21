@@ -10,10 +10,15 @@ import { TitulosRouter } from "./modules/titulos/titulos.module.js";
 
 const app = express();
 
-app.use(cors());
+app.use(
+  cors({
+    origin: process.env.ALLOWED_ORIGIN ?? "*",
+    credentials: !!process.env.ALLOWED_ORIGIN,
+  }),
+);
 app.use(express.json());
 
-app.get("/health", (_, res) => {
+app.get("/api/health", (_, res) => {
   res.status(200).json({ ok: true });
 });
 
