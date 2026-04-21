@@ -29,5 +29,14 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: false,
     minify: 'esbuild',
+    target: 'es2020',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-supabase': ['@supabase/supabase-js'],
+          'vendor-vue': ['vue', 'vue-router', 'pinia'],
+        },
+      },
+    },
   },
 })
