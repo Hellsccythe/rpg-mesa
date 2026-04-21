@@ -14,14 +14,14 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient<any>(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: false,
     autoRefreshToken: false,
   },
 });
 
-let _adminClient: ReturnType<typeof createClient> | null = null;
+let _adminClient: ReturnType<typeof createClient<any>> | null = null;
 
 /** Client com service role key — bypassa RLS. Usado apenas para leituras públicas no servidor. */
 export function getAdminClient() {
@@ -31,7 +31,7 @@ export function getAdminClient() {
         "SUPABASE_SERVICE_ROLE_KEY não configurada. Necessária para operações públicas (sem auth).",
       );
     }
-    _adminClient = createClient(supabaseUrl!, supabaseServiceKey, {
+    _adminClient = createClient<any>(supabaseUrl!, supabaseServiceKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
   }
@@ -41,7 +41,7 @@ export function getAdminClient() {
 export function getSupabaseClient(accessToken?: string) {
   if (!accessToken) return supabase;
 
-  return createClient(supabaseUrl!, supabaseAnonKey!, {
+  return createClient<any>(supabaseUrl!, supabaseAnonKey!, {
     global: {
       headers: {
         Authorization: `Bearer ${accessToken}`,
