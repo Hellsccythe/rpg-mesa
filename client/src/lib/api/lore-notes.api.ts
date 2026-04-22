@@ -6,6 +6,7 @@ export interface LoreNoteApi {
   subtitle: string | null
   content: string
   ordem: number
+  character_id: string | null
   created_at: string
   updated_at: string
 }
@@ -15,10 +16,20 @@ export interface CreateLoreNotePayload {
   subtitle?: string
   content: string
   ordem?: number
+  /** null ou undefined = nota global; uuid = nota exclusiva do personagem */
+  characterId?: string | null
 }
 
-export async function listLoreNotes(): Promise<LoreNoteApi[]> {
-  const { data } = await api.get<LoreNoteApi[]>('/lore-notes')
+/** Lista notas globais + específicas do personagem (para jogadores). */
+export async function listLoreNotes(characterId?: string): Promise<LoreNoteApi[]> {
+  const params = characterId ? { characterId } : {}
+  const { data } = await api.get<LoreNoteApi[]>('/lore-notes', { params })
+  return data
+}
+
+/** Lista TODAS as notas (para o mestre). */
+export async function listAllLoreNotes(): Promise<LoreNoteApi[]> {
+  const { data } = await api.get<LoreNoteApi[]>('/lore-notes/admin')
   return data
 }
 
