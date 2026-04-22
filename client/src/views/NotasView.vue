@@ -102,7 +102,11 @@
         @touchend.passive="onTouchEnd"
       >
         <!-- ─── SPREAD (desktop) ─── -->
-        <div class="book-wrapper hidden sm:block" ref="bookWrapperRef">
+        <div
+          class="book-wrapper hidden sm:block"
+          ref="bookWrapperRef"
+          :style="{ transform: `scale(${zoomLevel})`, transformOrigin: 'top center' }"
+        >
           <div class="book-scene">
 
             <!-- Idle -->
@@ -220,6 +224,25 @@
               <polyline points="9 18 15 12 9 6" />
             </svg>
           </button>
+
+          <!-- Zoom (desktop) -->
+          <div class="zoom-controls hidden sm:flex items-center gap-1 ml-2">
+            <button
+              class="zoom-btn"
+              :disabled="zoomLevel <= ZOOM_MIN"
+              @click="zoomOut"
+              aria-label="Reduzir zoom"
+              title="Reduzir"
+            >−</button>
+            <span class="zoom-label">{{ Math.round(zoomLevel * 100) }}%</span>
+            <button
+              class="zoom-btn"
+              :disabled="zoomLevel >= ZOOM_MAX"
+              @click="zoomIn"
+              aria-label="Aumentar zoom"
+              title="Aumentar"
+            >+</button>
+          </div>
         </div>
 
         <p class="kbd-hint hidden sm:block text-xs">
@@ -240,9 +263,6 @@ import { PANTEAO_PAGES } from '@/data/panteao'
 import { listLoreNotes } from '@/lib/api/lore-notes.api'
 import type { LoreNoteApi } from '@/lib/api/lore-notes.api'
 import type { BookPage, LoreNoteItem } from '@/types/book'
-
-// ── Constante: texto por página (~800 chars) ────────────────────────────────
-const CHARS_PER_PAGE = 800
 
 function notaApiParaPaginas(nota: LoreNoteApi): BookPage[] {
   const partes = nota.content.split(/\n---+\n/)
@@ -266,6 +286,14 @@ const loadingNotas    = ref(false)
 const notasDinamicas  = ref<LoreNoteApi[]>([])
 const notaSelecionada = ref<LoreNoteItem | null>(null)
 const paginasAtuais   = ref<BookPage[]>([])
+
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+const ZOOM_MIN  = 0.7
+const ZOOM_MAX  = 1.4
+const ZOOM_STEP = 0.1
+const zoomLevel = ref(1.0)
+function zoomIn()  { zoomLevel.value = Math.min(ZOOM_MAX, +(zoomLevel.value + ZOOM_STEP).toFixed(1)) }
+function zoomOut() { zoomLevel.value = Math.max(ZOOM_MIN, +(zoomLevel.value - ZOOM_STEP).toFixed(1)) }
 
 const currentSpreadIdx  = ref(0)
 const flipState         = ref<FlipState>('idle')
@@ -473,7 +501,8 @@ onMounted(async () => {
 
   loadingNotas.value = true
   try {
-    notasDinamicas.value = await listLoreNotes()
+    const characterId = String(route.query.characterId ?? authStore.idPersonagemAtivo ?? '') || undefined
+    notasDinamicas.value = await listLoreNotes(characterId)
   } catch {
     // sem notas dinâmicas, continua com estáticas
   } finally {
@@ -772,6 +801,51 @@ onBeforeUnmount(() => {
 }
 
 .spread-dot:hover:not(.spread-dot--active) { background: #6a5030; }
+
+/* ── Zoom ── */
+.zoom-controls {
+  border-left: 1px solid #c8a05020;
+  padding-left: 10px;
+  gap: 4px;
+}
+
+.zoom-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: 1px solid #c8a05040;
+  background: #1a1408;
+  color: #c8a050;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+  user-select: none;
+}
+
+.zoom-btn:hover:not(:disabled) {
+  background: #2a2010;
+  border-color: #c8a05080;
+}
+
+.zoom-btn:disabled { opacity: 0.3; cursor: default; }
+
+.zoom-label {
+  font-family: 'Cinzel', serif;
+  font-size: 0.58rem;
+  color: #c8a050;
+  min-width: 34px;
+  text-align: center;
+  letter-spacing: 0.03em;
+}
+
+/* Reserva espaço vertical para a escala do livro */
+.book-wrapper {
+  transition: transform 0.2s ease;
+}
 
 .kbd-hint {
   color: #4a3a20;

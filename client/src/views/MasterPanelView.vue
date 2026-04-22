@@ -203,8 +203,22 @@
                   class="tdl-campo w-full"
                 />
               </div>
+              <!-- ocupa as 2 colunas nas linhas seguintes -->
             </div>
-            <div class="mt-3">
+            <div class="sm:col-span-2">
+              <label class="sr-only" for="lore-personagem">Personagem (opcional)</label>
+              <select
+                id="lore-personagem"
+                v-model="loreNoteCharacterId"
+                class="tdl-campo w-full"
+              >
+                <option value="">Global — visível a todos os personagens</option>
+                <option v-for="char in characters" :key="char.characterId" :value="char.characterId">
+                  {{ char.name }} — visível apenas a este personagem
+                </option>
+              </select>
+            </div>
+            <div class="sm:col-span-2">
               <label class="sr-only" for="lore-conteudo">Conteúdo</label>
               <textarea
                 id="lore-conteudo"
@@ -235,8 +249,18 @@
               :key="nota.id"
               class="flex items-center justify-between gap-3 rounded-xl border border-amber-600/20 bg-black/20 px-4 py-3"
             >
-              <div class="min-w-0">
-                <p class="text-sm font-semibold text-amber-100 truncate">{{ nota.title }}</p>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <p class="text-sm font-semibold text-amber-100 truncate">{{ nota.title }}</p>
+                  <span
+                    class="flex-shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
+                    :class="nota.character_id
+                      ? 'bg-violet-900/60 text-violet-300 border border-violet-500/40'
+                      : 'bg-amber-900/40 text-amber-400 border border-amber-600/30'"
+                  >
+                    {{ nomePersonagemDaNota(nota.character_id) }}
+                  </span>
+                </div>
                 <p v-if="nota.subtitle" class="text-xs text-zinc-400 italic truncate">{{ nota.subtitle }}</p>
                 <p class="text-xs text-zinc-600 mt-0.5">
                   {{ nota.content.split(/\n---+\n/).length }} página(s)
@@ -521,7 +545,7 @@ import {
 } from '@/lib/api/personagens.api'
 import { adicionarPontosDeClasse } from '@/lib/api/classes.api'
 import {
-  listLoreNotes,
+  listAllLoreNotes,
   createLoreNote,
   deleteLoreNote as deleteLoreNoteApi,
 } from '@/lib/api/lore-notes.api'
@@ -559,14 +583,20 @@ const loreNotes = ref<LoreNoteApi[]>([])
 const loreNoteTitle = ref('')
 const loreNoteSubtitle = ref('')
 const loreNoteContent = ref('')
+const loreNoteCharacterId = ref<string>('')
 const loadingLoreNotes = ref(false)
 
 async function carregarLoreNotes() {
   try {
-    loreNotes.value = await listLoreNotes()
+    loreNotes.value = await listAllLoreNotes()
   } catch {
     // tabela pode não existir ainda
   }
+}
+
+function nomePersonagemDaNota(characterId: string | null): string {
+  if (!characterId) return 'Global'
+  return characters.value.find((c) => c.characterId === characterId)?.name ?? characterId
 }
 
 async function criarLoreNote() {
@@ -577,10 +607,12 @@ async function criarLoreNote() {
       title: loreNoteTitle.value.trim(),
       subtitle: loreNoteSubtitle.value.trim() || undefined,
       content: loreNoteContent.value,
+      characterId: loreNoteCharacterId.value || null,
     })
     loreNoteTitle.value = ''
     loreNoteSubtitle.value = ''
     loreNoteContent.value = ''
+    loreNoteCharacterId.value = ''
     await carregarLoreNotes()
     feedback.value = 'Nota de lore criada com sucesso.'
     feedbackError.value = false

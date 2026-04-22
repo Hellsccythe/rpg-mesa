@@ -376,11 +376,15 @@ export const PANTEAO_PAGES: BookPage[] = [
   },
 ]
 
+// Valores = índice de spread (0-based). Spread N mostra pages[N*2] e pages[N*2+1].
+// Spread 0: capa + Cayden/Desna | 1: Erastil/Iomedae + Sarenrae/Shelyn
+// 2: Calistria/Inari + Kurgess/Liriel | 3: Morthos/Pharasma + Torak/Vespera
+// 4: Zephyros + Asmodeus/Gorum | 5: Norgorber/Rovagug + Urgathoa/Zon-Kuthon
 export const GOD_PAGE_MAP: Record<string, number> = {
-  'Cayden Cailean': 1, Desna: 1, Erastil: 2, Iomedae: 2,
-  Sarenrae: 3, Shelyn: 3, Calistria: 4, Inari: 4,
-  Kurgess: 5, Liriel: 5, Morthos: 6, Pharasma: 6,
-  Torak: 7, Vespera: 7, Zephyros: 8,
-  Asmodeus: 9, Gorum: 9, Norgorber: 10, Rovagug: 10,
-  Urgathoa: 11, 'Zon-Kuthon': 11,
+  'Cayden Cailean': 0, Desna: 0,
+  Erastil: 1, Iomedae: 1, Sarenrae: 1, Shelyn: 1,
+  Calistria: 2, Inari: 2, Kurgess: 2, Liriel: 2,
+  Morthos: 3, Pharasma: 3, Torak: 3, Vespera: 3,
+  Zephyros: 4, Asmodeus: 4, Gorum: 4,
+  Norgorber: 5, Rovagug: 5, Urgathoa: 5, 'Zon-Kuthon': 5,
 }
