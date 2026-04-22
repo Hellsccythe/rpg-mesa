@@ -49,6 +49,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/notas',
+      name: 'notas',
+      component: () => import('@/views/NotasView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/master',
       name: 'master-panel',
       component: () => import('@/views/MasterPanelView.vue'),

@@ -164,6 +164,95 @@
           </div>
         </section>
 
+        <!-- ── Notas de Lore ── -->
+        <section
+          id="lore-notes"
+          class="panel-highlight rounded-3xl border border-amber-600/30 bg-[#111A2D]/80 p-5 sm:p-6"
+        >
+          <div class="mb-5 flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 class="title-section font-semibold text-amber-300">Notas de Lore</h2>
+              <p class="mt-1 text-sm text-zinc-400">
+                Crie livros e documentos de lore que os jogadores podem ler em Notas & Aventura.
+                Separe páginas com <code class="text-amber-300 bg-black/30 px-1 rounded">---</code> em linhas separadas.
+              </p>
+            </div>
+          </div>
+
+          <!-- Formulário de criação -->
+          <div class="mb-6 rounded-2xl border border-amber-600/20 bg-black/20 p-4">
+            <h3 class="text-sm font-semibold text-amber-200 mb-3">Nova Nota</h3>
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label class="sr-only" for="lore-titulo">Título da nota</label>
+                <input
+                  id="lore-titulo"
+                  v-model="loreNoteTitle"
+                  type="text"
+                  placeholder="Título da nota (ex: Crônicas de Elyra)"
+                  class="tdl-campo w-full"
+                />
+              </div>
+              <div>
+                <label class="sr-only" for="lore-subtitulo">Subtítulo (opcional)</label>
+                <input
+                  id="lore-subtitulo"
+                  v-model="loreNoteSubtitle"
+                  type="text"
+                  placeholder="Subtítulo opcional"
+                  class="tdl-campo w-full"
+                />
+              </div>
+            </div>
+            <div class="mt-3">
+              <label class="sr-only" for="lore-conteudo">Conteúdo</label>
+              <textarea
+                id="lore-conteudo"
+                v-model="loreNoteContent"
+                rows="6"
+                placeholder="Escreva o conteúdo aqui...&#10;&#10;Use --- em uma linha separada para quebrar páginas."
+                class="tdl-campo w-full font-mono text-xs"
+              />
+            </div>
+            <div class="mt-3 flex justify-end">
+              <button
+                @click="criarLoreNote"
+                :disabled="loadingLoreNotes || !loreNoteTitle.trim() || !loreNoteContent.trim()"
+                class="tdl-botao-primario disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {{ loadingLoreNotes ? 'Salvando...' : 'Criar Nota' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Lista de notas existentes -->
+          <div class="space-y-2">
+            <p v-if="loreNotes.length === 0" class="text-sm text-zinc-500 italic">
+              Nenhuma nota de lore criada ainda.
+            </p>
+            <article
+              v-for="nota in loreNotes"
+              :key="nota.id"
+              class="flex items-center justify-between gap-3 rounded-xl border border-amber-600/20 bg-black/20 px-4 py-3"
+            >
+              <div class="min-w-0">
+                <p class="text-sm font-semibold text-amber-100 truncate">{{ nota.title }}</p>
+                <p v-if="nota.subtitle" class="text-xs text-zinc-400 italic truncate">{{ nota.subtitle }}</p>
+                <p class="text-xs text-zinc-600 mt-0.5">
+                  {{ nota.content.split(/\n---+\n/).length }} página(s)
+                </p>
+              </div>
+              <button
+                @click="deletarLoreNote(nota.id)"
+                :disabled="loadingLoreNotes"
+                class="flex-shrink-0 rounded-lg border border-red-500/50 px-3 py-1.5 text-xs font-semibold text-red-300 hover:bg-red-900/30 disabled:opacity-50 transition-colors"
+              >
+                Deletar
+              </button>
+            </article>
+          </div>
+        </section>
+
         <section
           class="panel-highlight rounded-3xl border border-[#6B4E9E]/40 bg-[#111A2D]/80 p-5 sm:p-6"
         >
@@ -431,6 +520,12 @@ import {
   removeCharacterCreationAllowedEmail,
 } from '@/lib/api/personagens.api'
 import { adicionarPontosDeClasse } from '@/lib/api/classes.api'
+import {
+  listLoreNotes,
+  createLoreNote,
+  deleteLoreNote as deleteLoreNoteApi,
+} from '@/lib/api/lore-notes.api'
+import type { LoreNoteApi } from '@/lib/api/lore-notes.api'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -459,6 +554,59 @@ const classPointsCharacterId = ref('')
 const classPointsAmount = ref(1)
 const loadingClassPoints = ref(false)
 
+// Lore Notes
+const loreNotes = ref<LoreNoteApi[]>([])
+const loreNoteTitle = ref('')
+const loreNoteSubtitle = ref('')
+const loreNoteContent = ref('')
+const loadingLoreNotes = ref(false)
+
+async function carregarLoreNotes() {
+  try {
+    loreNotes.value = await listLoreNotes()
+  } catch {
+    // tabela pode não existir ainda
+  }
+}
+
+async function criarLoreNote() {
+  if (!loreNoteTitle.value.trim() || !loreNoteContent.value.trim()) return
+  loadingLoreNotes.value = true
+  try {
+    await createLoreNote({
+      title: loreNoteTitle.value.trim(),
+      subtitle: loreNoteSubtitle.value.trim() || undefined,
+      content: loreNoteContent.value,
+    })
+    loreNoteTitle.value = ''
+    loreNoteSubtitle.value = ''
+    loreNoteContent.value = ''
+    await carregarLoreNotes()
+    feedback.value = 'Nota de lore criada com sucesso.'
+    feedbackError.value = false
+  } catch (err: any) {
+    feedback.value = err?.response?.data?.message || 'Erro ao criar nota de lore.'
+    feedbackError.value = true
+  } finally {
+    loadingLoreNotes.value = false
+  }
+}
+
+async function deletarLoreNote(id: string) {
+  loadingLoreNotes.value = true
+  try {
+    await deleteLoreNoteApi(id)
+    await carregarLoreNotes()
+    feedback.value = 'Nota de lore removida.'
+    feedbackError.value = false
+  } catch (err: any) {
+    feedback.value = err?.response?.data?.message || 'Erro ao remover nota.'
+    feedbackError.value = true
+  } finally {
+    loadingLoreNotes.value = false
+  }
+}
+
 const deleteCharacterId = ref('')
 const deleteConfirmName = ref('')
 const loadingDelete = ref(false)
@@ -472,6 +620,7 @@ const characters = computed(() => charactersStore.publicCharacters)
 const panelMenuItems = [
   { id: 'pendencias', label: 'Pendencias' },
   { id: 'emails-cadastro', label: 'Cadastro Email' },
+  { id: 'lore-notes', label: 'Notas de Lore' },
   { id: 'guia-deuses', label: 'Guia Deuses' },
   { id: 'mapas', label: 'Mapas' },
   { id: 'deletar-personagem', label: 'Deletar Personagem', danger: true },
@@ -491,6 +640,11 @@ async function handlePanelMenuSelect(itemId: string) {
 
   if (itemId === 'emails-cadastro') {
     goSection('emails-cadastro')
+    return
+  }
+
+  if (itemId === 'lore-notes') {
+    goSection('lore-notes')
     return
   }
 
@@ -523,6 +677,7 @@ async function loadAll() {
       masterApprovalsStore.fetchPendingApprovals(),
       charactersStore.fetchPaginaInicial(),
       carregarEmailsLiberados(),
+      carregarLoreNotes(),
     ])
   } catch {
     feedback.value = 'Nao foi possivel carregar os dados do painel mestre.'
