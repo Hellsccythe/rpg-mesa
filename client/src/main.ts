@@ -4,6 +4,7 @@ import router from './router'
 import App from './app.vue'
 import VSelect from '@/components/VSelect.vue'
 import { useAuthStore } from '@/stores/auth'
+import { vSmartFocus } from '@/directives/smart-focus'
 
 import './assets/styles/base.css'
 import './assets/styles/main.css'
@@ -30,6 +31,7 @@ async function initAuthWithFallback(timeoutMs = 4000) {
 app.use(pinia)
 app.use(router)
 app.component('v-select', VSelect)
+app.directive('smart-focus', vSmartFocus)
 
 app.mount('#app')
 

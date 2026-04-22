@@ -133,6 +133,27 @@ PersonagensRouter.post("/admin/personagens/:characterId/notas", async (req, res)
   }
 });
 
+PersonagensRouter.patch("/admin/:characterId/avatar-focal-point", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    const { focalPoint } = req.body as { focalPoint: string };
+    if (!focalPoint?.trim()) {
+      res.status(400).json({ message: "focalPoint é obrigatório" });
+      return;
+    }
+    const resultado = await personagensService.definirAvatarFocalPoint(
+      req.params.characterId,
+      focalPoint.trim(),
+      token,
+    );
+    res.status(200).json(resultado);
+  } catch (error: any) {
+    const status =
+      error?.message?.includes("autenticado") || error?.message?.includes("restrito") ? 401 : 400;
+    res.status(status).json({ message: error?.message ?? "Erro ao definir focal point" });
+  }
+});
+
 PersonagensRouter.get("/admin/:characterId", async (req, res) => {
   try {
     const token = getBearerToken(req.headers.authorization);

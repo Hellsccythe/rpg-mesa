@@ -96,6 +96,7 @@
                   :src="character.avatarUrl"
                   :alt="character.name"
                   class="w-full h-full object-cover"
+                  :style="{ objectPosition: character.data?.avatarFocalPoint ?? 'center 20%' }"
                 />
                 <div
                   v-else

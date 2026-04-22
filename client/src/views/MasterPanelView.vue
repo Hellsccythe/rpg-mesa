@@ -79,7 +79,8 @@
                   v-if="char.avatarUrl"
                   :src="char.avatarUrl"
                   :alt="char.name"
-                  class="h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-105"
+                  class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  style="object-position: center 20%"
                   loading="lazy"
                 />
                 <div v-else class="h-full w-full flex items-center justify-center bg-[#1A2438] text-zinc-500 text-xs font-semibold">
@@ -468,6 +469,102 @@
           </div>
         </section>
 
+        <!-- ── Posição do Avatar ── -->
+        <section
+          id="avatar-focal"
+          class="panel-highlight rounded-3xl border border-[#6B4E9E]/40 bg-[#111A2D]/80 p-5 sm:p-6"
+        >
+          <h2 class="title-section mb-1 font-semibold text-amber-300">Posição do Avatar</h2>
+          <p class="mb-4 text-sm text-zinc-400">
+            Clique na imagem para definir o ponto focal — a área que sempre aparece centralizada no card.
+          </p>
+
+          <div class="flex flex-col sm:flex-row gap-5 items-start">
+            <!-- Seletor de personagem -->
+            <div class="w-full sm:w-64 flex flex-col gap-3">
+              <label class="sr-only" for="focal-char">Personagem</label>
+              <select id="focal-char" v-model="focalCharId" class="tdl-campo w-full" @change="carregarFocalChar">
+                <option value="">Selecione um personagem</option>
+                <option v-for="char in characters" :key="char.characterId" :value="char.characterId">
+                  {{ char.name }}
+                </option>
+              </select>
+
+              <!-- Presets -->
+              <div v-if="focalCharId" class="grid grid-cols-3 gap-1">
+                <button
+                  v-for="preset in focalPresets"
+                  :key="preset.label"
+                  @click="aplicarPreset(preset.value)"
+                  class="rounded-lg border border-zinc-700 px-2 py-1.5 text-xs text-zinc-300 hover:border-amber-500/60 hover:text-amber-200 transition-colors"
+                  :class="{ 'border-amber-500 text-amber-300 bg-amber-900/20': focalPoint === preset.value }"
+                >
+                  {{ preset.label }}
+                </button>
+              </div>
+
+              <button
+                v-if="focalCharId"
+                @click="salvarFocalPoint"
+                :disabled="loadingFocal"
+                class="tdl-botao-primario w-full disabled:opacity-50"
+              >
+                {{ loadingFocal ? 'Salvando...' : 'Salvar Posição' }}
+              </button>
+
+              <p v-if="focalFeedback" class="text-xs" :class="focalFeedbackError ? 'text-red-300' : 'text-emerald-300'">
+                {{ focalFeedback }}
+              </p>
+            </div>
+
+            <!-- Preview interativo: imagem SEM object-position para o marcador ficar exato -->
+            <div v-if="focalCharId && focalCharAvatar" class="flex gap-3 items-start">
+              <div
+                class="relative flex-shrink-0 w-40 overflow-hidden rounded-2xl border border-[#6B4E9E]/40 cursor-crosshair"
+                style="aspect-ratio: 3/4"
+                @click="onFocalImageClick"
+                ref="focalImageRef"
+                title="Clique no rosto/área desejada"
+              >
+                <img
+                  :src="focalCharAvatar"
+                  class="w-full h-full object-cover object-top pointer-events-none select-none"
+                  draggable="false"
+                />
+                <!-- Marcador do focal point -->
+                <div
+                  class="focal-marker"
+                  :style="{ left: focalMarkerX + '%', top: focalMarkerY + '%' }"
+                />
+                <div class="absolute inset-0 flex items-end justify-center pb-2 pointer-events-none">
+                  <span class="text-xs text-white/70 bg-black/50 px-2 py-0.5 rounded-full">clique para marcar</span>
+                </div>
+              </div>
+
+              <!-- Mini card de resultado — mostra como ficará no card -->
+              <div class="flex flex-col items-center gap-1">
+                <span class="text-xs text-zinc-400 mb-0.5">Resultado</span>
+                <div
+                  class="relative flex-shrink-0 w-24 overflow-hidden rounded-xl border border-amber-500/30"
+                  style="aspect-ratio: 4/5"
+                >
+                  <img
+                    :src="focalCharAvatar"
+                    class="w-full h-full object-cover pointer-events-none select-none"
+                    :style="{ objectPosition: focalPoint }"
+                    draggable="false"
+                  />
+                </div>
+                <span class="text-xs text-zinc-500">{{ focalPoint }}</span>
+              </div>
+            </div>
+
+            <div v-else-if="focalCharId && !focalCharAvatar" class="text-sm text-zinc-500 italic">
+              Este personagem não tem avatar.
+            </div>
+          </div>
+        </section>
+
         <section
           id="deletar-personagem"
           class="panel-highlight rounded-3xl border border-red-900/40 bg-[#111A2D]/80 p-5 sm:p-6"
@@ -540,8 +637,10 @@ import TemaDarkLight from '@/components/TemaDarkLight.vue'
 import {
   addCharacterCreationAllowedEmail,
   deleteCharacterAsMaster,
+  getCharacterById,
   listCharacterCreationAllowedEmails,
   removeCharacterCreationAllowedEmail,
+  setAvatarFocalPoint,
 } from '@/lib/api/personagens.api'
 import { adicionarPontosDeClasse } from '@/lib/api/classes.api'
 import {
@@ -639,6 +738,86 @@ async function deletarLoreNote(id: string) {
   }
 }
 
+// ── Focal Point do Avatar ─────────────────────────────────────────────────────
+const focalCharId     = ref('')
+const focalCharAvatar = ref<string | null>(null)
+const focalPoint      = ref('center 20%')
+const focalMarkerX    = ref(50)
+const focalMarkerY    = ref(20)
+const loadingFocal    = ref(false)
+const focalFeedback   = ref('')
+const focalFeedbackError = ref(false)
+const focalImageRef   = ref<HTMLElement | null>(null)
+
+const focalPresets = [
+  { label: 'Topo esq', value: '20% 10%' },
+  { label: 'Topo',     value: 'center 10%' },
+  { label: 'Topo dir', value: '80% 10%' },
+  { label: 'Meio esq', value: '20% 50%' },
+  { label: 'Centro',   value: 'center 50%' },
+  { label: 'Meio dir', value: '80% 50%' },
+  { label: 'Base esq', value: '20% 90%' },
+  { label: 'Base',     value: 'center 90%' },
+  { label: 'Base dir', value: '80% 90%' },
+]
+
+async function carregarFocalChar() {
+  if (!focalCharId.value) { focalCharAvatar.value = null; return }
+  try {
+    const char = await getCharacterById(focalCharId.value, true)
+    focalCharAvatar.value = char.avatarUrl
+    const saved: string = char.data?.avatarFocalPoint ?? 'center 20%'
+    aplicarPreset(saved)
+  } catch {
+    focalCharAvatar.value = null
+  }
+}
+
+function aplicarPreset(value: string) {
+  focalPoint.value = value
+  // Extrai x% e y% para posicionar o marcador visual
+  const parts = value.trim().split(/\s+/)
+  const parseP = (s: string) => {
+    if (s === 'center') return 50
+    if (s === 'left')   return 0
+    if (s === 'right')  return 100
+    if (s === 'top')    return 0
+    if (s === 'bottom') return 100
+    return parseFloat(s)
+  }
+  focalMarkerX.value = parts[0] ? parseP(parts[0]) : 50
+  focalMarkerY.value = parts[1] ? parseP(parts[1]) : 20
+}
+
+function onFocalImageClick(e: MouseEvent) {
+  const el = e.currentTarget as HTMLElement
+  if (!el) return
+  const rect = el.getBoundingClientRect()
+  const x = Math.min(100, Math.max(0, Math.round(((e.clientX - rect.left) / rect.width) * 100)))
+  const y = Math.min(100, Math.max(0, Math.round(((e.clientY - rect.top)  / rect.height) * 100)))
+  focalMarkerX.value = x
+  focalMarkerY.value = y
+  focalPoint.value = `${x}% ${y}%`
+}
+
+async function salvarFocalPoint() {
+  if (!focalCharId.value) return
+  loadingFocal.value = true
+  focalFeedback.value = ''
+  try {
+    await setAvatarFocalPoint(focalCharId.value, focalPoint.value)
+    focalFeedback.value = 'Posição salva com sucesso.'
+    focalFeedbackError.value = false
+    // Atualiza o card na lista de personagens (local)
+    await charactersStore.fetchPaginaInicial()
+  } catch (err: any) {
+    focalFeedback.value = err?.response?.data?.message || 'Erro ao salvar posição.'
+    focalFeedbackError.value = true
+  } finally {
+    loadingFocal.value = false
+  }
+}
+
 const deleteCharacterId = ref('')
 const deleteConfirmName = ref('')
 const loadingDelete = ref(false)
@@ -653,6 +832,7 @@ const panelMenuItems = [
   { id: 'pendencias', label: 'Pendencias' },
   { id: 'emails-cadastro', label: 'Cadastro Email' },
   { id: 'lore-notes', label: 'Notas de Lore' },
+  { id: 'avatar-focal', label: 'Posição do Avatar' },
   { id: 'guia-deuses', label: 'Guia Deuses' },
   { id: 'mapas', label: 'Mapas' },
   { id: 'deletar-personagem', label: 'Deletar Personagem', danger: true },
@@ -677,6 +857,11 @@ async function handlePanelMenuSelect(itemId: string) {
 
   if (itemId === 'lore-notes') {
     goSection('lore-notes')
+    return
+  }
+
+  if (itemId === 'avatar-focal') {
+    goSection('avatar-focal')
     return
   }
 
@@ -1015,4 +1200,17 @@ onMounted(async () => {
   color: #fff;
 }
 
+/* ── Focal Point Marker ── */
+.focal-marker {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1.5px rgba(0,0,0,0.6), 0 2px 6px rgba(0,0,0,0.5);
+  background: rgba(200, 160, 80, 0.7);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  transition: left 0.12s ease, top 0.12s ease;
+}
 </style>

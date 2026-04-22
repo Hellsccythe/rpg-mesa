@@ -98,6 +98,7 @@ export interface PersonagemPublicoApi {
   level: number
   avatarUrl: string | null
   classe: string | null
+  avatarFocalPoint: string | null
 }
 
 export interface PersonagemApi {

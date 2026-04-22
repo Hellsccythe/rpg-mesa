@@ -13,6 +13,7 @@
     "@supabase/supabase-js": "^2.100.0",
     "axios": "^1.14.0",
     "pinia": "^3.0.4",
+    "smartcrop": "^2.0.5",
     "vue": "^3.5.30",
     "vue-router": "^5.0.3"
   },

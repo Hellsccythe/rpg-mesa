@@ -81,6 +81,14 @@ export async function addAdventureNoteToCharacter(characterId: string, note: str
   return data
 }
 
+export async function setAvatarFocalPoint(characterId: string, focalPoint: string) {
+  const { data } = await api.patch<PersonagemApi>(
+    `/personagens/admin/${characterId}/avatar-focal-point`,
+    { focalPoint },
+  )
+  return data
+}
+
 export async function listCharacterCreationAllowedEmails() {
   const { data } = await api.get<{ emails: string[] }>(
     '/personagens/admin/character-creation-emails',
