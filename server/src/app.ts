@@ -7,6 +7,7 @@ import { CityMapsRouter } from "./modules/city_maps/city-maps.module.js";
 import { ClassesRouter } from "./modules/classes/classes.module.js";
 import { SkillRouter } from "./modules/skill/skill.module.js";
 import { TitulosRouter } from "./modules/titulos/titulos.module.js";
+import { LoreNotesRouter } from "./modules/lore-notes/lore-notes.module.js";
 
 const app = express();
 
@@ -28,5 +29,6 @@ app.use("/api/city-maps", CityMapsRouter);
 app.use("/api/classes", ClassesRouter);
 app.use("/api/skills", SkillRouter);
 app.use("/api/titulos", TitulosRouter);
+app.use("/api/lore-notes", LoreNotesRouter);
 
 export default app;
