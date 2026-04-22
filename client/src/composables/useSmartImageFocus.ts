@@ -1,26 +1,35 @@
 import { ref } from 'vue'
+import smartcrop from 'smartcrop'
 
 const FALLBACK = 'center 20%'
 
-async function calcFacePosition(img: HTMLImageElement): Promise<string> {
-  if (!('FaceDetector' in window)) return FALLBACK
-
+async function calcSmartPosition(img: HTMLImageElement): Promise<string> {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const detector = new (window as any).FaceDetector({ fastMode: true, maxDetectedFaces: 1 })
-    const faces = await detector.detect(img)
+    const containerW = img.clientWidth || 400
+    const containerH = img.clientHeight || 300
 
-    if (!faces.length) return FALLBACK
+    const result = await smartcrop.crop(img, { width: containerW, height: containerH })
+    const { x, y, width, height } = result.topCrop
 
-    const { x, y, width, height } = faces[0].boundingBox
-    const cx = x + width / 2
-    const cy = y + height / 2
+    const nW = img.naturalWidth
+    const nH = img.naturalHeight
+    if (!nW || !nH) return FALLBACK
 
-    const xPct = Math.min(100, Math.max(0, Math.round((cx / img.naturalWidth) * 100)))
-    // Pull y up slightly so chin isn't clipped at the bottom of the frame
-    const yPct = Math.min(100, Math.max(0, Math.round(((cy - height * 0.3) / img.naturalHeight) * 100)))
+    const scale = Math.max(containerW / nW, containerH / nH)
+    const centerX = x + width / 2
+    const centerY = y + height / 2
 
-    return `${xPct}% ${yPct}%`
+    const scaledCX = centerX * scale
+    const scaledCY = centerY * scale
+    const overflowX = Math.max(0, nW * scale - containerW)
+    const overflowY = Math.max(0, nH * scale - containerH)
+
+    const xPct = overflowX > 0 ? (scaledCX - containerW / 2) / overflowX * 100 : 50
+    const yPct = overflowY > 0 ? (scaledCY - containerH / 2) / overflowY * 100 : 50
+
+    const x_ = Math.round(Math.max(0, Math.min(100, xPct)))
+    const y_ = Math.round(Math.max(0, Math.min(100, yPct)))
+    return `${x_}% ${y_}%`
   } catch {
     return FALLBACK
   }
@@ -32,7 +41,6 @@ export function useSmartImageFocus() {
 
   async function analyzeImage(img: HTMLImageElement | null) {
     if (!img) return
-
     analyzing.value = true
     try {
       if (!img.complete || img.naturalWidth === 0) {
@@ -41,7 +49,7 @@ export function useSmartImageFocus() {
           img.addEventListener('error', () => reject(), { once: true })
         })
       }
-      position.value = await calcFacePosition(img)
+      position.value = await calcSmartPosition(img)
     } catch {
       position.value = FALLBACK
     } finally {

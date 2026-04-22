@@ -757,7 +757,16 @@ onBeforeUnmount(() => {
 .page-slide-bwd-leave-to   { opacity: 0; transform: translateX(36px); }
 
 /* ── Nav bar ── */
-.nav-bar { user-select: none; }
+.nav-bar {
+  user-select: none;
+  position: relative;
+  z-index: 30;
+  background: rgba(10, 15, 28, 0.65);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(200, 160, 80, 0.18);
+  border-radius: 999px;
+  padding: 6px 14px;
+}
 
 .nav-btn {
   display: flex;
@@ -852,5 +861,7 @@ onBeforeUnmount(() => {
   font-style: italic;
   font-size: 0.62rem;
   letter-spacing: 0.03em;
+  position: relative;
+  z-index: 30;
 }
 </style>
