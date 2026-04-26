@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase/client'
 
 const DEFAULT_AVATAR_BUCKET = import.meta.env.VITE_AVATAR_BUCKET || 'character-avatars'
 const DEFAULT_HISTORY_BUCKET = import.meta.env.VITE_HISTORY_BUCKET || 'character-history'
+const DEFAULT_LORE_BUCKET = import.meta.env.VITE_LORE_BUCKET || 'lore-notes'
 
 function sanitizeFileName(name: string) {
   return name
@@ -49,6 +50,12 @@ function extractPathFromStorageReference(pathOrUrl: string) {
   const idx = pathOrUrl.indexOf(marker)
   if (idx === -1) return ''
   return pathOrUrl.slice(idx + marker.length)
+}
+
+export async function uploadLorePdf(file: File): Promise<string> {
+  const safeName = sanitizeFileName(file.name)
+  const path = `pdfs/${Date.now()}-${safeName}`
+  return uploadFile(DEFAULT_LORE_BUCKET, path, file)
 }
 
 export async function getHistoryDocumentSignedUrl(pathOrUrl: string, expiresIn = 120) {

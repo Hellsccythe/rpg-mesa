@@ -33,6 +33,7 @@ export interface PersonagemPublico {
   avatarUrl: string | null;
   classe: string | null;
   avatarFocalPoint: string | null;
+  modalHeroPosition: string | null;
 }
 
 type PendingChangeRequest = {
@@ -206,6 +207,7 @@ export const personagensService = {
       avatarUrl: row.avatar_url ?? null,
       classe: (row.data as any)?.classes?.[0]?.name ?? null,
       avatarFocalPoint: (row.data as any)?.avatarFocalPoint ?? null,
+      modalHeroPosition: (row.data as any)?.modalHeroPosition ?? null,
     }));
   },
 
@@ -774,6 +776,35 @@ export const personagensService = {
 
     const dataAtual = normalizeData((current as any).data);
     const nextData = { ...dataAtual, avatarFocalPoint: focalPoint };
+
+    const { data, error } = await admin
+      .from(PERSONAGEM_TABLE)
+      .update({ data: nextData })
+      .eq("id", characterId)
+      .is("deleted_at", null)
+      .select(PERSONAGEM_SELECT_FIELDS)
+      .single();
+
+    if (error) throw error;
+    return mapPersonagem(data);
+  },
+
+  async definirModalHeroPosition(characterId: string, position: string, accessToken?: string) {
+    await ensureMasterAccess(accessToken);
+    const admin = getAdminClient();
+
+    const { data: current, error: currentError } = await admin
+      .from(PERSONAGEM_TABLE)
+      .select(PERSONAGEM_SELECT_FIELDS)
+      .eq("id", characterId)
+      .is("deleted_at", null)
+      .single();
+    if (currentError || !current) throw new Error("Personagem não encontrado");
+
+    const dataAtual = normalizeData((current as any).data);
+    const nextData = position
+      ? { ...dataAtual, modalHeroPosition: position }
+      : (() => { const d = { ...dataAtual }; delete d.modalHeroPosition; return d; })();
 
     const { data, error } = await admin
       .from(PERSONAGEM_TABLE)

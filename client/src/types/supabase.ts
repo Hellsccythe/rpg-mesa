@@ -99,6 +99,7 @@ export interface PersonagemPublicoApi {
   avatarUrl: string | null
   classe: string | null
   avatarFocalPoint: string | null
+  modalHeroPosition: string | null
 }
 
 export interface PersonagemApi {

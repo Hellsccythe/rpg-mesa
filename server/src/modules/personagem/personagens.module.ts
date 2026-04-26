@@ -133,6 +133,23 @@ PersonagensRouter.post("/admin/personagens/:characterId/notas", async (req, res)
   }
 });
 
+PersonagensRouter.patch("/admin/:characterId/modal-hero-position", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    const { position } = req.body as { position: string };
+    const resultado = await personagensService.definirModalHeroPosition(
+      req.params.characterId,
+      position ?? '',
+      token,
+    );
+    res.status(200).json(resultado);
+  } catch (error: any) {
+    const status =
+      error?.message?.includes("autenticado") || error?.message?.includes("restrito") ? 401 : 400;
+    res.status(status).json({ message: error?.message ?? "Erro ao definir posição da imagem modal" });
+  }
+});
+
 PersonagensRouter.patch("/admin/:characterId/avatar-focal-point", async (req, res) => {
   try {
     const token = getBearerToken(req.headers.authorization);

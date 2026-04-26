@@ -183,60 +183,115 @@
           <!-- Formulário de criação -->
           <div class="mb-6 rounded-2xl border border-amber-600/20 bg-black/20 p-4">
             <h3 class="text-sm font-semibold text-amber-200 mb-3">Nova Nota</h3>
-            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div>
-                <label class="sr-only" for="lore-titulo">Título da nota</label>
-                <input
-                  id="lore-titulo"
-                  v-model="loreNoteTitle"
-                  type="text"
-                  placeholder="Título da nota (ex: Crônicas de Elyra)"
-                  class="tdl-campo w-full"
-                />
+
+            <div class="flex flex-col xl:flex-row gap-4">
+              <!-- Campos do formulário -->
+              <div class="flex-1 space-y-3 min-w-0">
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div>
+                    <label class="sr-only" for="lore-titulo">Título da nota</label>
+                    <input
+                      id="lore-titulo"
+                      v-model="loreNoteTitle"
+                      type="text"
+                      placeholder="Título da nota (ex: Crônicas de Elyra)"
+                      class="tdl-campo w-full"
+                    />
+                  </div>
+                  <div>
+                    <label class="sr-only" for="lore-subtitulo">Subtítulo (opcional)</label>
+                    <input
+                      id="lore-subtitulo"
+                      v-model="loreNoteSubtitle"
+                      type="text"
+                      placeholder="Subtítulo opcional"
+                      class="tdl-campo w-full"
+                    />
+                  </div>
+                </div>
+
+                <select v-model="loreNoteCharacterId" class="tdl-campo w-full">
+                  <option value="">Global — visível a todos os personagens</option>
+                  <option v-for="char in characters" :key="char.characterId" :value="char.characterId">
+                    {{ char.name }} — visível apenas a este personagem
+                  </option>
+                </select>
+
+                <div>
+                  <label class="sr-only" for="lore-conteudo">Conteúdo</label>
+                  <textarea
+                    id="lore-conteudo"
+                    v-model="loreNoteContent"
+                    rows="8"
+                    placeholder="Escreva o conteúdo aqui...&#10;&#10;Use --- em uma linha separada para quebrar páginas."
+                    class="tdl-campo w-full font-mono text-xs"
+                  />
+                  <p class="mt-1 text-xs text-zinc-500">Use <code class="text-amber-300 bg-black/30 px-1 rounded">---</code> em linha separada para separar páginas.</p>
+                </div>
+
+                <!-- PDF upload -->
+                <div>
+                  <p class="text-xs text-zinc-400 mb-1">PDF (opcional)</p>
+                  <div
+                    class="relative flex items-center gap-3 rounded-xl border border-dashed border-amber-600/30 bg-black/10 px-4 py-3 cursor-pointer hover:border-amber-500/50 transition-colors"
+                    @click="acionarInputPdf"
+                  >
+                    <input
+                      ref="inputPdfRef"
+                      type="file"
+                      accept=".pdf"
+                      class="hidden"
+                      @change="selecionarPdf"
+                    />
+                    <svg class="flex-shrink-0 text-amber-400/60" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                    <div class="flex-1 min-w-0">
+                      <p v-if="lorePdfFile" class="text-sm text-amber-200 truncate">{{ lorePdfFile.name }}</p>
+                      <p v-else class="text-sm text-zinc-500">Clique para adicionar PDF</p>
+                    </div>
+                    <button
+                      v-if="lorePdfFile"
+                      @click.stop="lorePdfFile = null; lorePdfUrl = null"
+                      class="text-zinc-500 hover:text-red-400 transition-colors text-lg leading-none"
+                    >✕</button>
+                  </div>
+                  <p v-if="loadingPdf" class="text-xs text-amber-400 mt-1 animate-pulse">Enviando PDF...</p>
+                </div>
+
+                <div class="flex justify-end">
+                  <button
+                    @click="criarLoreNote"
+                    :disabled="loadingLoreNotes || !loreNoteTitle.trim() || !loreNoteContent.trim()"
+                    class="tdl-botao-primario disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {{ loadingLoreNotes ? 'Salvando...' : 'Criar Nota' }}
+                  </button>
+                </div>
               </div>
-              <div>
-                <label class="sr-only" for="lore-subtitulo">Subtítulo (opcional)</label>
-                <input
-                  id="lore-subtitulo"
-                  v-model="loreNoteSubtitle"
-                  type="text"
-                  placeholder="Subtítulo opcional"
-                  class="tdl-campo w-full"
-                />
+
+              <!-- Preview da página -->
+              <div class="xl:w-72 flex-shrink-0">
+                <p class="text-xs text-zinc-400 mb-2">Preview — Página 1</p>
+                <div class="lore-preview-page rounded-xl overflow-hidden" style="min-height: 320px;">
+                  <div class="lore-preview-inner p-5">
+                    <div v-if="loreNoteTitle" class="text-center mb-3">
+                      <p class="lore-preview-title">{{ loreNoteTitle }}</p>
+                      <p v-if="loreNoteSubtitle" class="lore-preview-subtitle">{{ loreNoteSubtitle }}</p>
+                      <div class="lore-preview-rule" />
+                    </div>
+                    <p
+                      v-if="lorePreviewPage1"
+                      class="lore-preview-text"
+                      style="white-space: pre-wrap;"
+                    >{{ lorePreviewPage1 }}</p>
+                    <p v-else class="lore-preview-empty">O conteúdo aparecerá aqui...</p>
+                  </div>
+                </div>
+                <p v-if="loreNotePagesCount > 1" class="text-xs text-zinc-500 mt-1 text-right">
+                  + {{ loreNotePagesCount - 1 }} página(s) adicionais
+                </p>
               </div>
-              <!-- ocupa as 2 colunas nas linhas seguintes -->
-            </div>
-            <div class="sm:col-span-2">
-              <label class="sr-only" for="lore-personagem">Personagem (opcional)</label>
-              <select
-                id="lore-personagem"
-                v-model="loreNoteCharacterId"
-                class="tdl-campo w-full"
-              >
-                <option value="">Global — visível a todos os personagens</option>
-                <option v-for="char in characters" :key="char.characterId" :value="char.characterId">
-                  {{ char.name }} — visível apenas a este personagem
-                </option>
-              </select>
-            </div>
-            <div class="sm:col-span-2">
-              <label class="sr-only" for="lore-conteudo">Conteúdo</label>
-              <textarea
-                id="lore-conteudo"
-                v-model="loreNoteContent"
-                rows="6"
-                placeholder="Escreva o conteúdo aqui...&#10;&#10;Use --- em uma linha separada para quebrar páginas."
-                class="tdl-campo w-full font-mono text-xs"
-              />
-            </div>
-            <div class="mt-3 flex justify-end">
-              <button
-                @click="criarLoreNote"
-                :disabled="loadingLoreNotes || !loreNoteTitle.trim() || !loreNoteContent.trim()"
-                class="tdl-botao-primario disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {{ loadingLoreNotes ? 'Salvando...' : 'Criar Nota' }}
-              </button>
             </div>
           </div>
 
@@ -275,6 +330,25 @@
                 Deletar
               </button>
             </article>
+          </div>
+        </section>
+
+        <section
+          class="panel-highlight rounded-3xl border border-[#6B4E9E]/40 bg-[#111A2D]/80 p-5 sm:p-6"
+        >
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 class="title-section font-semibold text-amber-300">Imagem do Modal em Guia Separada</h2>
+              <p class="mt-1 text-sm text-zinc-400">
+                Ajuste o enquadramento da imagem de cada personagem no modal de login.
+              </p>
+            </div>
+            <button
+              @click="router.push({ name: 'master-characters' })"
+              class="rounded-xl border border-amber-500/50 px-4 py-2 text-sm text-amber-100 transition-colors hover:bg-amber-900/25"
+            >
+              Abrir Guia de Personagens
+            </button>
           </div>
         </section>
 
@@ -649,6 +723,7 @@ import {
   deleteLoreNote as deleteLoreNoteApi,
 } from '@/lib/api/lore-notes.api'
 import type { LoreNoteApi } from '@/lib/api/lore-notes.api'
+import { uploadLorePdf } from '@/lib/supabase/storage'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -684,6 +759,29 @@ const loreNoteSubtitle = ref('')
 const loreNoteContent = ref('')
 const loreNoteCharacterId = ref<string>('')
 const loadingLoreNotes = ref(false)
+const inputPdfRef = ref<HTMLInputElement | null>(null)
+const lorePdfFile = ref<File | null>(null)
+const lorePdfUrl = ref<string | null>(null)
+const loadingPdf = ref(false)
+
+const lorePreviewPage1 = computed(() => {
+  const first = loreNoteContent.value.split(/\n---+\n/)[0]?.trim()
+  return first || ''
+})
+const loreNotePagesCount = computed(() =>
+  loreNoteContent.value.trim() ? loreNoteContent.value.split(/\n---+\n/).length : 0
+)
+
+function acionarInputPdf() {
+  inputPdfRef.value?.click()
+}
+
+function selecionarPdf(event: Event) {
+  const file = (event.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  lorePdfFile.value = file
+  lorePdfUrl.value = null
+}
 
 async function carregarLoreNotes() {
   try {
@@ -702,22 +800,32 @@ async function criarLoreNote() {
   if (!loreNoteTitle.value.trim() || !loreNoteContent.value.trim()) return
   loadingLoreNotes.value = true
   try {
+    let pdfUrl: string | null = lorePdfUrl.value
+    if (lorePdfFile.value && !pdfUrl) {
+      loadingPdf.value = true
+      pdfUrl = await uploadLorePdf(lorePdfFile.value)
+      loadingPdf.value = false
+    }
     await createLoreNote({
       title: loreNoteTitle.value.trim(),
       subtitle: loreNoteSubtitle.value.trim() || undefined,
       content: loreNoteContent.value,
+      pdfUrl: pdfUrl || null,
       characterId: loreNoteCharacterId.value || null,
     })
     loreNoteTitle.value = ''
     loreNoteSubtitle.value = ''
     loreNoteContent.value = ''
     loreNoteCharacterId.value = ''
+    lorePdfFile.value = null
+    lorePdfUrl.value = null
     await carregarLoreNotes()
     feedback.value = 'Nota de lore criada com sucesso.'
     feedbackError.value = false
   } catch (err: any) {
     feedback.value = err?.response?.data?.message || 'Erro ao criar nota de lore.'
     feedbackError.value = true
+    loadingPdf.value = false
   } finally {
     loadingLoreNotes.value = false
   }
@@ -1212,5 +1320,48 @@ onMounted(async () => {
   transform: translate(-50%, -50%);
   pointer-events: none;
   transition: left 0.12s ease, top 0.12s ease;
+}
+
+/* ── Lore Note Preview ── */
+.lore-preview-page {
+  background: linear-gradient(135deg, #f5e8ce 0%, #edddb0 100%);
+  border: 1px solid #c9a87c60;
+  box-shadow: inset 0 0 20px rgba(140,90,30,0.08), 0 4px 16px rgba(0,0,0,0.3);
+}
+.lore-preview-inner {
+  min-height: 320px;
+}
+.lore-preview-title {
+  font-family: 'Cinzel', serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #1a0e08;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+.lore-preview-subtitle {
+  font-family: 'EB Garamond', serif;
+  font-size: 0.68rem;
+  font-style: italic;
+  color: #4a3520;
+}
+.lore-preview-rule {
+  height: 1px;
+  background: linear-gradient(to right, transparent, #c9a87c, transparent);
+  margin: 6px 0;
+}
+.lore-preview-text {
+  font-family: 'EB Garamond', serif;
+  font-size: 0.7rem;
+  color: #1a0e08;
+  line-height: 1.65;
+}
+.lore-preview-empty {
+  font-family: 'EB Garamond', serif;
+  font-size: 0.68rem;
+  font-style: italic;
+  color: #9a7a4a;
+  opacity: 0.6;
 }
 </style>
