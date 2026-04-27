@@ -9,50 +9,59 @@ Monorepo de um sistema de mesa RPG com frontend Vue 3 e backend Express, usando 
 - [Estrutura](#estrutura)
 - [Pre-requisitos](#pre-requisitos)
 - [Configuracao de Ambiente](#configuracao-de-ambiente)
+- [Migrations do Banco](#migrations-do-banco)
 - [Executando em Desenvolvimento](#executando-em-desenvolvimento)
 - [Scripts](#scripts)
+- [Rotas da Aplicacao](#rotas-da-aplicacao)
 - [Fluxos Principais](#fluxos-principais)
-- [Documentacao Tecnica](#documentacao-tecnica)
 - [Deploy](#deploy)
+- [Documentacao Tecnica](#documentacao-tecnica)
 - [Checklist de Manutencao](#checklist-de-manutencao)
+
+---
 
 ## Visao Geral
 
 O projeto possui dois pacotes principais:
 
-- `client`: aplicacao frontend em Vue 3 para login, dashboard, painel do mestre e interacoes de personagem.
-- `server`: API Express com regras de negocio de personagens e operacoes administrativas.
+- `client`: aplicacao frontend em Vue 3 para login, dashboard, catalogo de deuses, mapas, notas de lore e painel do mestre.
+- `server`: API Express com regras de negocio de personagens, catalogo e operacoes administrativas.
 
 Fluxo base:
 
-1. Usuario autentica com Supabase no frontend.
-2. Frontend envia token Bearer ao backend (Axios interceptor).
-3. Backend valida token no Supabase.
-4. Backend aplica regras de negocio e persiste dados.
+1. Usuario seleciona o personagem na tela de login e se autentica via Supabase Auth.
+2. Frontend envia token Bearer ao backend em todas as requisicoes autenticadas (interceptor Axios).
+3. Backend valida o token no Supabase e aplica as regras de negocio.
+4. Backend persiste os dados via Supabase Admin Client (service role).
+
+---
 
 ## Tecnologias
 
 ### Monorepo
 
 - Yarn 4 Workspaces
-- Node.js (recomendado >= 20.19)
+- Node.js >= 20.19
 
 ### Frontend (`client`)
 
-- Vue 3
+- Vue 3 + Composition API
 - Vite
-- Pinia
+- Pinia (gerenciamento de estado)
 - Vue Router
 - Axios
 - Supabase JS
 - Tailwind CSS
+- smartcrop (deteccao automatica de focal point)
 
 ### Backend (`server`)
 
 - Express 5
-- TypeScript
+- TypeScript (ESM)
 - Supabase JS
 - class-validator / class-transformer
+
+---
 
 ## Estrutura
 
@@ -60,31 +69,51 @@ Fluxo base:
 rpg-mesa/
   client/
     src/
-      views/
-      stores/
-      router/
+      assets/
+        images/          # imagens dos deuses e recursos visuais
+      components/        # Modal, HamburgerDrawerMenu, BookPageContent, etc.
+      composables/       # useSmartImageFocus
+      data/              # panteao.ts (paginas estaticas do livro)
       lib/
-        api/
-        supabase/
-      plugins/
+        api/             # personagens.api, gods.api, lore-notes.api, ...
+        supabase/        # client, storage (upload avatar/doc/pdf)
+      plugins/           # axios com interceptor de token
+      router/            # index.ts com guardas de rota
+      stores/            # auth, characters, masterApprovals, masterCatalog
+      types/             # supabase.ts (interfaces globais)
+      views/             # todas as views (ver secao Rotas)
   server/
     src/
-      main.ts
       modules/
-      config/
-      common/
+        personagem/      # CRUD personagens, focal point, modal position, emails
+        god/             # CRUD deuses + upload de imagem
+        classes/         # catalogo de classes
+        titulos/         # catalogo de titulos
+        skill/           # skills de personagens
+        city_maps/       # mapas de cidades com pontos de interesse
+        lore-notes/      # notas de lore (texto + PDF)
+      models/            # personagem.model.ts
+      common/            # helpers (master-access)
+      config/            # supabase client (anon + service role)
+  database/
+    migrations/          # SQLs para aplicar no Supabase (001 a 011)
   docs/
     ARCHITECTURE.md
     API.md
     MAINTENANCE.md
+    SCHEMA_CURRENT.sql
 ```
+
+---
 
 ## Pre-requisitos
 
 - Node.js >= 20.19.0
-- Corepack habilitado
-- Yarn 4
-- Projeto Supabase configurado
+- Corepack habilitado (`corepack enable`)
+- Yarn 4 (`packageManager` definido no `package.json`)
+- Projeto Supabase configurado com as tabelas das migrations aplicadas
+
+---
 
 ## Configuracao de Ambiente
 
@@ -104,11 +133,13 @@ Crie `client/.env` com:
 ```env
 VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
-VITE_API_BASE_URL=http://localhost:3000/api
 VITE_AVATAR_BUCKET=character-avatars
 VITE_HISTORY_BUCKET=character-history
+VITE_LORE_BUCKET=lore-notes
 VITE_GM_AVATAR_URL=
 ```
+
+> Em desenvolvimento o Vite faz proxy de `/api` para `http://localhost:3000`, entao `VITE_API_BASE_URL` nao e necessario localmente. Em producao o Vercel gerencia o roteamento via `vercel.json`.
 
 ### 3. Variaveis de ambiente do server
 
@@ -120,43 +151,41 @@ SUPABASE_URL=
 SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 MASTER_EMAIL=
-CHARACTER_CREATION_ALLOWED_EMAILS=
+AVATAR_BUCKET=character-avatars
+ALLOWED_ORIGIN=*
 ```
 
 Notas:
 
-- O server tambem tenta ler variaveis `VITE_SUPABASE_*` do `client/.env` como fallback.
-- `SUPABASE_SERVICE_ROLE_KEY` e importante para certas operacoes admin/publicas.
-- Se `MASTER_EMAIL` ficar vazio, qualquer usuario autenticado pode acessar endpoints de mestre.
-- `CHARACTER_CREATION_ALLOWED_EMAILS` restringe quem pode criar personagem (lista separada por virgula). Se vazio, qualquer usuario autenticado pode criar.
+- `SUPABASE_SERVICE_ROLE_KEY` e obrigatorio para operacoes admin (leitura publica de personagens, upserts de mestre, etc.).
+- `MASTER_EMAIL` define qual email tem acesso ao painel de mestre. Se vazio, qualquer usuario autenticado pode acessar endpoints admin.
+- `ALLOWED_ORIGIN` controla o header CORS. Use `*` em desenvolvimento ou a URL do frontend em producao.
+- O server tenta ler variaveis `VITE_SUPABASE_*` do `client/.env` como fallback se as proprias nao estiverem definidas.
 
-### 4. Tabela para liberar emails de criacao (painel mestre)
+---
 
-Para usar o cadastro de emails no menu do mestre com soft delete + auditoria, crie esta tabela no Supabase:
+## Migrations do Banco
 
-```sql
-create extension if not exists pgcrypto;
+Todas as migrations ficam em `database/migrations/` e devem ser aplicadas em ordem no **Supabase SQL Editor** (Dashboard → SQL Editor → New query). Todas usam `IF NOT EXISTS` e sao seguras para re-execucao.
 
-create table if not exists public.character_creation_whitelist (
-  id uuid primary key default gen_random_uuid(),
-  email text not null unique,
-  created_at timestamptz not null default now(),
-  created_by uuid null references auth.users(id) on delete set null,
-  updated_at timestamptz not null default now(),
-  updated_by uuid null references auth.users(id) on delete set null,
-  deleted_at timestamptz null,
-  deleted_by uuid null references auth.users(id) on delete set null
-);
-```
+| Arquivo | Descricao |
+|---|---|
+| `001_missing_tables.sql` | Cria tabelas `gods`, `city_maps`, `classes`, `titles` |
+| `002_rls_policies.sql` | Politicas RLS para as tabelas principais |
+| `003_indexes.sql` | Indices de performance |
+| `004_add_deleted_by_to_characters.sql` | Coluna `deleted_by` em `characters` |
+| `005_add_requirements_to_classes.sql` | Requisitos de classes |
+| `007_add_username_to_characters.sql` | Campo `username` em `characters` |
+| `008_character_creation_whitelist.sql` | Tabela de emails autorizados a criar personagem |
+| `009_lore_notes.sql` | Tabela `lore_notes` (notas de lore do mestre) |
+| `010_lore_notes_character.sql` | Coluna `character_id` em `lore_notes` (nota por personagem) |
+| `011_lore_notes_pdf_url.sql` | Coluna `pdf_url` em `lore_notes` (anexo PDF opcional) |
 
-Observacoes:
-
-- O sistema usa a uniao entre `CHARACTER_CREATION_ALLOWED_EMAILS` (env) e os emails ativos desta tabela.
-- O SQL completo alinhado com as tabelas usadas atualmente esta em `docs/SCHEMA_CURRENT.sql`.
+---
 
 ## Executando em Desenvolvimento
 
-### Subir client e server juntos
+### Client e server juntos
 
 Na raiz:
 
@@ -164,87 +193,134 @@ Na raiz:
 yarn dev
 ```
 
-### Subir individualmente
+### Individualmente
 
 ```bash
-yarn dev:client
-yarn dev:server
+yarn dev:client   # http://localhost:5173
+yarn dev:server   # http://localhost:3000
 ```
 
-Padrao local:
+O Vite faz proxy de `/api` para `http://localhost:3000` automaticamente.
 
-- Frontend: `http://localhost:5173`
-- Backend: `http://localhost:3000`
-
-O Vite faz proxy de `/api` para `http://localhost:3000`.
+---
 
 ## Scripts
 
-Na raiz:
+Na raiz do repositorio:
 
-- `yarn dev`: client + server em paralelo
-- `yarn build`: build completo
-- `yarn type-check`: type-check completo
-- `yarn build:client`
-- `yarn build:server`
-- `yarn type-check:client`
-- `yarn type-check:server`
+| Script | Descricao |
+|---|---|
+| `yarn dev` | Sobe client e server em paralelo |
+| `yarn build` | Build completo (server depois client) |
+| `yarn build:client` | Build apenas do frontend |
+| `yarn build:server` | Build apenas do backend |
+| `yarn preview` | Preview do build do client |
+| `yarn type-check` | Type-check completo (client + server) |
+| `yarn type-check:client` | Type-check apenas do client |
+| `yarn type-check:server` | Type-check apenas do server |
+
+---
+
+## Rotas da Aplicacao
+
+### Publicas (sem login)
+
+| Rota | View | Descricao |
+|---|---|---|
+| `/` | `LoginView` | Selecao de personagem e login |
+| `/deuses` | `DeusesView` | Catalogo de deuses com filtros e modal detalhado |
+
+### Jogador (requer autenticacao)
+
+| Rota | View | Descricao |
+|---|---|---|
+| `/dashboard` | `DashboardView` | Ficha completa do personagem |
+| `/cidade` | `CidadeView` | Mapas da cidade com pontos de interesse |
+| `/classes` | `ClassesView` | Catalogo de classes do personagem |
+| `/skills` | `SkillsView` | Habilidades do personagem |
+| `/titulos` | `TitulosView` | Titulos e honrarias |
+| `/notas` | `NotasView` | Biblioteca de notas em formato de livro com flip e zoom |
+
+### Mestre (requer autenticacao + role mestre)
+
+| Rota | View | Descricao |
+|---|---|---|
+| `/master` | `MasterPanelView` | Painel principal: personagens, pendencias, notas de lore, ferramentas |
+| `/master/deuses` | `MasterGodsView` | CRUD completo de deuses com upload de imagem |
+| `/master/mapas` | `MasterMapsView` | Gerenciamento de mapas e pontos de interesse |
+| `/master/personagens` | `MasterCharactersView` | Ajuste de enquadramento da imagem no modal de login por personagem |
+
+---
 
 ## Fluxos Principais
 
-### Modais (Padrao Unico)
-
-- Todo modal do frontend deve usar `client/src/components/Modal.vue` como base.
-- Fechamento por `ESC` e habilitado por padrao (`closeOnEsc=true`).
-- Fechamento por clique no backdrop e habilitado por padrao (`closeOnBackdrop=true`).
-- Para desabilitar comportamentos em casos especificos (ex.: confirmacao critica), use props do componente.
-- Evite criar overlays manuais com `fixed inset-0` nas views; mantenha o padrao centralizado no componente comum.
-
 ### Login e sessao
 
-- Sessao via Supabase Auth.
-- Metadata local guarda `activeCharacterId` e `isMaster`.
-- Sessao local expira em 24h.
-- Router aplica guardas para rotas protegidas e rota de mestre.
+- Tela inicial publica lista os personagens cadastrados.
+- Clicar em um personagem abre modal com imagem hero e campos de usuario/senha.
+- A imagem hero usa deteccao automatica de focal point (smartcrop) ou posicao configurada pelo mestre.
+- Sessao via Supabase Auth; metadata local (`rpg-mesa.auth-meta`) guarda `idPersonagemAtivo` e `eMestre`.
+- Sessao local expira em 24h; ao expirar o usuario e redirecionado com aviso.
+- Router guards protegem rotas `requiresAuth` e `requiresMaster`.
 
 ### Personagens
 
-- Tela inicial publica lista personagens.
-- Usuario autenticado gerencia seus personagens.
-- Mestre pode abrir qualquer personagem por endpoint admin.
-
-### Aprovacao de alteracoes
-
-- Jogador envia solicitacao de alteracao (nome/avatar/historia/documento).
-- Pedido fica em `data.pendingChangeRequest`.
-- Mestre aprova/rejeita no painel.
+- Mestre libera emails no painel; jogadores criam conta e personagem na propria tela de login.
+- Jogador pode solicitar alteracao de nome, avatar ou historia (fica em `data.pendingChangeRequest`).
+- Mestre aprova ou rejeita a solicitacao no painel; dados so sao aplicados apos aprovacao.
+- Mestre pode ajustar o enquadramento da imagem hero do modal individualmente por personagem em `/master/personagens`.
 
 ### Catalogo do mestre
 
-- Criacao de deuses, classes, titulos e mapas/cidades.
-- Inclusao de skills, titulos e notas de aventura em personagens.
+- Deuses: CRUD completo com upload de imagem e configuracao de posicao (card e modal).
+- Classes e titulos: criados pelo mestre e associados a personagens pelo painel.
+- Skills: adicionadas individualmente a personagens pelo painel.
+- Mapas: gerenciados em `/master/mapas` com pontos de interesse clicaveis.
 
-## Documentacao Tecnica
+### Notas de Lore
 
-- Arquitetura: `docs/ARCHITECTURE.md`
-- API: `docs/API.md`
-- Guia de manutencao: `docs/MAINTENANCE.md`
+- Mestre cria notas em `/master` com titulo, subtitulo, conteudo e PDF opcional.
+- Conteudo separado por `---` em linha propria gera paginas distintas no visualizador.
+- Notas podem ser globais (visiveis a todos) ou exclusivas de um personagem.
+- Jogadores acessam em `/notas` em um visualizador de livro com animacao de virar pagina, zoom (desktop) e swipe (mobile).
+
+### Modais
+
+- Todo modal usa `client/src/components/Modal.vue` como base.
+- Suporta tema claro/escuro/auto, focus trap, ESC para fechar e backdrop clicavel.
+- Nao crie overlays manuais com `fixed inset-0` nas views.
+
+---
 
 ## Deploy
 
-`vercel.json` atual esta preparado para deploy do frontend:
+O projeto e deployado inteiro no Vercel conforme `vercel.json`:
 
-- install: `corepack enable && yarn install --immutable`
-- build: `yarn build:client`
-- output: `client/dist`
+- **Build**: `yarn build:server && yarn build:client`
+- **Output**: `client/dist`
+- **API**: requisicoes para `/api/*` sao reescritas para `/api/index` (server como funcao serverless)
+- **Assets**: cache imutavel de 1 ano para arquivos em `/assets/`
+- **HTML**: sem cache para garantir atualizacoes imediatas
+- **Headers de seguranca**: `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`
 
-O backend Express nao esta incluido nesse fluxo de deploy do Vercel e deve ser publicado separadamente.
+---
+
+## Documentacao Tecnica
+
+- Arquitetura detalhada: `docs/ARCHITECTURE.md`
+- Referencia de endpoints: `docs/API.md`
+- Guia de manutencao: `docs/MAINTENANCE.md`
+- Schema atual do banco: `docs/SCHEMA_CURRENT.sql`
+
+---
 
 ## Checklist de Manutencao
 
-Antes de abrir PR:
+Antes de abrir PR ou fazer deploy:
 
 1. Rodar `yarn type-check`.
 2. Rodar `yarn build`.
-3. Validar login, dashboard e fluxo de aprovacao.
-4. Atualizar documentacao quando houver mudanca de endpoint/fluxo.
+3. Validar login de jogador e mestre.
+4. Validar fluxo de aprovacao de solicitacao.
+5. Se alterou schema, criar migration em `database/migrations/` e aplicar no Supabase.
+6. Se adicionou variavel de ambiente, atualizar este README e o `vercel.json` se necessario.
