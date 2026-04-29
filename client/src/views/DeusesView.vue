@@ -428,6 +428,21 @@ import asmodeusImage from '@/assets/images/asmodeus.png'
 import inariImage from '@/assets/images/Inari.png'
 import iomedaeImage from '@/assets/images/iomedae.png'
 import sarenraeImage from '@/assets/images/sarenrae.png'
+import zonKuthonImage from '@/assets/images/Zon-Kuthon.jpg'
+import norgorberImage from '@/assets/images/Norgorber.jpg'
+import gorumImage from '@/assets/images/Gorum.jpg'
+import urgathoaImage from '@/assets/images/Urgathoa.png'
+import rovagugImage from '@/assets/images/Rovagug.jpg'
+import calistriaImage from '@/assets/images/Calistria.png'
+import mrthosImage from '@/assets/images/Morthos.png'
+import vesperaImage from '@/assets/images/Vespera.png'
+import desnaImage from '@/assets/images/Desna.png'
+import shelynImage from '@/assets/images/Shelyn.png'
+import erastilImage from '@/assets/images/erastil.jpg'
+import caydenCaileanImage from '@/assets/images/Cayden Cailean.png'
+import kurgessImage from '@/assets/images/Kurgess.jpg'
+import torakImage from '@/assets/images/Torak.jpg'
+import lirielImage from '@/assets/images/Liriel.png'
 
 const roteador = useRouter()
 const rota = useRoute()
@@ -520,6 +535,9 @@ const staticGods = [
     title: 'O Deus da Dor e da Escuridão ',
     alinhamento: 'Maligno',
     icon: '☠️',
+    iconImage: zonKuthonImage,
+    cardImagePosition: 'center 20%',
+    modalImagePosition: 'center 15%',
     shortDescription:
       'Deus da tortura, da mutilação voluntária, da escuridão eterna e do sofrimento como forma suprema de existência.',
     description:
@@ -535,6 +553,9 @@ const staticGods = [
     title: 'O Deus dos Segredos, Veneno e Ladrões',
     alinhamento: 'Maligno',
     icon: '☠️',
+    iconImage: norgorberImage,
+    cardImagePosition: 'center 20%',
+    modalImagePosition: 'center 15%',
     shortDescription:
       'Deus dos assassinos, dos ladrões, dos alquimistas venenosos e dos segredos que matam',
     description:
@@ -550,6 +571,9 @@ const staticGods = [
     title: 'Nosso Senhor de Ferro',
     alinhamento: 'Maligno',
     icon: '☠️',
+    iconImage: gorumImage,
+    cardImagePosition: 'center 15%',
+    modalImagePosition: 'center 10%',
     shortDescription: 'Deus da batalha, da força bruta, do sangue derramado e da guerra por si só',
     description:
       'Conhecimento comum: Gorum é o deus da batalha, da força bruta, do sangue derramado e da guerra por si só. Ele não se importa com causas, bandeiras ou justiça — quer apenas o clangor de aço, o cheiro de sangue quente e o grito de quem morre em combate. Seus templos são arenas encharcadas de sangue onde gladiadores lutam até a morte e onde perdedores são esquartejados vivos como oferenda. Seus seguidores invadem vilarejos pacíficos apenas para transformar a matança em um festival de violência, queimam templos com os fiéis dentro, e promovem guerras eternas entre reinos só para que o deus possa se banquetear com o sofrimento. Em Elyra, cultos de Gorum são responsáveis por massacres onde soldados bebem o sangue dos inimigos ainda quentes e decoram suas armaduras com ossos de crianças. O deus observa cada golpe, cada osso quebrado, cada vida ceifada e sorri, porque para ele a guerra nunca é cruel demais — ela é a única coisa que realmente importa. ',
@@ -564,6 +588,9 @@ const staticGods = [
     title: 'O Príncipe Pálido',
     alinhamento: 'Maligno',
     icon: '☠️',
+    iconImage: urgathoaImage,
+    cardImagePosition: 'center 15%',
+    modalImagePosition: 'center 10%',
     shortDescription: 'Deus da batalha, da força bruta, do sangue derramado e da guerra por si só',
     description:
       'Conhecimento comum: Urgathoa é o deus da gula insaciável, da doença, da não-morte e da imortalidade a qualquer custo. Alto, magro e de pele branca como osso, ele rejeitou a morte e se tornou o primeiro grande não-morto voluntário. Sua obsessão por Asmodeus é doentia e absoluta — ele a venera como a única criatura digna de seu desejo eterno, enviando presentes macabros (crânios dourados, corações ainda batendo dentro de caixas de joias) e ordenando que seus seguidores realizem massacres sangrentos em nome dela. Seus templos são necrópoles onde banquetes de carne viva são servidos, onde os fiéis bebem sangue misturado com vinho e devoram os fracos para prolongar a própria existência. Em Elyra, cultos de Urgathoa são responsáveis por epidemias criadas de propósito, vilarejos inteiros transformados em banquetes ambulantes e rituais onde famílias são devoradas vivas diante dos olhos umas das outras. Ele não busca apenas imortalidade — busca agradar Asmodeus com rios de sangue e montanhas de ossos.',
@@ -578,6 +605,9 @@ const staticGods = [
     title: 'A Destruidora de Mundos',
     alinhamento: 'Maligna',
     icon: '☠️',
+    iconImage: rovagugImage,
+    cardImagePosition: 'center 30%',
+    modalImagePosition: 'center 25%',
     shortDescription: 'Deusa da destruição, do caos absoluto e do fim de tudo',
     description:
       'Conhecimento comum: Rovagug é a encarnação viva da destruição absoluta. Uma aranha colossal e disforme, de carapaça rachada que sangra um ichor negro e viscoso, com centenas de olhos que nunca piscam e pernas longas e serrilhadas que rasgam a própria realidade ao se mover. Sua boca é um abismo repleto de presas irregulares e mandíbulas que trituram matéria e alma com a mesma facilidade. Ela não possui um único texto sagrado — apenas um mandamento: destruir. Seus seguidores — os mais hediondos e sanguinários de toda Elyra — sussurram seus títulos em cavernas úmidas banhadas em sangue: Fera Bruta, Rainha Aprisionada, Maré de Presas, Desfazedora e Destruidora de Mundos. Eles contam que cada vítima que esquartejam viva, cada osso que partem, cada cidade que reduzem a cinzas e cada grito de agonia que arrancam abre mais uma rachadura na prisão que a mantém contida. Seus cultos não matam por prazer ou poder — eles tecem teias de carne e sombra, empalam corpos ainda vivos para que sirvam de casulos, dissolvem vilarejos inteiros em poças de veneno e deixam montanhas de ossos envoltos em seda negra como oferenda. Rovagug não oferece recompensa, não faz pactos, não promete nada — ela apenas deseja o fim de tudo, e seus servos são a ferramenta mais brutal para que isso aconteça. ',
@@ -592,6 +622,9 @@ const staticGods = [
     title: 'A Deusa da Vingança e do Prazer',
     alinhamento: 'Neutro e Maligno',
     icon: '🦂',
+    iconImage: calistriaImage,
+    cardImagePosition: 'center 20%',
+    modalImagePosition: 'center 15%',
     shortDescription:
       'Deusa da vingança, do desejo e da traição calculada. Cobra cada ofensa com elegância.',
     description:
@@ -607,6 +640,9 @@ const staticGods = [
     title: 'O Senhor da Decadência',
     alinhamento: 'Neutro e Maligno',
     icon: '☠️',
+    iconImage: mrthosImage,
+    cardImagePosition: 'center 20%',
+    modalImagePosition: 'center 15%',
     shortDescription:
       'Deus da decadência lenta, da corrupção sutil e do prazer egoísta. Saboreia o declínio.',
     description:
@@ -621,6 +657,9 @@ const staticGods = [
     title: 'A Senhora das Sombras e Segredos',
     alinhamento: 'Neutro e Maligno',
     icon: '🕯️',
+    iconImage: vesperaImage,
+    cardImagePosition: 'center 20%',
+    modalImagePosition: 'center 15%',
     shortDescription:
       'Deusa dos segredos, intrigas e sombras úteis. Manipula o conhecimento como poder.',
     description:
@@ -653,6 +692,9 @@ const staticGods = [
     title: 'A Deusa dos Sonhos e das Estrelas',
     alinhamento: 'Boa',
     icon: '🌠',
+    iconImage: desnaImage,
+    cardImagePosition: 'center 20%',
+    modalImagePosition: 'center 15%',
     shortDescription:
       'Deusa da sorte, das viagens, dos sonhos e das estrelas. Guia sonhadores e viajantes.',
     description:
@@ -668,6 +710,9 @@ const staticGods = [
     title: 'A Senhora da Beleza Eterna',
     alinhamento: 'Boa',
     icon: '🎨',
+    iconImage: shelynImage,
+    cardImagePosition: 'center 15%',
+    modalImagePosition: 'center 10%',
     shortDescription:
       'Deusa da arte, da beleza, do amor e da música. Ensina que a beleza pode salvar o mundo.',
     description:
@@ -701,6 +746,9 @@ const staticGods = [
     title: 'O Velho Pai da Caça e da Comunidade',
     alinhamento: 'Bom',
     icon: '🏹',
+    iconImage: erastilImage,
+    cardImagePosition: 'center 20%',
+    modalImagePosition: 'center 15%',
     shortDescription:
       'Deus da família, das fazendas e da caça honrada. Defende união, trabalho honesto e tradição.',
     description:
@@ -716,6 +764,9 @@ const staticGods = [
     title: 'O Deus da Cerveja e da Liberdade',
     alinhamento: 'Bom',
     icon: '🍺',
+    iconImage: caydenCaileanImage,
+    cardImagePosition: 'center 20%',
+    modalImagePosition: 'center 15%',
     shortDescription:
       'Deus da liberdade, da coragem e das festas. Patrono de aventureiros, rebeldes e gente comum.',
     description:
@@ -731,6 +782,9 @@ const staticGods = [
     title: 'O Campeão Eterno',
     alinhamento: 'Neutra e Boa',
     icon: '🏅',
+    iconImage: kurgessImage,
+    cardImagePosition: 'center 15%',
+    modalImagePosition: 'center 10%',
     shortDescription:
       'Deus do atletismo, das competições justas e do heroísmo mortal. Exalta força com honra.',
     description:
@@ -746,6 +800,9 @@ const staticGods = [
     title: 'O Forjador das Montanhas',
     alinhamento: 'Neutra e Boa',
     icon: '⚒️',
+    iconImage: torakImage,
+    cardImagePosition: 'center 20%',
+    modalImagePosition: 'center 15%',
     shortDescription:
       'Deus das forjas, da honestidade e da construção. Ensina que valor nasce de trabalho e integridade.',
     description:
@@ -761,6 +818,9 @@ const staticGods = [
     title: 'A Guardiã da Misericórdia',
     alinhamento: 'Neutro e Bom',
     icon: '🕊️',
+    iconImage: lirielImage,
+    cardImagePosition: 'center 20%',
+    modalImagePosition: 'center 15%',
     shortDescription:
       'Deusa da misericórdia e da cura compassiva. Defende segundas chances com sabedoria.',
     description:

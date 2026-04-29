@@ -533,11 +533,15 @@ const mostrarModalLoginMestre = ref(false)
 const avatarUrlMestre = import.meta.env.VITE_GM_AVATAR_URL || ''
 
 const heroImgRef = ref<HTMLImageElement | null>(null)
-const { position: heroImagePosition, analyzeImage: analisarHeroImage, reset: resetarHeroFoco } = useSmartImageFocus()
+const { position: heroImageAutoPosition, analyzeImage: analisarHeroImage, reset: resetarHeroFoco } = useSmartImageFocus()
+
+const heroImagePosition = computed(() =>
+  personagemSelecionado.value?.modalHeroPosition || heroImageAutoPosition.value
+)
 
 watch(personagemSelecionado, (novo) => {
   if (!novo?.avatarUrl) { resetarHeroFoco(); return }
-  // Aguarda a imagem ser montada antes de analisar
+  if (novo.modalHeroPosition) return
   setTimeout(() => analisarHeroImage(heroImgRef.value), 50)
 })
 

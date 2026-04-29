@@ -57,6 +57,7 @@ export const loreNotesService = {
         title: dto.title.trim(),
         subtitle: dto.subtitle?.trim() ?? null,
         content: dto.content ?? '',
+        pdf_url: dto.pdfUrl ?? null,
         ordem: dto.ordem ?? 0,
         character_id: dto.characterId ?? null,
       })
@@ -73,6 +74,7 @@ export const loreNotesService = {
     if (dto.title !== undefined) updates.title = dto.title.trim()
     if (dto.subtitle !== undefined) updates.subtitle = dto.subtitle
     if (dto.content !== undefined) updates.content = dto.content
+    if ('pdfUrl' in dto) updates.pdf_url = dto.pdfUrl ?? null
     if (dto.ordem !== undefined) updates.ordem = dto.ordem
     if ('characterId' in dto) updates.character_id = dto.characterId ?? null
     const { data, error } = await admin

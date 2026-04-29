@@ -89,6 +89,14 @@ export async function setAvatarFocalPoint(characterId: string, focalPoint: strin
   return data
 }
 
+export async function setModalHeroPosition(characterId: string, position: string) {
+  const { data } = await api.patch<PersonagemApi>(
+    `/personagens/admin/${characterId}/modal-hero-position`,
+    { position },
+  )
+  return data
+}
+
 export async function listCharacterCreationAllowedEmails() {
   const { data } = await api.get<{ emails: string[] }>(
     '/personagens/admin/character-creation-emails',

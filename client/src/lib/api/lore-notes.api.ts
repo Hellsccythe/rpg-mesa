@@ -5,6 +5,7 @@ export interface LoreNoteApi {
   title: string
   subtitle: string | null
   content: string
+  pdf_url: string | null
   ordem: number
   character_id: string | null
   created_at: string
@@ -15,6 +16,7 @@ export interface CreateLoreNotePayload {
   title: string
   subtitle?: string
   content: string
+  pdfUrl?: string | null
   ordem?: number
   /** null ou undefined = nota global; uuid = nota exclusiva do personagem */
   characterId?: string | null

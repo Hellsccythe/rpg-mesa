@@ -72,6 +72,12 @@ const router = createRouter({
       component: () => import('@/views/MasterMapsView.vue'),
       meta: { requiresAuth: true, requiresMaster: true },
     },
+    {
+      path: '/master/personagens',
+      name: 'master-characters',
+      component: () => import('@/views/MasterCharactersView.vue'),
+      meta: { requiresAuth: true, requiresMaster: true },
+    },
   ],
 })
 
