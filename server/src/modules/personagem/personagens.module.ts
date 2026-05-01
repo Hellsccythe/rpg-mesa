@@ -133,6 +133,24 @@ PersonagensRouter.post("/admin/personagens/:characterId/notas", async (req, res)
   }
 });
 
+PersonagensRouter.patch("/admin/:characterId/god-info/:godId", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    const { text } = req.body as { text?: string };
+    const resultado = await personagensService.definirInfoAdicionalDeus(
+      req.params.characterId,
+      req.params.godId,
+      text ?? '',
+      token,
+    );
+    res.status(200).json(resultado);
+  } catch (error: any) {
+    const status =
+      error?.message?.includes("autenticado") || error?.message?.includes("restrito") ? 401 : 400;
+    res.status(status).json({ message: error?.message ?? "Erro ao definir informação adicional do deus" });
+  }
+});
+
 PersonagensRouter.patch("/admin/:characterId/modal-hero-position", async (req, res) => {
   try {
     const token = getBearerToken(req.headers.authorization);

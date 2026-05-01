@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e ' *)",
+      "Read(//c/c/Users/Hellsccythe/Documents/rpg-mesa/client/src/stores/**)",
+      "Read(//c/c/Users/Hellsccythe/Documents/rpg-mesa/client/src/views/**)",
+      "Bash(awk '/^<style/,0' /c/Users/Hellsccythe/Documents/rpg-mesa/client/src/views/SkillsView.vue)",
+      "Bash(awk '/^<style/,0' /c/Users/Hellsccythe/Documents/rpg-mesa/client/src/views/TitulosView.vue)",
+      "Bash(awk '/^<style/,0' /c/Users/Hellsccythe/Documents/rpg-mesa/client/src/views/DeusesView.vue)",
+      "Bash(awk '/^<style/,0' /c/Users/Hellsccythe/Documents/rpg-mesa/client/src/views/NotasView.vue)",
+      "Bash(awk '/^<style/,0' /c/Users/Hellsccythe/Documents/rpg-mesa/client/src/views/MasterWeaponsView.vue)",
+      "Bash(awk '/^<style/,0' /c/Users/Hellsccythe/Documents/rpg-mesa/client/src/views/CidadeView.vue)",
+      "Bash(grep -v \"var\\(--\\\\|theme-\\\\|hover\\\\|focus\\\\|#[0-9a-f]{3,6}.*;\")"
+    ]
+  }
+}

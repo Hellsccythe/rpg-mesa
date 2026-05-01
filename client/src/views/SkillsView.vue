@@ -206,6 +206,14 @@
         {{ modalSkill.description }}
       </p>
 
+      <!-- Raça vinculada (skills Racial) -->
+      <div v-if="modalSkill.raca_vinculada" class="mb-5 flex items-center gap-2">
+        <span class="text-xs text-zinc-500 uppercase tracking-widest">Raça:</span>
+        <span class="text-xs font-semibold rounded-full px-2.5 py-0.5 bg-violet-900/30 border border-violet-700/40 text-violet-300">
+          {{ modalSkill.raca_vinculada }}
+        </span>
+      </div>
+
       <!-- Bônus de status -->
       <div v-if="statBonusEntries(modalSkill).length" class="mb-5">
         <p class="text-xs text-zinc-500 uppercase tracking-widest mb-2">Bônus de Status</p>
@@ -296,6 +304,8 @@ const navItems = [
   { id: 'titulos', label: 'Titulos' },
   { id: 'classes', label: 'Classes' },
   { id: 'npcs', label: 'NPCs' },
+  { id: 'racas', label: 'Raças' },
+  { id: 'equipamentos', label: 'Equipamentos' },
   { id: 'notas', label: 'Notas de Aventura' },
 ]
 
@@ -312,6 +322,8 @@ function handleNavSelect(itemId: string) {
     titulos: withCharId('/titulos'),
     classes: withCharId('/classes'),
     npcs: withCharId('/npcs'),
+    racas: withCharId('/racas'),
+    equipamentos: withCharId('/equipamentos'),
     notas: withCharId('/notas'),
   }
 
@@ -375,7 +387,7 @@ const catalogoFiltrado = computed(() => {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 const CAMPOS_RESERVADOS = new Set([
-  'id', 'name', 'description', 'type', 'category', 'stat_bonuses',
+  'id', 'name', 'description', 'type', 'category', 'raca_vinculada', 'stat_bonuses',
   'requirements', 'class_id', 'created_at', 'updated_at', 'deleted_at',
   'deleted_by', 'addedBy', 'addedAt', 'is_secret',
 ])

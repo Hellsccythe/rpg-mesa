@@ -52,6 +52,12 @@ function extractPathFromStorageReference(pathOrUrl: string) {
   return pathOrUrl.slice(idx + marker.length)
 }
 
+export async function uploadRacaFoto(file: File): Promise<string> {
+  const safeName = sanitizeFileName(file.name)
+  const path = `fotos/${Date.now()}-${safeName}`
+  return uploadFile('racas', path, file)
+}
+
 export async function uploadLorePdf(file: File): Promise<string> {
   const safeName = sanitizeFileName(file.name)
   const path = `pdfs/${Date.now()}-${safeName}`

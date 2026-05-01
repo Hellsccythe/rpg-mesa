@@ -1,162 +1,541 @@
 <template>
-  <div class="min-h-screen bg-[#0A0F1C] text-white relative overflow-x-hidden">
-    <div class="absolute inset-0 bg-gradient-to-br from-[#0F1C3A] via-[#1A2438] to-[#2A1B4A]/80" />
+  <div class="dash-root min-h-screen relative overflow-x-hidden">
+    <div class="dash-ambient absolute inset-0 pointer-events-none" />
 
     <div class="relative z-10 min-h-screen flex flex-col">
-      <header
-        class="dashboard-header relative z-50 h-16 border-b px-6 flex items-center justify-between"
-      >
-        <div class="flex items-center gap-3">
+
+      <!-- ══ Header ══════════════════════════════════════════════════════════ -->
+      <header class="dash-header sticky top-0 z-50 h-16 border-b px-4 sm:px-6 flex items-center justify-between backdrop-blur-md">
+        <div class="flex items-center">
           <HamburgerDrawerMenu
             :items="dashboardHeaderMenuItems"
             :active-item-id="activeDashboardHeaderItem"
-            aria-label="Abrir menu de navegacao"
+            aria-label="Abrir menu de navegação"
             @select="handleHeaderMenuSelect"
           />
         </div>
 
-        <div class="flex items-center gap-3">
-          <span class="header-title text-2xl font-bold tracking-widest">Caminho Sem Volta</span>
-        </div>
+        <span class="font-cinzel text-base font-bold tracking-widest text-amber-400/90 select-none">
+          Caminho Sem Volta
+        </span>
 
-        <div class="flex items-center gap-6 text-2xl">
+        <div class="flex items-center gap-0.5">
+          <!-- Notification Bell -->
           <div class="relative" @click.stop>
             <button
-              @click="toggleSettingsMenu"
-              class="header-link transition-colors"
-              title="Abrir menu"
-              aria-label="Abrir menu de configuracoes"
+              @click="toggleNotifications"
+              class="dash-icon-btn relative"
+              title="Notificações"
+              aria-label="Notificações"
             >
-              ⚙️
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+              </svg>
+              <span v-if="unreadCount > 0" class="notif-dot">{{ unreadCount > 9 ? '9+' : unreadCount }}</span>
             </button>
 
-            <div
-              v-if="showSettingsMenu"
-              class="absolute right-0 mt-2 w-52 rounded-2xl border border-[#6B4E9E]/50 bg-[#0F1C3A]/95 p-2 shadow-xl backdrop-blur-md"
-            >
-              <button
-                v-if="authStore.eMestre"
-                @click="retornarPainelMestre"
-                class="block w-full rounded-xl px-4 py-2 text-left text-base text-amber-300 transition-colors hover:bg-amber-900/30"
-              >
-                Painel do Mestre
-              </button>
-              <button
-                @click="openSettings"
-                class="block w-full rounded-xl px-4 py-2 text-left text-base text-zinc-200 transition-colors hover:bg-[#2A1B4A]"
-              >
-                Configuracoes
-              </button>
-              <button
-                @click="logout"
-                class="block w-full rounded-xl px-4 py-2 text-left text-base text-red-300 transition-colors hover:bg-red-950/60"
-              >
-                Logout
-              </button>
-            </div>
+            <Transition name="dropdown">
+              <div v-if="showNotifications" class="dropdown-panel right-0 w-80">
+                <div class="flex items-center justify-between px-4 py-3 border-b border-[#6B4E9E]/20">
+                  <span class="text-sm font-semibold text-amber-400 font-cinzel">Notificações</span>
+                  <button v-if="notifications.length > 0" @click="markAllRead" class="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">Marcar como lido</button>
+                </div>
+                <div class="max-h-72 overflow-y-auto">
+                  <div v-if="notifications.length === 0" class="px-4 py-8 text-center text-zinc-500 text-sm italic">Nenhuma novidade por enquanto.</div>
+                  <button
+                    v-for="notif in notifications"
+                    :key="notif.id"
+                    class="w-full flex items-start gap-3 px-4 py-3 border-b border-[#6B4E9E]/10 last:border-0 hover:bg-white/5 transition-colors text-left"
+                    @click="openNotification(notif)"
+                  >
+                    <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
+                      :class="notif.type === 'note' ? 'bg-amber-900/50' : 'bg-purple-900/50'">
+                      <svg v-if="notif.type === 'note'" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                      <svg v-else width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm font-medium text-zinc-200 truncate">{{ notif.title }}</p>
+                      <p class="text-xs text-zinc-600 mt-0.5">{{ notif.typeLabel }}</p>
+                    </div>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="flex-shrink-0 text-zinc-600 mt-1"><polyline points="9 18 15 12 9 6"/></svg>
+                  </button>
+                </div>
+              </div>
+            </Transition>
+          </div>
+
+          <!-- Settings menu -->
+          <div class="relative" @click.stop>
+            <button @click="toggleSettingsMenu" class="dash-icon-btn" title="Configurações" aria-label="Configurações">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              </svg>
+            </button>
+
+            <Transition name="dropdown">
+              <div v-if="showSettingsMenu" class="dropdown-panel right-0 w-52 p-1.5">
+                <button v-if="authStore.eMestre" @click="retornarPainelMestre" class="dropdown-item text-amber-400">
+                  ⚔ Painel do Mestre
+                </button>
+                <button @click="openSettings" class="dropdown-item">Configurações</button>
+                <div class="my-1 h-px bg-white/10" />
+                <button @click="logout" class="dropdown-item text-red-400">Sair</button>
+              </div>
+            </Transition>
           </div>
         </div>
       </header>
 
-      <main class="relative z-0 flex-1 px-6 md:px-12 py-10">
-        <div v-if="loading" class="h-full flex items-center justify-center text-xl text-zinc-400">
-          Carregando personagem...
+      <!-- ══ Main ══════════════════════════════════════════════════════════ -->
+      <main class="flex-1 px-4 sm:px-6 py-6">
+
+        <!-- Loading -->
+        <div v-if="loading" class="h-64 flex items-center justify-center">
+          <div class="flex flex-col items-center gap-3">
+            <div class="w-7 h-7 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
+            <p class="text-zinc-500 text-sm">Carregando personagem...</p>
+          </div>
         </div>
 
-        <div v-else-if="error" class="h-full flex items-center justify-center">
-          <div class="bg-black/50 border border-red-900/50 rounded-3xl p-10 text-center max-w-lg">
-            <p class="text-red-300 text-lg font-semibold">{{ error }}</p>
-            <p v-if="errorHint" class="mt-3 text-zinc-400 text-sm">{{ errorHint }}</p>
-
-            <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
-              <button
-                @click="retryLoad"
-                class="px-6 py-3 bg-[#6B4E9E] hover:brightness-110 rounded-2xl font-semibold"
-              >
-                Tentar novamente
-              </button>
-              <button
-                @click="goBack"
-                class="px-6 py-3 bg-red-800 hover:bg-red-700 rounded-2xl font-semibold"
-              >
-                Voltar ao login
-              </button>
+        <!-- Error -->
+        <div v-else-if="error" class="h-64 flex items-center justify-center">
+          <div class="dash-card p-8 text-center max-w-sm border-red-900/40">
+            <p class="text-red-400 font-semibold">{{ error }}</p>
+            <p v-if="errorHint" class="mt-2 text-zinc-500 text-sm">{{ errorHint }}</p>
+            <div class="mt-5 flex gap-3 justify-center">
+              <button @click="retryLoad" class="px-5 py-2 bg-violet-700 hover:bg-violet-600 rounded-xl text-sm font-semibold text-white transition-colors">Tentar novamente</button>
+              <button @click="goBack" class="px-5 py-2 bg-red-900/50 hover:bg-red-800/60 rounded-xl text-sm font-semibold text-white transition-colors">Voltar</button>
             </div>
           </div>
         </div>
 
-        <div v-else-if="character" class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <div class="order-2 lg:order-1 lg:col-span-4">
-            <div class="character-panel border border-[#6B4E9E]/40 rounded-3xl p-6">
-              <div
-                class="aspect-[4/5] relative rounded-2xl overflow-hidden border border-[#C8D0E0]/10 shadow-2xl"
-              >
-                <img
-                  v-if="character.avatarUrl"
-                  :src="character.avatarUrl"
-                  :alt="character.name"
-                  class="w-full h-full object-cover"
-                  :style="{ objectPosition: character.data?.avatarFocalPoint ?? 'center 20%' }"
-                />
-                <div
-                  v-else
-                  class="avatar-placeholder w-full h-full flex items-center justify-center text-3xl font-semibold"
-                >
-                  SEM AVATAR
+        <!-- Character loaded -->
+        <div v-else-if="character" class="max-w-7xl mx-auto">
+          <div class="flex flex-col lg:flex-row gap-6">
+
+            <!-- ── Left: Portrait sidebar ──────────────────────────────── -->
+            <div class="lg:w-72 xl:w-80 flex-shrink-0 space-y-3">
+
+              <!-- Portrait card -->
+              <div class="dash-portrait-card overflow-hidden">
+                <div class="relative aspect-[3/4] overflow-hidden">
+                  <img
+                    v-if="character.avatarUrl"
+                    :src="character.avatarUrl"
+                    :alt="character.name"
+                    class="w-full h-full object-cover"
+                    :style="{ objectPosition: character.data?.avatarFocalPoint ?? 'center 20%' }"
+                  />
+                  <div v-else class="w-full h-full dash-avatar-empty flex items-center justify-center">
+                    <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" class="text-zinc-600">
+                      <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+                    </svg>
+                  </div>
+                  <div class="absolute inset-0 bg-gradient-to-t from-[#070C18] via-[#070C18]/15 to-transparent" />
+                  <div class="absolute bottom-0 left-0 right-0 p-4">
+                    <h1 class="font-cinzel text-xl font-bold text-amber-300 leading-tight drop-shadow-lg">{{ character.name }}</h1>
+                    <div class="flex items-center gap-2 mt-1.5 flex-wrap">
+                      <span class="text-[0.65rem] font-bold tracking-wider bg-violet-900/70 border border-violet-600/50 text-violet-200 px-2 py-0.5 rounded-full uppercase">
+                        Nível {{ character.level }}
+                      </span>
+                      <span v-if="characterClass" class="text-xs text-zinc-400 truncate max-w-[130px]">{{ characterClass }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Stats strip -->
+                <div class="grid grid-cols-2 divide-x divide-[#6B4E9E]/15 border-t border-[#6B4E9E]/15">
+                  <div class="px-3 py-3 text-center">
+                    <p class="dash-tiny-label">Índole</p>
+                    <p class="text-xs font-semibold mt-0.5 leading-tight" :class="indoleColor">{{ indoleLabel }}</p>
+                  </div>
+                  <div class="px-3 py-3 text-center">
+                    <p class="dash-tiny-label">Pts. Classe</p>
+                    <p class="text-xs font-bold mt-0.5 text-amber-400">{{ character.data?.classPoints ?? 0 }}</p>
+                  </div>
                 </div>
               </div>
 
+              <!-- Manage button -->
               <button
-                class="inventory-btn mt-6 w-full py-5 border border-[#6B4E9E]/50 rounded-2xl flex items-center justify-center gap-3 transition-all"
+                @click="openSettings"
+                class="w-full py-2.5 rounded-xl dash-manage-btn flex items-center justify-center gap-2 text-sm transition-all"
               >
-                <span class="font-medium">Inventario Rapido</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <span class="font-cinzel tracking-wide">Gerenciar Personagem</span>
               </button>
             </div>
-          </div>
 
-          <div class="order-1 lg:order-2 lg:col-span-5 flex flex-col items-center justify-center gap-8">
-            <div class="flex items-center gap-4">
-              <div class="text-5xl font-bold tracking-wide text-[#C8D0E0]">
-                {{ character.name }}
-              </div>
-              <button class="text-3xl text-[#6B4E9E] hover:text-white transition-colors" aria-label="Editar nome do personagem">✏️</button>
-            </div>
+            <!-- ── Right: Content area ─────────────────────────────────── -->
+            <div class="flex-1 min-w-0">
 
-            <div class="flex gap-10 text-center">
-              <div>
-                <div class="text-sm text-zinc-400">Nivel</div>
-                <div class="text-6xl font-bold text-[#C8D0E0]">Lv {{ character.level }}</div>
+              <!-- Tab nav (only 2 tabs) -->
+              <div class="dash-tab-nav flex gap-1 p-1 rounded-xl border mb-5">
+                <button
+                  v-for="tab in tabs"
+                  :key="tab.id"
+                  @click="activeTab = tab.id"
+                  class="flex-1 py-2.5 px-3 rounded-lg text-sm font-medium transition-all duration-200"
+                  :class="activeTab === tab.id ? 'dash-tab-active' : 'dash-tab-inactive'"
+                >{{ tab.label }}</button>
               </div>
-              <div>
-                <div class="text-sm text-zinc-400">Indole</div>
-                <div class="text-4xl font-medium text-emerald-400 mt-1">
-                  {{ indoleLabel }}
+
+              <!-- ── Tab: Personagem ─────────────────────────────────── -->
+              <div v-show="activeTab === 'personagem'" class="space-y-4">
+
+                <!-- Level & stats card -->
+                <div class="dash-card p-5">
+                  <h3 class="dash-section-label mb-4">Visão Geral</h3>
+                  <div class="grid grid-cols-3 gap-4">
+                    <div class="text-center">
+                      <div class="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-center mx-auto mb-2">
+                        <span class="font-cinzel text-lg font-bold text-amber-400">{{ character.level }}</span>
+                      </div>
+                      <p class="dash-tiny-label">Nível</p>
+                    </div>
+                    <div class="text-center">
+                      <div class="w-12 h-12 rounded-2xl bg-violet-500/10 border border-violet-500/25 flex items-center justify-center mx-auto mb-2">
+                        <span class="font-cinzel text-lg font-bold text-violet-400">{{ character.data?.classPoints ?? 0 }}</span>
+                      </div>
+                      <p class="dash-tiny-label">Pts. Classe</p>
+                    </div>
+                    <div class="text-center">
+                      <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center mx-auto mb-2">
+                        <span class="text-lg" :class="indoleColor">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                        </span>
+                      </div>
+                      <p class="dash-tiny-label">{{ indoleLabel }}</p>
+                    </div>
+                  </div>
+
+                  <!-- Classes -->
+                  <div v-if="(character.data?.classes ?? []).length" class="mt-5 pt-4 border-t border-[#6B4E9E]/15">
+                    <p class="dash-section-label mb-2.5">Classes</p>
+                    <div class="flex flex-wrap gap-2">
+                      <div
+                        v-for="cls in character.data.classes"
+                        :key="cls.classId ?? cls.name"
+                        class="flex items-center gap-1.5 bg-amber-900/20 border border-amber-700/25 rounded-xl px-3 py-1.5 hover:border-amber-600/50 transition-colors"
+                      >
+                        <span class="text-xs font-semibold text-amber-200">{{ cls.name }}</span>
+                        <span class="text-[0.6rem] font-bold text-amber-500/70 bg-amber-900/40 border border-amber-700/20 rounded-full px-1.5 py-0.5 font-cinzel">Lv {{ cls.level ?? 1 }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Skills -->
+                <div v-if="(character.data?.skills ?? []).length" class="dash-card p-5">
+                  <h3 class="dash-section-label mb-3">Skills</h3>
+                  <div class="flex flex-wrap gap-2">
+                    <span
+                      v-for="skill in character.data.skills"
+                      :key="skill.name"
+                      class="text-xs bg-violet-900/25 border border-violet-700/30 text-violet-300 px-2.5 py-1 rounded-full hover:bg-violet-900/40 transition-colors"
+                    >{{ skill.name }}</span>
+                  </div>
+                </div>
+
+                <!-- Titles -->
+                <div v-if="(character.data?.titles ?? []).length" class="dash-card p-5">
+                  <h3 class="dash-section-label mb-3">Títulos</h3>
+                  <div class="flex flex-wrap gap-2">
+                    <span
+                      v-for="title in character.data.titles"
+                      :key="title.name"
+                      class="text-xs bg-amber-900/20 border border-amber-700/25 text-amber-300 px-2.5 py-1 rounded-full hover:bg-amber-900/35 transition-colors"
+                    >{{ title.name }}</span>
+                  </div>
+                </div>
+
+                <!-- Adventure Notes preview -->
+                <div class="dash-card p-5">
+                  <div class="flex items-center justify-between mb-3">
+                    <h3 class="dash-section-label">Notas de Aventura</h3>
+                    <button @click="goToNotas" class="text-xs text-amber-500 hover:text-amber-300 transition-colors flex items-center gap-1">
+                      Ver livro
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                    </button>
+                  </div>
+                  <p v-if="!historyPreview" class="text-zinc-600 text-sm italic">Nenhuma anotação registrada ainda.</p>
+                  <p v-else class="text-sm leading-relaxed whitespace-pre-wrap" style="color: var(--text-muted)">{{ historyPreview }}</p>
                 </div>
               </div>
-            </div>
 
-            <button
-              @click="openManagementModal"
-              class="management-btn mt-4 w-full max-w-lg py-6 text-2xl font-semibold rounded-3xl transition-all"
-            >
-              Gerenciamento de Personagem
-            </button>
-          </div>
+              <!-- ── Tab: Inventário ─────────────────────────────────── -->
+              <div v-show="activeTab === 'inventario'" class="space-y-4">
+                <div class="dash-card p-5">
 
-          <div class="order-3 lg:col-span-3">
-            <div class="notes-panel border border-[#6B4E9E]/30 rounded-3xl p-7 h-full">
-              <h3 class="text-2xl font-semibold mb-5 text-[#C8D0E0]">Notas da Campanha</h3>
-              <div class="notes-body leading-relaxed text-[15px] min-h-[260px]">
-                {{ historyPreview }}
+                  <!-- Header -->
+                  <div class="flex items-center justify-between mb-5">
+                    <div>
+                      <h3 class="font-cinzel font-semibold text-amber-400 text-sm">Inventário</h3>
+                      <p class="text-xs mt-0.5" style="color: var(--text-muted)">Tudo o que o personagem possui como propriedade.</p>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                      <span class="inv-count-badge">{{ normalInventory.length }} {{ normalInventory.length === 1 ? 'item' : 'itens' }}</span>
+
+                      <!-- Backpack icon → Quick Inventory dropdown -->
+                      <div class="relative" @click.stop>
+                        <button
+                          @click="toggleQuickInventory"
+                          class="backpack-btn relative"
+                          title="Inventário Rápido"
+                          aria-label="Abrir inventário rápido"
+                          :class="showQuickInventory ? 'backpack-btn-active' : ''"
+                        >
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+                            <line x1="3" y1="6" x2="21" y2="6"/>
+                            <path d="M16 10a4 4 0 0 1-8 0"/>
+                          </svg>
+                          <span v-if="quickInventory.length" class="backpack-badge">{{ quickInventory.length }}</span>
+                        </button>
+
+                        <Transition name="dropdown">
+                          <div v-if="showQuickInventory" class="dropdown-panel right-0 w-80 mt-1">
+                            <div class="px-4 py-3 border-b border-[#6B4E9E]/20">
+                              <p class="text-sm font-semibold text-amber-400 font-cinzel">Inventário Rápido</p>
+                              <p class="text-xs mt-0.5" style="color: var(--text-muted)">O que você carrega no dia a dia</p>
+                            </div>
+                            <div class="p-3">
+                              <div class="flex gap-2 mb-3">
+                                <input
+                                  v-model="newQuickItemName"
+                                  @keydown.enter="addQuickItem"
+                                  type="text"
+                                  placeholder="Nome do item..."
+                                  class="inv-input flex-1"
+                                />
+                                <input
+                                  v-model.number="newQuickItemQty"
+                                  type="number"
+                                  min="1"
+                                  class="inv-input w-12 text-center"
+                                />
+                                <button
+                                  @click="addQuickItem"
+                                  :disabled="!newQuickItemName.trim() || savingQuickInventory"
+                                  class="inv-add-btn disabled:opacity-40"
+                                >
+                                  <svg v-if="savingQuickInventory" class="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-dasharray="30" stroke-dashoffset="20"/></svg>
+                                  <span v-else>+</span>
+                                </button>
+                              </div>
+                              <div v-if="quickInventory.length === 0" class="py-5 text-center text-xs text-zinc-600 italic">Mochila vazia. Adicione itens acima.</div>
+                              <div v-else class="space-y-1.5 max-h-56 overflow-y-auto pr-0.5">
+                                <div v-for="item in quickInventory" :key="item.id" class="inv-item">
+                                  <p class="flex-1 text-sm truncate" style="color: var(--text-main)">{{ item.name }}</p>
+                                  <span class="qty-badge">×{{ item.quantity }}</span>
+                                  <button @click="removeQuickItem(item.id)" class="inv-remove" title="Remover">
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </Transition>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Add item form -->
+                  <div class="flex gap-2 mb-4">
+                    <input
+                      v-model="newItemName"
+                      @keydown.enter="addNormalItem"
+                      type="text"
+                      placeholder="Nome do item..."
+                      class="inv-input flex-1"
+                    />
+                    <input
+                      v-model.number="newItemQty"
+                      type="number"
+                      min="1"
+                      class="inv-input w-14 text-center"
+                    />
+                    <button
+                      @click="addNormalItem"
+                      :disabled="!newItemName.trim() || savingInventory"
+                      class="inv-add-btn px-4 disabled:opacity-40"
+                    >
+                      <svg v-if="savingInventory" class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-dasharray="30" stroke-dashoffset="20"/></svg>
+                      <span v-else>+</span>
+                    </button>
+                  </div>
+
+                  <!-- Items list -->
+                  <div v-if="normalInventory.length === 0" class="inv-empty">
+                    Inventário vazio. Adicione itens acima.
+                  </div>
+                  <div v-else class="inv-list">
+                    <div v-for="item in normalInventory" :key="item.id" class="inv-item">
+                      <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium truncate" style="color: var(--text-main)">{{ item.name }}</p>
+                        <p v-if="item.description" class="text-xs text-zinc-600 truncate">{{ item.description }}</p>
+                      </div>
+                      <span class="qty-badge">×{{ item.quantity }}</span>
+                      <button @click="removeNormalItem(item.id)" class="inv-remove" title="Remover">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
+
             </div>
           </div>
         </div>
       </main>
     </div>
 
+    <!-- ══ Manage Character Panel (player) ════════════════════════════════ -->
+    <Transition name="manage-slide">
+      <div
+        v-if="showManagePanel && character && !authStore.eMestre"
+        class="fixed inset-0 z-50 flex justify-end"
+        @click.self="closeManagePanel"
+      >
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="closeManagePanel" />
+
+        <!-- Panel -->
+        <div class="manage-panel relative flex flex-col w-full max-w-[480px] h-full overflow-y-auto" @click.stop>
+
+          <!-- Panel header -->
+          <div class="manage-panel-header sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b">
+            <div>
+              <h2 class="font-cinzel font-bold text-amber-400 text-base tracking-wide">Gerenciar Personagem</h2>
+              <p class="text-xs mt-0.5" style="color: var(--text-muted)">Suas informações pessoais</p>
+            </div>
+            <button @click="closeManagePanel" class="manage-close-btn" aria-label="Fechar">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+
+          <!-- Current character info -->
+          <div class="px-6 py-5 border-b border-[#6B4E9E]/15">
+            <div class="flex gap-4 items-start">
+              <div class="w-16 h-16 rounded-2xl overflow-hidden flex-shrink-0 border border-[#6B4E9E]/30">
+                <img v-if="character.avatarUrl" :src="character.avatarUrl" :alt="character.name" class="w-full h-full object-cover" :style="{ objectPosition: character.data?.avatarFocalPoint ?? 'center 20%' }" />
+                <div v-else class="w-full h-full dash-avatar-empty flex items-center justify-center">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-zinc-600"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                </div>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="font-cinzel font-bold text-amber-400 text-lg leading-tight">{{ character.name }}</p>
+                <p class="text-xs mt-1 text-zinc-500">Nível {{ character.level }} {{ characterClass ? `· ${characterClass}` : '' }}</p>
+                <p v-if="character.data?.history" class="text-xs mt-2 leading-relaxed text-zinc-500 line-clamp-2">{{ character.data.history }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Approval warning -->
+          <div class="mx-6 mt-5 rounded-xl border border-amber-600/30 bg-amber-950/20 px-4 py-3 flex gap-3">
+            <svg class="flex-shrink-0 mt-0.5 text-amber-400" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <p class="text-xs text-amber-200/80 leading-relaxed">Alterações de nome e imagem precisam de aprovação do mestre antes de serem aplicadas.</p>
+          </div>
+
+          <!-- Form -->
+          <div class="px-6 py-5 space-y-6 flex-1">
+
+            <!-- Nome -->
+            <div>
+              <label class="manage-field-label">Nome do personagem</label>
+              <div class="manage-current-value mb-2">{{ character.name }}</div>
+              <input
+                v-model="requestedName"
+                type="text"
+                placeholder="Novo nome (deixe em branco para não alterar)"
+                class="manage-input"
+              />
+            </div>
+
+            <!-- Imagem -->
+            <div>
+              <label class="manage-field-label">Imagem do personagem</label>
+              <div
+                class="manage-upload-zone"
+                :class="[requestedAvatarPreview ? 'manage-upload-preview' : 'manage-upload-empty', { 'ring-2 ring-amber-500/50': isDragging }]"
+                @dragover.prevent="isDragging = true"
+                @dragleave.prevent="isDragging = false"
+                @drop.prevent="handleDrop"
+                @click="triggerAvatarInput"
+              >
+                <input ref="avatarInput" type="file" accept="image/*" class="hidden" @change="handleAvatarSelect" />
+
+                <div v-if="requestedAvatarPreview" class="relative w-fit mx-auto">
+                  <img :src="requestedAvatarPreview" alt="Prévia" class="h-40 rounded-xl object-cover" />
+                  <button
+                    @click.stop="removeRequestedAvatar"
+                    class="absolute right-2 top-2 w-7 h-7 rounded-full bg-black/70 flex items-center justify-center text-white hover:bg-red-700 transition-colors"
+                  >✕</button>
+                </div>
+                <div v-else class="flex flex-col items-center gap-2">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-zinc-500"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                  <p class="text-xs text-zinc-500">Arraste ou clique para selecionar</p>
+                  <p class="text-[0.6rem] text-zinc-600">PNG, JPG ou WEBP · Max 5MB</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- História -->
+            <div>
+              <label class="manage-field-label">História do personagem</label>
+              <div v-if="character.data?.history" class="manage-current-value text-xs leading-relaxed max-h-24 overflow-y-auto mb-2 whitespace-pre-wrap">{{ character.data.history }}</div>
+              <textarea
+                v-model="requestedHistory"
+                rows="5"
+                placeholder="Edite ou complemente a história..."
+                class="manage-input resize-none"
+              />
+            </div>
+
+            <!-- Documento da história -->
+            <div>
+              <label class="manage-field-label">Documento da história (Word/PDF)</label>
+              <div class="manage-upload-zone manage-upload-empty cursor-pointer" @click="triggerHistoryDocInput">
+                <input ref="historyDocInput" type="file" accept=".doc,.docx,.pdf" class="hidden" @change="handleHistoryDocSelect" />
+                <div class="flex items-center gap-2">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-zinc-500"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  <span class="text-xs text-zinc-500">
+                    {{ selectedHistoryDoc?.name ?? requestedHistoryDocumentName ?? 'Anexar .doc, .docx ou .pdf' }}
+                  </span>
+                </div>
+              </div>
+              <a v-if="requestedHistoryDocumentPath" href="#" @click.prevent="openHistoryDocument(requestedHistoryDocumentPath)" class="inline-block mt-1 text-xs text-amber-500 hover:text-amber-300 underline">
+                Abrir documento atual
+              </a>
+            </div>
+
+            <!-- Feedback -->
+            <p v-if="feedback" class="text-sm" :class="feedbackIsError ? 'text-red-400' : 'text-emerald-400'">{{ feedback }}</p>
+          </div>
+
+          <!-- Panel footer -->
+          <div class="manage-panel-footer sticky bottom-0 px-6 py-4 border-t flex gap-3">
+            <button @click="closeManagePanel" class="flex-1 py-2.5 rounded-xl border text-sm font-medium transition-colors" style="border-color: var(--border-soft); color: var(--text-muted)">
+              Cancelar
+            </button>
+            <button
+              @click="submitRequest"
+              :disabled="settingsLoading"
+              class="flex-1 py-2.5 rounded-xl bg-violet-700 hover:bg-violet-600 text-white text-sm font-semibold transition-colors disabled:opacity-50"
+            >
+              {{ settingsLoading ? 'Enviando...' : 'Enviar para aprovação' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- ══ Master Approvals Modal ════════════════════════════════════════ -->
     <Modal
-      v-if="showSettingsModal && character"
+      v-if="showSettingsModal && character && authStore.eMestre"
       panel-class="max-w-3xl"
       body-class="max-h-[75vh] overflow-y-auto p-6"
       header-class="px-6 py-4"
@@ -164,246 +543,42 @@
     >
       <template #header>
         <div>
-          <h2 class="text-2xl font-bold text-[#C8D0E0]">Configuracoes</h2>
-          <p class="text-sm text-zinc-400">
-            {{
-              authStore.eMestre
-                ? 'Painel de aprovacao do mestre'
-                : 'Solicitar alteracao de personagem'
-            }}
-          </p>
+          <h2 class="text-xl font-bold text-amber-400 font-cinzel">Painel de Aprovação</h2>
+          <p class="text-sm text-zinc-500 mt-0.5">Solicitações pendentes dos jogadores</p>
         </div>
       </template>
 
-      <div v-if="authStore.eMestre" class="space-y-4">
+      <div class="space-y-4">
         <div class="flex items-center justify-between">
-          <h3 class="text-lg font-semibold text-amber-300">Solicitacoes pendentes</h3>
-          <button
-            @click="loadPending"
-            class="rounded-xl border border-amber-700/40 px-4 py-2 text-sm text-amber-200 transition-colors hover:bg-amber-900/30"
-          >
-            Atualizar
-          </button>
+          <h3 class="text-base font-semibold text-amber-400">Solicitações pendentes</h3>
+          <button @click="loadPending" class="rounded-xl border border-amber-700/40 px-4 py-1.5 text-xs text-amber-300 transition-colors hover:bg-amber-900/30">Atualizar</button>
         </div>
-
-        <div v-if="settingsLoading" class="text-zinc-400">Carregando solicitacoes...</div>
-        <div
-          v-else-if="pendingApprovals.length === 0"
-          class="rounded-2xl border border-zinc-700/50 p-4 text-zinc-400"
-        >
-          Nenhuma solicitacao pendente no momento.
-        </div>
-
+        <div v-if="settingsLoading" class="text-zinc-500 text-sm">Carregando...</div>
+        <div v-else-if="pendingApprovals.length === 0" class="rounded-2xl border border-zinc-800/50 p-4 text-zinc-500 text-sm text-center">Nenhuma solicitação pendente.</div>
         <div v-else class="space-y-4">
-          <div
-            v-for="request in pendingApprovals"
-            :key="request.characterId"
-            class="rounded-2xl border border-[#6B4E9E]/40 bg-[#0F1C3A]/60 p-4"
-          >
-            <p class="text-lg font-semibold text-white">{{ request.currentName }}</p>
-            <p class="text-xs text-zinc-400">
-              Solicitado por: {{ request.requestedByEmail || 'desconhecido' }}
-            </p>
-
+          <div v-for="request in pendingApprovals" :key="request.characterId" class="rounded-2xl border border-[#6B4E9E]/35 bg-[#0F1C3A]/60 p-4">
+            <p class="text-base font-semibold text-white">{{ request.currentName }}</p>
+            <p class="text-xs text-zinc-500">Solicitado por: {{ request.requestedByEmail || 'desconhecido' }}</p>
             <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-              <div class="rounded-xl border border-zinc-700/50 p-3">
-                <p class="text-xs uppercase tracking-wider text-zinc-500">Nome atual</p>
-                <p class="mt-1 text-zinc-200">{{ request.currentName }}</p>
-              </div>
-              <div class="rounded-xl border border-zinc-700/50 p-3">
-                <p class="text-xs uppercase tracking-wider text-zinc-500">Nome solicitado</p>
-                <p class="mt-1 text-zinc-200">{{ request.requestedName || 'Sem alteracao' }}</p>
-              </div>
+              <div class="rounded-xl border border-zinc-800/60 p-3"><p class="text-xs uppercase tracking-wider text-zinc-600">Nome atual</p><p class="mt-1 text-zinc-300">{{ request.currentName }}</p></div>
+              <div class="rounded-xl border border-zinc-800/60 p-3"><p class="text-xs uppercase tracking-wider text-zinc-600">Nome solicitado</p><p class="mt-1 text-zinc-300">{{ request.requestedName || 'Sem alteração' }}</p></div>
             </div>
-
             <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-              <img
-                v-if="request.currentAvatarUrl"
-                :src="request.currentAvatarUrl"
-                alt="Avatar atual"
-                class="h-40 w-full rounded-xl object-cover"
-              />
-              <div
-                v-else
-                class="flex h-40 items-center justify-center rounded-xl border border-zinc-700/50 text-zinc-500"
-              >
-                Sem avatar atual
-              </div>
-
-              <img
-                v-if="request.requestedAvatarUrl"
-                :src="request.requestedAvatarUrl"
-                alt="Avatar solicitado"
-                class="h-40 w-full rounded-xl object-cover"
-              />
-              <div
-                v-else
-                class="flex h-40 items-center justify-center rounded-xl border border-zinc-700/50 text-zinc-500"
-              >
-                Sem novo avatar
-              </div>
+              <img v-if="request.currentAvatarUrl" :src="request.currentAvatarUrl" alt="Avatar atual" class="h-36 w-full rounded-xl object-cover" />
+              <div v-else class="flex h-36 items-center justify-center rounded-xl border border-zinc-800/60 text-zinc-600 text-sm">Sem avatar</div>
+              <img v-if="request.requestedAvatarUrl" :src="request.requestedAvatarUrl" alt="Avatar solicitado" class="h-36 w-full rounded-xl object-cover" />
+              <div v-else class="flex h-36 items-center justify-center rounded-xl border border-zinc-800/60 text-zinc-600 text-sm">Sem novo avatar</div>
             </div>
-
-            <div class="mt-3 space-y-2 rounded-xl border border-zinc-700/50 p-3">
-              <p class="text-xs uppercase tracking-wider text-zinc-500">Historia solicitada</p>
-              <p class="text-sm text-zinc-300 whitespace-pre-wrap">
-                {{ request.requestedHistory || 'Sem alteracao de texto.' }}
-              </p>
-              <a
-                v-if="request.requestedHistoryDocumentPath"
-                href="#"
-                @click.prevent="openHistoryDocument(request.requestedHistoryDocumentPath)"
-                class="inline-block text-sm text-[#C8D0E0] underline hover:text-white"
-              >
-                Abrir documento: {{ request.requestedHistoryDocumentName || 'Arquivo enviado' }}
-              </a>
+            <div class="mt-3 space-y-2 rounded-xl border border-zinc-800/60 p-3">
+              <p class="text-xs uppercase tracking-wider text-zinc-600">História solicitada</p>
+              <p class="text-sm text-zinc-300 whitespace-pre-wrap">{{ request.requestedHistory || 'Sem alteração de texto.' }}</p>
+              <a v-if="request.requestedHistoryDocumentPath" href="#" @click.prevent="openHistoryDocument(request.requestedHistoryDocumentPath)" class="inline-block text-sm text-amber-400 underline hover:text-amber-300">Abrir documento: {{ request.requestedHistoryDocumentName || 'Arquivo enviado' }}</a>
             </div>
-
             <div class="mt-4 flex gap-3">
-              <button
-                @click="reviewRequest(request.characterId, true)"
-                class="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-600"
-              >
-                Aprovar
-              </button>
-              <button
-                @click="reviewRequest(request.characterId, false)"
-                class="rounded-xl bg-red-800 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700"
-              >
-                Rejeitar
-              </button>
+              <button @click="reviewRequest(request.characterId, true)" class="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-600">Aprovar</button>
+              <button @click="reviewRequest(request.characterId, false)" class="rounded-xl bg-red-800/70 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700">Rejeitar</button>
             </div>
           </div>
-        </div>
-      </div>
-
-      <div v-else class="space-y-5">
-        <div
-          class="rounded-2xl border border-[#6B4E9E]/40 bg-[#0F1C3A]/60 p-4 text-sm text-zinc-300"
-        >
-          Alteracoes de nome e imagem nao tem mais limite, mas precisam de aprovacao do mestre.
-        </div>
-
-        <div class="space-y-2">
-          <label class="block text-sm text-zinc-400">Novo nome</label>
-          <input
-            v-model="requestedName"
-            type="text"
-            class="w-full rounded-2xl border border-[#6B4E9E]/40 bg-[#0B1426] px-4 py-3 text-white outline-none transition-colors focus:border-[#C8D0E0]/60"
-            placeholder="Digite o novo nome"
-          />
-        </div>
-
-        <div class="space-y-2">
-          <label class="block text-sm text-zinc-400">Nova imagem</label>
-          <div
-            class="relative cursor-pointer overflow-hidden rounded-2xl border-2 border-dashed border-[#6B4E9E]/40 bg-[#0B1426] transition-colors hover:border-[#C8D0E0]/60"
-            :class="[
-              requestedAvatarPreview
-                ? 'mx-auto w-fit border-[#6B4E9E]/20 bg-transparent p-0'
-                : 'h-56',
-              { 'border-[#C8D0E0]/70 bg-[#15213B]': isDragging },
-            ]"
-            @dragover.prevent="isDragging = true"
-            @dragleave.prevent="isDragging = false"
-            @drop.prevent="handleDrop"
-            @click="triggerAvatarInput"
-          >
-            <input
-              ref="avatarInput"
-              type="file"
-              accept="image/*"
-              class="hidden"
-              @change="handleAvatarSelect"
-            />
-
-            <div v-if="requestedAvatarPreview" class="relative mx-auto w-full max-w-[16rem]">
-              <div
-                class="aspect-square w-full overflow-hidden rounded-2xl border border-[#6B4E9E]/45 bg-[#050A17]"
-              >
-                <img
-                  :src="requestedAvatarPreview"
-                  alt="Previa do avatar"
-                  class="h-full w-full object-cover"
-                />
-              </div>
-              <button
-                @click.stop="removeRequestedAvatar"
-                aria-label="Remover avatar selecionado"
-                class="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/70 text-lg text-white transition-colors hover:bg-red-700"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div v-else class="flex h-full flex-col items-center justify-center px-6 text-center">
-              <p class="text-zinc-300">Arraste ou clique para adicionar imagem</p>
-              <p class="mt-1 text-xs text-zinc-500">PNG, JPG ou WEBP • Max 5MB</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="space-y-2">
-          <label class="block text-sm text-zinc-400">Historia do personagem</label>
-          <textarea
-            v-model="requestedHistory"
-            rows="7"
-            class="w-full rounded-2xl border border-[#6B4E9E]/40 bg-[#0B1426] px-4 py-3 text-white outline-none transition-colors focus:border-[#C8D0E0]/60"
-            placeholder="Edite ou complemente a historia do personagem"
-          />
-        </div>
-
-        <div class="space-y-2">
-          <label class="block text-sm text-zinc-400">Documento da historia (Word/PDF)</label>
-          <div
-            class="cursor-pointer rounded-2xl border-2 border-dashed border-[#6B4E9E]/40 bg-[#0B1426] p-4 text-center transition-colors hover:border-[#C8D0E0]/60"
-            @click="triggerHistoryDocInput"
-          >
-            <input
-              ref="historyDocInput"
-              type="file"
-              accept=".doc,.docx,.pdf"
-              class="hidden"
-              @change="handleHistoryDocSelect"
-            />
-
-            <div v-if="selectedHistoryDoc" class="text-sm text-zinc-300">
-              Documento selecionado: {{ selectedHistoryDoc.name }}
-            </div>
-            <div v-else-if="requestedHistoryDocumentName" class="text-sm text-zinc-300">
-              Documento atual: {{ requestedHistoryDocumentName }}
-            </div>
-            <div v-else class="text-sm text-zinc-400">
-              Clique para anexar documento (.doc, .docx ou .pdf)
-            </div>
-          </div>
-
-          <a
-            v-if="requestedHistoryDocumentPath"
-            href="#"
-            @click.prevent="openHistoryDocument(requestedHistoryDocumentPath)"
-            class="inline-block text-sm text-[#C8D0E0] underline hover:text-white"
-          >
-            Abrir documento atual
-          </a>
-        </div>
-
-        <p
-          v-if="feedback"
-          class="text-sm"
-          :class="feedbackIsError ? 'text-red-300' : 'text-emerald-300'"
-        >
-          {{ feedback }}
-        </p>
-
-        <div class="flex justify-end">
-          <button
-            @click="submitRequest"
-            :disabled="settingsLoading"
-            class="rounded-2xl bg-[#6B4E9E] px-6 py-3 font-semibold text-white transition-colors hover:brightness-110 disabled:opacity-60"
-          >
-            {{ settingsLoading ? 'Enviando...' : 'Enviar para aprovacao' }}
-          </button>
         </div>
       </div>
     </Modal>
@@ -419,7 +594,25 @@ import { getHistoryDocumentSignedUrl } from '@/lib/supabase/storage'
 import { limparMetaAuthLocal, useAuthStore } from '@/stores/auth'
 import { useCharactersStore } from '@/stores/characters'
 import { useMasterApprovalsStore } from '@/stores/masterApprovals'
+import { editCharacter } from '@/lib/api/personagens.api'
+import { listLoreNotes } from '@/lib/api/lore-notes.api'
 import type { PersonagemApi } from '@/types/supabase'
+
+interface InventoryItem {
+  id: string
+  name: string
+  description?: string
+  quantity: number
+  addedAt: string
+}
+
+interface Notification {
+  id: string
+  type: 'note' | 'god'
+  title: string
+  typeLabel: string
+  route: string
+}
 
 const route = useRoute()
 const router = useRouter()
@@ -431,10 +624,28 @@ const loading = ref(true)
 const error = ref<string>('')
 const errorHint = ref('')
 const character = ref<PersonagemApi | null>(null)
+
 const showSettingsMenu = ref(false)
 const showSettingsModal = ref(false)
+const showNotifications = ref(false)
+const showManagePanel = ref(false)
+const showQuickInventory = ref(false)
 const settingsLoading = ref(false)
+const activeTab = ref('personagem')
 
+// Inventory state
+const newItemName = ref('')
+const newItemQty = ref(1)
+const savingInventory = ref(false)
+const newQuickItemName = ref('')
+const newQuickItemQty = ref(1)
+const savingQuickInventory = ref(false)
+
+// Notifications
+const notifications = ref<Notification[]>([])
+const unreadCount = ref(0)
+
+// Settings / manage form
 const requestedName = ref('')
 const requestedAvatarPreview = ref('')
 const selectedAvatarFile = ref<File | null>(null)
@@ -449,15 +660,23 @@ const feedback = ref('')
 const feedbackIsError = ref(false)
 
 const pendingApprovals = computed(() => masterApprovalsStore.pendingApprovals)
+
+const tabs = [
+  { id: 'personagem', label: 'Personagem' },
+  { id: 'inventario', label: 'Inventário' },
+]
+
 const dashboardHeaderMenuItems = [
   { id: 'back', label: 'Voltar' },
   { id: 'dashboard', label: 'Personagem' },
   { id: 'deuses', label: 'Deuses' },
   { id: 'cidade', label: 'Cidade' },
   { id: 'skills', label: 'Skills' },
-  { id: 'titulos', label: 'Titulos' },
+  { id: 'titulos', label: 'Títulos' },
   { id: 'classes', label: 'Classes' },
   { id: 'npcs', label: 'NPCs' },
+  { id: 'racas', label: 'Raças' },
+  { id: 'equipamentos', label: 'Equipamentos' },
   { id: 'notas', label: 'Notas de Aventura' },
 ]
 
@@ -465,27 +684,23 @@ const activeDashboardHeaderItem = computed(() => {
   if (route.name === 'dashboard') return 'dashboard'
   if (route.name === 'deuses') return 'deuses'
   if (route.name === 'cidade') return 'cidade'
-
   const path = route.path || ''
   if (path.startsWith('/skills')) return 'skills'
   if (path.startsWith('/titulos')) return 'titulos'
   if (path.startsWith('/classes')) return 'classes'
   if (path.startsWith('/npcs')) return 'npcs'
+  if (path.startsWith('/racas')) return 'racas'
+  if (path.startsWith('/equipamentos')) return 'equipamentos'
   if (path.startsWith('/notas')) return 'notas'
-
   return null
 })
 
 const historyPreview = computed(() => {
   const notes = character.value?.data?.adventureNotes
   if (Array.isArray(notes) && notes.length) {
-    return notes
-      .slice(-3)
-      .map((n: { text?: string }) => n.text ?? '')
-      .filter(Boolean)
-      .join('\n\n')
+    return notes.slice(-3).map((n: { text?: string }) => n.text ?? '').filter(Boolean).join('\n\n')
   }
-  return 'Nenhuma anotacao registrada ainda.'
+  return ''
 })
 
 const indoleLabel = computed(() => {
@@ -493,56 +708,168 @@ const indoleLabel = computed(() => {
   return raw.charAt(0).toUpperCase() + raw.slice(1)
 })
 
-const goBack = () => {
-  limparMetaAuthLocal()
-  router.push({ name: 'login', query: { force: '1' } })
+const indoleColor = computed(() => {
+  const raw = (character.value?.data?.indole as string) ?? 'neutro'
+  if (raw.includes('bom')) return 'text-emerald-400'
+  if (raw.includes('ruim') || raw.includes('mau')) return 'text-red-400'
+  return 'text-zinc-400'
+})
+
+const characterClass = computed(() => {
+  const classes = character.value?.data?.classes
+  if (!Array.isArray(classes) || !classes.length) return null
+  return classes.map((c: any) => c.name).join(' / ')
+})
+
+const normalInventory = computed<InventoryItem[]>(() => {
+  const inv = character.value?.data?.inventory
+  return Array.isArray(inv) ? inv : []
+})
+
+const quickInventory = computed<InventoryItem[]>(() => {
+  const inv = character.value?.data?.quickInventory
+  return Array.isArray(inv) ? inv : []
+})
+
+function notifKey(charId: string) { return `rpg-mesa.notif-seen-${charId}` }
+function getLastSeen(charId: string): Date {
+  const val = localStorage.getItem(notifKey(charId))
+  return val ? new Date(val) : new Date(0)
+}
+function saveLastSeen(charId: string) {
+  localStorage.setItem(notifKey(charId), new Date().toISOString())
 }
 
-const retornarPainelMestre = () => {
-  closeSettingsMenu()
-  router.push({ name: 'master-panel' })
+async function loadNotifications(charId: string) {
+  const lastSeen = getLastSeen(charId)
+  const list: Notification[] = []
+  try {
+    const notes = await listLoreNotes(charId)
+    for (const note of notes) {
+      if (note.character_id === charId && new Date(note.created_at) > lastSeen) {
+        list.push({ id: `note-${note.id}`, type: 'note', title: note.title, typeLabel: 'Nova nota exclusiva', route: '/notas' })
+      }
+    }
+  } catch { /* silent */ }
+
+  const godInfo = character.value?.data?.godAdditionalInfo
+  if (godInfo && typeof godInfo === 'object') {
+    for (const [godId, val] of Object.entries(godInfo as Record<string, any>)) {
+      if (val?.addedAt && new Date(val.addedAt) > lastSeen) {
+        list.push({ id: `god-${godId}`, type: 'god', title: `Informação sobre ${godId}`, typeLabel: 'Nova info de divindade', route: '/deuses' })
+      }
+    }
+  }
+
+  notifications.value = list
+  unreadCount.value = list.length
 }
 
+function toggleNotifications() {
+  showNotifications.value = !showNotifications.value
+  if (showNotifications.value) { showSettingsMenu.value = false; showQuickInventory.value = false }
+}
+
+function markAllRead() {
+  const charId = character.value?.characterId
+  if (charId) saveLastSeen(charId)
+  notifications.value = []
+  unreadCount.value = 0
+  showNotifications.value = false
+}
+
+function openNotification(notif: Notification) {
+  showNotifications.value = false
+  router.push(notif.route)
+}
+
+function toggleQuickInventory() {
+  showQuickInventory.value = !showQuickInventory.value
+  if (showQuickInventory.value) { showNotifications.value = false; showSettingsMenu.value = false }
+}
+
+// Inventory helpers
+function genId() { return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}` }
+
+async function persistData(newData: any) {
+  if (!character.value) return
+  await editCharacter(character.value.characterId, { data: newData })
+  character.value = { ...character.value, data: newData }
+}
+
+async function addNormalItem() {
+  const name = newItemName.value.trim()
+  if (!name || savingInventory.value) return
+  savingInventory.value = true
+  try {
+    const current = [...normalInventory.value]
+    current.push({ id: genId(), name, quantity: newItemQty.value || 1, addedAt: new Date().toISOString() })
+    await persistData({ ...(character.value!.data ?? {}), inventory: current })
+    newItemName.value = ''
+    newItemQty.value = 1
+  } finally { savingInventory.value = false }
+}
+
+async function removeNormalItem(itemId: string) {
+  if (!character.value) return
+  const current = normalInventory.value.filter(i => i.id !== itemId)
+  await persistData({ ...(character.value.data ?? {}), inventory: current })
+}
+
+async function addQuickItem() {
+  const name = newQuickItemName.value.trim()
+  if (!name || savingQuickInventory.value) return
+  savingQuickInventory.value = true
+  try {
+    const current = [...quickInventory.value]
+    current.push({ id: genId(), name, quantity: newQuickItemQty.value || 1, addedAt: new Date().toISOString() })
+    await persistData({ ...(character.value!.data ?? {}), quickInventory: current })
+    newQuickItemName.value = ''
+    newQuickItemQty.value = 1
+  } finally { savingQuickInventory.value = false }
+}
+
+async function removeQuickItem(itemId: string) {
+  if (!character.value) return
+  const current = quickInventory.value.filter(i => i.id !== itemId)
+  await persistData({ ...(character.value.data ?? {}), quickInventory: current })
+}
+
+// Navigation
+function goToNotas() {
+  const charId = getRequestedCharacterId()
+  router.push(charId ? { path: '/notas', query: { characterId: charId } } : '/notas')
+}
+const goBack = () => { limparMetaAuthLocal(); router.push({ name: 'login', query: { force: '1' } }) }
+const retornarPainelMestre = () => { closeSettingsMenu(); router.push({ name: 'master-panel' }) }
 const toggleSettingsMenu = () => {
   showSettingsMenu.value = !showSettingsMenu.value
+  if (showSettingsMenu.value) { showNotifications.value = false; showQuickInventory.value = false }
 }
-
-const closeSettingsMenu = () => {
-  showSettingsMenu.value = false
-}
+const closeSettingsMenu = () => { showSettingsMenu.value = false }
 
 async function handleHeaderMenuSelect(itemId: string) {
-  if (itemId === 'back') {
-    goBack()
-    return
-  }
-
+  if (itemId === 'back') { goBack(); return }
   if (itemId === 'dashboard') {
     const characterId = getRequestedCharacterId()
-    await router.push(
-      characterId ? { name: 'dashboard', query: { characterId } } : { name: 'dashboard' },
-    )
+    await router.push(characterId ? { name: 'dashboard', query: { characterId } } : { name: 'dashboard' })
     return
   }
-
   const characterId = getRequestedCharacterId()
-  const withCharId = (path: string) =>
-    characterId ? { path, query: { characterId } } : { path }
-
-  const routeMap: Record<string, ReturnType<typeof withCharId>> = {
+  const withCharId = (path: string) => characterId ? { path, query: { characterId } } : { path }
+  const routeMap: Record<string, any> = {
     deuses: { path: '/deuses' },
     cidade: { path: '/cidade' },
     skills: withCharId('/skills'),
     titulos: withCharId('/titulos'),
     classes: withCharId('/classes'),
     npcs: withCharId('/npcs'),
+    racas: withCharId('/racas'),
+    equipamentos: withCharId('/equipamentos'),
     notas: withCharId('/notas'),
   }
-
   const target = routeMap[itemId]
-  if (!target) return
-
-  await router.push(target)
+  if (target) await router.push(target)
 }
 
 function initializeSettingsForm() {
@@ -550,9 +877,7 @@ function initializeSettingsForm() {
   requestedAvatarPreview.value = character.value?.avatarUrl ?? ''
   selectedAvatarFile.value = null
   requestedHistory.value = String(character.value?.data?.history ?? '')
-  requestedHistoryDocumentPath.value = String(
-    character.value?.data?.historyDocumentPath ?? character.value?.data?.historyDocumentUrl ?? '',
-  )
+  requestedHistoryDocumentPath.value = String(character.value?.data?.historyDocumentPath ?? character.value?.data?.historyDocumentUrl ?? '')
   requestedHistoryDocumentName.value = String(character.value?.data?.historyDocumentName ?? '')
   selectedHistoryDoc.value = null
   feedback.value = ''
@@ -562,74 +887,49 @@ function initializeSettingsForm() {
 const openSettings = async () => {
   closeSettingsMenu()
   initializeSettingsForm()
-  showSettingsModal.value = true
-
   if (authStore.eMestre) {
+    showSettingsModal.value = true
     await loadPending()
+  } else {
+    showManagePanel.value = true
   }
 }
 
-function closeSettingsModal() {
-  showSettingsModal.value = false
-  feedback.value = ''
-}
+const closeManagePanel = () => { showManagePanel.value = false; feedback.value = '' }
+function closeSettingsModal() { showSettingsModal.value = false; feedback.value = '' }
 
-const logout = async () => {
-  closeSettingsMenu()
-  try {
-    await authStore.sair()
-  } finally {
-    router.push({ name: 'login' })
-  }
-}
+const logout = async () => { closeSettingsMenu(); try { await authStore.sair() } finally { router.push({ name: 'login' }) } }
 
 const onGlobalClick = () => {
   closeSettingsMenu()
+  showNotifications.value = false
+  showQuickInventory.value = false
 }
 
-onMounted(() => {
-  window.addEventListener('click', onGlobalClick)
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener('click', onGlobalClick)
-})
-
-const openManagementModal = () => {
-  alert('Modal de Gerenciamento sera implementado em breve!')
-}
+onMounted(() => window.addEventListener('click', onGlobalClick))
+onBeforeUnmount(() => window.removeEventListener('click', onGlobalClick))
 
 async function loadPending() {
   settingsLoading.value = true
-  feedback.value = ''
-  try {
-    await masterApprovalsStore.fetchPendingApprovals()
-  } catch {
-    feedback.value = 'Nao foi possivel carregar as solicitacoes pendentes.'
-    feedbackIsError.value = true
-  } finally {
-    settingsLoading.value = false
-  }
+  try { await masterApprovalsStore.fetchPendingApprovals() }
+  catch { feedback.value = 'Não foi possível carregar solicitações pendentes.'; feedbackIsError.value = true }
+  finally { settingsLoading.value = false }
 }
 
 async function reviewRequest(characterId: string, approve: boolean) {
   settingsLoading.value = true
-  feedback.value = ''
   try {
     await masterApprovalsStore.reviewPendingApproval(characterId, approve)
-    feedback.value = approve ? 'Solicitacao aprovada.' : 'Solicitacao rejeitada.'
+    feedback.value = approve ? 'Solicitação aprovada.' : 'Solicitação rejeitada.'
     feedbackIsError.value = false
   } catch {
-    feedback.value = 'Erro ao revisar solicitacao.'
+    feedback.value = 'Erro ao revisar solicitação.'
     feedbackIsError.value = true
-  } finally {
-    settingsLoading.value = false
-  }
+  } finally { settingsLoading.value = false }
 }
 
 async function submitRequest() {
   if (!character.value) return
-
   const nextName = requestedName.value.trim()
   const nextHistory = requestedHistory.value.trim()
   const changedName = nextName && nextName !== character.value.name ? nextName : undefined
@@ -637,127 +937,74 @@ async function submitRequest() {
   const currentHistory = String(character.value.data?.history ?? '').trim()
   const changedHistory = nextHistory !== currentHistory ? nextHistory : undefined
   const changedDoc = selectedHistoryDoc.value != null
-  const changedDocName =
-    requestedHistoryDocumentName.value.trim() !==
-    String(character.value.data?.historyDocumentName ?? '').trim()
+  const changedDocName = requestedHistoryDocumentName.value.trim() !== String(character.value.data?.historyDocumentName ?? '').trim()
 
-  if (
-    !changedName &&
-    !changedAvatarFile &&
-    changedHistory === undefined &&
-    !changedDoc &&
-    !changedDocName
-  ) {
-    feedback.value = 'Informe ao menos um campo para solicitar alteracao.'
+  if (!changedName && !changedAvatarFile && changedHistory === undefined && !changedDoc && !changedDocName) {
+    feedback.value = 'Informe ao menos um campo para solicitar alteração.'
     feedbackIsError.value = true
     return
   }
-
   settingsLoading.value = true
   feedback.value = ''
-
   try {
     await charactersStore.requestCharacterChangeWithFiles(
       character.value.characterId,
-      {
-        name: changedName,
-        history: changedHistory,
-        historyDocumentPath:
-          !changedDoc && changedDocName ? requestedHistoryDocumentPath.value : undefined,
-        historyDocumentName:
-          !changedDoc && changedDocName ? requestedHistoryDocumentName.value : undefined,
-      },
+      { name: changedName, history: changedHistory, historyDocumentPath: !changedDoc && changedDocName ? requestedHistoryDocumentPath.value : undefined, historyDocumentName: !changedDoc && changedDocName ? requestedHistoryDocumentName.value : undefined },
       changedAvatarFile || undefined,
       selectedHistoryDoc.value || undefined,
     )
-
-    feedback.value = 'Solicitacao enviada para aprovacao do mestre.'
+    feedback.value = 'Solicitação enviada para aprovação do mestre.'
     feedbackIsError.value = false
   } catch {
-    feedback.value = 'Erro ao enviar solicitacao. Tente novamente.'
+    feedback.value = 'Erro ao enviar solicitação. Tente novamente.'
     feedbackIsError.value = true
-  } finally {
-    settingsLoading.value = false
-  }
+  } finally { settingsLoading.value = false }
 }
 
-function triggerAvatarInput() {
-  avatarInput.value?.click()
-}
-
+function triggerAvatarInput() { avatarInput.value?.click() }
 function handleAvatarSelect(event: Event) {
   const target = event.target as HTMLInputElement
   if (target.files?.[0]) processRequestedAvatar(target.files[0])
 }
-
 function handleDrop(event: DragEvent) {
   isDragging.value = false
   if (event.dataTransfer?.files?.[0]) processRequestedAvatar(event.dataTransfer.files[0])
 }
-
 function processRequestedAvatar(file: File) {
-  if (!file.type.startsWith('image/')) {
-    feedback.value = 'Selecione apenas imagens.'
-    feedbackIsError.value = true
-    return
-  }
-
-  if (file.size > 5 * 1024 * 1024) {
-    feedback.value = 'A imagem deve ter no maximo 5MB.'
-    feedbackIsError.value = true
-    return
-  }
-
+  if (!file.type.startsWith('image/')) { feedback.value = 'Selecione apenas imagens.'; feedbackIsError.value = true; return }
+  if (file.size > 5 * 1024 * 1024) { feedback.value = 'A imagem deve ter no máximo 5MB.'; feedbackIsError.value = true; return }
   requestedAvatarPreview.value = URL.createObjectURL(file)
   selectedAvatarFile.value = file
   feedback.value = ''
   feedbackIsError.value = false
 }
-
-function removeRequestedAvatar() {
-  requestedAvatarPreview.value = ''
-  selectedAvatarFile.value = null
-}
-
-function triggerHistoryDocInput() {
-  historyDocInput.value?.click()
-}
-
+function removeRequestedAvatar() { requestedAvatarPreview.value = ''; selectedAvatarFile.value = null }
+function triggerHistoryDocInput() { historyDocInput.value?.click() }
 function handleHistoryDocSelect(event: Event) {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
   if (!file) return
-
-  const lowerName = file.name.toLowerCase()
-  const isDoc =
-    lowerName.endsWith('.doc') || lowerName.endsWith('.docx') || lowerName.endsWith('.pdf')
-
-  if (!isDoc) {
-    feedback.value = 'Anexe apenas arquivos .doc, .docx ou .pdf.'
+  const lower = file.name.toLowerCase()
+  if (!lower.endsWith('.doc') && !lower.endsWith('.docx') && !lower.endsWith('.pdf')) {
+    feedback.value = 'Anexe apenas .doc, .docx ou .pdf.'
     feedbackIsError.value = true
     return
   }
-
   selectedHistoryDoc.value = file
   requestedHistoryDocumentName.value = file.name
   feedback.value = ''
   feedbackIsError.value = false
 }
-
 async function openHistoryDocument(pathOrUrl: string) {
   try {
     const signedUrl = await getHistoryDocumentSignedUrl(pathOrUrl)
     window.open(signedUrl, '_blank', 'noopener')
-  } catch {
-    feedback.value = 'Nao foi possivel abrir o documento privado.'
-    feedbackIsError.value = true
-  }
+  } catch { feedback.value = 'Não foi possível abrir o documento.'; feedbackIsError.value = true }
 }
 
 function getRequestedCharacterId() {
   const queryId = String(route.query.characterId ?? '').trim()
   if (queryId) return queryId
-
   return String(authStore.idPersonagemAtivo ?? '').trim()
 }
 
@@ -765,29 +1012,13 @@ function setLoadError(err: unknown, fallbackMessage: string) {
   const maybeError = err as { message?: string; code?: string; response?: { status?: number } }
   const status = maybeError?.response?.status
   const message = String(maybeError?.message ?? '')
-
   error.value = fallbackMessage
   errorHint.value = ''
-
-  if (status === 401) {
-    error.value = 'Sua sessao expirou ou nao esta autorizada.'
-    errorHint.value = 'Faca login novamente para continuar.'
-    return
-  }
-
-  if (status === 404) {
-    error.value = 'Este personagem nao foi encontrado.'
-    errorHint.value = 'Ele pode ter sido removido ou voce pode nao ter permissao para acessa-lo.'
-    return
-  }
-
-  if (
-    maybeError?.code === 'ECONNABORTED' ||
-    message.includes('Network Error') ||
-    message.includes('timeout')
-  ) {
-    error.value = 'Falha de conexao com o servidor.'
-    errorHint.value = 'Verifique a API e tente novamente em alguns segundos.'
+  if (status === 401) { error.value = 'Sua sessão expirou ou não está autorizada.'; errorHint.value = 'Faça login novamente.' }
+  else if (status === 404) { error.value = 'Este personagem não foi encontrado.'; errorHint.value = 'Ele pode ter sido removido.' }
+  else if (maybeError?.code === 'ECONNABORTED' || message.includes('Network Error') || message.includes('timeout')) {
+    error.value = 'Falha de conexão com o servidor.'
+    errorHint.value = 'Verifique a API e tente novamente.'
   }
 }
 
@@ -795,7 +1026,6 @@ async function loadCharacter() {
   loading.value = true
   error.value = ''
   errorHint.value = ''
-
   let characterId = getRequestedCharacterId()
 
   if (!characterId && !authStore.eMestre) {
@@ -806,18 +1036,12 @@ async function loadCharacter() {
         authStore.definirPersonagemAtivo(characterId)
         await router.replace({ name: 'dashboard', query: { characterId } })
       }
-    } catch {
-      // Keep normal error handling below if we still don't have a character id.
-    }
+    } catch { /* keep error handling below */ }
   }
 
   if (!characterId) {
-    error.value = authStore.eMestre
-      ? 'Personagem nao informado para visualizacao.'
-      : 'Nenhum personagem disponivel para esta conta.'
-    errorHint.value = authStore.eMestre
-      ? 'Abra um personagem a partir da lista para continuar.'
-      : 'Crie ou selecione um personagem na tela inicial.'
+    error.value = authStore.eMestre ? 'Personagem não informado para visualização.' : 'Nenhum personagem disponível.'
+    errorHint.value = authStore.eMestre ? 'Abra um personagem a partir do painel.' : 'Crie ou selecione um personagem.'
     loading.value = false
     return
   }
@@ -826,148 +1050,371 @@ async function loadCharacter() {
     character.value = await charactersStore.fetchCharacterById(characterId)
     authStore.definirPersonagemAtivo(characterId)
     initializeSettingsForm()
+    await loadNotifications(characterId)
   } catch (err) {
     const maybeError = err as { response?: { status?: number } }
-
-    // If the stored/query character no longer exists, recover by loading first available one.
     if (!authStore.eMestre && maybeError?.response?.status === 404) {
       try {
         await charactersStore.fetchCharacters()
-        const fallbackCharacterId = charactersStore.myCharacters[0]?.characterId ?? ''
-
-        if (fallbackCharacterId) {
-          authStore.definirPersonagemAtivo(fallbackCharacterId)
-          await router.replace({ name: 'dashboard', query: { characterId: fallbackCharacterId } })
-          character.value = await charactersStore.fetchCharacterById(fallbackCharacterId)
+        const fallbackId = charactersStore.myCharacters[0]?.characterId ?? ''
+        if (fallbackId) {
+          authStore.definirPersonagemAtivo(fallbackId)
+          await router.replace({ name: 'dashboard', query: { characterId: fallbackId } })
+          character.value = await charactersStore.fetchCharacterById(fallbackId)
           initializeSettingsForm()
+          await loadNotifications(fallbackId)
           return
         }
-      } catch {
-        // Keep generic error handling below if fallback cannot be resolved.
-      }
+      } catch { /* keep generic error below */ }
     }
-
-    setLoadError(err, 'Nao foi possivel carregar este personagem.')
-  } finally {
-    loading.value = false
-  }
+    setLoadError(err, 'Não foi possível carregar este personagem.')
+  } finally { loading.value = false }
 }
 
-async function retryLoad() {
-  await loadCharacter()
-}
-
-onMounted(async () => {
+async function retryLoad() { await loadCharacter() }
+onMounted(async () => { await loadCharacter() })
+watch(() => route.query.characterId, async (next, prev) => {
+  if (String(next ?? '') === String(prev ?? '')) return
   await loadCharacter()
 })
-
-watch(
-  () => route.query.characterId,
-  async (next, prev) => {
-    if (String(next ?? '') === String(prev ?? '')) return
-    await loadCharacter()
-  },
-)
 </script>
 
 <style scoped>
-.dashboard-header {
-  border-color: var(--border-soft);
-  background: color-mix(in srgb, var(--bg-card) 88%, transparent 12%);
-  backdrop-filter: blur(8px);
-}
+/* ── Font ── */
+.font-cinzel { font-family: 'Cinzel', serif; }
 
-.header-title {
-  color: var(--brand-primary);
-}
-
-.header-link {
-  color: var(--text-muted);
-}
-
-.header-link:hover {
+/* ── Page shell ── */
+.dash-root {
+  background: var(--bg-page);
   color: var(--text-main);
 }
+.dash-ambient {
+  background: linear-gradient(135deg, #0F1C3A 0%, #1A2438 50%, rgba(42,27,74,0.5) 100%);
+}
+:global(html.theme-light) .dash-ambient { display: none; }
 
-.character-panel {
+/* ── Header ── */
+.dash-header {
+  background: color-mix(in srgb, var(--bg-page) 75%, transparent);
+  border-color: var(--border-soft);
+}
+
+/* ── Icon buttons ── */
+.dash-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.3rem;
+  height: 2.3rem;
+  border-radius: 0.75rem;
+  color: var(--text-muted);
+  transition: background 0.15s, color 0.15s;
+}
+.dash-icon-btn:hover { background: var(--accent-soft); color: var(--text-main); }
+
+/* ── Notification dot ── */
+.notif-dot {
+  position: absolute;
+  top: 0.2rem;
+  right: 0.2rem;
+  min-width: 1rem;
+  height: 1rem;
+  border-radius: 999px;
+  background: #f59e0b;
+  color: #000;
+  font-size: 0.55rem;
+  font-weight: 800;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.2rem;
+}
+
+/* ── Dropdown panel ── */
+.dropdown-panel {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  z-index: 50;
+  border-radius: 1rem;
+  border: 1px solid var(--border-soft);
+  background: color-mix(in srgb, var(--bg-card) 97%, #fff 3%);
+  box-shadow: 0 20px 40px rgb(0 0 0 / 0.25);
+  overflow: hidden;
+}
+.dropdown-item {
+  display: block;
+  width: 100%;
+  border-radius: 0.65rem;
+  padding: 0.55rem 0.85rem;
+  text-align: left;
+  font-size: 0.875rem;
+  color: var(--text-main);
+  transition: background 0.12s;
+}
+.dropdown-item:hover { background: var(--accent-soft); }
+
+/* ── Cards ── */
+.dash-card {
+  border-radius: 1rem;
+  border: 1px solid var(--border-soft);
   background: var(--bg-card);
 }
 
-.avatar-placeholder {
-  background: var(--bg-soft);
+/* ── Portrait ── */
+.dash-portrait-card {
+  border-radius: 1.25rem;
+  border: 1px solid var(--border-soft);
+  background: var(--bg-card);
+  box-shadow: 0 8px 32px rgb(0 0 0 / 0.2);
+  overflow: hidden;
+}
+.dash-avatar-empty { background: var(--bg-soft); }
+
+/* ── Tiny label ── */
+.dash-tiny-label {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+.dash-section-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
   color: var(--text-muted);
 }
 
-.inventory-btn {
-  background: var(--bg-soft);
-  color: var(--text-main);
+/* ── Manage button ── */
+.dash-manage-btn {
+  font-family: 'Cinzel', serif;
+  border: 1px solid var(--border-soft);
+  background: var(--bg-card);
+  color: var(--text-muted);
 }
+.dash-manage-btn:hover { background: var(--accent-soft); color: var(--text-main); }
 
-.inventory-btn:hover {
-  background: var(--accent-soft);
+/* ── Tab nav ── */
+.dash-tab-nav {
+  background: color-mix(in srgb, var(--bg-soft) 80%, transparent);
+  border-color: var(--border-soft);
 }
-
-.management-btn {
-  background: linear-gradient(90deg, var(--brand-primary), var(--brand-primary-strong));
+.dash-tab-active {
+  background: var(--brand-primary);
   color: #fff;
-  box-shadow: 0 12px 22px rgb(79 70 229 / 0.28);
+  box-shadow: 0 2px 8px rgb(79 70 229 / 0.3);
 }
+.dash-tab-inactive { color: var(--text-muted); }
+.dash-tab-inactive:hover { background: var(--accent-soft); color: var(--text-main); }
 
-.management-btn:hover {
-  filter: brightness(1.04);
-}
-
-.notes-panel {
+/* ── Inventory ── */
+.inv-count-badge {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
   background: var(--bg-soft);
 }
 
-.notes-body {
-  color: color-mix(in srgb, var(--text-main) 82%, #64748b 18%);
+.inv-input {
+  background: var(--bg-soft);
+  border: 1px solid var(--border-soft);
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--text-main);
+  outline: none;
+  transition: border-color 0.15s;
+  width: 100%;
+}
+.inv-input:focus { border-color: var(--ring-soft); }
+.inv-input::placeholder { color: var(--text-muted); opacity: 0.5; }
+
+.inv-add-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.5rem;
+  height: 2.5rem;
+  background: rgb(180 83 9 / 0.7);
+  border-radius: 0.75rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.inv-add-btn:hover { background: rgb(180 83 9 / 0.9); }
+
+.inv-empty {
+  text-align: center;
+  padding: 2rem 0;
+  font-size: 0.8rem;
+  font-style: italic;
+  color: var(--text-muted);
+  opacity: 0.6;
 }
 
-:global(html.theme-light) .notes-panel h3 {
-  color: var(--brand-primary) !important;
+.inv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 22rem;
+  overflow-y: auto;
+  padding-right: 2px;
 }
 
-:global(html.theme-dark) .dashboard-header {
-  background: rgb(2 6 23 / 0.68);
+.inv-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: var(--bg-soft);
+  border: 1px solid var(--border-soft);
+  border-radius: 0.75rem;
+  padding: 0.55rem 0.75rem;
 }
 
-:global(html.theme-dark) .header-link {
-  color: #cbd5e1;
+.qty-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #fbbf24;
+  background: rgba(120, 53, 15, 0.3);
+  border: 1px solid rgba(180, 83, 9, 0.25);
+  border-radius: 999px;
+  padding: 0.1rem 0.45rem;
+  flex-shrink: 0;
 }
 
-:global(html.theme-dark) .header-link:hover {
-  color: #f8fafc;
+.inv-remove {
+  color: var(--text-muted);
+  flex-shrink: 0;
+  opacity: 0.5;
+  transition: opacity 0.15s, color 0.15s;
+  line-height: 0;
+}
+.inv-remove:hover { opacity: 1; color: #f87171; }
+
+/* ── Backpack button ── */
+.backpack-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.3rem;
+  height: 2.3rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border-soft);
+  background: var(--bg-soft);
+  color: var(--text-muted);
+  transition: all 0.15s;
+}
+.backpack-btn:hover, .backpack-btn-active {
+  border-color: var(--ring-soft);
+  background: var(--accent-soft);
+  color: var(--brand-primary);
+}
+.backpack-badge {
+  position: absolute;
+  top: -0.3rem;
+  right: -0.3rem;
+  min-width: 1rem;
+  height: 1rem;
+  border-radius: 999px;
+  background: var(--brand-primary);
+  color: #fff;
+  font-size: 0.55rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.2rem;
 }
 
-:global(html.theme-dark) .character-panel {
-  background: #111a2d;
+/* ── Manage character panel ── */
+.manage-panel {
+  background: var(--bg-card);
+  box-shadow: -8px 0 40px rgb(0 0 0 / 0.3);
 }
+.manage-panel-header {
+  background: color-mix(in srgb, var(--bg-card) 95%, transparent);
+  border-color: var(--border-soft);
+  backdrop-filter: blur(8px);
+}
+.manage-panel-footer {
+  background: color-mix(in srgb, var(--bg-card) 95%, transparent);
+  border-color: var(--border-soft);
+  backdrop-filter: blur(8px);
+}
+.manage-close-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.6rem;
+  border: 1px solid var(--border-soft);
+  color: var(--text-muted);
+  transition: all 0.15s;
+}
+.manage-close-btn:hover { background: var(--accent-soft); color: var(--text-main); }
 
-:global(html.theme-dark) .avatar-placeholder {
-  background: #0f1c3a;
-  color: #64748b;
+.manage-field-label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
 }
+.manage-current-value {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  background: var(--bg-soft);
+  border: 1px solid var(--border-soft);
+  border-radius: 0.75rem;
+  padding: 0.6rem 0.85rem;
+  line-height: 1.5;
+}
+.manage-input {
+  width: 100%;
+  border-radius: 0.85rem;
+  border: 1px solid var(--border-soft);
+  background: var(--bg-soft);
+  padding: 0.65rem 0.9rem;
+  color: var(--text-main);
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.15s;
+  resize: vertical;
+}
+.manage-input:focus { border-color: var(--ring-soft); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring-soft) 20%, transparent); }
+.manage-input::placeholder { color: var(--text-muted); opacity: 0.5; }
 
-:global(html.theme-dark) .inventory-btn {
-  background: #0f1c3a;
-  color: #cbd5e1;
+.manage-upload-zone {
+  border: 2px dashed var(--border-soft);
+  border-radius: 1rem;
+  padding: 1rem;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
 }
+.manage-upload-zone:hover { border-color: var(--ring-soft); background: var(--accent-soft); }
+.manage-upload-empty { display: flex; align-items: center; justify-content: center; min-height: 4.5rem; }
+.manage-upload-preview { border-style: solid; border-color: var(--border-soft); }
 
-:global(html.theme-dark) .inventory-btn:hover {
-  background: #1a2438;
-}
+/* ── Transitions ── */
+.dropdown-enter-active,
+.dropdown-leave-active { transition: opacity 0.15s ease, transform 0.15s ease; }
+.dropdown-enter-from,
+.dropdown-leave-to { opacity: 0; transform: translateY(-6px) scale(0.98); }
 
-:global(html.theme-dark) .management-btn {
-  box-shadow: 0 12px 22px rgb(12 16 40 / 0.55);
-}
-
-:global(html.theme-dark) .notes-panel {
-  background: rgb(26 36 56 / 0.8);
-}
-
-:global(html.theme-dark) .notes-body {
-  color: #d1d9e6;
-}
+.manage-slide-enter-active,
+.manage-slide-leave-active { transition: opacity 0.25s ease; }
+.manage-slide-enter-active .manage-panel,
+.manage-slide-leave-active .manage-panel { transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1); }
+.manage-slide-enter-from .manage-panel,
+.manage-slide-leave-to .manage-panel { transform: translateX(100%); }
+.manage-slide-enter-from,
+.manage-slide-leave-to { opacity: 0; }
 </style>

@@ -463,7 +463,9 @@ const navItems = [
   { id: 'skills',    label: 'Skills' },
   { id: 'titulos',   label: 'Titulos' },
   { id: 'classes',   label: 'Classes' },
-  { id: 'notas',     label: 'Notas de Aventura' },
+  { id: 'racas', label: 'Raças' },
+  { id: 'equipamentos', label: 'Equipamentos' },
+  { id: 'notas',        label: 'Notas de Aventura' },
 ]
 
 function handleNavSelect(itemId: string) {
@@ -471,13 +473,14 @@ function handleNavSelect(itemId: string) {
   const characterId = String(route.query.characterId ?? authStore.idPersonagemAtivo ?? '')
   const withChar = (path: string) => characterId ? { path, query: { characterId } } : { path }
   const map: Record<string, any> = {
-    dashboard: characterId ? { name: 'dashboard', query: { characterId } } : { name: 'dashboard' },
-    deuses:    { path: '/deuses' },
-    cidade:    withChar('/cidade'),
-    skills:    withChar('/skills'),
-    titulos:   withChar('/titulos'),
-    classes:   withChar('/classes'),
-    notas:     withChar('/notas'),
+    dashboard:    characterId ? { name: 'dashboard', query: { characterId } } : { name: 'dashboard' },
+    deuses:       { path: '/deuses' },
+    cidade:       withChar('/cidade'),
+    skills:       withChar('/skills'),
+    titulos:      withChar('/titulos'),
+    classes:      withChar('/classes'),
+    equipamentos: withChar('/equipamentos'),
+    notas:        withChar('/notas'),
   }
   if (map[itemId]) router.push(map[itemId])
 }
@@ -520,9 +523,13 @@ onBeforeUnmount(() => {
 
 /* ── Header ── */
 .notas-header {
-  border-color: var(--border-soft, #ffffff15);
-  background: color-mix(in srgb, #0A0F1C 88%, transparent 12%);
+  border-color: var(--border-soft);
+  background: color-mix(in srgb, var(--bg-card) 88%, transparent 12%);
   backdrop-filter: blur(8px);
+}
+
+:global(html.theme-dark) .notas-header {
+  background: rgb(2 6 23 / 0.68);
 }
 
 .notas-title { color: #c8a050; text-shadow: 0 0 20px #c8a05040; }

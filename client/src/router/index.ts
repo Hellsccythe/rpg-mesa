@@ -2,7 +2,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { supabase } from '@/lib/supabase/client'
 import { limparMetaAuthLocal, obterMetaAuthLocal, sessaoLocalExpirada } from '@/stores/auth'
-import DeusesView from '@/views/DeusesView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -21,7 +20,7 @@ const router = createRouter({
     {
       path: '/deuses',
       name: 'deuses',
-      component: DeusesView,
+      component: () => import('@/views/DeusesView.vue'),
       meta: { requiresAuth: false },
     },
     {
@@ -77,6 +76,30 @@ const router = createRouter({
       name: 'master-characters',
       component: () => import('@/views/MasterCharactersView.vue'),
       meta: { requiresAuth: true, requiresMaster: true },
+    },
+    {
+      path: '/master/armas',
+      name: 'master-weapons',
+      component: () => import('@/views/MasterWeaponsView.vue'),
+      meta: { requiresAuth: true, requiresMaster: true },
+    },
+    {
+      path: '/master/racas',
+      name: 'master-racas',
+      component: () => import('@/views/MasterRacasView.vue'),
+      meta: { requiresAuth: true, requiresMaster: true },
+    },
+    {
+      path: '/equipamentos',
+      name: 'equipamentos',
+      component: () => import('@/views/EquipamentosView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/racas',
+      name: 'racas',
+      component: () => import('@/views/RacasView.vue'),
+      meta: { requiresAuth: true },
     },
   ],
 })
