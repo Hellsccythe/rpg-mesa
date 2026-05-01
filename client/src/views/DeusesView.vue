@@ -47,6 +47,13 @@
                 Personagem
               </button>
               <button
+                v-if="lojaAuth.eMestre"
+                @click="irParaPainel"
+                class="block w-full rounded-xl px-4 py-2 text-left text-amber-300 transition-colors hover:bg-amber-950/40"
+              >
+                Painel do Mestre
+              </button>
+              <button
                 @click="sair"
                 class="block w-full rounded-xl px-4 py-2 text-left text-red-300 transition-colors hover:bg-red-950/60"
               >
@@ -397,6 +404,11 @@
               <h3 class="uppercase texmber-400 text-sm tracking-widest mb-3">Armas Favorecidas</h3>
               <p class="text-amber-300">{{ dadosDeusSelecionado.weapons }}</p>
             </div>
+
+            <div v-if="infoAdicionalDeusSelecionado" class="rounded-2xl border border-amber-600/30 bg-amber-950/20 p-4">
+              <h3 class="uppercase text-amber-400 text-xs tracking-widest mb-2">Informações Adicionais</h3>
+              <p class="text-amber-200 text-sm leading-relaxed whitespace-pre-wrap">{{ infoAdicionalDeusSelecionado }}</p>
+            </div>
           </div>
         </div>
 
@@ -421,6 +433,7 @@ import TemaDarkLight from '@/components/TemaDarkLight.vue'
 import HamburgerDrawerMenu from '@/components/HamburgerDrawerMenu.vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useCharactersStore } from '@/stores/characters'
 import { listPublicGods as listarDeusesPublicos } from '@/lib/api/gods.api'
 import type { GodApi } from '@/types/supabase'
 import pharasmaImage from '@/assets/images/pharasma.png'
@@ -447,9 +460,17 @@ import lirielImage from '@/assets/images/Liriel.png'
 const roteador = useRouter()
 const rota = useRoute()
 const lojaAuth = useAuthStore()
+const lojaPersonagens = useCharactersStore()
 const deusSelecionado = ref<number | null>(null)
 const mostrarMenuConfiguracoes = ref(false)
 const temaClaroAtivo = ref(false)
+const godInfoPersonagem = ref<Record<string, { text: string; addedAt: string }>>({})
+
+const infoAdicionalDeusSelecionado = computed(() => {
+  const god = dadosDeusSelecionado.value as any
+  if (!god?.godId) return null
+  return godInfoPersonagem.value[god.godId]?.text ?? null
+})
 const filtroNome = ref('')
 type AlignmentFilter = 'all' | 'good' | 'neutral' | 'evil' | 'neutral-good' | 'neutral-evil'
 
@@ -474,6 +495,8 @@ const itensMenuCabecalhoDeuses = [
   { id: 'skills', label: 'Skills' },
   { id: 'titulos', label: 'Titulos' },
   { id: 'classes', label: 'Classes' },
+  { id: 'racas', label: 'Raças' },
+  { id: 'equipamentos', label: 'Equipamentos' },
   { id: 'npcs', label: 'NPCs' },
   { id: 'notas', label: 'Notas' },
 ]
@@ -894,6 +917,7 @@ const mapApiGodToDisplayGod = (god: Partial<GodApi> | null | undefined) => {
   )
 
   return {
+    godId: (source as any).id ?? null,
     name: pickFirstText(source.name, fallbackGod?.name, 'Sem nome'),
     title: pickFirstText(source.title, fallbackGod?.title),
     alinhamento: pickFirstText(source.indole, fallbackGod?.alinhamento, 'Neutro'),
@@ -971,6 +995,11 @@ const irParaDashboard = () => {
   })
 }
 
+const irParaPainel = () => {
+  fecharMenuConfiguracoes()
+  roteador.push({ name: 'master-panel' })
+}
+
 async function aoSelecionarMenuCabecalho(itemId: string) {
   fecharMenuConfiguracoes()
 
@@ -995,6 +1024,8 @@ async function aoSelecionarMenuCabecalho(itemId: string) {
     titulos: '/titulos',
     classes: '/classes',
     npcs: '/npcs',
+    racas: '/racas',
+    equipamentos: '/equipamentos',
     notas: '/notas',
   }
 
@@ -1160,6 +1191,20 @@ function sincronizarTemaHtml() {
   temaClaroAtivo.value = document.documentElement.classList.contains('theme-light')
 }
 
+async function carregarInfoDeusPersonagem() {
+  const charId = lojaAuth.idPersonagemAtivo
+  if (!charId) return
+  try {
+    const char = await lojaPersonagens.fetchCharacterById(charId)
+    const info = (char as any)?.data?.godAdditionalInfo
+    if (info && typeof info === 'object') {
+      godInfoPersonagem.value = info
+    }
+  } catch {
+    // silently ignore — additional info is optional
+  }
+}
+
 onMounted(() => {
   sincronizarTemaHtml()
   observadorTema = new MutationObserver(sincronizarTemaHtml)
@@ -1169,6 +1214,7 @@ onMounted(() => {
   })
 
   buscarDeusesPublicos()
+  carregarInfoDeusPersonagem()
   window.addEventListener('keydown', aoPressionarTeclaJanela)
   window.addEventListener('click', aoClicarJanela)
 })

@@ -5,7 +5,7 @@ import {
   PERSONAGEM_TABLE,
   mapPersonagem,
 } from "../../models/personagem.model.js";
-import type { AdicionarSkillPersonagemDto } from "./skill.dto.js";
+import type { AdicionarSkillPersonagemDto, CriarSkillCatalogoDto } from "./skill.dto.js";
 
 function normalizeData(data: Record<string, any> | null | undefined) {
   if (!data || typeof data !== "object") return {} as Record<string, any>;
@@ -30,6 +30,24 @@ export const skillService = {
       if (error) throw error;
       return data ?? [];
     }
+  },
+
+  async criarNoCatalogo(dto: CriarSkillCatalogoDto, accessToken?: string) {
+    await ensureMasterAccess(accessToken);
+    const admin = getAdminClient();
+    const { data, error } = await admin
+      .from("skills")
+      .insert({
+        name: dto.name.trim(),
+        description: dto.description?.trim() ?? null,
+        type: dto.type?.trim() ?? null,
+        category: dto.category?.trim() ?? null,
+        raca_vinculada: dto.raca_vinculada?.trim() ?? null,
+      })
+      .select("*")
+      .single();
+    if (error) throw error;
+    return data;
   },
 
   async adicionarEmPersonagem(

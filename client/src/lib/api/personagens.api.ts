@@ -124,6 +124,18 @@ export async function deleteCharacterAsMaster(characterId: string) {
   return data
 }
 
+export async function setCharacterGodInfo(
+  characterId: string,
+  godId: string,
+  text: string,
+) {
+  const { data } = await api.patch<PersonagemApi>(
+    `/personagens/admin/${characterId}/god-info/${godId}`,
+    { text },
+  )
+  return data
+}
+
 export async function verificarSeMestre(): Promise<boolean> {
   try {
     await api.get('/personagens/admin/verificar-mestre')

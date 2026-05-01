@@ -24,6 +24,18 @@ SkillRouter.get("/catalogo", async (req, res) => {
   }
 });
 
+SkillRouter.post("/admin/catalogo", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    const resultado = await skillService.criarNoCatalogo(req.body, token);
+    res.status(201).json(resultado);
+  } catch (error: any) {
+    const status =
+      error?.message?.includes("autenticado") || error?.message?.includes("restrito") ? 401 : 400;
+    res.status(status).json({ message: error?.message ?? "Erro ao criar skill" });
+  }
+});
+
 SkillRouter.post("/admin/personagens/:characterId", async (req, res) => {
   try {
     const token = getBearerToken(req.headers.authorization);

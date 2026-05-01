@@ -496,6 +496,8 @@ const itensMenuCabecalhoCidade = [
   { id: 'titulos', label: 'Titulos' },
   { id: 'classes', label: 'Classes' },
   { id: 'npcs', label: 'NPCs' },
+  { id: 'racas', label: 'Raças' },
+  { id: 'equipamentos', label: 'Equipamentos' },
   { id: 'notas', label: 'Notas' },
 ]
 
@@ -581,6 +583,8 @@ async function aoSelecionarMenuCabecalho(itemId: string) {
     titulos: '/titulos',
     classes: '/classes',
     npcs: '/npcs',
+    racas: '/racas',
+    equipamentos: '/equipamentos',
     notas: '/notas',
   }
 

@@ -1,6 +1,6 @@
 <template>
-  <div class="relative min-h-screen overflow-hidden bg-[#0A0F1C] text-white">
-    <div class="absolute inset-0 bg-gradient-to-br from-[#0F1C3A] via-[#1A2438] to-[#2A1B4A]/80" />
+  <div class="mgv-root relative min-h-screen overflow-hidden bg-[#0A0F1C] text-white">
+    <div class="mgv-bg absolute inset-0 bg-gradient-to-br from-[#0F1C3A] via-[#1A2438] to-[#2A1B4A]/80" />
 
     <TemaDarkLight variante="contexto" class="relative z-10 min-h-screen px-4 py-6 sm:px-6 sm:py-8">
       <div class="mx-auto max-w-7xl space-y-6">
@@ -8,7 +8,7 @@
           <div>
             <button
               @click="goMasterPanel"
-              class="mb-3 inline-flex items-center gap-2 rounded-xl border border-[#6B4E9E]/45 px-3 py-1.5 text-sm text-zinc-200 transition-colors hover:bg-[#2A1B4A]"
+              class="mgv-back-btn mb-3 inline-flex items-center gap-2 rounded-xl border border-[#6B4E9E]/45 px-3 py-1.5 text-sm text-zinc-200 transition-colors hover:bg-[#2A1B4A]"
             >
               <span class="text-xl">‹</span>
               <span>Voltar ao Painel</span>
@@ -28,7 +28,7 @@
           </div>
         </header>
 
-        <section class="rounded-3xl border border-[#6B4E9E]/40 bg-[#111A2D]/80 p-5 sm:p-6">
+        <section class="mgv-filter-section rounded-3xl border border-[#6B4E9E]/40 bg-[#111A2D]/80 p-5 sm:p-6">
           <div class="grid grid-cols-1 gap-3 lg:grid-cols-12">
             <div class="lg:col-span-5">
               <label class="mb-2 block text-xs uppercase tracking-wide text-zinc-500"
@@ -88,18 +88,18 @@
             :key="god.id"
             @click="selectCard(god.id)"
             :class="[
-              'cursor-pointer rounded-3xl border bg-[#111A2D]/80 transition-colors',
+              'mgv-card cursor-pointer rounded-3xl border bg-[#111A2D]/80 transition-colors',
               selectedCardId === god.id
                 ? 'border-amber-400/70 shadow-lg shadow-amber-900/20'
                 : 'border-[#6B4E9E]/40 hover:border-[#6B4E9E]/70',
             ]"
           >
             <div
-              class="relative h-52 overflow-hidden rounded-t-3xl border-b border-[#6B4E9E]/35 bg-[#0B1426]"
+              class="mgv-card-img-wrap relative h-52 overflow-hidden rounded-t-3xl border-b border-[#6B4E9E]/35 bg-[#0B1426]"
             >
               <img
-                v-if="draftFor(god.id).imageUrl"
-                :src="draftFor(god.id).imageUrl"
+                v-if="draftFor(god.id).imageUrl || godImageFor(draftFor(god.id).name)"
+                :src="draftFor(god.id).imageUrl || godImageFor(draftFor(god.id).name)"
                 :alt="draftFor(god.id).name || 'Imagem do deus'"
                 loading="lazy"
                 class="h-full w-full object-cover"
@@ -112,10 +112,10 @@
                 class="absolute inset-0 bg-gradient-to-t from-black/65 via-black/15 to-transparent"
               />
               <div class="absolute inset-x-0 bottom-0 px-4 pb-3">
-                <h2 class="text-2xl font-bold text-white">
+                <h2 class="mgv-overlay-name text-2xl font-bold">
                   {{ draftFor(god.id).name || 'Sem nome' }}
                 </h2>
-                <p class="text-sm text-zinc-300">{{ draftFor(god.id).title || 'Sem titulo' }}</p>
+                <p class="mgv-overlay-title text-sm text-zinc-300">{{ draftFor(god.id).title || 'Sem titulo' }}</p>
               </div>
             </div>
 
@@ -326,6 +326,27 @@ import { useAuthStore } from '@/stores/auth'
 import { useMasterCatalogStore } from '@/stores/masterCatalog'
 import { uploadGodImage } from '@/lib/api/gods.api'
 import type { GodApi } from '@/types/supabase'
+import pharasmaImage from '@/assets/images/pharasma.png'
+import asmodeusImage from '@/assets/images/asmodeus.png'
+import inariImage from '@/assets/images/Inari.png'
+import iomedaeImage from '@/assets/images/iomedae.png'
+import sarenraeImage from '@/assets/images/sarenrae.png'
+import zonKuthonImage from '@/assets/images/Zon-Kuthon.jpg'
+import norgorberImage from '@/assets/images/Norgorber.jpg'
+import gorumImage from '@/assets/images/Gorum.jpg'
+import urgathoaImage from '@/assets/images/Urgathoa.png'
+import rovagugImage from '@/assets/images/Rovagug.jpg'
+import calistriaImage from '@/assets/images/Calistria.png'
+import mrthosImage from '@/assets/images/Morthos.png'
+import vesperaImage from '@/assets/images/Vespera.png'
+import desnaImage from '@/assets/images/Desna.png'
+import shelynImage from '@/assets/images/Shelyn.png'
+import erastilImage from '@/assets/images/erastil.jpg'
+import caydenCaileanImage from '@/assets/images/Cayden Cailean.png'
+import kurgessImage from '@/assets/images/Kurgess.jpg'
+import torakImage from '@/assets/images/Torak.jpg'
+import lirielImage from '@/assets/images/Liriel.png'
+import zephyrosImage from '@/assets/images/Zephyros.png'
 
 type GodFormState = {
   name: string
@@ -434,6 +455,35 @@ const GOD_IMAGE_POSITION_BY_NAME: Record<string, string> = {
 function getGodImagePosition(name: string) {
   const key = (name || '').trim().toLowerCase()
   return GOD_IMAGE_POSITION_BY_NAME[key] || '50% 24%'
+}
+
+const GOD_IMAGES: Record<string, string> = {
+  pharasma: pharasmaImage,
+  asmodeus: asmodeusImage,
+  inari: inariImage,
+  iomedae: iomedaeImage,
+  sarenrae: sarenraeImage,
+  'zon-kuthon': zonKuthonImage,
+  norgorber: norgorberImage,
+  gorum: gorumImage,
+  urgathoa: urgathoaImage,
+  rovagug: rovagugImage,
+  calistria: calistriaImage,
+  morthos: mrthosImage,
+  vespera: vesperaImage,
+  desna: desnaImage,
+  shelyn: shelynImage,
+  erastil: erastilImage,
+  'cayden cailean': caydenCaileanImage,
+  kurgess: kurgessImage,
+  torak: torakImage,
+  liriel: lirielImage,
+  zephyros: zephyrosImage,
+}
+
+function godImageFor(name: string): string {
+  if (!name) return ''
+  return GOD_IMAGES[(name || '').trim().toLowerCase()] || ''
 }
 
 function toFormState(god: GodApi): GodFormState {
@@ -672,4 +722,38 @@ onMounted(async () => {
   line-height: 1;
 }
 
+/* ── Overlay image text — always white (sits on dark image gradient) ─────── */
+.mgv-overlay-name  { color: white !important; }
+.mgv-overlay-title { color: rgb(212 212 216) !important; }
+
+/* ══ Light mode ═════════════════════════════════════════════════════════════ */
+:global(html.theme-light) .mgv-root {
+  background: var(--bg-page);
+  color: var(--text-main);
+}
+:global(html.theme-light) .mgv-bg {
+  display: none;
+}
+:global(html.theme-light) .mgv-back-btn {
+  border-color: var(--border-soft);
+  color: var(--text-muted);
+  background: transparent;
+}
+:global(html.theme-light) .mgv-back-btn:hover {
+  background: var(--bg-soft);
+  color: var(--text-main);
+}
+:global(html.theme-light) .mgv-filter-section {
+  background: var(--bg-card);
+  border-color: var(--border-soft);
+}
+:global(html.theme-light) .mgv-card {
+  background: var(--bg-card) !important;
+  border-color: var(--border-soft) !important;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.06);
+}
+:global(html.theme-light) .mgv-card-img-wrap {
+  background: var(--bg-soft);
+  border-color: var(--border-soft);
+}
 </style>

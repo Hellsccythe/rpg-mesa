@@ -3,94 +3,79 @@
 @tailwind utilities;
 
 @layer base {
+  /* ── Light mode palette (default / :root) ──────────────────────────────── */
   :root {
-    --bg-page: #eef4f8;
-    --bg-card: #ffffff;
-    --bg-soft: #f6f9fc;
-    --text-main: #0f172a;
-    --text-muted: #475569;
-    --title-color: #4f46e5;
-    --brand-primary: #4f46e5;
-    --brand-primary-strong: #4338ca;
-    --accent-soft: #e0e7ff;
-    --border-soft: #dbe3f1;
-    --ring-soft: #a5b4fc;
-    --menu-bg: #ffffff;
-    --menu-text: #1e293b;
-    --menu-line: #4f46e5;
-    --toggle-bg: rgb(255 255 255 / 0.95);
-    --toggle-border: #dbe3f1;
-    --toggle-text: #334155;
+    --bg-page:             #f8fafc;
+    --bg-card:             #ffffff;
+    --bg-soft:             #f1f5f9;
+    --text-main:           #0f172a;
+    --text-muted:          #64748b;
+    --title-color:         #4f46e5;
+    --brand-primary:       #4f46e5;
+    --brand-primary-strong:#4338ca;
+    --accent-soft:         #e0e7ff;
+    --border-soft:         #e2e8f0;
+    --ring-soft:           #a5b4fc;
+    --menu-bg:             #ffffff;
+    --menu-text:           #1e293b;
+    --menu-line:           #4f46e5;
+    --toggle-bg:           rgb(255 255 255 / 0.95);
+    --toggle-border:       #e2e8f0;
+    --toggle-text:         #334155;
 
-    --ui-feedback-duration: 140ms;
-    --ui-feedback-ease: ease;
-    --ui-feedback-scale: 0.985;
+    --ui-feedback-duration:   140ms;
+    --ui-feedback-ease:       ease;
+    --ui-feedback-scale:      0.985;
     --ui-feedback-brightness: 0.96;
   }
 
-  html,
-  body,
-  #app {
-    min-height: 100%;
-  }
-
+  /* ── Dark mode palette ─────────────────────────────────────────────────── */
   html.theme-dark {
     color-scheme: dark;
-    --bg-page: #0b1220;
-    --bg-card: #111a2d;
-    --bg-soft: #0f172a;
-    --text-main: #e2e8f0;
-    --text-muted: #94a3b8;
-    --title-color: #a5b4fc;
-    --brand-primary: #818cf8;
-    --brand-primary-strong: #6366f1;
-    --accent-soft: #1e293b;
-    --border-soft: #334155;
-    --ring-soft: #818cf8;
-    --menu-bg: #0f172a;
-    --menu-text: #e2e8f0;
-    --menu-line: #a5b4fc;
-    --toggle-bg: rgb(15 23 42 / 0.95);
-    --toggle-border: #334155;
-    --toggle-text: #e2e8f0;
+    --bg-page:             #0b1220;
+    --bg-card:             #111a2d;
+    --bg-soft:             #0f172a;
+    --text-main:           #e2e8f0;
+    --text-muted:          #94a3b8;
+    --title-color:         #a5b4fc;
+    --brand-primary:       #818cf8;
+    --brand-primary-strong:#6366f1;
+    --accent-soft:         #1e293b;
+    --border-soft:         #334155;
+    --ring-soft:           #818cf8;
+    --menu-bg:             #0f172a;
+    --menu-text:           #e2e8f0;
+    --menu-line:           #a5b4fc;
+    --toggle-bg:           rgb(15 23 42 / 0.95);
+    --toggle-border:       #334155;
+    --toggle-text:         #e2e8f0;
   }
 
-  html.theme-light {
-    color-scheme: light;
-  }
+  html.theme-light { color-scheme: light; }
 
-  html.theme-light #app {
-    filter: none;
-  }
-
-  html.theme-dark #app {
-    filter: none;
-  }
+  html,
+  body,
+  #app { min-height: 100%; }
 
   body {
     color: var(--text-main);
     background: var(--bg-page);
   }
 
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
+  h1, h2, h3, h4, h5, h6 {
     font-family: 'Cinzel', serif;
     color: var(--title-color);
   }
 
   :where(button, a, [role='button'], .ui-clickable, .cursor-pointer) {
     transition:
-      transform var(--ui-feedback-duration) var(--ui-feedback-ease),
-      filter var(--ui-feedback-duration) var(--ui-feedback-ease),
-      opacity var(--ui-feedback-duration) var(--ui-feedback-ease),
-      box-shadow var(--ui-feedback-duration) var(--ui-feedback-ease),
+      transform      var(--ui-feedback-duration) var(--ui-feedback-ease),
+      filter         var(--ui-feedback-duration) var(--ui-feedback-ease),
+      opacity        var(--ui-feedback-duration) var(--ui-feedback-ease),
+      box-shadow     var(--ui-feedback-duration) var(--ui-feedback-ease),
       background-color var(--ui-feedback-duration) var(--ui-feedback-ease),
-      border-color var(--ui-feedback-duration) var(--ui-feedback-ease),
-      color var(--ui-feedback-duration) var(--ui-feedback-ease);
+      border-color   var(--ui-feedback-duration) var(--ui-feedback-ease),
+      color          var(--ui-feedback-duration) var(--ui-feedback-ease);
   }
 
   :where(button, a, [role='button'], .ui-clickable, .cursor-pointer):active {
@@ -105,102 +90,81 @@
   }
 }
 
-/* Remap frequently used legacy utility colors to the new palette. */
-.bg-\[\#0A0F1C\] {
-  background-color: var(--bg-page) !important;
-}
+/* ═══════════════════════════════════════════════════════════════════════════
+   LIGHT MODE — Tailwind utility class overrides
+   Escopo estrito em html.theme-light: dark mode completamente intocado.
+   ══════════════════════════════════════════════════════════════════════════ */
 
-.bg-\[\#111A2D\],
-.bg-\[\#111A2D\]\/80 {
-  background-color: var(--bg-card) !important;
-}
+/* ── Backgrounds de página ──────────────────────────────────────────────── */
+html.theme-light .bg-\[\#0A0F1C\]                { background-color: var(--bg-page) !important; }
 
-.bg-\[\#0F1C3A\]\/95,
-.bg-\[\#0F1C3A\]\/70,
-.bg-\[\#0F1C3A\]\/60,
-.bg-\[\#0b1426\],
-.bg-\[\#0B1426\],
-.bg-\[\#050A17\] {
-  background-color: var(--bg-soft) !important;
-}
+html.theme-light .bg-\[\#111A2D\],
+html.theme-light .bg-\[\#111A2D\]\/80            { background-color: var(--bg-card) !important; }
 
-.bg-zinc-950\/70,
-.bg-zinc-950\/80 {
-  background-color: var(--bg-card) !important;
-}
+html.theme-light .bg-\[\#0F1C3A\]\/95,
+html.theme-light .bg-\[\#0F1C3A\]\/70,
+html.theme-light .bg-\[\#0F1C3A\]\/60,
+html.theme-light .bg-\[\#0b1426\],
+html.theme-light .bg-\[\#0B1426\],
+html.theme-light .bg-\[\#050A17\]                { background-color: var(--bg-soft) !important; }
 
-.from-\[\#0F1C3A\],
-.from-\[\#2A1B4A\] {
+html.theme-light .bg-zinc-950\/70,
+html.theme-light .bg-zinc-950\/80                { background-color: var(--bg-card) !important; }
+
+/* ── Gradientes de ambient (overlays de fundo) ──────────────────────────── */
+html.theme-light .from-\[\#0F1C3A\],
+html.theme-light .from-\[\#2A1B4A\],
+html.theme-light .from-\[\#0C1829\] {
   --tw-gradient-from: var(--bg-page) var(--tw-gradient-from-position) !important;
-  --tw-gradient-to: transparent var(--tw-gradient-to-position) !important;
+  --tw-gradient-to:   transparent    var(--tw-gradient-to-position)   !important;
 }
 
-.via-\[\#1A2438\] {
-  --tw-gradient-to: transparent var(--tw-gradient-to-position) !important;
+html.theme-light .via-\[\#1A2438\],
+html.theme-light .via-\[\#0A0F1C\] {
   --tw-gradient-stops:
-    var(--tw-gradient-from), var(--bg-soft) var(--tw-gradient-via-position), var(--tw-gradient-to) !important;
+    var(--tw-gradient-from),
+    var(--bg-soft) var(--tw-gradient-via-position),
+    var(--tw-gradient-to) !important;
 }
 
-.to-\[\#2A1B4A\]\/80,
-.to-\[\#1A2438\] {
-  --tw-gradient-to: var(--bg-page) var(--tw-gradient-to-position) !important;
-}
+html.theme-light .to-\[\#2A1B4A\]\/80,
+html.theme-light .to-\[\#1A2438\],
+html.theme-light .to-\[\#160B27\],
+html.theme-light .to-\[\#1C0B0B\]               { --tw-gradient-to: var(--bg-page) var(--tw-gradient-to-position) !important; }
 
-.border-\[\#6B4E9E\]\/30,
-.border-\[\#6B4E9E\]\/35,
-.border-\[\#6B4E9E\]\/40,
-.border-\[\#6B4E9E\]\/45,
-.border-\[\#6B4E9E\]\/50 {
-  border-color: var(--border-soft) !important;
-}
+/* ── Bordas ─────────────────────────────────────────────────────────────── */
+html.theme-light .border-\[\#6B4E9E\]\/30,
+html.theme-light .border-\[\#6B4E9E\]\/35,
+html.theme-light .border-\[\#6B4E9E\]\/40,
+html.theme-light .border-\[\#6B4E9E\]\/45,
+html.theme-light .border-\[\#6B4E9E\]\/50        { border-color: var(--border-soft) !important; }
 
-.border-zinc-700\/50 {
-  border-color: var(--border-soft) !important;
-}
+html.theme-light .border-zinc-700\/50             { border-color: var(--border-soft) !important; }
 
-.text-\[\#C8D0E0\] {
-  color: var(--text-main) !important;
-}
+/* ── Texto ──────────────────────────────────────────────────────────────── */
+html.theme-light .text-\[\#C8D0E0\]              { color: var(--text-main) !important; }
 
-.text-white,
-.text-zinc-200,
-.text-zinc-300 {
-  color: var(--text-main) !important;
-}
+html.theme-light .text-white,
+html.theme-light .text-zinc-100,
+html.theme-light .text-zinc-200,
+html.theme-light .text-zinc-300                  { color: var(--text-main) !important; }
 
-.text-black {
-  color: var(--text-main) !important;
-}
+html.theme-light .text-zinc-400,
+html.theme-light .text-zinc-500                  { color: var(--text-muted) !important; }
 
-.text-zinc-400,
-.text-zinc-500 {
-  color: var(--text-muted) !important;
-}
+html.theme-light .text-black                     { color: var(--text-main) !important; }
 
-.hover\:bg-\[\#2A1B4A\]:hover {
-  background-color: var(--accent-soft) !important;
-}
+/* ── Hover / focus ──────────────────────────────────────────────────────── */
+html.theme-light .hover\:bg-\[\#2A1B4A\]:hover         { background-color: var(--accent-soft) !important; }
+html.theme-light .focus\:border-\[\#C8D0E0\]\/60:focus  { border-color: var(--ring-soft) !important; }
+html.theme-light .hover\:border-\[\#C8D0E0\]\/60:hover  { border-color: var(--ring-soft) !important; }
 
-.focus\:border-\[\#C8D0E0\]\/60:focus {
-  border-color: var(--ring-soft) !important;
-}
+/* ── Cores amber — invisíveis em fundos claros ──────────────────────────── */
+html.theme-light .text-amber-300,
+html.theme-light .text-amber-100                 { color: var(--brand-primary) !important; }
 
-.hover\:border-\[\#C8D0E0\]\/60:hover {
-  border-color: var(--ring-soft) !important;
-}
+html.theme-light .text-amber-200,
+html.theme-light .text-amber-200\/80             { color: #a16207 !important; }
 
-.text-amber-300 {
-  color: var(--brand-primary) !important;
-}
-
-.text-amber-100 {
-  color: var(--brand-primary) !important;
-}
-
-.border-amber-500\/50 {
-  border-color: var(--brand-primary) !important;
-}
-
-.hover\:bg-amber-900\/25:hover {
-  background-color: var(--accent-soft) !important;
-}
+html.theme-light .border-amber-500\/50            { border-color: var(--brand-primary) !important; }
+html.theme-light .hover\:bg-amber-900\/25:hover   { background-color: var(--accent-soft) !important; }

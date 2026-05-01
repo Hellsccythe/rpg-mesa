@@ -609,6 +609,8 @@ const navItems = [
   { id: 'titulos', label: 'Titulos' },
   { id: 'classes', label: 'Classes' },
   { id: 'npcs', label: 'NPCs' },
+  { id: 'racas', label: 'Raças' },
+  { id: 'equipamentos', label: 'Equipamentos' },
   { id: 'notas', label: 'Notas de Aventura' },
 ]
 
@@ -625,6 +627,8 @@ function handleNavSelect(itemId: string) {
     titulos: withCharId('/titulos'),
     classes: withCharId('/classes'),
     npcs: withCharId('/npcs'),
+    racas: withCharId('/racas'),
+    equipamentos: withCharId('/equipamentos'),
     notas: withCharId('/notas'),
   }
 

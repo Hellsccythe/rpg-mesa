@@ -28,6 +28,10 @@ async function initAuthWithFallback(timeoutMs = 4000) {
   }
 }
 
+app.config.errorHandler = (err, instance, info) => {
+  console.error('[Vue Error]', err, info)
+}
+
 app.use(pinia)
 app.use(router)
 app.component('v-select', VSelect)

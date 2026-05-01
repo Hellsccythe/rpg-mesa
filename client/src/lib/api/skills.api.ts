@@ -7,6 +7,7 @@ export interface SkillApi {
   description?: string | null
   type?: string | null
   category?: string | null
+  raca_vinculada?: string | null
   stat_bonuses?: Record<string, unknown> | string | null
   requirements?: Record<string, unknown> | string | null
   class_id?: string | number | null
@@ -14,8 +15,21 @@ export interface SkillApi {
   [key: string]: unknown
 }
 
+export interface CriarSkillPayload {
+  name: string
+  description?: string
+  type?: string
+  category?: string
+  raca_vinculada?: string
+}
+
 export async function listarCatalogoSkills(): Promise<SkillApi[]> {
   const { data } = await api.get<SkillApi[]>('/skills/catalogo')
+  return data
+}
+
+export async function criarSkillCatalogo(payload: CriarSkillPayload): Promise<SkillApi> {
+  const { data } = await api.post<SkillApi>('/skills/admin/catalogo', payload)
   return data
 }
 

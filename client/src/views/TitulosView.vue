@@ -285,6 +285,8 @@ const navItems = [
   { id: 'titulos', label: 'Títulos' },
   { id: 'classes', label: 'Classes' },
   { id: 'npcs', label: 'NPCs' },
+  { id: 'racas', label: 'Raças' },
+  { id: 'equipamentos', label: 'Equipamentos' },
   { id: 'notas', label: 'Notas de Aventura' },
 ]
 
@@ -301,6 +303,8 @@ function handleNavSelect(itemId: string) {
     titulos: withCharId('/titulos'),
     classes: withCharId('/classes'),
     npcs: withCharId('/npcs'),
+    racas: withCharId('/racas'),
+    equipamentos: withCharId('/equipamentos'),
     notas: withCharId('/notas'),
   }
 
@@ -541,6 +545,32 @@ onBeforeUnmount(() => {
 .tier-badge--comum {
   background: #292524;
   color: #a8a29e;
+  border: 1px solid #44403c40;
+}
+
+:global(html.theme-light) .tier-badge--lendario {
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #c2410c40;
+}
+:global(html.theme-light) .tier-badge--epico {
+  background: #f5f3ff;
+  color: #6d28d9;
+  border: 1px solid #7c3aed40;
+}
+:global(html.theme-light) .tier-badge--raro {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #3b82f640;
+}
+:global(html.theme-light) .tier-badge--incomum {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #16a34a40;
+}
+:global(html.theme-light) .tier-badge--comum {
+  background: #f4f4f5;
+  color: #3f3f46;
   border: 1px solid #44403c40;
 }
 </style>
