@@ -174,7 +174,7 @@ export const godService = {
     const client = getSupabaseClient();
     const { data, error } = await client
       .from("gods")
-      .select("id, name, description, data, created_at, updated_at")
+      .select("id, name, description, data, image_url, created_at, updated_at")
       .is("deleted_at", null)
       .order("created_at", { ascending: false });
 
@@ -188,7 +188,7 @@ export const godService = {
 
     const { data, error } = await admin
       .from("gods")
-      .select("id, name, description, data, created_at, updated_at")
+      .select("id, name, description, data, image_url, created_at, updated_at")
       .is("deleted_at", null)
       .order("created_at", { ascending: false });
 
@@ -207,7 +207,7 @@ export const godService = {
         description: dto.description?.trim() ?? "",
         data: toGodDetails(dto),
       })
-      .select("id, name, description, data, created_at, updated_at")
+      .select("id, name, description, data, image_url, created_at, updated_at")
       .single();
 
     if (error) throw error;
@@ -249,7 +249,7 @@ export const godService = {
       .update(updates)
       .eq("id", godId)
       .is("deleted_at", null)
-      .select("id, name, description, data, created_at, updated_at")
+      .select("id, name, description, data, image_url, created_at, updated_at")
       .single();
 
     if (error) throw error;

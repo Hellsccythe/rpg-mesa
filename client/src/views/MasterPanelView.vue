@@ -571,8 +571,8 @@
               >
                 <div class="aspect-square overflow-hidden">
                   <img
-                    v-if="godImageFor(g.name)"
-                    :src="godImageFor(g.name)"
+                    v-if="g.imageUrl"
+                    :src="g.imageUrl"
                     :alt="g.name"
                     class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
                     loading="lazy"
@@ -595,8 +595,8 @@
             <div v-if="godInfoGodId" class="mt-3 flex items-center gap-3 rounded-xl border border-amber-500/25 bg-amber-950/10 px-4 py-2.5">
               <div class="h-8 w-8 shrink-0 overflow-hidden rounded-lg">
                 <img
-                  v-if="selectedGod && godImageFor(selectedGod.name)"
-                  :src="godImageFor(selectedGod.name)"
+                  v-if="selectedGod?.imageUrl"
+                  :src="selectedGod.imageUrl"
                   class="h-full w-full object-cover"
                   alt=""
                 />
@@ -721,62 +721,6 @@ import {
 } from '@/lib/api/lore-notes.api'
 import type { LoreNoteApi } from '@/lib/api/lore-notes.api'
 import { uploadLorePdf } from '@/lib/supabase/storage'
-
-// ── God static images (same as DeusesView) ───────────────────────────────────
-import pharasmaImage from '@/assets/images/pharasma.png'
-import asmodeusImage from '@/assets/images/asmodeus.png'
-import inariImage from '@/assets/images/inari.png'
-import iomedaeImage from '@/assets/images/iomedae.png'
-import sarenraeImage from '@/assets/images/sarenrae.png'
-import zonKuthonImage from '@/assets/images/Zon-Kuthon.jpg'
-import norgorberImage from '@/assets/images/Norgorber.jpg'
-import gorumImage from '@/assets/images/Gorum.jpg'
-import urgathoaImage from '@/assets/images/Urgathoa.png'
-import rovagugImage from '@/assets/images/Rovagug.jpg'
-import calistriaImage from '@/assets/images/Calistria.png'
-import mrthosImage from '@/assets/images/Morthos.png'
-import vesperaImage from '@/assets/images/Vespera.png'
-import desnaImage from '@/assets/images/Desna.png'
-import shelynImage from '@/assets/images/Shelyn.png'
-import erastilImage from '@/assets/images/erastil.jpg'
-import caydenCaileanImage from '@/assets/images/Cayden Cailean.png'
-import kurgessImage from '@/assets/images/Kurgess.jpg'
-import torakImage from '@/assets/images/Torak.jpg'
-import lirielImage from '@/assets/images/Liriel.png'
-import zephyrosImage from '@/assets/images/Zephyros.png'
-
-const normalizeText = (value: unknown): string => {
-  if (!value || typeof value !== 'string') return ''
-  return value.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
-}
-
-const GOD_IMAGES: Record<string, string> = {
-  pharasma: pharasmaImage,
-  asmodeus: asmodeusImage,
-  inari: inariImage,
-  iomedae: iomedaeImage,
-  sarenrae: sarenraeImage,
-  'zon-kuthon': zonKuthonImage,
-  norgorber: norgorberImage,
-  gorum: gorumImage,
-  urgathoa: urgathoaImage,
-  rovagug: rovagugImage,
-  calistria: calistriaImage,
-  morthos: mrthosImage,
-  vespera: vesperaImage,
-  desna: desnaImage,
-  shelyn: shelynImage,
-  erastil: erastilImage,
-  'cayden cailean': caydenCaileanImage,
-  kurgess: kurgessImage,
-  torak: torakImage,
-  liriel: lirielImage,
-  zephyros: zephyrosImage,
-}
-
-function godImageFor(name: string): string {
-  return GOD_IMAGES[normalizeText(name)] ?? ''
-}
 
 const router = useRouter()
 const authStore = useAuthStore()

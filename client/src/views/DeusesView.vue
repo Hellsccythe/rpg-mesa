@@ -436,26 +436,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useCharactersStore } from '@/stores/characters'
 import { listPublicGods as listarDeusesPublicos } from '@/lib/api/gods.api'
 import type { GodApi } from '@/types/supabase'
-import pharasmaImage from '@/assets/images/pharasma.png'
-import asmodeusImage from '@/assets/images/asmodeus.png'
-import inariImage from '@/assets/images/Inari.png'
-import iomedaeImage from '@/assets/images/iomedae.png'
-import sarenraeImage from '@/assets/images/sarenrae.png'
-import zonKuthonImage from '@/assets/images/Zon-Kuthon.jpg'
-import norgorberImage from '@/assets/images/Norgorber.jpg'
-import gorumImage from '@/assets/images/Gorum.jpg'
-import urgathoaImage from '@/assets/images/Urgathoa.png'
-import rovagugImage from '@/assets/images/Rovagug.jpg'
-import calistriaImage from '@/assets/images/Calistria.png'
-import mrthosImage from '@/assets/images/Morthos.png'
-import vesperaImage from '@/assets/images/Vespera.png'
-import desnaImage from '@/assets/images/Desna.png'
-import shelynImage from '@/assets/images/Shelyn.png'
-import erastilImage from '@/assets/images/erastil.jpg'
-import caydenCaileanImage from '@/assets/images/Cayden Cailean.png'
-import kurgessImage from '@/assets/images/Kurgess.jpg'
-import torakImage from '@/assets/images/Torak.jpg'
-import lirielImage from '@/assets/images/Liriel.png'
+
 
 const roteador = useRouter()
 const rota = useRoute()
@@ -522,7 +503,6 @@ const staticGods = [
     title: 'A Senhora das Sepulturas',
     alinhamento: 'Neutro',
     icon: '⚖️',
-    iconImage: pharasmaImage,
     cardImagePosition: 'center 20%',
     modalImagePosition: 'center 14%',
     shortDescription:
@@ -540,7 +520,6 @@ const staticGods = [
     title: 'A Princesa das Trevas',
     alinhamento: 'Maligna',
     icon: '👑',
-    iconImage: asmodeusImage,
     cardImagePosition: '50% 34%',
     modalImagePosition: '50% 34%',
     shortDescription:
@@ -558,7 +537,6 @@ const staticGods = [
     title: 'O Deus da Dor e da Escuridão ',
     alinhamento: 'Maligno',
     icon: '☠️',
-    iconImage: zonKuthonImage,
     cardImagePosition: 'center 20%',
     modalImagePosition: 'center 15%',
     shortDescription:
@@ -576,7 +554,6 @@ const staticGods = [
     title: 'O Deus dos Segredos, Veneno e Ladrões',
     alinhamento: 'Maligno',
     icon: '☠️',
-    iconImage: norgorberImage,
     cardImagePosition: 'center 20%',
     modalImagePosition: 'center 15%',
     shortDescription:
@@ -594,7 +571,6 @@ const staticGods = [
     title: 'Nosso Senhor de Ferro',
     alinhamento: 'Maligno',
     icon: '☠️',
-    iconImage: gorumImage,
     cardImagePosition: 'center 15%',
     modalImagePosition: 'center 10%',
     shortDescription: 'Deus da batalha, da força bruta, do sangue derramado e da guerra por si só',
@@ -611,7 +587,6 @@ const staticGods = [
     title: 'O Príncipe Pálido',
     alinhamento: 'Maligno',
     icon: '☠️',
-    iconImage: urgathoaImage,
     cardImagePosition: 'center 15%',
     modalImagePosition: 'center 10%',
     shortDescription: 'Deus da batalha, da força bruta, do sangue derramado e da guerra por si só',
@@ -628,7 +603,6 @@ const staticGods = [
     title: 'A Destruidora de Mundos',
     alinhamento: 'Maligna',
     icon: '☠️',
-    iconImage: rovagugImage,
     cardImagePosition: 'center 30%',
     modalImagePosition: 'center 25%',
     shortDescription: 'Deusa da destruição, do caos absoluto e do fim de tudo',
@@ -645,7 +619,6 @@ const staticGods = [
     title: 'A Deusa da Vingança e do Prazer',
     alinhamento: 'Neutro e Maligno',
     icon: '🦂',
-    iconImage: calistriaImage,
     cardImagePosition: 'center 20%',
     modalImagePosition: 'center 15%',
     shortDescription:
@@ -663,7 +636,6 @@ const staticGods = [
     title: 'O Senhor da Decadência',
     alinhamento: 'Neutro e Maligno',
     icon: '☠️',
-    iconImage: mrthosImage,
     cardImagePosition: 'center 20%',
     modalImagePosition: 'center 15%',
     shortDescription:
@@ -680,7 +652,6 @@ const staticGods = [
     title: 'A Senhora das Sombras e Segredos',
     alinhamento: 'Neutro e Maligno',
     icon: '🕯️',
-    iconImage: vesperaImage,
     cardImagePosition: 'center 20%',
     modalImagePosition: 'center 15%',
     shortDescription:
@@ -698,7 +669,6 @@ const staticGods = [
     title: 'A Heroína Ascendente',
     alinhamento: 'Boa',
     icon: '🔥',
-    iconImage: sarenraeImage,
     cardImagePosition: '50% 32%',
     modalImagePosition: '50% 25%',
     shortDescription: 'Deusa da justiça, honra e cavalaria. Lidera os deuses do bem com Iomedae.',
@@ -715,7 +685,6 @@ const staticGods = [
     title: 'A Deusa dos Sonhos e das Estrelas',
     alinhamento: 'Boa',
     icon: '🌠',
-    iconImage: desnaImage,
     cardImagePosition: 'center 20%',
     modalImagePosition: 'center 15%',
     shortDescription:
@@ -733,7 +702,6 @@ const staticGods = [
     title: 'A Senhora da Beleza Eterna',
     alinhamento: 'Boa',
     icon: '🎨',
-    iconImage: shelynImage,
     cardImagePosition: 'center 15%',
     modalImagePosition: 'center 10%',
     shortDescription:
@@ -751,7 +719,6 @@ const staticGods = [
     title: 'A Flor da Aurora',
     alinhamento: 'Boa',
     icon: '☀️',
-    iconImage: iomedaeImage,
     cardImagePosition: '50% 14%',
     modalImagePosition: '50% 24%',
     shortDescription:
@@ -769,7 +736,6 @@ const staticGods = [
     title: 'O Velho Pai da Caça e da Comunidade',
     alinhamento: 'Bom',
     icon: '🏹',
-    iconImage: erastilImage,
     cardImagePosition: 'center 20%',
     modalImagePosition: 'center 15%',
     shortDescription:
@@ -787,7 +753,6 @@ const staticGods = [
     title: 'O Deus da Cerveja e da Liberdade',
     alinhamento: 'Bom',
     icon: '🍺',
-    iconImage: caydenCaileanImage,
     cardImagePosition: 'center 20%',
     modalImagePosition: 'center 15%',
     shortDescription:
@@ -805,7 +770,6 @@ const staticGods = [
     title: 'O Campeão Eterno',
     alinhamento: 'Neutra e Boa',
     icon: '🏅',
-    iconImage: kurgessImage,
     cardImagePosition: 'center 15%',
     modalImagePosition: 'center 10%',
     shortDescription:
@@ -823,7 +787,6 @@ const staticGods = [
     title: 'O Forjador das Montanhas',
     alinhamento: 'Neutra e Boa',
     icon: '⚒️',
-    iconImage: torakImage,
     cardImagePosition: 'center 20%',
     modalImagePosition: 'center 15%',
     shortDescription:
@@ -841,7 +804,6 @@ const staticGods = [
     title: 'A Guardiã da Misericórdia',
     alinhamento: 'Neutro e Bom',
     icon: '🕊️',
-    iconImage: lirielImage,
     cardImagePosition: 'center 20%',
     modalImagePosition: 'center 15%',
     shortDescription:
@@ -858,7 +820,6 @@ const staticGods = [
     name: 'Inari',
     title: 'A Raposa Eterna das Colheitas',
     icon: '🦊',
-    iconImage: inariImage,
     cardImagePosition: 'center 22%',
     modalImagePosition: 'center 14%',
     alinhamento: 'Neutro',
@@ -922,7 +883,7 @@ const mapApiGodToDisplayGod = (god: Partial<GodApi> | null | undefined) => {
     title: pickFirstText(source.title, fallbackGod?.title),
     alinhamento: pickFirstText(source.indole, fallbackGod?.alinhamento, 'Neutro'),
     icon: pickFirstText(fallbackGod?.icon, '✦'),
-    iconImage: pickFirstText(source.imageUrl, fallbackGod?.iconImage),
+    iconImage: source.imageUrl ?? '',
     cardImagePosition: pickFirstText(fallbackGod?.cardImagePosition, 'center 22%'),
     modalImagePosition: pickFirstText(fallbackGod?.modalImagePosition, 'center 16%'),
     shortDescription: fallbackDescription,
