@@ -28,7 +28,10 @@
       "Bash(sort -k5 -h)",
       "Bash(node scripts/upload-gods-images.mjs)",
       "Bash(curl -s 'https://smvsopkzgbznukqgwvra.supabase.co/rest/v1/gods?select=name,data&order=name' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNtdnNvcGt6Z2J6bnVrcWd3dnJhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDQ5MjA4OCwiZXhwIjoyMDkwMDY4MDg4fQ.CcACKVqZhwXi9l4H9Y_DP33OZmDIHP5iX3_Du8sQxQs' -H 'apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNtdnNvcGt6Z2J6bnVrcWd3dnJhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDQ5MjA4OCwiZXhwIjoyMDkwMDY4MDg4fQ.CcACKVqZhwXi9l4H9Y_DP33OZmDIHP5iX3_Du8sQxQs')",
-      "Bash(node -e 'let d='\\\\'''\\\\'';process.stdin.on\\('\\\\''data'\\\\'',c=>d+=c\\);process.stdin.on\\('\\\\''end'\\\\'',\\(\\)=>{ *)"
+      "Bash(node -e 'let d='\\\\'''\\\\'';process.stdin.on\\('\\\\''data'\\\\'',c=>d+=c\\);process.stdin.on\\('\\\\''end'\\\\'',\\(\\)=>{ *)",
+      "Bash(curl -s \"http://localhost:3000/api/gods\")",
+      "Bash(yarn build *)",
+      "Bash(node server/scripts/patch-gods-static-fields.mjs)"
     ]
   }
 }

@@ -91,7 +91,7 @@ function currentGodDetails(row: any, data: any): GodDetails {
     anatema: readGodField(row, data, "anatema"),
     weapons: readGodField(row, data, "weapons"),
     shortDescription: readGodField(row, data, "shortDescription", "short_description"),
-    imageUrl: readGodField(row, data, "imageUrl", "image_url") || readGodField(row, data, "imagePath", "image_path"),
+    imageUrl: data?.imageUrl || data?.imagePath || row?.image_url || row?.image_path || "",
   };
 }
 

@@ -96,20 +96,34 @@
           >
             <div
               class="mgv-card-img-wrap relative h-52 overflow-hidden rounded-t-3xl border-b border-[#6B4E9E]/35 bg-[#0B1426]"
+              :class="{ 'cursor-pointer': isEditing(god.id) }"
+              @click="triggerEditImagePick($event, god.id)"
             >
               <img
-                v-if="draftFor(god.id).imageUrl || godImageFor(draftFor(god.id).name)"
-                :src="draftFor(god.id).imageUrl || godImageFor(draftFor(god.id).name)"
+                v-if="draftFor(god.id).imageUrl"
+                :src="draftFor(god.id).imageUrl"
                 :alt="draftFor(god.id).name || 'Imagem do deus'"
                 loading="lazy"
                 class="h-full w-full object-cover"
-                :style="{ objectPosition: getGodImagePosition(draftFor(god.id).name) }"
               />
               <div v-else class="flex h-full items-center justify-center text-sm text-zinc-500">
                 Sem imagem
               </div>
               <div
                 class="absolute inset-0 bg-gradient-to-t from-black/65 via-black/15 to-transparent"
+              />
+              <div
+                v-if="isEditing(god.id)"
+                class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity hover:opacity-100"
+              >
+                <span class="rounded-xl bg-black/60 px-3 py-1.5 text-sm text-white">Trocar imagem</span>
+              </div>
+              <input
+                :ref="(el) => { if (el) editFileInputs[god.id] = el as HTMLInputElement }"
+                type="file"
+                accept="image/*"
+                class="hidden"
+                @change="onEditImageSelected(god.id, $event)"
               />
               <div class="absolute inset-x-0 bottom-0 px-4 pb-3">
                 <h2 class="mgv-overlay-name text-2xl font-bold">
@@ -119,7 +133,7 @@
               </div>
             </div>
 
-            <div v-if="selectedCardId === god.id" class="space-y-3 p-4">
+            <div v-if="selectedCardId === god.id" class="space-y-3 p-4" @click.stop>
               <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <input
                   v-model="draftFor(god.id).name"
@@ -133,32 +147,23 @@
                   placeholder="Titulo"
                   :disabled="!isEditing(god.id)"
                 />
-                <input
-                  v-model="draftFor(god.id).indole"
-                  class="tdl-campo"
-                  placeholder="Indole"
-                  :disabled="!isEditing(god.id)"
-                />
+                <div class="select-wrap">
+                  <select
+                    v-model="draftFor(god.id).indole"
+                    class="tdl-campo appearance-none pr-12"
+                    :disabled="!isEditing(god.id)"
+                  >
+                    <option value="">— Indole —</option>
+                    <option v-for="opt in INDOLE_OPTIONS" :key="opt" :value="opt">{{ opt }}</option>
+                  </select>
+                  <span class="select-arrow" aria-hidden="true">˅</span>
+                </div>
                 <input
                   v-model="draftFor(god.id).weapons"
                   class="tdl-campo"
                   placeholder="Weapons"
                   :disabled="!isEditing(god.id)"
                 />
-              </div>
-
-              <div class="space-y-1">
-                <label class="block text-xs uppercase tracking-wide text-zinc-500"
-                  >Imagem do deus</label
-                >
-                <input
-                  type="file"
-                  accept="image/*"
-                  class="tdl-campo"
-                  :disabled="!isEditing(god.id)"
-                  @change="onEditImageSelected(god.id, $event)"
-                />
-                <p class="text-xs text-zinc-500">Upload para bucket com compressao automatica.</p>
               </div>
 
               <input
@@ -269,18 +274,46 @@
         </div>
 
         <div class="space-y-3">
+          <div
+            class="group relative h-44 cursor-pointer overflow-hidden rounded-2xl border border-[#6B4E9E]/30 bg-[#0B1426]"
+            @click="triggerCreateImagePick"
+          >
+            <img
+              v-if="createForm.imageUrl"
+              :src="createForm.imageUrl"
+              class="h-full w-full object-cover"
+              alt="Preview"
+            />
+            <div v-else class="flex h-full flex-col items-center justify-center gap-2 text-zinc-500">
+              <span class="text-4xl leading-none">+</span>
+              <span class="text-sm">Clique para adicionar imagem</span>
+            </div>
+            <div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+              <span class="rounded-xl bg-black/60 px-3 py-1.5 text-sm text-white">
+                {{ createForm.imageUrl ? 'Trocar imagem' : 'Adicionar imagem' }}
+              </span>
+            </div>
+            <input
+              ref="createFileInputRef"
+              type="file"
+              accept="image/*"
+              class="hidden"
+              @change="onCreateImageSelected"
+            />
+          </div>
+          <p class="text-xs text-zinc-500">A imagem e obrigatoria e sera enviada ao bucket.</p>
+
           <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
             <input v-model="createForm.name" class="tdl-campo" placeholder="Nome" />
             <input v-model="createForm.title" class="tdl-campo" placeholder="Titulo" />
-            <input v-model="createForm.indole" class="tdl-campo" placeholder="Indole" />
+            <div class="select-wrap">
+              <select v-model="createForm.indole" class="tdl-campo appearance-none pr-12">
+                <option value="">— Indole —</option>
+                <option v-for="opt in INDOLE_OPTIONS" :key="opt" :value="opt">{{ opt }}</option>
+              </select>
+              <span class="select-arrow" aria-hidden="true">˅</span>
+            </div>
             <input v-model="createForm.weapons" class="tdl-campo" placeholder="Weapons" />
-          </div>
-          <div class="space-y-1">
-            <label class="block text-xs uppercase tracking-wide text-zinc-500"
-              >Imagem do deus</label
-            >
-            <input type="file" accept="image/*" class="tdl-campo" @change="onCreateImageSelected" />
-            <p class="text-xs text-zinc-500">A imagem e obrigatoria e sera enviada ao bucket.</p>
           </div>
           <input
             v-model="createForm.shortDescription"
@@ -326,27 +359,6 @@ import { useAuthStore } from '@/stores/auth'
 import { useMasterCatalogStore } from '@/stores/masterCatalog'
 import { uploadGodImage } from '@/lib/api/gods.api'
 import type { GodApi } from '@/types/supabase'
-import pharasmaImage from '@/assets/images/pharasma.png'
-import asmodeusImage from '@/assets/images/asmodeus.png'
-import inariImage from '@/assets/images/Inari.png'
-import iomedaeImage from '@/assets/images/iomedae.png'
-import sarenraeImage from '@/assets/images/sarenrae.png'
-import zonKuthonImage from '@/assets/images/Zon-Kuthon.jpg'
-import norgorberImage from '@/assets/images/Norgorber.jpg'
-import gorumImage from '@/assets/images/Gorum.jpg'
-import urgathoaImage from '@/assets/images/Urgathoa.png'
-import rovagugImage from '@/assets/images/Rovagug.jpg'
-import calistriaImage from '@/assets/images/Calistria.png'
-import mrthosImage from '@/assets/images/Morthos.png'
-import vesperaImage from '@/assets/images/Vespera.png'
-import desnaImage from '@/assets/images/Desna.png'
-import shelynImage from '@/assets/images/Shelyn.png'
-import erastilImage from '@/assets/images/erastil.jpg'
-import caydenCaileanImage from '@/assets/images/Cayden Cailean.png'
-import kurgessImage from '@/assets/images/Kurgess.jpg'
-import torakImage from '@/assets/images/Torak.jpg'
-import lirielImage from '@/assets/images/Liriel.png'
-import zephyrosImage from '@/assets/images/Zephyros.png'
 
 type GodFormState = {
   name: string
@@ -444,46 +456,27 @@ function alignmentBadgeClass(raw: string) {
   return `${base} border-[#6B4E9E]/45`
 }
 
-const GOD_IMAGE_POSITION_BY_NAME: Record<string, string> = {
-  pharasma: '46% 20%',
-  asmodeus: '50% 24%',
-  inari: '50% 26%',
-  iomedae: '50% 22%',
-  sarenrae: '50% 22%',
+const INDOLE_OPTIONS = ['Neutro', 'Bom/Boa', 'Maligno(a)', 'Neutro Bom', 'Neutro Maligno']
+
+function normalizeIndoleToCanonical(raw: string): string {
+  if (!raw) return ''
+  const label = normalizeAlignmentLabel(raw)
+  if (INDOLE_OPTIONS.includes(label)) return label
+  if (INDOLE_OPTIONS.includes(raw)) return raw
+  return raw
 }
 
-function getGodImagePosition(name: string) {
-  const key = (name || '').trim().toLowerCase()
-  return GOD_IMAGE_POSITION_BY_NAME[key] || '50% 24%'
+const editFileInputs = reactive<Record<string, HTMLInputElement | null>>({})
+const createFileInputRef = ref<HTMLInputElement | null>(null)
+
+function triggerEditImagePick(event: MouseEvent, godId: string) {
+  if (!isEditing(godId)) return
+  event.stopPropagation()
+  editFileInputs[godId]?.click()
 }
 
-const GOD_IMAGES: Record<string, string> = {
-  pharasma: pharasmaImage,
-  asmodeus: asmodeusImage,
-  inari: inariImage,
-  iomedae: iomedaeImage,
-  sarenrae: sarenraeImage,
-  'zon-kuthon': zonKuthonImage,
-  norgorber: norgorberImage,
-  gorum: gorumImage,
-  urgathoa: urgathoaImage,
-  rovagug: rovagugImage,
-  calistria: calistriaImage,
-  morthos: mrthosImage,
-  vespera: vesperaImage,
-  desna: desnaImage,
-  shelyn: shelynImage,
-  erastil: erastilImage,
-  'cayden cailean': caydenCaileanImage,
-  kurgess: kurgessImage,
-  torak: torakImage,
-  liriel: lirielImage,
-  zephyros: zephyrosImage,
-}
-
-function godImageFor(name: string): string {
-  if (!name) return ''
-  return GOD_IMAGES[(name || '').trim().toLowerCase()] || ''
+function triggerCreateImagePick() {
+  createFileInputRef.value?.click()
 }
 
 function toFormState(god: GodApi): GodFormState {
@@ -491,7 +484,7 @@ function toFormState(god: GodApi): GodFormState {
     name: god.name || '',
     description: god.description || '',
     title: god.title || '',
-    indole: god.indole || '',
+    indole: normalizeIndoleToCanonical(god.indole || ''),
     dogma: god.dogma || '',
     anatema: god.anatema || '',
     weapons: god.weapons || '',
