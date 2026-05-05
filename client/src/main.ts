@@ -1,7 +1,7 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import router from './router'
-import App from './App.vue'
+import App from './app.vue'
 import VSelect from '@/components/VSelect.vue'
 import { useAuthStore } from '@/stores/auth'
 import { vSmartFocus } from '@/directives/smart-focus'
