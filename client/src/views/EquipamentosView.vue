@@ -116,8 +116,9 @@
                 {{ eq.descricao_equipamento || 'Sem descrição cadastrada.' }}
               </p>
 
-              <!-- Rodapé: peso e valor -->
+              <!-- Rodapé: dano, peso e valor -->
               <div class="flex items-center gap-3 text-xs eq-footer-text">
+                <span v-if="eq.dano" class="font-mono font-bold eq-dano">⚔ {{ eq.dano }}</span>
                 <span v-if="eq.peso !== null">⚖ {{ eq.peso.toFixed(2) }} kg</span>
                 <span v-if="eq.valor !== null">◈ {{ eq.valor.toFixed(2) }}</span>
               </div>
@@ -160,6 +161,11 @@
 
           <!-- Corpo modal -->
           <div class="eq-modal-body max-h-[60vh] overflow-y-auto px-6 py-5 space-y-4">
+            <div v-if="selecionado.dano">
+              <p class="eq-modal-label mb-1 text-xs uppercase tracking-widest">Dano</p>
+              <p class="eq-modal-text text-lg font-mono font-bold eq-dano">{{ selecionado.dano }}</p>
+            </div>
+
             <div v-if="selecionado.descricao_equipamento">
               <p class="eq-modal-label mb-1 text-xs uppercase tracking-widest">Descrição</p>
               <p class="eq-modal-text text-sm leading-relaxed">{{ selecionado.descricao_equipamento }}</p>
@@ -248,6 +254,7 @@ function handleNavSelect(itemId: string) {
     titulos:       withCharId('/titulos'),
     classes:       withCharId('/classes'),
     npcs:          withCharId('/npcs'),
+    racas:         withCharId('/racas'),
     equipamentos:  withCharId('/equipamentos'),
     notas:         withCharId('/notas'),
   }
@@ -347,6 +354,7 @@ onMounted(carregar)
 .eq-desc       { color: #94a3b8; }
 .eq-footer-text { color: #64748b; }
 .eq-ver-mais   { color: #a78bfa; }
+.eq-dano       { color: #fca5a5; }
 
 /* ── Modal ───────────────────────────────────────────────────────────────── */
 .eq-modal-card {
@@ -408,6 +416,7 @@ onMounted(carregar)
 :global(html.theme-light) .eq-desc { color: var(--text-muted); }
 :global(html.theme-light) .eq-footer-text { color: var(--text-muted); }
 :global(html.theme-light) .eq-ver-mais { color: var(--brand-primary); }
+:global(html.theme-light) .eq-dano    { color: #dc2626; }
 :global(html.theme-light) .eq-modal-card {
   background: var(--bg-card);
   border-color: var(--border-soft);

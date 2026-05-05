@@ -133,7 +133,7 @@
               <!-- Dano -->
               <div>
                 <label class="field-label mb-1.5 block text-xs font-semibold uppercase tracking-wide">
-                  Dano <span class="text-red-400">*</span>
+                  Dano
                 </label>
                 <input
                   v-model="form.dano"
@@ -496,7 +496,7 @@ function iniciarEdicao(arma: ArmaApi) {
   editandoId.value = arma.id
   form.nome = arma.nome
   form.tipo = arma.tipo
-  form.dano = arma.dano
+  form.dano = arma.dano ?? ''
   form.peso = arma.peso
   form.propriedades = arma.propriedades
   form.valor = arma.valor
