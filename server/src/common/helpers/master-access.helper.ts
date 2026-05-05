@@ -14,13 +14,26 @@ export async function ensureAuthenticatedAccess(accessToken?: string) {
 export async function ensureMasterAccess(accessToken?: string) {
   const user = await ensureAuthenticatedAccess(accessToken);
 
-  const masterEmail = (process.env.MASTER_EMAIL ?? "").trim().toLowerCase();
-  if (!masterEmail) {
-    throw new Error("MASTER_EMAIL nao configurado no servidor");
+  const raw = process.env.MASTER_EMAILS ?? process.env.MASTER_EMAIL ?? "";
+  const masterEmails = raw
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+
+  if (masterEmails.length === 0) {
+    throw new Error("MASTER_EMAILS nao configurado no servidor");
   }
-  if (user.email?.toLowerCase() !== masterEmail) {
+  if (!masterEmails.includes(user.email?.toLowerCase() ?? "")) {
     throw new Error("Acesso restrito ao mestre");
   }
 
   return user;
+}
+
+export function getMasterEmails(): string[] {
+  const raw = process.env.MASTER_EMAILS ?? process.env.MASTER_EMAIL ?? "";
+  return raw
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
 }
