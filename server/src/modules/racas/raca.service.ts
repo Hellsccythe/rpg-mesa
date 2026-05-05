@@ -95,7 +95,7 @@ export const racaService = {
 
     if (currentError || !current) throw new Error("Raça não encontrada");
 
-    const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    const updates: Record<string, unknown> = {};
     if (dto.nome !== undefined)           updates.nome = dto.nome.trim();
     if (dto.foto_url !== undefined)       updates.foto_url = dto.foto_url?.trim() ?? null;
     if (dto.descricao !== undefined)      updates.descricao = dto.descricao?.trim() ?? null;

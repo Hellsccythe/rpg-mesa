@@ -54,7 +54,7 @@
               <div v-if="raca.atributos_bonus.length" class="flex flex-wrap gap-1.5">
                 <span v-for="ab in raca.atributos_bonus" :key="ab.atributo"
                   class="attr-badge text-xs rounded-full px-2.5 py-0.5">
-                  {{ ab.atributo }} {{ ab.valor.startsWith('-') ? '' : '+' }}{{ ab.valor }}
+                  {{ ab.atributo }} {{ (ab.valor || '').startsWith('-') ? '' : '+' }}{{ ab.valor }}
                 </span>
               </div>
 
