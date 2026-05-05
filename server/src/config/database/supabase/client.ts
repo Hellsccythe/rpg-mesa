@@ -1,5 +1,6 @@
 import dotenv from "dotenv";
 import { createClient } from "@supabase/supabase-js";
+import ws from "ws";
 
 dotenv.config();
 
@@ -13,11 +14,12 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
+// Node.js < 22 nao tem WebSocket nativo; passa o pacote ws para o realtime do Supabase
+const realtimeOpts = { transport: ws } as any;
+
 export const supabase = createClient<any>(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: false,
-    autoRefreshToken: false,
-  },
+  auth: { persistSession: false, autoRefreshToken: false },
+  realtime: realtimeOpts,
 });
 
 let _adminClient: ReturnType<typeof createClient<any>> | null = null;
@@ -31,6 +33,7 @@ export function getAdminClient() {
     }
     _adminClient = createClient<any>(supabaseUrl, supabaseServiceKey, {
       auth: { persistSession: false, autoRefreshToken: false },
+      realtime: realtimeOpts,
     });
   }
   return _adminClient;
@@ -41,6 +44,7 @@ export function getSupabaseClient(accessToken?: string) {
   return createClient<any>(supabaseUrl, supabaseAnonKey, {
     global: { headers: { Authorization: `Bearer ${accessToken}` } },
     auth: { persistSession: false, autoRefreshToken: false },
+    realtime: realtimeOpts,
   });
 }
 
