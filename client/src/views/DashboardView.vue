@@ -266,123 +266,185 @@
               </div>
 
               <!-- ── Tab: Inventário ─────────────────────────────────── -->
-              <div v-show="activeTab === 'inventario'" class="space-y-4">
-                <div class="dash-card p-5">
+              <div v-show="activeTab === 'inventario'" class="space-y-3">
 
-                  <!-- Header -->
-                  <div class="flex items-center justify-between mb-5">
-                    <div>
-                      <h3 class="font-cinzel font-semibold text-amber-400 text-sm">Inventário</h3>
-                      <p class="text-xs mt-0.5" style="color: var(--text-muted)">Tudo o que o personagem possui como propriedade.</p>
+                <!-- ── Equipamentos (future section) ─────────────────── -->
+                <div class="inv-equip-card dash-card overflow-hidden">
+                  <div class="inv-equip-inner px-5 py-4 flex items-center gap-4">
+                    <div class="inv-equip-icon-wrap flex-shrink-0">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14.5 17.5L3 6 3 3l3 0 11.5 11.5"/>
+                        <path d="M13 19l6-6"/>
+                        <path d="M16 16l4 4"/>
+                        <path d="M19 21l2-2"/>
+                        <circle cx="4.5" cy="4.5" r="0.5" fill="currentColor"/>
+                      </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2 mb-0.5">
+                        <span class="text-xs font-semibold font-cinzel inv-equip-title">Equipamentos</span>
+                        <span class="inv-soon-badge">Em breve</span>
+                      </div>
+                      <p class="text-[0.68rem] inv-equip-sub leading-relaxed">Armas, armaduras e itens mágicos do catálogo do mestre aparecerão aqui</p>
+                    </div>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="inv-equip-lock flex-shrink-0">
+                      <rect x="3" y="11" width="18" height="11" rx="2"/>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                  </div>
+                </div>
+
+                <!-- ── Inventário Geral ─────────────────────────────── -->
+                <div class="dash-card overflow-hidden">
+
+                  <!-- Card header -->
+                  <div class="inv-card-header px-5 py-4 flex items-center justify-between">
+                    <div class="flex items-center gap-2.5">
+                      <div class="inv-header-icon">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+                          <line x1="3" y1="6" x2="21" y2="6"/>
+                          <path d="M16 10a4 4 0 0 1-8 0"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <span class="text-xs font-semibold text-amber-400 font-cinzel">Inventário</span>
+                        <span class="ml-2 inv-count-badge">{{ normalInventory.length }} {{ normalInventory.length === 1 ? 'item' : 'itens' }}</span>
+                      </div>
                     </div>
 
-                    <div class="flex items-center gap-2">
-                      <span class="inv-count-badge">{{ normalInventory.length }} {{ normalInventory.length === 1 ? 'item' : 'itens' }}</span>
+                    <!-- Mochila Rápida trigger -->
+                    <div class="relative" @click.stop>
+                      <button
+                        @click="toggleQuickInventory"
+                        class="backpack-btn"
+                        :class="showQuickInventory ? 'backpack-btn-active' : ''"
+                        title="Mochila Rápida"
+                        aria-label="Abrir mochila rápida"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+                          <line x1="3" y1="6" x2="21" y2="6"/>
+                          <path d="M16 10a4 4 0 0 1-8 0"/>
+                        </svg>
+                        <span class="backpack-label">Mochila</span>
+                        <span v-if="quickInventory.length" class="backpack-badge">{{ quickInventory.length }}</span>
+                      </button>
 
-                      <!-- Backpack icon → Quick Inventory dropdown -->
-                      <div class="relative" @click.stop>
-                        <button
-                          @click="toggleQuickInventory"
-                          class="backpack-btn relative"
-                          title="Inventário Rápido"
-                          aria-label="Abrir inventário rápido"
-                          :class="showQuickInventory ? 'backpack-btn-active' : ''"
-                        >
-                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
-                            <line x1="3" y1="6" x2="21" y2="6"/>
-                            <path d="M16 10a4 4 0 0 1-8 0"/>
-                          </svg>
-                          <span v-if="quickInventory.length" class="backpack-badge">{{ quickInventory.length }}</span>
-                        </button>
-
-                        <Transition name="dropdown">
-                          <div v-if="showQuickInventory" class="dropdown-panel right-0 w-80 mt-1">
-                            <div class="px-4 py-3 border-b border-[#6B4E9E]/20">
-                              <p class="text-sm font-semibold text-amber-400 font-cinzel">Inventário Rápido</p>
-                              <p class="text-xs mt-0.5" style="color: var(--text-muted)">O que você carrega no dia a dia</p>
+                      <!-- Mochila Rápida dropdown -->
+                      <Transition name="dropdown">
+                        <div v-if="showQuickInventory" class="quick-inv-panel">
+                          <div class="quick-inv-head">
+                            <div>
+                              <p class="text-xs font-bold text-amber-400 font-cinzel">Mochila Rápida</p>
+                              <p class="text-[0.65rem] mt-0.5" style="color:var(--text-muted)">O que você carrega no dia a dia</p>
                             </div>
-                            <div class="p-3">
-                              <div class="flex gap-2 mb-3">
-                                <input
-                                  v-model="newQuickItemName"
-                                  @keydown.enter="addQuickItem"
-                                  type="text"
-                                  placeholder="Nome do item..."
-                                  class="inv-input flex-1"
-                                />
-                                <input
-                                  v-model.number="newQuickItemQty"
-                                  type="number"
-                                  min="1"
-                                  class="inv-input w-12 text-center"
-                                />
-                                <button
-                                  @click="addQuickItem"
-                                  :disabled="!newQuickItemName.trim() || savingQuickInventory"
-                                  class="inv-add-btn disabled:opacity-40"
-                                >
-                                  <svg v-if="savingQuickInventory" class="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-dasharray="30" stroke-dashoffset="20"/></svg>
-                                  <span v-else>+</span>
+                            <span v-if="quickInventory.length" class="inv-count-badge">{{ quickInventory.length }}</span>
+                          </div>
+
+                          <div class="quick-inv-body">
+                            <!-- Add row: qty first, name second -->
+                            <div class="quick-add-row">
+                              <input
+                                v-model.number="newQuickItemQty"
+                                type="number"
+                                min="1"
+                                class="quick-qty-input text-center"
+                              />
+                              <input
+                                v-model="newQuickItemName"
+                                @keydown.enter="addQuickItem"
+                                type="text"
+                                placeholder="Nome do item..."
+                                class="inv-input flex-1 text-xs"
+                              />
+                              <button
+                                @click="addQuickItem"
+                                :disabled="!newQuickItemName.trim() || savingQuickInventory"
+                                class="inv-add-btn flex-shrink-0 disabled:opacity-40"
+                              >
+                                <svg v-if="savingQuickInventory" class="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10" stroke-dasharray="30" stroke-dashoffset="20"/></svg>
+                                <span v-else class="text-sm font-bold">+</span>
+                              </button>
+                            </div>
+
+                            <!-- Quick list -->
+                            <div v-if="quickInventory.length === 0" class="py-5 text-center text-[0.68rem] italic" style="color:rgba(251,191,36,0.3)">
+                              Mochila vazia
+                            </div>
+                            <div v-else class="quick-inv-list">
+                              <div v-for="item in quickInventory" :key="item.id" class="quick-inv-item group">
+                                <span class="quick-qty-tag">{{ item.quantity }}×</span>
+                                <p class="flex-1 text-xs font-medium truncate quick-item-name">{{ item.name }}</p>
+                                <button @click="removeQuickItem(item.id)" class="inv-remove opacity-0 group-hover:opacity-100" title="Remover">
+                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                                 </button>
-                              </div>
-                              <div v-if="quickInventory.length === 0" class="py-5 text-center text-xs text-zinc-600 italic">Mochila vazia. Adicione itens acima.</div>
-                              <div v-else class="space-y-1.5 max-h-56 overflow-y-auto pr-0.5">
-                                <div v-for="item in quickInventory" :key="item.id" class="inv-item">
-                                  <p class="flex-1 text-sm truncate" style="color: var(--text-main)">{{ item.name }}</p>
-                                  <span class="qty-badge">×{{ item.quantity }}</span>
-                                  <button @click="removeQuickItem(item.id)" class="inv-remove" title="Remover">
-                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                                  </button>
-                                </div>
                               </div>
                             </div>
                           </div>
-                        </Transition>
-                      </div>
+                        </div>
+                      </Transition>
                     </div>
                   </div>
 
-                  <!-- Add item form -->
-                  <div class="flex gap-2 mb-4">
-                    <input
-                      v-model="newItemName"
-                      @keydown.enter="addNormalItem"
-                      type="text"
-                      placeholder="Nome do item..."
-                      class="inv-input flex-1"
-                    />
-                    <input
-                      v-model.number="newItemQty"
-                      type="number"
-                      min="1"
-                      class="inv-input w-14 text-center"
-                    />
-                    <button
-                      @click="addNormalItem"
-                      :disabled="!newItemName.trim() || savingInventory"
-                      class="inv-add-btn px-4 disabled:opacity-40"
-                    >
-                      <svg v-if="savingInventory" class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-dasharray="30" stroke-dashoffset="20"/></svg>
-                      <span v-else>+</span>
-                    </button>
-                  </div>
+                  <!-- Divider -->
+                  <div class="mx-5 h-px" style="background: var(--border-soft)" />
 
-                  <!-- Items list -->
-                  <div v-if="normalInventory.length === 0" class="inv-empty">
-                    Inventário vazio. Adicione itens acima.
-                  </div>
-                  <div v-else class="inv-list">
-                    <div v-for="item in normalInventory" :key="item.id" class="inv-item">
-                      <div class="flex-1 min-w-0">
-                        <p class="text-sm font-medium truncate" style="color: var(--text-main)">{{ item.name }}</p>
-                        <p v-if="item.description" class="text-xs text-zinc-600 truncate">{{ item.description }}</p>
-                      </div>
-                      <span class="qty-badge">×{{ item.quantity }}</span>
-                      <button @click="removeNormalItem(item.id)" class="inv-remove" title="Remover">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  <!-- Add item form: qty first, name second -->
+                  <div class="px-5 pt-4 pb-3">
+                    <div class="inv-add-row">
+                      <input
+                        v-model.number="newItemQty"
+                        type="number"
+                        min="1"
+                        class="inv-input inv-input-qty"
+                      />
+                      <input
+                        v-model="newItemName"
+                        @keydown.enter="addNormalItem"
+                        type="text"
+                        placeholder="Nome do item..."
+                        class="inv-input flex-1"
+                      />
+                      <button
+                        @click="addNormalItem"
+                        :disabled="!newItemName.trim() || savingInventory"
+                        class="inv-add-btn px-4 flex-shrink-0 disabled:opacity-40"
+                      >
+                        <svg v-if="savingInventory" class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-dasharray="30" stroke-dashoffset="20"/></svg>
+                        <span v-else class="font-bold text-base">+</span>
                       </button>
                     </div>
+                  </div>
+
+                  <!-- Items -->
+                  <div class="px-5 pb-5">
+                    <div v-if="normalInventory.length === 0" class="inv-empty-state">
+                      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" class="mx-auto mb-2 opacity-20">
+                        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+                        <line x1="3" y1="6" x2="21" y2="6"/>
+                        <path d="M16 10a4 4 0 0 1-8 0"/>
+                      </svg>
+                      <p class="text-sm font-medium" style="color:var(--text-muted)">Inventário vazio</p>
+                      <p class="text-xs mt-0.5 opacity-60" style="color:var(--text-muted)">Use o campo acima para adicionar itens</p>
+                    </div>
+
+                    <TransitionGroup v-else name="inv-item" tag="div" class="inv-list">
+                      <div v-for="item in normalInventory" :key="item.id" class="inv-item group">
+                        <span class="inv-qty-tag flex-shrink-0">{{ item.quantity }}×</span>
+                        <div class="flex-1 min-w-0">
+                          <p class="text-sm font-medium leading-snug truncate" style="color:var(--text-main)">{{ item.name }}</p>
+                          <p v-if="item.description" class="text-[0.65rem] mt-0.5 truncate" style="color:var(--text-muted)">{{ item.description }}</p>
+                        </div>
+                        <button
+                          @click="removeNormalItem(item.id)"
+                          class="inv-remove opacity-0 group-hover:opacity-100 flex-shrink-0"
+                          title="Remover"
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                      </div>
+                    </TransitionGroup>
                   </div>
                 </div>
               </div>
@@ -1208,58 +1270,117 @@ watch(() => route.query.characterId, async (next, prev) => {
 .dash-tab-inactive:hover { background: var(--accent-soft); color: var(--text-main); }
 
 /* ── Inventory ── */
+
+/* Equipment placeholder card */
+.inv-equip-card {
+  border-color: rgb(107 78 158 / 0.2);
+}
+.inv-equip-inner {
+  background: linear-gradient(135deg, rgb(107 78 158 / 0.06) 0%, transparent 60%);
+}
+.inv-equip-icon-wrap {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.75rem;
+  background: rgb(107 78 158 / 0.12);
+  border: 1px solid rgb(107 78 158 / 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a78bfa;
+}
+.inv-equip-title { color: #c4b5fd; }
+.inv-equip-sub { color: var(--text-muted); }
+.inv-equip-lock { color: var(--text-muted); opacity: 0.35; }
+.inv-soon-badge {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #a78bfa;
+  background: rgb(139 92 246 / 0.12);
+  border: 1px solid rgb(139 92 246 / 0.25);
+  border-radius: 999px;
+  padding: 0.15rem 0.5rem;
+}
+
+/* Inventory card header */
+.inv-card-header { border-bottom: none; }
+
+.inv-header-icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.5rem;
+  background: rgb(180 83 9 / 0.12);
+  border: 1px solid rgb(180 83 9 / 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fbbf24;
+  flex-shrink: 0;
+}
+
 .inv-count-badge {
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   color: var(--text-muted);
   border: 1px solid var(--border-soft);
   border-radius: 999px;
-  padding: 0.2rem 0.6rem;
+  padding: 0.15rem 0.55rem;
   background: var(--bg-soft);
 }
 
+/* Input fields */
 .inv-input {
   background: var(--bg-soft);
   border: 1px solid var(--border-soft);
-  border-radius: 0.75rem;
+  border-radius: 0.65rem;
   padding: 0.5rem 0.75rem;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   color: var(--text-main);
   outline: none;
-  transition: border-color 0.15s;
-  width: 100%;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  min-width: 0;
 }
-.inv-input:focus { border-color: var(--ring-soft); }
-.inv-input::placeholder { color: var(--text-muted); opacity: 0.5; }
+.inv-input:focus {
+  border-color: var(--ring-soft);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ring-soft) 15%, transparent);
+}
+.inv-input::placeholder { color: var(--text-muted); opacity: 0.45; }
+.inv-input.flex-1 { flex: 1 1 0%; }
+.inv-input-qty {
+  width: 3.5rem;
+  flex-shrink: 0;
+  text-align: center;
+}
 
+.inv-add-row { display: flex; gap: 0.5rem; align-items: center; }
+
+/* Add button */
 .inv-add-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 2.5rem;
-  height: 2.5rem;
-  background: rgb(180 83 9 / 0.7);
-  border-radius: 0.75rem;
-  font-size: 1rem;
-  font-weight: 700;
+  min-width: 2.4rem;
+  height: 2.4rem;
+  background: linear-gradient(135deg, rgb(180 83 9 / 0.8), rgb(146 64 14 / 0.8));
+  border-radius: 0.65rem;
   color: #fff;
-  transition: background 0.15s;
-  flex-shrink: 0;
+  transition: filter 0.15s, transform 0.1s;
 }
-.inv-add-btn:hover { background: rgb(180 83 9 / 0.9); }
+.inv-add-btn:not(:disabled):hover { filter: brightness(1.15); transform: translateY(-1px); }
+.inv-add-btn:not(:disabled):active { transform: translateY(0); }
 
-.inv-empty {
+/* Empty state */
+.inv-empty-state {
+  padding: 2.5rem 0;
   text-align: center;
-  padding: 2rem 0;
-  font-size: 0.8rem;
-  font-style: italic;
-  color: var(--text-muted);
-  opacity: 0.6;
 }
 
+/* Item list */
 .inv-list {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.35rem;
   max-height: 22rem;
   overflow-y: auto;
   padding-right: 2px;
@@ -1268,52 +1389,80 @@ watch(() => route.query.characterId, async (next, prev) => {
 .inv-item {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.65rem;
   background: var(--bg-soft);
   border: 1px solid var(--border-soft);
   border-radius: 0.75rem;
-  padding: 0.55rem 0.75rem;
+  padding: 0.6rem 0.8rem;
+  transition: border-color 0.15s, background 0.15s;
+}
+.inv-item:hover {
+  border-color: rgb(107 78 158 / 0.3);
+  background: color-mix(in srgb, var(--bg-soft) 90%, rgb(107 78 158 / 0.1));
 }
 
+/* qty tag — inventário principal */
+.inv-qty-tag {
+  font-size: 0.72rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #fbbf24;
+  min-width: 2rem;
+  text-align: right;
+}
+
+/* qty-badge mantido para compatibilidade */
 .qty-badge {
-  font-size: 0.65rem;
+  font-size: 0.62rem;
   font-weight: 700;
   color: #fbbf24;
-  background: rgba(120, 53, 15, 0.3);
-  border: 1px solid rgba(180, 83, 9, 0.25);
+  background: rgba(120, 53, 15, 0.35);
+  border: 1px solid rgba(180, 83, 9, 0.3);
   border-radius: 999px;
-  padding: 0.1rem 0.45rem;
-  flex-shrink: 0;
+  padding: 0.12rem 0.5rem;
 }
 
 .inv-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: var(--text-muted);
-  flex-shrink: 0;
-  opacity: 0.5;
   transition: opacity 0.15s, color 0.15s;
   line-height: 0;
+  padding: 0.2rem;
+  border-radius: 0.35rem;
 }
-.inv-remove:hover { opacity: 1; color: #f87171; }
+.inv-remove:hover { color: #f87171; }
+
+/* TransitionGroup for items */
+.inv-item-enter-active,
+.inv-item-leave-active { transition: opacity 0.2s ease, transform 0.2s ease; }
+.inv-item-enter-from { opacity: 0; transform: translateY(-6px); }
+.inv-item-leave-to { opacity: 0; transform: translateX(12px); }
+.inv-item-leave-active { position: absolute; width: 100%; }
 
 /* ── Backpack button ── */
 .backpack-btn {
   position: relative;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 2.3rem;
-  height: 2.3rem;
-  border-radius: 0.75rem;
+  gap: 0.35rem;
+  padding: 0 0.65rem;
+  height: 2rem;
+  border-radius: 0.6rem;
   border: 1px solid var(--border-soft);
   background: var(--bg-soft);
   color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
   transition: all 0.15s;
 }
 .backpack-btn:hover, .backpack-btn-active {
-  border-color: var(--ring-soft);
-  background: var(--accent-soft);
-  color: var(--brand-primary);
+  border-color: rgb(180 83 9 / 0.4);
+  background: rgb(180 83 9 / 0.08);
+  color: #fbbf24;
 }
+.backpack-label { font-size: 0.7rem; }
 .backpack-badge {
   position: absolute;
   top: -0.3rem;
@@ -1321,14 +1470,141 @@ watch(() => route.query.characterId, async (next, prev) => {
   min-width: 1rem;
   height: 1rem;
   border-radius: 999px;
-  background: var(--brand-primary);
+  background: rgb(180 83 9 / 0.9);
   color: #fff;
-  font-size: 0.55rem;
+  font-size: 0.52rem;
   font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0 0.2rem;
+}
+
+/* ── Quick inventory panel — hologram ── */
+.quick-inv-panel {
+  position: absolute;
+  top: calc(100% + 0.6rem);
+  right: 0;
+  width: 22rem;
+  z-index: 50;
+  border-radius: 1rem;
+  border: 1px solid rgba(251, 191, 36, 0.18);
+  background: rgba(7, 12, 24, 0.82);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  box-shadow:
+    0 0 0 1px rgba(251, 191, 36, 0.06),
+    0 8px 40px rgba(0, 0, 0, 0.6),
+    0 0 60px rgba(180, 83, 9, 0.07),
+    inset 0 1px 0 rgba(251, 191, 36, 0.06);
+  overflow: hidden;
+}
+/* faixa de brilho no topo */
+.quick-inv-panel::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 5%, rgba(251,191,36,0.35) 40%, rgba(251,191,36,0.35) 60%, transparent 95%);
+  pointer-events: none;
+}
+.quick-inv-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1rem 0.75rem;
+  border-bottom: 1px solid rgba(251, 191, 36, 0.08);
+}
+.quick-inv-body { padding: 0.75rem; }
+.quick-add-row { display: flex; gap: 0.4rem; align-items: center; margin-bottom: 0.65rem; }
+
+/* input qty compacto na mochila */
+.quick-qty-input {
+  width: 2.8rem;
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(251, 191, 36, 0.15);
+  border-radius: 0.55rem;
+  padding: 0.45rem 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #fbbf24;
+  outline: none;
+  text-align: center;
+  transition: border-color 0.15s;
+}
+.quick-qty-input:focus { border-color: rgba(251, 191, 36, 0.4); }
+
+/* override do inv-input dentro da mochila para tom holográfico */
+.quick-inv-body .inv-input {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: rgba(226, 232, 240, 0.9);
+}
+.quick-inv-body .inv-input:focus {
+  border-color: rgba(251, 191, 36, 0.3);
+  box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.06);
+}
+
+.quick-inv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-height: 14rem;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+.quick-inv-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 0.55rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: background 0.15s, border-color 0.15s;
+}
+.quick-inv-item:hover {
+  background: rgba(251, 191, 36, 0.05);
+  border-color: rgba(251, 191, 36, 0.15);
+}
+.quick-qty-tag {
+  font-size: 0.75rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #fbbf24;
+  flex-shrink: 0;
+  min-width: 1.8rem;
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
+}
+.quick-item-name {
+  color: rgba(226, 232, 240, 0.85);
+}
+/* inv-remove dentro da mochila */
+.quick-inv-item .inv-remove { color: rgba(255,255,255,0.3); }
+.quick-inv-item .inv-remove:hover { color: #f87171; }
+
+/* linha de scan sutil no fundo do painel */
+.quick-inv-panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(251, 191, 36, 0.012) 3px,
+    rgba(251, 191, 36, 0.012) 4px
+  );
+  pointer-events: none;
+}
+
+.quick-item-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgb(180 83 9 / 0.5);
+  flex-shrink: 0;
 }
 
 /* ── Manage character panel ── */

@@ -21,8 +21,30 @@ app.use(
 );
 app.use(express.json());
 
-app.get("/api/health", (_, res) => {
-  res.status(200).json({ ok: true });
+app.get("/api/health", async (_req, res) => {
+  const vars = {
+    SUPABASE_URL: !!process.env.SUPABASE_URL,
+    SUPABASE_ANON_KEY: !!process.env.SUPABASE_ANON_KEY,
+    SUPABASE_SERVICE_ROLE_KEY: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    MASTER_EMAILS: !!(process.env.MASTER_EMAILS ?? process.env.MASTER_EMAIL),
+  };
+  const missingVars = Object.entries(vars)
+    .filter(([, ok]) => !ok)
+    .map(([k]) => k);
+
+  let dbOk = false;
+  let dbError: string | null = null;
+  try {
+    const { getAdminClient } = await import("./config/database/supabase/client.js");
+    const { error } = await getAdminClient().from("gods").select("id").limit(1);
+    dbOk = !error;
+    if (error) dbError = error.message;
+  } catch (e: any) {
+    dbError = e?.message ?? "unknown";
+  }
+
+  const ok = missingVars.length === 0 && dbOk;
+  res.status(ok ? 200 : 503).json({ ok, missingVars, db: dbOk, dbError });
 });
 
 app.use("/api/personagens", PersonagensRouter);
