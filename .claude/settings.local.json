@@ -36,7 +36,10 @@
       "Bash(yarn type-check *)",
       "Read(//c/Users/Hellsccythe/.claude/projects/c--Users-Hellsccythe-Documents-rpg-mesa/memory/**)",
       "Bash(vercel --version)",
-      "Bash(del \"c:\\\\Users\\\\Hellsccythe\\\\Documents\\\\rpg-mesa\\\\.env.vercel.tmp\" \"c:\\\\Users\\\\Hellsccythe\\\\Documents\\\\rpg-mesa\\\\.env.vercel.prod.tmp\")"
+      "Bash(del \"c:\\\\Users\\\\Hellsccythe\\\\Documents\\\\rpg-mesa\\\\.env.vercel.tmp\" \"c:\\\\Users\\\\Hellsccythe\\\\Documents\\\\rpg-mesa\\\\.env.vercel.prod.tmp\")",
+      "Bash(curl -s \"https://rpg-mesa-five.vercel.app/api/health\")",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
     ],
     "additionalDirectories": [
       "c:\\Users\\Hellsccythe\\.claude\\projects\\c--Users-Hellsccythe-Documents-rpg-mesa\\memory"
