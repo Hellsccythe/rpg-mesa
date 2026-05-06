@@ -39,7 +39,10 @@
       "Bash(del \"c:\\\\Users\\\\Hellsccythe\\\\Documents\\\\rpg-mesa\\\\.env.vercel.tmp\" \"c:\\\\Users\\\\Hellsccythe\\\\Documents\\\\rpg-mesa\\\\.env.vercel.prod.tmp\")",
       "Bash(curl -s \"https://rpg-mesa-five.vercel.app/api/health\")",
       "Bash(git commit -m ' *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(curl -s \"https://rpg-mesa-k8u79xj9u-bruno-eduardos-projects.vercel.app/api/health\")",
+      "Bash(wait)",
+      "Bash(yarn add *)"
     ],
     "additionalDirectories": [
       "c:\\Users\\Hellsccythe\\.claude\\projects\\c--Users-Hellsccythe-Documents-rpg-mesa\\memory"
