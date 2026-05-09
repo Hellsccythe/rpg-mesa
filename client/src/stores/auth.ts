@@ -54,17 +54,25 @@ export function sessaoLocalExpirada() {
 }
 
 export async function obterTokenDeAcesso() {
-  if (sessaoLocalExpirada()) {
-    await supabase.auth.signOut()
-    limparMetaAuthLocal()
-    return null
-  }
-
   const {
     data: { session },
   } = await supabase.auth.getSession()
 
-  return session?.access_token ?? null
+  // Se o Supabase não tem sessão ativa, meta local também não serve
+  if (!session) {
+    limparMetaAuthLocal()
+    return null
+  }
+
+  // Meta local expirou mas Supabase ainda tem sessão válida — renova a meta
+  if (sessaoLocalExpirada()) {
+    const meta = lerMetaAuth()
+    if (meta) {
+      gravarMetaAuth({ ...meta, autenticadoEm: Date.now() })
+    }
+  }
+
+  return session.access_token
 }
 
 export const useAuthStore = defineStore('auth', () => {
