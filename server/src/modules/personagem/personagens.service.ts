@@ -1,5 +1,6 @@
 // server/src/modules/personagem/personagens.service.ts
 import { getAdminClient, getSupabaseClient } from "../../config/database/supabase/client.js";
+import { getMasterEmails } from "../../common/helpers/master-access.helper.js";
 import {
   PERSONAGEM_SELECT_FIELDS,
   PERSONAGEM_TABLE,
@@ -161,8 +162,8 @@ async function ensureMasterAccess(accessToken?: string) {
 
   if (error || !user) throw new Error("Usuário não autenticado");
 
-  const masterEmail = (process.env.MASTER_EMAIL ?? "").trim().toLowerCase();
-  if (masterEmail && user.email?.toLowerCase() !== masterEmail) {
+  const masterEmails = getMasterEmails();
+  if (masterEmails.length > 0 && !masterEmails.includes(user.email?.toLowerCase() ?? "")) {
     throw new Error("Acesso restrito ao mestre");
   }
 
@@ -1044,8 +1045,8 @@ export const personagensService = {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) throw new Error("Usuário não autenticado");
 
-    const masterEmail = (process.env.MASTER_EMAIL ?? "").toLowerCase().trim();
-    const isMaster = masterEmail !== "" && user.email?.toLowerCase() === masterEmail;
+    const masterEmails = getMasterEmails();
+    const isMaster = masterEmails.length > 0 && masterEmails.includes(user.email?.toLowerCase() ?? "");
 
     const admin = getAdminClient();
     const { data: current, error: currentError } = await admin
@@ -1138,8 +1139,8 @@ export const personagensService = {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) throw new Error("Usuário não autenticado");
 
-    const masterEmail = (process.env.MASTER_EMAIL ?? "").toLowerCase().trim();
-    const isMaster = masterEmail !== "" && user.email?.toLowerCase() === masterEmail;
+    const masterEmails = getMasterEmails();
+    const isMaster = masterEmails.length > 0 && masterEmails.includes(user.email?.toLowerCase() ?? "");
 
     const admin = getAdminClient();
     const { data: current, error: currentError } = await admin
@@ -1187,8 +1188,8 @@ export const personagensService = {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) throw new Error("Usuário não autenticado");
 
-    const masterEmail = (process.env.MASTER_EMAIL ?? "").toLowerCase().trim();
-    if (!masterEmail || user.email?.toLowerCase() !== masterEmail) {
+    const masterEmails = getMasterEmails();
+    if (masterEmails.length === 0 || !masterEmails.includes(user.email?.toLowerCase() ?? "")) {
       throw new Error("Acesso restrito ao mestre");
     }
 
@@ -1269,8 +1270,8 @@ export const personagensService = {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) throw new Error("Usuário não autenticado");
 
-    const masterEmail = (process.env.MASTER_EMAIL ?? "").toLowerCase().trim();
-    const isMaster = masterEmail !== "" && user.email?.toLowerCase() === masterEmail;
+    const masterEmails = getMasterEmails();
+    const isMaster = masterEmails.length > 0 && masterEmails.includes(user.email?.toLowerCase() ?? "");
 
     const admin = getAdminClient();
     const { data: current, error: currentError } = await admin

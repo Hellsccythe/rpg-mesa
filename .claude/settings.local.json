@@ -42,7 +42,9 @@
       "Bash(git push *)",
       "Bash(curl -s \"https://rpg-mesa-k8u79xj9u-bruno-eduardos-projects.vercel.app/api/health\")",
       "Bash(wait)",
-      "Bash(yarn add *)"
+      "Bash(yarn add *)",
+      "Bash(curl -s \"https://rpg-mesa-be321w621-bruno-eduardos-projects.vercel.app/api/skills/catalogo\")",
+      "Bash(curl -s -X POST \"https://rpg-mesa-five.vercel.app/api/skills/admin/catalogo\" -H \"Content-Type: application/json\" -d '{\"name\":\"teste\"}')"
     ],
     "additionalDirectories": [
       "c:\\Users\\Hellsccythe\\.claude\\projects\\c--Users-Hellsccythe-Documents-rpg-mesa\\memory"
