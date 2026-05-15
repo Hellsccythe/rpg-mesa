@@ -78,8 +78,8 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresMaster: true },
     },
     {
-      path: '/master/armas',
-      name: 'master-weapons',
+      path: '/master/equipamentos',
+      name: 'master-equipamentos',
       component: () => import('@/views/MasterWeaponsView.vue'),
       meta: { requiresAuth: true, requiresMaster: true },
     },

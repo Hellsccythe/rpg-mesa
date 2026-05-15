@@ -1,5 +1,10 @@
 import { api } from '@/plugins/axios'
 
+export interface CategoriaEquipamento {
+  item: number
+  descricao: string
+}
+
 export interface ArmaApi {
   id: string
   nome: string
@@ -8,7 +13,7 @@ export interface ArmaApi {
   peso: number | null
   propriedades: string
   valor: number | null
-  categoria_equipamento: string | null
+  categoria_equipamento_item: number[]
   descricao_equipamento: string | null
   pre_requisitos: string | null
   createdAt?: string
@@ -22,7 +27,7 @@ export interface CriarArmaPayload {
   peso?: number | null
   propriedades?: string
   valor?: number | null
-  categoria_equipamento?: string | null
+  categoria_equipamento_item?: number[]
   descricao_equipamento?: string | null
   pre_requisitos?: string | null
 }
@@ -34,9 +39,14 @@ export interface EditarArmaPayload {
   peso?: number | null
   propriedades?: string
   valor?: number | null
-  categoria_equipamento?: string | null
+  categoria_equipamento_item?: number[]
   descricao_equipamento?: string | null
   pre_requisitos?: string | null
+}
+
+export async function listarCategoriasEquipamento(): Promise<CategoriaEquipamento[]> {
+  const { data } = await api.get<CategoriaEquipamento[]>('/armas/categorias')
+  return data
 }
 
 export async function listarArmasPublicas(): Promise<ArmaApi[]> {

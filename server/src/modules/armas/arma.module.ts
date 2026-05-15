@@ -13,6 +13,15 @@ function getBearerToken(authorization?: string): string | undefined {
 
 export const ArmasRouter = Router();
 
+ArmasRouter.get("/categorias", async (_req, res) => {
+  try {
+    const resultado = await armaService.listarCategorias();
+    res.status(200).json(resultado);
+  } catch (error: any) {
+    res.status(400).json({ message: error?.message ?? "Erro ao listar categorias" });
+  }
+});
+
 ArmasRouter.get("/", async (_req, res) => {
   try {
     const resultado = await armaService.listarPublico();

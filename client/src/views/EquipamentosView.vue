@@ -62,8 +62,8 @@
                 v-model="filtroCategoria"
                 class="eq-input w-full rounded-2xl border px-4 py-2.5 text-sm outline-none transition-colors appearance-none pr-8"
               >
-                <option value="">Todas as categorias</option>
-                <option v-for="cat in categoriasUnicas" :key="cat" :value="cat">{{ cat }}</option>
+                <option :value="null">Todas as categorias</option>
+                <option v-for="cat in categorias" :key="cat.item" :value="cat.item">{{ cat.descricao }}</option>
               </select>
               <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500">˅</span>
             </div>
@@ -106,10 +106,14 @@
                 </span>
               </div>
 
-              <!-- Categoria -->
-              <p v-if="eq.categoria_equipamento" class="eq-categoria mb-2 text-xs uppercase tracking-widest">
-                {{ eq.categoria_equipamento }}
-              </p>
+              <!-- Categorias -->
+              <div v-if="eq.categoria_equipamento_item.length > 0" class="flex flex-wrap gap-1 mb-2">
+                <span
+                  v-for="itemId in eq.categoria_equipamento_item"
+                  :key="itemId"
+                  class="eq-categoria rounded-full px-2 py-0.5 text-xs uppercase tracking-widest"
+                >{{ categoriaNome(itemId) }}</span>
+              </div>
 
               <!-- Descrição -->
               <p class="eq-desc line-clamp-3 text-sm leading-relaxed mb-3">
@@ -146,9 +150,13 @@
                 <span class="eq-tipo-badge rounded-full px-2.5 py-0.5 text-xs font-semibold" :class="tipoBadgeClass(selecionado.tipo)">
                   {{ selecionado.tipo }}
                 </span>
-                <span v-if="selecionado.categoria_equipamento" class="eq-categoria text-xs uppercase tracking-widest">
-                  {{ selecionado.categoria_equipamento }}
-                </span>
+                <template v-if="selecionado.categoria_equipamento_item.length > 0">
+                  <span
+                    v-for="itemId in selecionado.categoria_equipamento_item"
+                    :key="itemId"
+                    class="eq-categoria text-xs uppercase tracking-widest"
+                  >{{ categoriaNome(itemId) }}</span>
+                </template>
               </div>
             </div>
             <button
@@ -213,18 +221,19 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import HamburgerDrawerMenu from '@/components/HamburgerDrawerMenu.vue'
 import { useAuthStore } from '@/stores/auth'
-import { listarArmasPublicas } from '@/lib/api/armas.api'
-import type { ArmaApi } from '@/lib/api/armas.api'
+import { listarArmasPublicas, listarCategoriasEquipamento } from '@/lib/api/armas.api'
+import type { ArmaApi, CategoriaEquipamento } from '@/lib/api/armas.api'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 
 const equipamentos = ref<ArmaApi[]>([])
+const categorias = ref<CategoriaEquipamento[]>([])
 const carregando = ref(false)
 const erro = ref(false)
 const filtroNome = ref('')
-const filtroCategoria = ref('')
+const filtroCategoria = ref<number | null>(null)
 const selecionado = ref<ArmaApi | null>(null)
 const showSettingsMenu = ref(false)
 
@@ -262,19 +271,16 @@ function handleNavSelect(itemId: string) {
   if (target) router.push(target)
 }
 
-const categoriasUnicas = computed(() => {
-  const cats = equipamentos.value
-    .map((e) => e.categoria_equipamento)
-    .filter((c): c is string => !!c)
-  return [...new Set(cats)].sort()
-})
+function categoriaNome(itemId: number): string {
+  return categorias.value.find((c) => c.item === itemId)?.descricao ?? String(itemId)
+}
 
 const equipamentosFiltrados = computed(() => {
   const nome = filtroNome.value.trim().toLowerCase()
   const cat = filtroCategoria.value
   return equipamentos.value.filter((e) => {
     const matchNome = !nome || e.nome.toLowerCase().includes(nome)
-    const matchCat = !cat || e.categoria_equipamento === cat
+    const matchCat = cat === null || e.categoria_equipamento_item.includes(cat)
     return matchNome && matchCat
   })
 })
@@ -305,7 +311,9 @@ async function carregar() {
   carregando.value = true
   erro.value = false
   try {
-    equipamentos.value = await listarArmasPublicas()
+    const [eqs, cats] = await Promise.all([listarArmasPublicas(), listarCategoriasEquipamento()])
+    equipamentos.value = eqs
+    categorias.value = cats
   } catch {
     erro.value = true
   } finally {

@@ -3,6 +3,7 @@ import { ensureMasterAccess } from "../../common/helpers/master-access.helper.js
 import type { CriarArmaDto, EditarArmaDto } from "./arma.dto.js";
 
 const ARMAS_TABLE = "equipamentos";
+const CATEGORIAS_TABLE = "categoria_equipamento";
 
 type ArmaRecord = {
   id: string;
@@ -12,11 +13,16 @@ type ArmaRecord = {
   peso: number | null;
   propriedades: string;
   valor: number | null;
-  categoria_equipamento: string | null;
+  categoria_equipamento_item: number[];
   descricao_equipamento: string | null;
   pre_requisitos: string | null;
   createdAt?: string;
   updatedAt?: string;
+};
+
+export type CategoriaEquipamento = {
+  item: number;
+  descricao: string;
 };
 
 function normalizeText(value: unknown): string {
@@ -36,6 +42,11 @@ function normalizeTextOrNull(value: unknown): string | null {
   return s === "" ? null : s;
 }
 
+function normalizeCategoriaItems(value: unknown): number[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((v) => typeof v === "number" && Number.isInteger(v));
+}
+
 function mapArma(row: any): ArmaRecord {
   return {
     id: String(row?.id ?? ""),
@@ -45,7 +56,7 @@ function mapArma(row: any): ArmaRecord {
     peso: normalizeDecimal(row?.peso),
     propriedades: normalizeText(row?.propriedades),
     valor: normalizeDecimal(row?.valor),
-    categoria_equipamento: normalizeTextOrNull(row?.categoria_equipamento),
+    categoria_equipamento_item: normalizeCategoriaItems(row?.categoria_equipamento_item),
     descricao_equipamento: normalizeTextOrNull(row?.descricao_equipamento),
     pre_requisitos: normalizeTextOrNull(row?.pre_requisitos),
     createdAt: row?.created_at,
@@ -54,9 +65,19 @@ function mapArma(row: any): ArmaRecord {
 }
 
 const SELECT_FIELDS =
-  "id, nome, tipo, dano, peso, propriedades, valor, categoria_equipamento, descricao_equipamento, pre_requisitos, created_at, updated_at";
+  "id, nome, tipo, dano, peso, propriedades, valor, categoria_equipamento_item, descricao_equipamento, pre_requisitos, created_at, updated_at";
 
 export const armaService = {
+  async listarCategorias(): Promise<CategoriaEquipamento[]> {
+    const client = getSupabaseClient();
+    const { data, error } = await client
+      .from(CATEGORIAS_TABLE)
+      .select("item, descricao")
+      .order("item", { ascending: true });
+    if (error) throw error;
+    return (data ?? []) as CategoriaEquipamento[];
+  },
+
   async listarPublico() {
     const client = getSupabaseClient();
     const { data, error } = await client
@@ -96,7 +117,7 @@ export const armaService = {
         peso: dto.peso ?? null,
         propriedades: dto.propriedades?.trim() ?? "",
         valor: dto.valor ?? null,
-        categoria_equipamento: dto.categoria_equipamento?.trim() ?? null,
+        categoria_equipamento_item: dto.categoria_equipamento_item ?? [],
         descricao_equipamento: dto.descricao_equipamento?.trim() ?? null,
         pre_requisitos: dto.pre_requisitos?.trim() ?? null,
       })
@@ -129,7 +150,7 @@ export const armaService = {
     if (dto.peso !== undefined) updates.peso = dto.peso;
     if (dto.propriedades !== undefined) updates.propriedades = dto.propriedades.trim();
     if (dto.valor !== undefined) updates.valor = dto.valor;
-    if (dto.categoria_equipamento !== undefined) updates.categoria_equipamento = dto.categoria_equipamento?.trim() ?? null;
+    if (dto.categoria_equipamento_item !== undefined) updates.categoria_equipamento_item = dto.categoria_equipamento_item ?? [];
     if (dto.descricao_equipamento !== undefined) updates.descricao_equipamento = dto.descricao_equipamento?.trim() ?? null;
     if (dto.pre_requisitos !== undefined) updates.pre_requisitos = dto.pre_requisitos?.trim() ?? null;
 

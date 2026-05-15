@@ -72,6 +72,17 @@
             </div>
           </div>
 
+          <div class="w-52">
+            <label class="field-label mb-1.5 block text-xs uppercase tracking-wide">Categoria</label>
+            <div class="select-wrap">
+              <select v-model="filtroCategoria" class="field-input w-full appearance-none rounded-xl border px-3 py-2.5 pr-9 text-sm outline-none transition-colors">
+                <option :value="null">Todas as categorias</option>
+                <option v-for="cat in categorias" :key="cat.item" :value="cat.item">{{ cat.descricao }}</option>
+              </select>
+              <span class="select-caret" aria-hidden="true">˅</span>
+            </div>
+          </div>
+
           <button
             @click="abrirFormNova"
             class="btn-primary inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all"
@@ -140,7 +151,6 @@
                   type="text"
                   placeholder="Ex: 1d8+3"
                   class="field-input w-full rounded-xl border px-3 py-2.5 text-sm font-mono outline-none transition-colors"
-                  aria-required="true"
                 />
               </div>
 
@@ -183,19 +193,36 @@
                 />
               </div>
 
-              <!-- Categoria -->
-              <div>
-                <label class="field-label mb-1.5 block text-xs font-semibold uppercase tracking-wide">Categoria</label>
-                <input
-                  v-model="form.categoria_equipamento"
-                  type="text"
-                  placeholder="Ex: Combate, Exploração, Utilitário"
-                  class="field-input w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition-colors"
-                />
+              <!-- Categorias (multi-select checkboxes) -->
+              <div class="sm:col-span-2 lg:col-span-3">
+                <label class="field-label mb-2 block text-xs font-semibold uppercase tracking-wide">
+                  Categorias
+                </label>
+                <div v-if="categorias.length > 0" class="flex flex-wrap gap-2">
+                  <label
+                    v-for="cat in categorias"
+                    :key="cat.item"
+                    class="categoria-chip flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors select-none"
+                    :class="form.categoria_equipamento_item.includes(cat.item) ? 'chip-active' : 'chip-inactive'"
+                  >
+                    <input
+                      type="checkbox"
+                      :value="cat.item"
+                      v-model="form.categoria_equipamento_item"
+                      class="sr-only"
+                    />
+                    <span
+                      class="flex h-3.5 w-3.5 items-center justify-center rounded-full border text-[0.55rem] font-bold"
+                      :class="form.categoria_equipamento_item.includes(cat.item) ? 'check-active' : 'check-inactive'"
+                    >{{ form.categoria_equipamento_item.includes(cat.item) ? '✓' : '' }}</span>
+                    {{ cat.descricao }}
+                  </label>
+                </div>
+                <p v-else class="text-xs text-muted italic">Carregando categorias...</p>
               </div>
 
               <!-- Pré-requisitos -->
-              <div class="sm:col-span-2">
+              <div class="sm:col-span-2 lg:col-span-3">
                 <label class="field-label mb-1.5 block text-xs font-semibold uppercase tracking-wide">Pré-requisitos</label>
                 <input
                   v-model="form.pre_requisitos"
@@ -254,7 +281,7 @@
             <span class="hidden sm:block">Tipo</span>
             <span>Dano</span>
             <span class="hidden sm:block">Peso</span>
-            <span class="hidden sm:block">Propriedades</span>
+            <span class="hidden sm:block">Categorias</span>
             <span class="text-center">Ações</span>
           </div>
 
@@ -272,9 +299,9 @@
               <path d="M19 21l2-2"/>
             </svg>
             <p class="text-sm font-medium opacity-50">
-              {{ filtroNome || filtroTipo ? 'Nenhum equipamento encontrado com esses filtros.' : 'Nenhum equipamento cadastrado ainda.' }}
+              {{ filtroNome || filtroTipo || filtroCategoria ? 'Nenhum equipamento encontrado com esses filtros.' : 'Nenhum equipamento cadastrado ainda.' }}
             </p>
-            <button v-if="!filtroNome && !filtroTipo" @click="abrirFormNova" class="mt-2 text-xs text-red-400 hover:text-red-300 underline underline-offset-2 transition-colors">
+            <button v-if="!filtroNome && !filtroTipo && !filtroCategoria" @click="abrirFormNova" class="mt-2 text-xs text-red-400 hover:text-red-300 underline underline-offset-2 transition-colors">
               Cadastrar primeiro equipamento
             </button>
           </div>
@@ -312,10 +339,19 @@
                 {{ arma.peso != null ? arma.peso.toFixed(2) + ' kg' : '—' }}
               </span>
 
-              <!-- Propriedades -->
-              <span class="hidden truncate text-xs sm:block text-muted" :title="arma.propriedades">
-                {{ arma.propriedades || '—' }}
-              </span>
+              <!-- Categorias -->
+              <div class="hidden sm:flex flex-wrap gap-1">
+                <template v-if="arma.categoria_equipamento_item.length > 0">
+                  <span
+                    v-for="itemId in arma.categoria_equipamento_item"
+                    :key="itemId"
+                    class="categoria-row-badge rounded-full px-2 py-0.5 text-[0.65rem] font-medium"
+                  >
+                    {{ categoriaNome(itemId) }}
+                  </span>
+                </template>
+                <span v-else class="text-xs text-muted">—</span>
+              </div>
 
               <!-- Ações -->
               <div class="flex items-center justify-end gap-1.5">
@@ -396,16 +432,19 @@ import { useAuthStore } from '@/stores/auth'
 import TemaDarkLight from '@/components/TemaDarkLight.vue'
 import {
   listarArmas,
+  listarCategoriasEquipamento,
   criarArma,
   editarArma,
   deletarArma,
   type ArmaApi,
+  type CategoriaEquipamento,
 } from '@/lib/api/armas.api'
 
 const router = useRouter()
 const authStore = useAuthStore()
 
 const armas = ref<ArmaApi[]>([])
+const categorias = ref<CategoriaEquipamento[]>([])
 const carregando = ref(false)
 const salvando = ref(false)
 const deletando = ref(false)
@@ -414,6 +453,7 @@ const feedbackError = ref(false)
 
 const filtroNome = ref('')
 const filtroTipo = ref('')
+const filtroCategoria = ref<number | null>(null)
 
 const mostrarForm = ref(false)
 const editandoId = ref<string | null>(null)
@@ -429,7 +469,7 @@ const form = reactive({
   peso: null as number | null,
   propriedades: '',
   valor: null as number | null,
-  categoria_equipamento: '',
+  categoria_equipamento_item: [] as number[],
   descricao_equipamento: '',
   pre_requisitos: '',
 })
@@ -452,6 +492,10 @@ function tipoBadgeClass(tipo: string): string {
   return TIPO_COLORS[key] ?? 'bg-zinc-500/15 text-zinc-300 border border-zinc-500/25'
 }
 
+function categoriaNome(itemId: number): string {
+  return categorias.value.find((c) => c.item === itemId)?.descricao ?? String(itemId)
+}
+
 const tiposUnicos = computed(() => {
   const set = new Set(armas.value.map((a) => a.tipo).filter(Boolean))
   return [...set].sort((a, b) => a.localeCompare(b, 'pt-BR'))
@@ -460,9 +504,11 @@ const tiposUnicos = computed(() => {
 const armasFiltradas = computed(() => {
   const nome = filtroNome.value.trim().toLowerCase()
   const tipo = filtroTipo.value
+  const cat = filtroCategoria.value
   return armas.value.filter((a) => {
     if (nome && !a.nome.toLowerCase().includes(nome)) return false
     if (tipo && a.tipo !== tipo) return false
+    if (cat !== null && !a.categoria_equipamento_item.includes(cat)) return false
     return true
   })
 })
@@ -474,7 +520,7 @@ function resetForm() {
   form.peso = null
   form.propriedades = ''
   form.valor = null
-  form.categoria_equipamento = ''
+  form.categoria_equipamento_item = []
   form.descricao_equipamento = ''
   form.pre_requisitos = ''
   formFeedback.value = ''
@@ -500,7 +546,7 @@ function iniciarEdicao(arma: ArmaApi) {
   form.peso = arma.peso
   form.propriedades = arma.propriedades
   form.valor = arma.valor
-  form.categoria_equipamento = arma.categoria_equipamento ?? ''
+  form.categoria_equipamento_item = [...(arma.categoria_equipamento_item ?? [])]
   form.descricao_equipamento = arma.descricao_equipamento ?? ''
   form.pre_requisitos = arma.pre_requisitos ?? ''
   formFeedback.value = ''
@@ -516,7 +562,9 @@ function confirmarDelete(arma: ArmaApi) {
 async function carregar() {
   carregando.value = true
   try {
-    armas.value = await listarArmas()
+    const [equipamentos, cats] = await Promise.all([listarArmas(), listarCategoriasEquipamento()])
+    armas.value = equipamentos
+    categorias.value = cats
   } catch {
     feedback.value = 'Erro ao carregar equipamentos.'
     feedbackError.value = true
@@ -540,7 +588,7 @@ async function salvar() {
       peso: pesoNum,
       propriedades: form.propriedades,
       valor: valorNum,
-      categoria_equipamento: form.categoria_equipamento.trim() || null,
+      categoria_equipamento_item: form.categoria_equipamento_item,
       descricao_equipamento: form.descricao_equipamento.trim() || null,
       pre_requisitos: form.pre_requisitos.trim() || null,
     }
@@ -642,6 +690,39 @@ onMounted(carregar)
   color: #475569;
   pointer-events: none;
   font-size: 0.9rem;
+}
+
+/* ── Categoria chips (form) ──────────────────────────────────────────────── */
+.chip-active {
+  background: rgb(220 38 38 / 0.15);
+  border-color: rgb(220 38 38 / 0.5);
+  color: #fca5a5;
+}
+.chip-inactive {
+  background: rgb(255 255 255 / 0.03);
+  border-color: rgb(255 255 255 / 0.1);
+  color: #64748b;
+}
+.chip-inactive:hover {
+  border-color: rgb(255 255 255 / 0.2);
+  color: #94a3b8;
+}
+.check-active {
+  background: rgb(220 38 38 / 0.3);
+  border-color: #f87171;
+  color: #fca5a5;
+}
+.check-inactive {
+  background: transparent;
+  border-color: rgb(255 255 255 / 0.2);
+  color: transparent;
+}
+
+/* ── Categoria badges (tabela) ───────────────────────────────────────────── */
+.categoria-row-badge {
+  background: rgb(220 38 38 / 0.12);
+  color: #fca5a5;
+  border: 1px solid rgb(220 38 38 / 0.25);
 }
 
 /* ── Botões ──────────────────────────────────────────────────────────────── */
@@ -777,6 +858,27 @@ onMounted(carregar)
 :global(html.theme-light) .form-title { color: #991b1b; }
 :global(html.theme-light) .close-btn { color: var(--text-muted); }
 :global(html.theme-light) .close-btn:hover { background: var(--bg-soft); }
+
+:global(html.theme-light) .chip-active {
+  background: rgb(220 38 38 / 0.1);
+  border-color: rgb(220 38 38 / 0.4);
+  color: #b91c1c;
+}
+:global(html.theme-light) .chip-inactive {
+  background: var(--bg-soft);
+  border-color: var(--border-soft);
+  color: var(--text-muted);
+}
+:global(html.theme-light) .check-active {
+  background: rgb(220 38 38 / 0.15);
+  border-color: #dc2626;
+  color: #b91c1c;
+}
+:global(html.theme-light) .categoria-row-badge {
+  background: rgb(220 38 38 / 0.08);
+  color: #b91c1c;
+  border-color: rgb(220 38 38 / 0.2);
+}
 
 :global(html.theme-light) .weapons-table {
   background: var(--bg-card);

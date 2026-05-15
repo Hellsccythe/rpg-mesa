@@ -1,4 +1,4 @@
-import { IsNumber, IsOptional, IsString, Max, MaxLength, Min } from "class-validator";
+import { IsArray, IsInt, IsNumber, IsOptional, IsString, Max, MaxLength, Min } from "class-validator";
 
 export class CriarArmaDto {
   @IsString()
@@ -16,9 +16,9 @@ export class CriarArmaDto {
   dano?: string;
 
   @IsOptional()
-  @IsString()
-  @MaxLength(100)
-  categoria_equipamento?: string;
+  @IsArray()
+  @IsInt({ each: true })
+  categoria_equipamento_item?: number[];
 
   @IsOptional()
   @IsString()
@@ -67,9 +67,9 @@ export class EditarArmaDto {
   dano?: string;
 
   @IsOptional()
-  @IsString()
-  @MaxLength(100)
-  categoria_equipamento?: string;
+  @IsArray()
+  @IsInt({ each: true })
+  categoria_equipamento_item?: number[];
 
   @IsOptional()
   @IsString()
