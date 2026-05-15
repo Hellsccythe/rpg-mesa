@@ -169,7 +169,7 @@ export const cityMapsService = {
   },
 
   async salvar(dto: SalvarCityMapDto, accessToken?: string) {
-    await ensureMasterAccess(accessToken);
+    const masterUser = await ensureMasterAccess(accessToken);
     const admin = getAdminClient();
 
     const dataPayload = {
@@ -190,6 +190,8 @@ export const cityMapsService = {
         map_reference: dto.mapReference.trim(),
         description: dto.description?.trim() ?? "",
         data: dataPayload,
+        created_by: masterUser.id,
+        updated_by: masterUser.id,
       })
       .select("id, name, map_reference, description, data, created_at, updated_at")
       .single();
@@ -234,7 +236,7 @@ export const cityMapsService = {
   },
 
   async editar(cityMapId: string, dto: EditarCityMapDto, accessToken?: string) {
-    await ensureMasterAccess(accessToken);
+    const masterUser = await ensureMasterAccess(accessToken);
     const admin = getAdminClient();
 
     const { data: current, error: currentError } = await admin
@@ -268,6 +270,7 @@ export const cityMapsService = {
 
     const updates: Record<string, unknown> = {
       data: nextData,
+      updated_by: masterUser.id,
       ...(dto.name !== undefined ? { name: normalizeText(dto.name) } : {}),
       ...(dto.mapReference !== undefined ? { map_reference: normalizeText(dto.mapReference) } : {}),
       ...(dto.description !== undefined ? { description: normalizeText(dto.description) } : {}),

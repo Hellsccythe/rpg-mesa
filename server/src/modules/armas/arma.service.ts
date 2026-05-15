@@ -69,7 +69,7 @@ const SELECT_FIELDS =
 
 export const armaService = {
   async listarCategorias(): Promise<CategoriaEquipamento[]> {
-    const client = getSupabaseClient();
+    const client = getAdminClient();
     const { data, error } = await client
       .from(CATEGORIAS_TABLE)
       .select("item, descricao")
@@ -105,7 +105,7 @@ export const armaService = {
   },
 
   async criar(dto: CriarArmaDto, accessToken?: string) {
-    await ensureMasterAccess(accessToken);
+    const masterUser = await ensureMasterAccess(accessToken);
     const admin = getAdminClient();
 
     const { data, error } = await admin
@@ -120,6 +120,8 @@ export const armaService = {
         categoria_equipamento_item: dto.categoria_equipamento_item ?? [],
         descricao_equipamento: dto.descricao_equipamento?.trim() ?? null,
         pre_requisitos: dto.pre_requisitos?.trim() ?? null,
+        created_by: masterUser.id,
+        updated_by: masterUser.id,
       })
       .select(SELECT_FIELDS)
       .single();
@@ -129,7 +131,7 @@ export const armaService = {
   },
 
   async editar(armaId: string, dto: EditarArmaDto, accessToken?: string) {
-    await ensureMasterAccess(accessToken);
+    const masterUser = await ensureMasterAccess(accessToken);
     const admin = getAdminClient();
 
     const { data: current, error: currentError } = await admin
@@ -143,6 +145,7 @@ export const armaService = {
 
     const updates: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
+      updated_by: masterUser.id,
     };
     if (dto.nome !== undefined) updates.nome = dto.nome.trim();
     if (dto.tipo !== undefined) updates.tipo = dto.tipo.trim();

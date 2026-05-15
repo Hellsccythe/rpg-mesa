@@ -36,7 +36,7 @@ export const classesService = {
   },
 
   async salvar(dto: SalvarClasseDto, accessToken?: string) {
-    await ensureMasterAccess(accessToken);
+    const masterUser = await ensureMasterAccess(accessToken);
     const admin = getAdminClient();
 
     const { data, error } = await admin
@@ -46,6 +46,8 @@ export const classesService = {
         tier: dto.tier.trim(),
         description: dto.description.trim(),
         max_level: dto.maxLevel ?? 20,
+        created_by: masterUser.id,
+        updated_by: masterUser.id,
       })
       .select("*")
       .single();
