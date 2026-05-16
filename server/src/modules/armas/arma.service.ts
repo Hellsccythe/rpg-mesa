@@ -1,23 +1,65 @@
 import { getAdminClient, getSupabaseClient } from "../../config/database/supabase/client.js";
 import { ensureMasterAccess } from "../../common/helpers/master-access.helper.js";
-import type { CriarArmaDto, EditarArmaDto } from "./arma.dto.js";
+import type {
+  CriarArmaDto,
+  EditarArmaDto,
+  CriarClasseDto,
+  EditarClasseDto,
+  CriarTipoDto,
+  EditarTipoDto,
+  CriarPropriedadeDto,
+  EditarPropriedadeDto,
+  CriarCategoriaDto,
+  EditarCategoriaDto,
+} from "./arma.dto.js";
 
-const ARMAS_TABLE = "equipamentos";
+const ARMAS_TABLE        = "equipamentos";
+const CATEGORIAS_TABLE   = "categoria_equipamento";
+const CLASSES_TABLE      = "classe_equipamento";
+const TIPOS_TABLE        = "tipo_equipamento";
+const PROPRIEDADES_TABLE = "propriedade_equipamento";
 
 type ArmaRecord = {
   id: string;
   nome: string;
-  tipo: string;
   dano: string;
   peso: number | null;
-  propriedades: string;
   valor: number | null;
-  categoria_equipamento: string | null;
+  classe_equipamento_item: number | null;
+  categoria_equipamento_item: number[];
+  tipo_equipamento_item: number[];
+  propriedade_equipamento_item: number[];
   descricao_equipamento: string | null;
   pre_requisitos: string | null;
   createdAt?: string;
   updatedAt?: string;
 };
+
+export type CategoriaEquipamento = {
+  item: number;
+  descricao: string;
+  classe_item?: number | null;
+};
+
+export type ClasseEquipamento = {
+  item: number;
+  descricao: string;
+  icone?: string | null;
+};
+
+export type TipoEquipamento = {
+  item: number;
+  descricao: string;
+  classe_item: number;
+};
+
+export type PropriedadeEquipamento = {
+  item: number;
+  descricao: string;
+  classe_item: number;
+};
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
 function normalizeText(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
@@ -36,16 +78,28 @@ function normalizeTextOrNull(value: unknown): string | null {
   return s === "" ? null : s;
 }
 
+function normalizeIntArray(value: unknown): number[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((v) => typeof v === "number" && Number.isInteger(v));
+}
+
+function normalizeIntOrNull(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  const n = Number(value);
+  return Number.isInteger(n) && n >= 1 ? n : null;
+}
+
 function mapArma(row: any): ArmaRecord {
   return {
     id: String(row?.id ?? ""),
     nome: normalizeText(row?.nome),
-    tipo: normalizeText(row?.tipo),
     dano: normalizeText(row?.dano),
     peso: normalizeDecimal(row?.peso),
-    propriedades: normalizeText(row?.propriedades),
     valor: normalizeDecimal(row?.valor),
-    categoria_equipamento: normalizeTextOrNull(row?.categoria_equipamento),
+    classe_equipamento_item: normalizeIntOrNull(row?.classe_equipamento_item),
+    categoria_equipamento_item: normalizeIntArray(row?.categoria_equipamento_item),
+    tipo_equipamento_item: normalizeIntArray(row?.tipo_equipamento_item),
+    propriedade_equipamento_item: normalizeIntArray(row?.propriedade_equipamento_item),
     descricao_equipamento: normalizeTextOrNull(row?.descricao_equipamento),
     pre_requisitos: normalizeTextOrNull(row?.pre_requisitos),
     createdAt: row?.created_at,
@@ -54,119 +108,350 @@ function mapArma(row: any): ArmaRecord {
 }
 
 const SELECT_FIELDS =
-  "id, nome, tipo, dano, peso, propriedades, valor, categoria_equipamento, descricao_equipamento, pre_requisitos, created_at, updated_at";
+  "id, nome, dano, peso, valor, " +
+  "classe_equipamento_item, categoria_equipamento_item, tipo_equipamento_item, propriedade_equipamento_item, " +
+  "descricao_equipamento, pre_requisitos, created_at, updated_at";
+
+// Retorna o próximo item (max + 1) para tabelas com PK integer
+async function proximoItem(tabela: string): Promise<number> {
+  const { data } = await getAdminClient()
+    .from(tabela)
+    .select("item")
+    .order("item", { ascending: false })
+    .limit(1);
+  return data && data.length > 0 ? (data[0].item as number) + 1 : 1;
+}
+
+// ── Equipamentos ──────────────────────────────────────────────────────────────
 
 export const armaService = {
+  // ── Categorias ──────────────────────────────────────────────────────────────
+
+  async listarCategorias(): Promise<CategoriaEquipamento[]> {
+    const { data, error } = await getAdminClient()
+      .from(CATEGORIAS_TABLE)
+      .select("item, descricao, classe_item")
+      .order("item", { ascending: true });
+    if (error) throw error;
+    return (data ?? []) as CategoriaEquipamento[];
+  },
+
+  async criarCategoria(dto: CriarCategoriaDto, accessToken?: string): Promise<CategoriaEquipamento> {
+    const masterUser = await ensureMasterAccess(accessToken);
+    const item = await proximoItem(CATEGORIAS_TABLE);
+    const { data, error } = await getAdminClient()
+      .from(CATEGORIAS_TABLE)
+      .insert({
+        item,
+        descricao: dto.descricao.trim(),
+        classe_item: dto.classe_item ?? null,
+        created_by: masterUser.id,
+        updated_by: masterUser.id,
+      })
+      .select("item, descricao, classe_item")
+      .single();
+    if (error) throw error;
+    return data as CategoriaEquipamento;
+  },
+
+  async editarCategoria(item: number, dto: EditarCategoriaDto, accessToken?: string): Promise<CategoriaEquipamento> {
+    await ensureMasterAccess(accessToken);
+    const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (dto.descricao !== undefined) updates.descricao = dto.descricao.trim();
+    if ("classe_item" in dto) updates.classe_item = dto.classe_item ?? null;
+    const { data, error } = await getAdminClient()
+      .from(CATEGORIAS_TABLE)
+      .update(updates)
+      .eq("item", item)
+      .select("item, descricao, classe_item")
+      .single();
+    if (error) throw error;
+    return data as CategoriaEquipamento;
+  },
+
+  async deletarCategoria(item: number, accessToken?: string): Promise<{ success: boolean }> {
+    const masterUser = await ensureMasterAccess(accessToken);
+    const { error } = await getAdminClient()
+      .from(CATEGORIAS_TABLE)
+      .update({ deleted_at: new Date().toISOString(), deleted_by: masterUser.id })
+      .eq("item", item)
+      .is("deleted_at", null);
+    if (error) throw error;
+    return { success: true };
+  },
+
+  // ── Classes ─────────────────────────────────────────────────────────────────
+
+  async listarClasses(): Promise<ClasseEquipamento[]> {
+    const { data, error } = await getAdminClient()
+      .from(CLASSES_TABLE)
+      .select("item, descricao, icone")
+      .is("deleted_at", null)
+      .order("item", { ascending: true });
+    if (error) throw error;
+    return (data ?? []) as ClasseEquipamento[];
+  },
+
+  async criarClasse(dto: CriarClasseDto, accessToken?: string): Promise<ClasseEquipamento> {
+    const masterUser = await ensureMasterAccess(accessToken);
+    const item = await proximoItem(CLASSES_TABLE);
+    const { data, error } = await getAdminClient()
+      .from(CLASSES_TABLE)
+      .insert({
+        item,
+        descricao: dto.descricao.trim(),
+        icone: dto.icone?.trim() ?? null,
+        created_by: masterUser.id,
+        updated_by: masterUser.id,
+      })
+      .select("item, descricao, icone")
+      .single();
+    if (error) throw error;
+    return data as ClasseEquipamento;
+  },
+
+  async editarClasse(item: number, dto: EditarClasseDto, accessToken?: string): Promise<ClasseEquipamento> {
+    await ensureMasterAccess(accessToken);
+    const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (dto.descricao !== undefined) updates.descricao = dto.descricao.trim();
+    if ("icone" in dto) updates.icone = dto.icone?.trim() ?? null;
+    const { data, error } = await getAdminClient()
+      .from(CLASSES_TABLE)
+      .update(updates)
+      .eq("item", item)
+      .is("deleted_at", null)
+      .select("item, descricao, icone")
+      .single();
+    if (error) throw error;
+    return data as ClasseEquipamento;
+  },
+
+  async deletarClasse(item: number, accessToken?: string): Promise<{ success: boolean }> {
+    const masterUser = await ensureMasterAccess(accessToken);
+    const { error } = await getAdminClient()
+      .from(CLASSES_TABLE)
+      .update({ deleted_at: new Date().toISOString(), deleted_by: masterUser.id })
+      .eq("item", item)
+      .is("deleted_at", null);
+    if (error) throw error;
+    return { success: true };
+  },
+
+  // ── Tipos ────────────────────────────────────────────────────────────────────
+
+  async listarTipos(classeItem?: number): Promise<TipoEquipamento[]> {
+    let query = getAdminClient()
+      .from(TIPOS_TABLE)
+      .select("item, descricao, classe_item")
+      .is("deleted_at", null)
+      .order("item", { ascending: true });
+    if (classeItem !== undefined) query = query.eq("classe_item", classeItem);
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data ?? []) as TipoEquipamento[];
+  },
+
+  async criarTipo(dto: CriarTipoDto, accessToken?: string): Promise<TipoEquipamento> {
+    const masterUser = await ensureMasterAccess(accessToken);
+    const item = await proximoItem(TIPOS_TABLE);
+    const { data, error } = await getAdminClient()
+      .from(TIPOS_TABLE)
+      .insert({
+        item,
+        descricao: dto.descricao.trim(),
+        classe_item: dto.classe_item,
+        created_by: masterUser.id,
+        updated_by: masterUser.id,
+      })
+      .select("item, descricao, classe_item")
+      .single();
+    if (error) throw error;
+    return data as TipoEquipamento;
+  },
+
+  async editarTipo(item: number, dto: EditarTipoDto, accessToken?: string): Promise<TipoEquipamento> {
+    await ensureMasterAccess(accessToken);
+    const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (dto.descricao !== undefined) updates.descricao = dto.descricao.trim();
+    if (dto.classe_item !== undefined) updates.classe_item = dto.classe_item;
+    const { data, error } = await getAdminClient()
+      .from(TIPOS_TABLE)
+      .update(updates)
+      .eq("item", item)
+      .is("deleted_at", null)
+      .select("item, descricao, classe_item")
+      .single();
+    if (error) throw error;
+    return data as TipoEquipamento;
+  },
+
+  async deletarTipo(item: number, accessToken?: string): Promise<{ success: boolean }> {
+    const masterUser = await ensureMasterAccess(accessToken);
+    const { error } = await getAdminClient()
+      .from(TIPOS_TABLE)
+      .update({ deleted_at: new Date().toISOString(), deleted_by: masterUser.id })
+      .eq("item", item)
+      .is("deleted_at", null);
+    if (error) throw error;
+    return { success: true };
+  },
+
+  // ── Propriedades ─────────────────────────────────────────────────────────────
+
+  async listarPropriedades(classeItem?: number): Promise<PropriedadeEquipamento[]> {
+    let query = getAdminClient()
+      .from(PROPRIEDADES_TABLE)
+      .select("item, descricao, classe_item")
+      .is("deleted_at", null)
+      .order("item", { ascending: true });
+    if (classeItem !== undefined) query = query.eq("classe_item", classeItem);
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data ?? []) as PropriedadeEquipamento[];
+  },
+
+  async criarPropriedade(dto: CriarPropriedadeDto, accessToken?: string): Promise<PropriedadeEquipamento> {
+    const masterUser = await ensureMasterAccess(accessToken);
+    const item = await proximoItem(PROPRIEDADES_TABLE);
+    const { data, error } = await getAdminClient()
+      .from(PROPRIEDADES_TABLE)
+      .insert({
+        item,
+        descricao: dto.descricao.trim(),
+        classe_item: dto.classe_item,
+        created_by: masterUser.id,
+        updated_by: masterUser.id,
+      })
+      .select("item, descricao, classe_item")
+      .single();
+    if (error) throw error;
+    return data as PropriedadeEquipamento;
+  },
+
+  async editarPropriedade(item: number, dto: EditarPropriedadeDto, accessToken?: string): Promise<PropriedadeEquipamento> {
+    await ensureMasterAccess(accessToken);
+    const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (dto.descricao !== undefined) updates.descricao = dto.descricao.trim();
+    if (dto.classe_item !== undefined) updates.classe_item = dto.classe_item;
+    const { data, error } = await getAdminClient()
+      .from(PROPRIEDADES_TABLE)
+      .update(updates)
+      .eq("item", item)
+      .is("deleted_at", null)
+      .select("item, descricao, classe_item")
+      .single();
+    if (error) throw error;
+    return data as PropriedadeEquipamento;
+  },
+
+  async deletarPropriedade(item: number, accessToken?: string): Promise<{ success: boolean }> {
+    const masterUser = await ensureMasterAccess(accessToken);
+    const { error } = await getAdminClient()
+      .from(PROPRIEDADES_TABLE)
+      .update({ deleted_at: new Date().toISOString(), deleted_by: masterUser.id })
+      .eq("item", item)
+      .is("deleted_at", null);
+    if (error) throw error;
+    return { success: true };
+  },
+
+  // ── Equipamentos (CRUD principal) ────────────────────────────────────────────
+
   async listarPublico() {
-    const client = getSupabaseClient();
-    const { data, error } = await client
+    const { data, error } = await getSupabaseClient()
       .from(ARMAS_TABLE)
       .select(SELECT_FIELDS)
       .is("deleted_at", null)
       .order("nome", { ascending: true });
-
     if (error) throw error;
     return (data ?? []).map(mapArma);
   },
 
   async listar(accessToken?: string) {
     await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
-
-    const { data, error } = await admin
+    const { data, error } = await getAdminClient()
       .from(ARMAS_TABLE)
       .select(SELECT_FIELDS)
       .is("deleted_at", null)
       .order("nome", { ascending: true });
-
     if (error) throw error;
     return (data ?? []).map(mapArma);
   },
 
   async criar(dto: CriarArmaDto, accessToken?: string) {
-    await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
-
-    const { data, error } = await admin
+    const masterUser = await ensureMasterAccess(accessToken);
+    const { data, error } = await getAdminClient()
       .from(ARMAS_TABLE)
       .insert({
         nome: dto.nome.trim(),
-        tipo: dto.tipo.trim(),
         dano: dto.dano?.trim() ?? "",
         peso: dto.peso ?? null,
-        propriedades: dto.propriedades?.trim() ?? "",
         valor: dto.valor ?? null,
-        categoria_equipamento: dto.categoria_equipamento?.trim() ?? null,
+        classe_equipamento_item: dto.classe_equipamento_item ?? null,
+        categoria_equipamento_item: dto.categoria_equipamento_item ?? [],
+        tipo_equipamento_item: dto.tipo_equipamento_item ?? [],
+        propriedade_equipamento_item: dto.propriedade_equipamento_item ?? [],
         descricao_equipamento: dto.descricao_equipamento?.trim() ?? null,
         pre_requisitos: dto.pre_requisitos?.trim() ?? null,
+        created_by: masterUser.id,
+        updated_by: masterUser.id,
       })
       .select(SELECT_FIELDS)
       .single();
-
     if (error) throw error;
     return mapArma(data);
   },
 
   async editar(armaId: string, dto: EditarArmaDto, accessToken?: string) {
-    await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
-
-    const { data: current, error: currentError } = await admin
+    const masterUser = await ensureMasterAccess(accessToken);
+    const { data: current, error: currentError } = await getAdminClient()
       .from(ARMAS_TABLE)
       .select("id")
       .eq("id", armaId)
       .is("deleted_at", null)
       .single();
-
-    if (currentError || !current) throw new Error("Arma não encontrada");
+    if (currentError || !current) throw new Error("Equipamento não encontrado");
 
     const updates: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
+      updated_by: masterUser.id,
     };
     if (dto.nome !== undefined) updates.nome = dto.nome.trim();
-    if (dto.tipo !== undefined) updates.tipo = dto.tipo.trim();
     if (dto.dano !== undefined) updates.dano = dto.dano.trim();
     if (dto.peso !== undefined) updates.peso = dto.peso;
-    if (dto.propriedades !== undefined) updates.propriedades = dto.propriedades.trim();
     if (dto.valor !== undefined) updates.valor = dto.valor;
-    if (dto.categoria_equipamento !== undefined) updates.categoria_equipamento = dto.categoria_equipamento?.trim() ?? null;
+    if ("classe_equipamento_item" in dto) updates.classe_equipamento_item = dto.classe_equipamento_item ?? null;
+    if (dto.categoria_equipamento_item !== undefined) updates.categoria_equipamento_item = dto.categoria_equipamento_item ?? [];
+    if (dto.tipo_equipamento_item !== undefined) updates.tipo_equipamento_item = dto.tipo_equipamento_item ?? [];
+    if (dto.propriedade_equipamento_item !== undefined) updates.propriedade_equipamento_item = dto.propriedade_equipamento_item ?? [];
     if (dto.descricao_equipamento !== undefined) updates.descricao_equipamento = dto.descricao_equipamento?.trim() ?? null;
     if (dto.pre_requisitos !== undefined) updates.pre_requisitos = dto.pre_requisitos?.trim() ?? null;
 
-    const { data, error } = await admin
+    const { data, error } = await getAdminClient()
       .from(ARMAS_TABLE)
       .update(updates)
       .eq("id", armaId)
       .is("deleted_at", null)
       .select(SELECT_FIELDS)
       .single();
-
     if (error) throw error;
     return mapArma(data);
   },
 
   async deletar(armaId: string, accessToken?: string) {
     const masterUser = await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
-
-    const { data: arma, error: fetchError } = await admin
+    const { data: arma, error: fetchError } = await getAdminClient()
       .from(ARMAS_TABLE)
       .select("id")
       .eq("id", armaId)
       .is("deleted_at", null)
       .single();
-
-    if (fetchError || !arma) throw new Error("Arma não encontrada");
-
-    const { error } = await admin
+    if (fetchError || !arma) throw new Error("Equipamento não encontrado");
+    const { error } = await getAdminClient()
       .from(ARMAS_TABLE)
-      .update({
-        deleted_at: new Date().toISOString(),
-        deleted_by: masterUser.id,
-      })
+      .update({ deleted_at: new Date().toISOString(), deleted_by: masterUser.id })
       .eq("id", armaId)
       .is("deleted_at", null);
-
     if (error) throw error;
     return { success: true };
   },

@@ -33,7 +33,7 @@ export const skillService = {
   },
 
   async criarNoCatalogo(dto: CriarSkillCatalogoDto, accessToken?: string) {
-    await ensureMasterAccess(accessToken);
+    const user = await ensureMasterAccess(accessToken);
     const admin = getAdminClient();
     const { data, error } = await admin
       .from("skills")
@@ -43,6 +43,8 @@ export const skillService = {
         type: dto.type?.trim() ?? null,
         category: dto.category?.trim() ?? null,
         raca_vinculada: dto.raca_vinculada?.trim() ?? null,
+        created_by: user.id,
+        updated_by: user.id,
       })
       .select("*")
       .single();

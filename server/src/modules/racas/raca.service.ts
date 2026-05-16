@@ -35,7 +35,7 @@ function mapRaca(row: any): RacaApi {
 
 export const racaService = {
   async listarPublico() {
-    const client = getSupabaseClient();
+    const client = getAdminClient();
     const { data, error } = await client
       .from(RACAS_TABLE)
       .select("id, nome, foto_url, descricao, habilidades, atributos_bonus, created_at, updated_at")
@@ -62,7 +62,7 @@ export const racaService = {
   },
 
   async criar(dto: CriarRacaDto, accessToken?: string) {
-    await ensureMasterAccess(accessToken);
+    const masterUser = await ensureMasterAccess(accessToken);
     const admin = getAdminClient();
 
     const { data, error } = await admin
@@ -74,6 +74,8 @@ export const racaService = {
         lore: dto.lore?.trim() ?? null,
         habilidades: dto.habilidades ?? [],
         atributos_bonus: dto.atributos_bonus ?? [],
+        created_by: masterUser.id,
+        updated_by: masterUser.id,
       })
       .select(SELECT_FIELDS)
       .single();
@@ -83,7 +85,7 @@ export const racaService = {
   },
 
   async editar(racaId: string, dto: EditarRacaDto, accessToken?: string) {
-    await ensureMasterAccess(accessToken);
+    const masterUser = await ensureMasterAccess(accessToken);
     const admin = getAdminClient();
 
     const { data: current, error: currentError } = await admin
@@ -95,7 +97,7 @@ export const racaService = {
 
     if (currentError || !current) throw new Error("Raça não encontrada");
 
-    const updates: Record<string, unknown> = {};
+    const updates: Record<string, unknown> = { updated_by: masterUser.id };
     if (dto.nome !== undefined)           updates.nome = dto.nome.trim();
     if (dto.foto_url !== undefined)       updates.foto_url = dto.foto_url?.trim() ?? null;
     if (dto.descricao !== undefined)      updates.descricao = dto.descricao?.trim() ?? null;

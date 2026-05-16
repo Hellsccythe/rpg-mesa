@@ -197,7 +197,7 @@ export const godService = {
   },
 
   async salvar(dto: SalvarGodDto, accessToken?: string) {
-    await ensureMasterAccess(accessToken);
+    const masterUser = await ensureMasterAccess(accessToken);
     const admin = getAdminClient();
 
     const { data, error } = await admin
@@ -206,6 +206,8 @@ export const godService = {
         name: dto.name.trim(),
         description: dto.description?.trim() ?? "",
         data: toGodDetails(dto),
+        created_by: masterUser.id,
+        updated_by: masterUser.id,
       })
       .select("id, name, description, data, image_url, created_at, updated_at")
       .single();
@@ -215,7 +217,7 @@ export const godService = {
   },
 
   async editar(godId: string, dto: EditarGodDto, accessToken?: string) {
-    await ensureMasterAccess(accessToken);
+    const masterUser = await ensureMasterAccess(accessToken);
     const admin = getAdminClient();
 
     const { data: current, error: currentError } = await admin
@@ -240,7 +242,7 @@ export const godService = {
       imageUrl: dto.imageUrl !== undefined ? normalizeText(dto.imageUrl) : existing.imageUrl,
     };
 
-    const updates: Record<string, unknown> = { data: nextDetails };
+    const updates: Record<string, unknown> = { data: nextDetails, updated_by: masterUser.id };
     if (dto.name !== undefined) updates.name = normalizeText(dto.name);
     if (dto.description !== undefined) updates.description = normalizeText(dto.description);
 

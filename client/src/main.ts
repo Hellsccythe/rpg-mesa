@@ -6,6 +6,7 @@ import VSelect from '@/components/VSelect.vue'
 import { useAuthStore } from '@/stores/auth'
 import { vSmartFocus } from '@/directives/smart-focus'
 
+import '@mdi/font/css/materialdesignicons.min.css'
 import './assets/styles/base.css'
 import './assets/styles/main.css'
 

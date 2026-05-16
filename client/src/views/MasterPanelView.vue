@@ -1293,7 +1293,7 @@ function goMasterMaps() {
 }
 
 function goMasterWeapons() {
-  router.push({ name: 'master-weapons' })
+  router.push({ name: 'master-equipamentos' })
 }
 
 function goMasterRacas() {

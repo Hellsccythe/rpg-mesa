@@ -1,8 +1,6 @@
-import { supabase } from '@/lib/supabase/client'
+import { api } from '@/plugins/axios'
 
-const API_BASE = import.meta.env.VITE_API_URL ?? ''
-
-export type Habilidade = { nome: string; descricao: string }
+export type Habilidade    = { nome: string; descricao: string }
 export type AtributoBonus = { atributo: string; valor: string }
 
 export type RacaApi = {
@@ -28,58 +26,26 @@ export type CriarRacaPayload = {
 
 export type EditarRacaPayload = Partial<CriarRacaPayload>
 
-async function getAuthHeader(): Promise<HeadersInit> {
-  const { data } = await supabase.auth.getSession()
-  const token = data.session?.access_token
-  return token ? { Authorization: `Bearer ${token}` } : {}
-}
-
 export async function listarRacasPublicas(): Promise<RacaApi[]> {
-  const res = await fetch(`${API_BASE}/api/racas`)
-  if (!res.ok) throw new Error('Erro ao listar raças')
-  return res.json()
+  const { data } = await api.get<RacaApi[]>('/racas')
+  return data
 }
 
 export async function listarRacasAdmin(): Promise<RacaApi[]> {
-  const headers = await getAuthHeader()
-  const res = await fetch(`${API_BASE}/api/racas/admin`, { headers })
-  if (!res.ok) throw new Error('Erro ao listar raças (admin)')
-  return res.json()
+  const { data } = await api.get<RacaApi[]>('/racas/admin')
+  return data
 }
 
 export async function criarRaca(payload: CriarRacaPayload): Promise<RacaApi> {
-  const headers = { ...(await getAuthHeader()), 'Content-Type': 'application/json' }
-  const res = await fetch(`${API_BASE}/api/racas/admin`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(payload),
-  })
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err.message ?? 'Erro ao criar raça')
-  }
-  return res.json()
+  const { data } = await api.post<RacaApi>('/racas/admin', payload)
+  return data
 }
 
 export async function editarRaca(id: string, payload: EditarRacaPayload): Promise<RacaApi> {
-  const headers = { ...(await getAuthHeader()), 'Content-Type': 'application/json' }
-  const res = await fetch(`${API_BASE}/api/racas/admin/${id}`, {
-    method: 'PATCH',
-    headers,
-    body: JSON.stringify(payload),
-  })
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err.message ?? 'Erro ao editar raça')
-  }
-  return res.json()
+  const { data } = await api.patch<RacaApi>(`/racas/admin/${id}`, payload)
+  return data
 }
 
 export async function deletarRaca(id: string): Promise<void> {
-  const headers = await getAuthHeader()
-  const res = await fetch(`${API_BASE}/api/racas/admin/${id}`, { method: 'DELETE', headers })
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err.message ?? 'Erro ao deletar raça')
-  }
+  await api.delete(`/racas/admin/${id}`)
 }

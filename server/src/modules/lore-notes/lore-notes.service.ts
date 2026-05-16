@@ -20,10 +20,8 @@ export const loreNotesService = {
       .order('created_at', { ascending: true })
 
     if (characterId) {
-      // global OU específica do personagem
       query = query.or(`character_id.is.null,character_id.eq.${characterId}`)
     } else {
-      // sem characterId: retorna só globais
       query = query.is('character_id', null)
     }
 
@@ -48,7 +46,7 @@ export const loreNotesService = {
   },
 
   async criar(dto: CriarLoreNoteDto, accessToken?: string) {
-    await ensureMasterAccess(accessToken)
+    const masterUser = await ensureMasterAccess(accessToken)
     if (!dto.title?.trim()) throw new Error('Título é obrigatório')
     const admin = getAdminClient()
     const { data, error } = await admin
@@ -60,6 +58,8 @@ export const loreNotesService = {
         pdf_url: dto.pdfUrl ?? null,
         ordem: dto.ordem ?? 0,
         character_id: dto.characterId ?? null,
+        created_by: masterUser.id,
+        updated_by: masterUser.id,
       })
       .select('*')
       .single()
@@ -68,9 +68,12 @@ export const loreNotesService = {
   },
 
   async editar(id: string, dto: EditarLoreNoteDto, accessToken?: string) {
-    await ensureMasterAccess(accessToken)
+    const masterUser = await ensureMasterAccess(accessToken)
     const admin = getAdminClient()
-    const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
+    const updates: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
+      updated_by: masterUser.id,
+    }
     if (dto.title !== undefined) updates.title = dto.title.trim()
     if (dto.subtitle !== undefined) updates.subtitle = dto.subtitle
     if (dto.content !== undefined) updates.content = dto.content
@@ -89,11 +92,11 @@ export const loreNotesService = {
   },
 
   async deletar(id: string, accessToken?: string) {
-    await ensureMasterAccess(accessToken)
+    const masterUser = await ensureMasterAccess(accessToken)
     const admin = getAdminClient()
     const { error } = await admin
       .from(TABLE)
-      .update({ deleted_at: new Date().toISOString() })
+      .update({ deleted_at: new Date().toISOString(), deleted_by: masterUser.id })
       .eq('id', id)
     if (error) throw error
   },
