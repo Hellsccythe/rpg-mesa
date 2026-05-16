@@ -35,7 +35,7 @@ function mapRaca(row: any): RacaApi {
 
 export const racaService = {
   async listarPublico() {
-    const client = getSupabaseClient();
+    const client = getAdminClient();
     const { data, error } = await client
       .from(RACAS_TABLE)
       .select("id, nome, foto_url, descricao, habilidades, atributos_bonus, created_at, updated_at")

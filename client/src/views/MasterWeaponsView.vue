@@ -1,424 +1,528 @@
 <template>
-  <div class="page-root min-h-screen overflow-x-hidden text-white">
+  <div class="page-root min-h-screen overflow-x-hidden text-white" @click="fecharDropdowns">
     <div class="page-ambient fixed inset-0 -z-10 bg-gradient-to-br from-[#0C1829] via-[#0A0F1C] to-[#1C0B0B]" />
     <div class="page-ambient fixed inset-0 -z-10 bg-[radial-gradient(ellipse_80%_60%_at_100%_0%,rgb(180_40_40/0.08),transparent)]" />
 
     <TemaDarkLight variante="contexto" class="relative z-0 flex min-h-screen flex-col">
 
-      <!-- ══ Header ══════════════════════════════════════════════════════════════ -->
+      <!-- ══ Header ═══════════════════════════════════════════════════════════ -->
       <header class="page-header sticky top-0 z-20 border-b backdrop-blur-xl">
         <div class="mx-auto flex h-16 w-full max-w-7xl items-center gap-3 px-4 sm:px-6">
-          <button
-            @click="goMasterPanel"
-            class="back-btn inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-sm transition-colors"
-            aria-label="Voltar ao painel"
-          >
+          <button @click="goMasterPanel" class="back-btn inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-sm transition-colors">
             <span class="text-lg leading-none">‹</span>
             <span class="hidden sm:inline">Painel</span>
           </button>
-
           <div class="flex-1 text-center">
             <span class="text-xs font-bold tracking-[0.3em] uppercase text-red-400">⚙ Equipamentos ⚙</span>
           </div>
-
-          <button
-            @click="logout"
-            class="rounded-xl border border-red-900/50 bg-red-950/40 px-3 py-1.5 text-xs font-medium text-red-300 transition-colors hover:bg-red-900/60"
-          >
+          <button @click="logout" class="rounded-xl border border-red-900/50 bg-red-950/40 px-3 py-1.5 text-xs font-medium text-red-300 transition-colors hover:bg-red-900/60">
             Sair
           </button>
         </div>
       </header>
 
-      <!-- ══ Main ══════════════════════════════════════════════════════════════ -->
+      <!-- ══ Main ════════════════════════════════════════════════════════════ -->
       <main class="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6">
 
-        <!-- ── Título da página ───────────────────────────────────────────────── -->
+        <!-- Título -->
         <div class="mb-8">
           <p class="page-kicker text-xs uppercase tracking-[0.25em]">Painel do Mestre</p>
           <h1 class="page-title text-3xl font-bold sm:text-4xl">Equipamentos</h1>
           <p class="page-sub mt-1 text-sm">Cadastre, edite e organize os equipamentos da campanha</p>
         </div>
 
-        <!-- ── Filtros + Botão novo ──────────────────────────────────────────── -->
+        <!-- Filtros + Botão novo -->
         <div class="mb-6 flex flex-wrap items-end gap-3">
           <div class="min-w-[180px] flex-1">
             <label class="field-label mb-1.5 block text-xs uppercase tracking-wide">Filtrar por nome</label>
             <div class="relative">
-              <input
-                v-model="filtroNome"
-                type="text"
-                placeholder="Buscar equipamento..."
-                class="field-input w-full rounded-xl border px-3 py-2.5 pr-9 text-sm outline-none transition-colors"
-                aria-label="Filtrar por nome"
-              />
-              <button
-                v-if="filtroNome"
-                @click="filtroNome = ''"
-                class="absolute right-2.5 top-1/2 -translate-y-1/2 text-sm leading-none opacity-50 hover:opacity-100 transition-opacity"
-                aria-label="Limpar filtro"
-              >✕</button>
-            </div>
-          </div>
-
-          <div class="w-48">
-            <label class="field-label mb-1.5 block text-xs uppercase tracking-wide">Tipo</label>
-            <div class="select-wrap">
-              <select v-model="filtroTipo" class="field-input w-full appearance-none rounded-xl border px-3 py-2.5 pr-9 text-sm outline-none transition-colors">
-                <option value="">Todos os tipos</option>
-                <option v-for="tipo in tiposUnicos" :key="tipo" :value="tipo">{{ tipo }}</option>
-              </select>
-              <span class="select-caret" aria-hidden="true">˅</span>
+              <input v-model="filtroNome" type="text" placeholder="Buscar equipamento..." class="field-input w-full rounded-xl border px-3 py-2.5 pr-9 text-sm outline-none transition-colors" />
+              <button v-if="filtroNome" @click="filtroNome = ''" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-sm leading-none opacity-50 hover:opacity-100 transition-opacity">✕</button>
             </div>
           </div>
 
           <div class="w-52">
-            <label class="field-label mb-1.5 block text-xs uppercase tracking-wide">Categoria</label>
+            <label class="field-label mb-1.5 block text-xs uppercase tracking-wide">Classe</label>
             <div class="select-wrap">
-              <select v-model="filtroCategoria" class="field-input w-full appearance-none rounded-xl border px-3 py-2.5 pr-9 text-sm outline-none transition-colors">
-                <option :value="null">Todas as categorias</option>
-                <option v-for="cat in categorias" :key="cat.item" :value="cat.item">{{ cat.descricao }}</option>
+              <select v-model="filtroClasse" class="field-input w-full appearance-none rounded-xl border px-3 py-2.5 pr-9 text-sm outline-none transition-colors">
+                <option :value="null">Todas as classes</option>
+                <option v-for="c in classes" :key="c.item" :value="c.item">{{ (c.icone && !c.icone.startsWith('mdi-')) ? c.icone + ' ' + c.descricao : c.descricao }}</option>
               </select>
-              <span class="select-caret" aria-hidden="true">˅</span>
+              <span class="select-caret">˅</span>
             </div>
           </div>
 
-          <button
-            @click="abrirFormNova"
-            class="btn-primary inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all"
-          >
-            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <button @click="abrirFormNova" class="btn-primary inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Novo Equipamento
           </button>
         </div>
 
-        <!-- ── Formulário criar / editar ─────────────────────────────────────── -->
+        <!-- ── Formulário criar / editar ──────────────────────────────────── -->
         <transition name="form-slide">
           <div v-if="mostrarForm" class="form-card mb-6 rounded-2xl border p-5 sm:p-6">
-            <div class="mb-4 flex items-center justify-between">
+            <div class="mb-5 flex items-center justify-between">
               <h2 class="form-title text-base font-bold tracking-wide">
                 {{ editandoId ? 'Editar Equipamento' : 'Novo Equipamento' }}
               </h2>
-              <button
-                @click="fecharForm"
-                class="close-btn rounded-lg p-1.5 transition-colors"
-                aria-label="Fechar formulário"
-              >
+              <button @click="fecharForm" class="close-btn rounded-lg p-1.5 transition-colors">
                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             </div>
 
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+
               <!-- Nome -->
               <div class="lg:col-span-2">
-                <label class="field-label mb-1.5 block text-xs font-semibold uppercase tracking-wide">
-                  Nome <span class="text-red-400">*</span>
-                </label>
-                <input
-                  v-model="form.nome"
-                  type="text"
-                  placeholder="Ex: Espada Longa"
-                  class="field-input w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition-colors"
-                  aria-required="true"
-                />
-              </div>
-
-              <!-- Tipo -->
-              <div>
-                <label class="field-label mb-1.5 block text-xs font-semibold uppercase tracking-wide">
-                  Tipo <span class="text-red-400">*</span>
-                </label>
-                <input
-                  v-model="form.tipo"
-                  type="text"
-                  placeholder="Ex: Espada, Arco, Maça"
-                  class="field-input w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition-colors"
-                  list="tipos-sugeridos"
-                  aria-required="true"
-                />
-                <datalist id="tipos-sugeridos">
-                  <option v-for="t in tiposUnicos" :key="t" :value="t" />
-                </datalist>
+                <label class="field-label mb-1.5 block text-xs font-semibold uppercase tracking-wide">Nome <span class="text-red-400">*</span></label>
+                <input v-model="form.nome" type="text" placeholder="Ex: Espada Longa" class="field-input w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition-colors" />
               </div>
 
               <!-- Dano -->
               <div>
-                <label class="field-label mb-1.5 block text-xs font-semibold uppercase tracking-wide">
-                  Dano
-                </label>
-                <input
-                  v-model="form.dano"
-                  type="text"
-                  placeholder="Ex: 1d8+3"
-                  class="field-input w-full rounded-xl border px-3 py-2.5 text-sm font-mono outline-none transition-colors"
-                />
+                <label class="field-label mb-1.5 block text-xs font-semibold uppercase tracking-wide">Dano</label>
+                <input v-model="form.dano" type="text" placeholder="Ex: 1d8+3" class="field-input w-full rounded-xl border px-3 py-2.5 text-sm font-mono outline-none transition-colors" />
+              </div>
+
+              <!-- ── Classe (single-select dropdown) ─────────────────────── -->
+              <div class="sm:col-span-2 lg:col-span-3">
+                <div class="flex items-center gap-2 mb-1.5">
+                  <label class="field-label text-xs font-semibold uppercase tracking-wide">Classe</label>
+                  <button @click.stop="abrirAddModal('classe')" class="lookup-add-btn" title="Adicionar classe">+ Adicionar</button>
+                  <button @click.stop="abrirGerenciarModal('classe')" class="lookup-edit-btn" title="Gerenciar classes">✏ Gerenciar</button>
+                </div>
+
+                <div class="relative" @click.stop>
+                  <button
+                    @click.stop="toggleDropdown('classe')"
+                    class="field-input w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition-colors text-left flex items-center justify-between"
+                  >
+                    <span :class="form.classe_equipamento_item ? 'flex items-center gap-1.5' : 'placeholder-color'">
+                      <IconeDisplay v-if="form.classe_equipamento_item && classeIcone(form.classe_equipamento_item)" :icone="classeIcone(form.classe_equipamento_item)" size="1rem" />
+                      {{ classeLabel(form.classe_equipamento_item) }}
+                    </span>
+                    <span class="text-zinc-500 ml-2">˅</span>
+                  </button>
+
+                  <div v-if="dropdownAtivo === 'classe'" class="dropdown-panel absolute left-0 top-full mt-1 z-30 w-full rounded-xl border shadow-xl max-h-52 overflow-y-auto">
+                    <button
+                      v-if="form.classe_equipamento_item"
+                      @click.stop="selecionarClasse(null)"
+                      class="dropdown-item w-full text-left px-3 py-2 text-sm text-zinc-400 italic"
+                    >Nenhuma classe</button>
+                    <button
+                      v-for="c in classes"
+                      :key="c.item"
+                      @click.stop="selecionarClasse(c.item)"
+                      class="dropdown-item w-full text-left px-3 py-2 text-sm transition-colors flex items-center justify-between"
+                      :class="form.classe_equipamento_item === c.item ? 'dropdown-item-active' : ''"
+                    >
+                      <span class="flex items-center gap-1.5">
+                        <IconeDisplay v-if="c.icone" :icone="c.icone" size="1rem" />
+                        {{ c.descricao }}
+                      </span>
+                      <span v-if="form.classe_equipamento_item === c.item" class="text-xs text-red-400">✓</span>
+                    </button>
+                    <div v-if="classes.length === 0" class="px-3 py-2 text-sm text-zinc-500 italic">Nenhuma classe cadastrada.</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ── Tipo (multi-select dropdown) ────────────────────────── -->
+              <div class="sm:col-span-2 lg:col-span-3">
+                <div class="flex items-center gap-2 mb-1.5">
+                  <label class="field-label text-xs font-semibold uppercase tracking-wide">Tipos</label>
+                  <button @click.stop="abrirAddModal('tipo')" class="lookup-add-btn" title="Adicionar tipo">+ Adicionar</button>
+                  <button @click.stop="abrirGerenciarModal('tipo')" class="lookup-edit-btn" title="Gerenciar tipos">✏ Gerenciar</button>
+                </div>
+
+                <div class="relative" @click.stop>
+                  <button
+                    @click.stop="toggleDropdown('tipo')"
+                    class="field-input w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition-colors text-left flex items-center justify-between"
+                    :disabled="!form.classe_equipamento_item"
+                  >
+                    <span :class="form.tipo_equipamento_item.length === 0 ? 'placeholder-color' : ''">
+                      {{ form.tipo_equipamento_item.length === 0
+                        ? (form.classe_equipamento_item ? 'Selecionar tipos...' : 'Selecione uma classe primeiro')
+                        : `${form.tipo_equipamento_item.length} tipo(s) selecionado(s)` }}
+                    </span>
+                    <span class="text-zinc-500 ml-2">˅</span>
+                  </button>
+
+                  <div v-if="dropdownAtivo === 'tipo'" class="dropdown-panel absolute left-0 top-full mt-1 z-30 w-full rounded-xl border shadow-xl max-h-52 overflow-y-auto">
+                    <label
+                      v-for="t in tiposFiltrados"
+                      :key="t.item"
+                      class="dropdown-item flex cursor-pointer items-center gap-2.5 px-3 py-2 text-sm transition-colors"
+                      :class="form.tipo_equipamento_item.includes(t.item) ? 'dropdown-item-active' : ''"
+                      @click.stop
+                    >
+                      <input type="checkbox" :value="t.item" v-model="form.tipo_equipamento_item" class="sr-only" />
+                      <span class="flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[0.6rem]"
+                        :class="form.tipo_equipamento_item.includes(t.item) ? 'check-active' : 'check-inactive'">
+                        {{ form.tipo_equipamento_item.includes(t.item) ? '✓' : '' }}
+                      </span>
+                      {{ t.descricao }}
+                    </label>
+                    <div v-if="tiposFiltrados.length === 0" class="px-3 py-2 text-sm text-zinc-500 italic">
+                      {{ form.classe_equipamento_item ? 'Nenhum tipo para esta classe.' : 'Selecione uma classe primeiro.' }}
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Tags dos tipos selecionados -->
+                <div v-if="form.tipo_equipamento_item.length > 0" class="mt-1.5 flex flex-wrap gap-1">
+                  <span v-for="id in form.tipo_equipamento_item" :key="id" class="lookup-tag">
+                    {{ tipoNome(id) }}
+                    <button @click.stop="removeDoForm('tipo', id)" class="ml-1 opacity-60 hover:opacity-100">×</button>
+                  </span>
+                </div>
+              </div>
+
+              <!-- ── Categoria (multi-select dropdown) ───────────────────── -->
+              <div class="sm:col-span-2 lg:col-span-3">
+                <div class="flex items-center gap-2 mb-1.5">
+                  <label class="field-label text-xs font-semibold uppercase tracking-wide">Categorias</label>
+                  <button @click.stop="abrirAddModal('categoria')" class="lookup-add-btn">+ Adicionar</button>
+                  <button @click.stop="abrirGerenciarModal('categoria')" class="lookup-edit-btn">✏ Gerenciar</button>
+                </div>
+
+                <div class="relative" @click.stop>
+                  <button
+                    @click.stop="toggleDropdown('categoria')"
+                    class="field-input w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition-colors text-left flex items-center justify-between"
+                  >
+                    <span :class="form.categoria_equipamento_item.length === 0 ? 'placeholder-color' : ''">
+                      {{ form.categoria_equipamento_item.length === 0 ? 'Selecionar categorias...' : `${form.categoria_equipamento_item.length} categoria(s) selecionada(s)` }}
+                    </span>
+                    <span class="text-zinc-500 ml-2">˅</span>
+                  </button>
+
+                  <div v-if="dropdownAtivo === 'categoria'" class="dropdown-panel absolute left-0 top-full mt-1 z-30 w-full rounded-xl border shadow-xl max-h-52 overflow-y-auto">
+                    <label
+                      v-for="c in categoriasFiltradas"
+                      :key="c.item"
+                      class="dropdown-item flex cursor-pointer items-center gap-2.5 px-3 py-2 text-sm transition-colors"
+                      :class="form.categoria_equipamento_item.includes(c.item) ? 'dropdown-item-active' : ''"
+                      @click.stop
+                    >
+                      <input type="checkbox" :value="c.item" v-model="form.categoria_equipamento_item" class="sr-only" />
+                      <span class="flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[0.6rem]"
+                        :class="form.categoria_equipamento_item.includes(c.item) ? 'check-active' : 'check-inactive'">
+                        {{ form.categoria_equipamento_item.includes(c.item) ? '✓' : '' }}
+                      </span>
+                      {{ c.descricao }}
+                      <span v-if="c.classe_item" class="ml-auto text-xs opacity-50">{{ classeNome(c.classe_item) }}</span>
+                    </label>
+                    <div v-if="categoriasFiltradas.length === 0" class="px-3 py-2 text-sm text-zinc-500 italic">Nenhuma categoria cadastrada.</div>
+                  </div>
+                </div>
+
+                <div v-if="form.categoria_equipamento_item.length > 0" class="mt-1.5 flex flex-wrap gap-1">
+                  <span v-for="id in form.categoria_equipamento_item" :key="id" class="lookup-tag">
+                    {{ categoriaNome(id) }}
+                    <button @click.stop="removeDoForm('categoria', id)" class="ml-1 opacity-60 hover:opacity-100">×</button>
+                  </span>
+                </div>
+              </div>
+
+              <!-- ── Propriedade (multi-select dropdown) ─────────────────── -->
+              <div class="sm:col-span-2 lg:col-span-3">
+                <div class="flex items-center gap-2 mb-1.5">
+                  <label class="field-label text-xs font-semibold uppercase tracking-wide">Propriedades</label>
+                  <button @click.stop="abrirAddModal('propriedade')" class="lookup-add-btn">+ Adicionar</button>
+                  <button @click.stop="abrirGerenciarModal('propriedade')" class="lookup-edit-btn">✏ Gerenciar</button>
+                </div>
+
+                <div class="relative" @click.stop>
+                  <button
+                    @click.stop="toggleDropdown('propriedade')"
+                    class="field-input w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition-colors text-left flex items-center justify-between"
+                    :disabled="!form.classe_equipamento_item"
+                  >
+                    <span :class="form.propriedade_equipamento_item.length === 0 ? 'placeholder-color' : ''">
+                      {{ form.propriedade_equipamento_item.length === 0
+                        ? (form.classe_equipamento_item ? 'Selecionar propriedades...' : 'Selecione uma classe primeiro')
+                        : `${form.propriedade_equipamento_item.length} propriedade(s) selecionada(s)` }}
+                    </span>
+                    <span class="text-zinc-500 ml-2">˅</span>
+                  </button>
+
+                  <div v-if="dropdownAtivo === 'propriedade'" class="dropdown-panel absolute left-0 top-full mt-1 z-30 w-full rounded-xl border shadow-xl max-h-52 overflow-y-auto">
+                    <label
+                      v-for="p in propriedadesFiltradas"
+                      :key="p.item"
+                      class="dropdown-item flex cursor-pointer items-center gap-2.5 px-3 py-2 text-sm transition-colors"
+                      :class="form.propriedade_equipamento_item.includes(p.item) ? 'dropdown-item-active' : ''"
+                      @click.stop
+                    >
+                      <input type="checkbox" :value="p.item" v-model="form.propriedade_equipamento_item" class="sr-only" />
+                      <span class="flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[0.6rem]"
+                        :class="form.propriedade_equipamento_item.includes(p.item) ? 'check-active' : 'check-inactive'">
+                        {{ form.propriedade_equipamento_item.includes(p.item) ? '✓' : '' }}
+                      </span>
+                      {{ p.descricao }}
+                    </label>
+                    <div v-if="propriedadesFiltradas.length === 0" class="px-3 py-2 text-sm text-zinc-500 italic">
+                      {{ form.classe_equipamento_item ? 'Nenhuma propriedade para esta classe.' : 'Selecione uma classe primeiro.' }}
+                    </div>
+                  </div>
+                </div>
+
+                <div v-if="form.propriedade_equipamento_item.length > 0" class="mt-1.5 flex flex-wrap gap-1">
+                  <span v-for="id in form.propriedade_equipamento_item" :key="id" class="lookup-tag">
+                    {{ propriedadeNome(id) }}
+                    <button @click.stop="removeDoForm('propriedade', id)" class="ml-1 opacity-60 hover:opacity-100">×</button>
+                  </span>
+                </div>
               </div>
 
               <!-- Peso -->
               <div>
                 <label class="field-label mb-1.5 block text-xs font-semibold uppercase tracking-wide">Peso (kg)</label>
-                <input
-                  v-model.number="form.peso"
-                  type="number"
-                  min="0"
-                  max="9999999.99"
-                  step="0.01"
-                  placeholder="Ex: 1.50"
-                  class="field-input w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition-colors"
-                />
+                <input v-model.number="form.peso" type="number" min="0" step="0.01" placeholder="Ex: 1.50" class="field-input w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition-colors" />
               </div>
 
               <!-- Valor -->
               <div>
                 <label class="field-label mb-1.5 block text-xs font-semibold uppercase tracking-wide">Valor (po)</label>
-                <input
-                  v-model.number="form.valor"
-                  type="number"
-                  min="0"
-                  max="99999999999.99"
-                  step="0.01"
-                  placeholder="Ex: 15.00"
-                  class="field-input w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition-colors"
-                />
-              </div>
-
-              <!-- Propriedades (full width) -->
-              <div class="sm:col-span-2 lg:col-span-3">
-                <label class="field-label mb-1.5 block text-xs font-semibold uppercase tracking-wide">Propriedades</label>
-                <input
-                  v-model="form.propriedades"
-                  type="text"
-                  placeholder="Ex: Versátil, Acuidade, Alcance 1,5m"
-                  class="field-input w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition-colors"
-                />
-              </div>
-
-              <!-- Categorias (multi-select checkboxes) -->
-              <div class="sm:col-span-2 lg:col-span-3">
-                <label class="field-label mb-2 block text-xs font-semibold uppercase tracking-wide">
-                  Categorias
-                </label>
-                <div v-if="categorias.length > 0" class="flex flex-wrap gap-2">
-                  <label
-                    v-for="cat in categorias"
-                    :key="cat.item"
-                    class="categoria-chip flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors select-none"
-                    :class="form.categoria_equipamento_item.includes(cat.item) ? 'chip-active' : 'chip-inactive'"
-                  >
-                    <input
-                      type="checkbox"
-                      :value="cat.item"
-                      v-model="form.categoria_equipamento_item"
-                      class="sr-only"
-                    />
-                    <span
-                      class="flex h-3.5 w-3.5 items-center justify-center rounded-full border text-[0.55rem] font-bold"
-                      :class="form.categoria_equipamento_item.includes(cat.item) ? 'check-active' : 'check-inactive'"
-                    >{{ form.categoria_equipamento_item.includes(cat.item) ? '✓' : '' }}</span>
-                    {{ cat.descricao }}
-                  </label>
-                </div>
-                <p v-else class="text-xs text-muted italic">Carregando categorias...</p>
+                <input v-model.number="form.valor" type="number" min="0" step="0.01" placeholder="Ex: 15.00" class="field-input w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition-colors" />
               </div>
 
               <!-- Pré-requisitos -->
               <div class="sm:col-span-2 lg:col-span-3">
                 <label class="field-label mb-1.5 block text-xs font-semibold uppercase tracking-wide">Pré-requisitos</label>
-                <input
-                  v-model="form.pre_requisitos"
-                  type="text"
-                  placeholder="Ex: Força 13, Proficiência em Armaduras Pesadas"
-                  class="field-input w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition-colors"
-                />
+                <input v-model="form.pre_requisitos" type="text" placeholder="Ex: Força 13, Proficiência em Armaduras Pesadas" class="field-input w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition-colors" />
               </div>
 
-              <!-- Descrição (full width) -->
+              <!-- Descrição -->
               <div class="sm:col-span-2 lg:col-span-3">
                 <label class="field-label mb-1.5 block text-xs font-semibold uppercase tracking-wide">Descrição</label>
-                <textarea
-                  v-model="form.descricao_equipamento"
-                  rows="2"
-                  placeholder="Descrição do equipamento..."
-                  class="field-input w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition-colors resize-none"
-                />
+                <textarea v-model="form.descricao_equipamento" rows="2" placeholder="Descrição do equipamento..." class="field-input w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition-colors resize-none" />
               </div>
             </div>
 
-            <!-- Feedback -->
             <p v-if="formFeedback" class="mt-3 text-sm" :class="formFeedbackError ? 'text-red-400' : 'text-emerald-400'">
               {{ formFeedback }}
             </p>
 
-            <!-- Ações -->
             <div class="mt-5 flex flex-wrap items-center gap-3">
               <button
                 @click="salvar"
-                :disabled="salvando || !form.nome.trim() || !form.tipo.trim()"
+                :disabled="salvando || !form.nome.trim()"
                 class="btn-primary rounded-xl px-5 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40 transition-all"
               >
                 {{ salvando ? 'Salvando...' : (editandoId ? 'Salvar Alterações' : 'Criar Equipamento') }}
               </button>
-              <button
-                @click="fecharForm"
-                class="btn-ghost rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors"
-              >
-                Cancelar
-              </button>
+              <button @click="fecharForm" class="btn-ghost rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors">Cancelar</button>
             </div>
           </div>
         </transition>
 
-        <!-- ── Feedback global ─────────────────────────────────────────────────── -->
-        <p v-if="feedback && !mostrarForm" class="mb-4 text-sm" :class="feedbackError ? 'text-red-400' : 'text-emerald-400'">
-          {{ feedback }}
-        </p>
+        <!-- Feedback global -->
+        <p v-if="feedback && !mostrarForm" class="mb-4 text-sm" :class="feedbackError ? 'text-red-400' : 'text-emerald-400'">{{ feedback }}</p>
 
-        <!-- ── Lista de armas ─────────────────────────────────────────────────── -->
-        <div class="weapons-table rounded-2xl border overflow-hidden">
-          <!-- Cabeçalho da tabela -->
-          <div class="table-head grid grid-cols-[1fr_auto_auto_auto_auto_3rem] items-center gap-3 border-b px-4 py-3 text-xs font-bold uppercase tracking-wider sm:grid-cols-[2fr_1fr_1fr_1fr_2fr_3rem]">
-            <span>Nome</span>
-            <span class="hidden sm:block">Tipo</span>
-            <span>Dano</span>
-            <span class="hidden sm:block">Peso</span>
-            <span class="hidden sm:block">Categorias</span>
-            <span class="text-center">Ações</span>
-          </div>
-
-          <!-- Loading -->
-          <div v-if="carregando" class="flex items-center justify-center py-16">
-            <div class="h-8 w-8 animate-spin rounded-full border-2 border-red-500/30 border-t-red-400" />
-          </div>
-
-          <!-- Vazio -->
-          <div v-else-if="armasFiltradas.length === 0" class="empty-state flex flex-col items-center justify-center gap-2 py-16 text-center">
-            <svg class="h-10 w-10 opacity-30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M14.5 17.5L3 6V3h3l11.5 11.5"/>
-              <path d="M13 19l6-6"/>
-              <path d="M16 16l4 4"/>
-              <path d="M19 21l2-2"/>
-            </svg>
-            <p class="text-sm font-medium opacity-50">
-              {{ filtroNome || filtroTipo || filtroCategoria ? 'Nenhum equipamento encontrado com esses filtros.' : 'Nenhum equipamento cadastrado ainda.' }}
-            </p>
-            <button v-if="!filtroNome && !filtroTipo && !filtroCategoria" @click="abrirFormNova" class="mt-2 text-xs text-red-400 hover:text-red-300 underline underline-offset-2 transition-colors">
-              Cadastrar primeiro equipamento
-            </button>
-          </div>
-
-          <!-- Linhas -->
-          <template v-else>
-            <div
-              v-for="(arma, index) in armasFiltradas"
-              :key="arma.id"
-              class="weapon-row grid grid-cols-[1fr_auto_auto_auto_auto_3rem] items-center gap-3 border-b px-4 py-3.5 transition-colors last:border-b-0 sm:grid-cols-[2fr_1fr_1fr_1fr_2fr_3rem]"
-              :class="{ 'row-even': index % 2 === 0 }"
-            >
-              <!-- Nome + badge tipo mobile -->
-              <div class="min-w-0">
-                <p class="weapon-name truncate text-sm font-semibold">{{ arma.nome }}</p>
-                <span class="mt-0.5 inline-block rounded-full px-2 py-0.5 text-[0.65rem] font-semibold sm:hidden"
-                  :class="tipoBadgeClass(arma.tipo)">
-                  {{ arma.tipo }}
-                </span>
-              </div>
-
-              <!-- Tipo -->
-              <span class="hidden truncate sm:block">
-                <span class="tipo-badge rounded-full px-2.5 py-1 text-xs font-semibold"
-                  :class="tipoBadgeClass(arma.tipo)">
-                  {{ arma.tipo }}
-                </span>
+        <!-- ── Tabela de equipamentos ──────────────────────────────────────── -->
+        <DataTable
+          :colunas="colunasTabela"
+          classe-grid="grid grid-cols-[1fr_auto_auto_auto_3rem] items-center gap-3 sm:grid-cols-[2fr_1fr_1fr_2fr_3rem]"
+          :itens="armasFiltradas"
+          :carregando="carregando"
+          :mensagem-vazia="filtroNome || filtroClasse ? 'Nenhum equipamento encontrado com esses filtros.' : 'Nenhum equipamento cadastrado ainda.'"
+          @editar="iniciarEdicao"
+          @deletar="confirmarDelete"
+        >
+          <template #linha="{ item }">
+            <div class="min-w-0">
+              <p class="weapon-name truncate text-sm font-semibold">{{ (item as ArmaApi).nome }}</p>
+              <span v-if="(item as ArmaApi).classe_equipamento_item" class="mt-0.5 inline-block text-[0.65rem] text-zinc-500 sm:hidden">
+                {{ classeNome((item as ArmaApi).classe_equipamento_item) }}
               </span>
+            </div>
 
-              <!-- Dano -->
-              <span class="dano-text font-mono text-sm font-bold">{{ arma.dano || '—' }}</span>
+            <span class="hidden sm:block text-xs text-zinc-400">
+              {{ (item as ArmaApi).classe_equipamento_item ? classeNome((item as ArmaApi).classe_equipamento_item) : '—' }}
+            </span>
 
-              <!-- Peso -->
-              <span class="hidden text-sm sm:block text-muted">
-                {{ arma.peso != null ? arma.peso.toFixed(2) + ' kg' : '—' }}
-              </span>
+            <span class="dano-text font-mono text-sm font-bold">{{ (item as ArmaApi).dano || '—' }}</span>
 
-              <!-- Categorias -->
-              <div class="hidden sm:flex flex-wrap gap-1">
-                <template v-if="arma.categoria_equipamento_item.length > 0">
-                  <span
-                    v-for="itemId in arma.categoria_equipamento_item"
-                    :key="itemId"
-                    class="categoria-row-badge rounded-full px-2 py-0.5 text-[0.65rem] font-medium"
-                  >
-                    {{ categoriaNome(itemId) }}
-                  </span>
-                </template>
-                <span v-else class="text-xs text-muted">—</span>
-              </div>
-
-              <!-- Ações -->
-              <div class="flex items-center justify-end gap-1.5">
-                <button
-                  @click="iniciarEdicao(arma)"
-                  class="action-btn-edit rounded-lg p-1.5 transition-colors"
-                  :aria-label="`Editar ${arma.nome}`"
-                  title="Editar"
-                >
-                  <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                </button>
-                <button
-                  @click="confirmarDelete(arma)"
-                  class="action-btn-del rounded-lg p-1.5 transition-colors"
-                  :aria-label="`Deletar ${arma.nome}`"
-                  title="Deletar"
-                >
-                  <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                </button>
-              </div>
+            <div class="hidden sm:flex flex-wrap gap-1">
+              <template v-if="(item as ArmaApi).tipo_equipamento_item.length > 0">
+                <span v-for="id in (item as ArmaApi).tipo_equipamento_item" :key="`t${id}`" class="lookup-row-badge">{{ tipoNome(id) }}</span>
+              </template>
+              <template v-if="(item as ArmaApi).categoria_equipamento_item.length > 0">
+                <span v-for="id in (item as ArmaApi).categoria_equipamento_item" :key="`c${id}`" class="categoria-row-badge">{{ categoriaNome(id) }}</span>
+              </template>
+              <span v-if="(item as ArmaApi).tipo_equipamento_item.length === 0 && (item as ArmaApi).categoria_equipamento_item.length === 0" class="text-xs text-muted">—</span>
             </div>
           </template>
-        </div>
 
-        <!-- ── Contagem ────────────────────────────────────────────────────────── -->
-        <p v-if="armas.length > 0" class="mt-3 text-xs text-muted">
-          {{ armasFiltradas.length }} de {{ armas.length }} equipamento(s)
-        </p>
+          <template #vazia-cta>
+            <button v-if="!filtroNome && !filtroClasse" @click="abrirFormNova" class="mt-2 text-xs text-red-400 hover:text-red-300 underline underline-offset-2 transition-colors">
+              Cadastrar primeiro equipamento
+            </button>
+          </template>
+        </DataTable>
+
+        <p v-if="armas.length > 0" class="mt-3 text-xs text-muted">{{ armasFiltradas.length }} de {{ armas.length }} equipamento(s)</p>
 
       </main>
     </TemaDarkLight>
 
-    <!-- ══ Modal de confirmação de delete ════════════════════════════════════ -->
+    <!-- ══ Modal: Confirmar delete ══════════════════════════════════════════ -->
     <transition name="modal-fade">
-      <div
-        v-if="armaParaDeletar"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4"
-        role="dialog"
-        aria-modal="true"
-        @click.self="armaParaDeletar = null"
-      >
+      <div v-if="armaParaDeletar" class="fixed inset-0 z-50 flex items-center justify-center p-4" @click.self="armaParaDeletar = null">
         <div class="modal-overlay absolute inset-0 bg-black/70 backdrop-blur-sm" />
         <div class="modal-card relative w-full max-w-sm rounded-2xl border p-6 shadow-2xl">
           <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-500/10">
             <svg class="h-6 w-6 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
           </div>
           <h3 class="modal-title mb-1 text-base font-bold">Deletar Equipamento</h3>
-          <p class="modal-body mb-4 text-sm">
-            Tem certeza que deseja deletar
-            <strong>{{ armaParaDeletar.nome }}</strong>?
-            Esta ação é irreversível.
-          </p>
+          <p class="modal-body mb-4 text-sm">Tem certeza que deseja deletar <strong>{{ armaParaDeletar.nome }}</strong>? Esta ação é irreversível.</p>
           <div class="flex gap-3">
-            <button
-              @click="executarDelete"
-              :disabled="deletando"
-              class="flex-1 rounded-xl bg-red-600 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-500 disabled:cursor-wait disabled:opacity-50"
-            >
+            <button @click="executarDelete" :disabled="deletando" class="flex-1 rounded-xl bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-500 disabled:opacity-50">
               {{ deletando ? 'Deletando...' : 'Sim, deletar' }}
             </button>
-            <button
-              @click="armaParaDeletar = null"
-              class="btn-ghost flex-1 rounded-xl border py-2.5 text-sm font-medium transition-colors"
-            >
-              Cancelar
+            <button @click="armaParaDeletar = null" class="btn-ghost flex-1 rounded-xl border py-2.5 text-sm font-medium">Cancelar</button>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- ══ Modal: Adicionar item de lookup ══════════════════════════════════ -->
+    <transition name="modal-fade">
+      <div v-if="addModal.aberto" class="fixed inset-0 z-50 flex items-center justify-center p-4" @click.self="addModal.aberto = false">
+        <div class="modal-overlay absolute inset-0 bg-black/70 backdrop-blur-sm" />
+        <div class="modal-card relative w-full max-w-sm rounded-2xl border p-6 shadow-2xl">
+          <h3 class="modal-title mb-4 text-base font-bold">{{ addModalTitulo }}</h3>
+
+          <!-- Selecionar classe (para tipo, propriedade, categoria) -->
+          <div v-if="addModal.tipo !== 'classe'" class="mb-3">
+            <label class="field-label mb-1 block text-xs uppercase tracking-wide">
+              Classe <span v-if="addModal.tipo !== 'categoria'" class="text-red-400">*</span>
+            </label>
+            <div class="select-wrap">
+              <select v-model="addModal.classeItem" class="field-input w-full appearance-none rounded-xl border px-3 py-2.5 pr-9 text-sm outline-none">
+                <option :value="null">{{ addModal.tipo === 'categoria' ? 'Sem classe' : 'Selecionar classe...' }}</option>
+                <option v-for="c in classes" :key="c.item" :value="c.item">{{ (c.icone && !c.icone.startsWith('mdi-')) ? c.icone + ' ' + c.descricao : c.descricao }}</option>
+              </select>
+              <span class="select-caret">˅</span>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="field-label mb-1 block text-xs uppercase tracking-wide">Descrição <span class="text-red-400">*</span></label>
+            <input
+              v-model="addModal.descricao"
+              type="text"
+              :placeholder="`Nome do(a) ${addModalTipoLabel}...`"
+              class="field-input w-full rounded-xl border px-3 py-2.5 text-sm outline-none"
+              @keydown.enter="salvarAddModal"
+            />
+          </div>
+
+          <!-- Ícone (somente para classes) -->
+          <div v-if="addModal.tipo === 'classe'" class="mb-4">
+            <label class="field-label mb-2 block text-xs uppercase tracking-wide">
+              Ícone <span class="font-normal normal-case text-zinc-500">(opcional)</span>
+            </label>
+
+            <IconeInput v-model="addModal.icone" placeholder="Emoji ⚔️ ou mdi-sword" />
+
+            <p class="mt-1.5 mb-2 text-[0.62rem] text-zinc-500">
+              Emoji direto (<span class="font-mono">⚔️</span>) ou comece com
+              <span class="font-mono">mdi-</span> para autocompletar ícones MDI
+            </p>
+
+            <!-- Grade de sugestões baseadas na descrição -->
+            <p class="mb-1 text-[0.65rem] uppercase tracking-wide text-zinc-500">
+              {{ addModal.descricao.trim() ? 'Sugestões para "' + addModal.descricao + '"' : 'Sugestões rápidas' }}
+            </p>
+            <div class="flex flex-wrap gap-1.5">
+              <button
+                v-for="icone in sugestoesIconeAddModal"
+                :key="icone"
+                type="button"
+                @click.stop="addModal.icone = icone"
+                class="icone-sugestao rounded-lg transition-all"
+                :class="[addModal.icone === icone ? 'icone-sugestao-ativo' : '', icone.startsWith('mdi-') ? 'icone-sugestao-mdi' : 'icone-sugestao-emoji']"
+                :title="icone"
+              >
+                <IconeDisplay :icone="icone" :size="icone.startsWith('mdi-') ? '1.15rem' : '1.25rem'" />
+              </button>
+            </div>
+          </div>
+
+          <p v-if="addModal.erro" class="mb-3 text-sm text-red-400">{{ addModal.erro }}</p>
+
+          <div class="flex gap-3">
+            <button @click="salvarAddModal" :disabled="addModal.salvando || !addModal.descricao.trim() || (addModal.tipo !== 'classe' && addModal.tipo !== 'categoria' && !addModal.classeItem)" class="btn-primary flex-1 rounded-xl py-2.5 text-sm font-semibold disabled:opacity-40">
+              {{ addModal.salvando ? 'Salvando...' : 'Salvar' }}
+            </button>
+            <button @click="addModal.aberto = false" class="btn-ghost flex-1 rounded-xl border py-2.5 text-sm font-medium">Cancelar</button>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- ══ Modal: Gerenciar itens de lookup ════════════════════════════════ -->
+    <transition name="modal-fade">
+      <div v-if="manageModal.aberto" class="fixed inset-0 z-50 flex items-center justify-center p-4" @click.self="manageModal.aberto = false">
+        <div class="modal-overlay absolute inset-0 bg-black/70 backdrop-blur-sm" />
+        <div class="modal-card relative w-full max-w-md rounded-2xl border p-6 shadow-2xl">
+          <div class="mb-4 flex items-center justify-between">
+            <h3 class="modal-title text-base font-bold">{{ manageModalTitulo }}</h3>
+            <button @click="manageModal.aberto = false" class="close-btn rounded-lg p-1.5">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
           </div>
+
+          <div class="max-h-[50vh] overflow-y-auto space-y-1">
+            <div v-if="manageModal.itens.length === 0" class="py-8 text-center text-sm text-zinc-500 italic">
+              Nenhum item cadastrado.
+            </div>
+
+            <div
+              v-for="item in manageModal.itens"
+              :key="item.item"
+              class="manage-row flex items-center gap-2 rounded-xl border px-3 py-2"
+            >
+              <!-- Modo leitura -->
+              <template v-if="manageModal.editandoItem !== item.item">
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium truncate flex items-center gap-1.5">
+                    <IconeDisplay v-if="item.icone" :icone="item.icone" size="1rem" class="shrink-0" />
+                    {{ item.descricao }}
+                  </p>
+                  <p v-if="item.classe_item" class="text-xs text-zinc-500 truncate">{{ classeNome(item.classe_item) }}</p>
+                </div>
+                <button @click="iniciarEdicaoManage(item)" class="action-btn-edit rounded-lg p-1.5">
+                  <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+                <button @click="deletarLookupItem(item.item)" :disabled="manageModal.deletando === item.item" class="action-btn-del rounded-lg p-1.5">
+                  <svg v-if="manageModal.deletando !== item.item" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  <div v-else class="h-3.5 w-3.5 animate-spin rounded-full border border-red-400 border-t-transparent" />
+                </button>
+              </template>
+
+              <!-- Modo edição inline -->
+              <template v-else>
+                <input
+                  v-model="manageModal.novaDescricao"
+                  class="field-input flex-1 rounded-lg border px-2 py-1.5 text-sm outline-none"
+                  @keydown.enter="salvarEdicaoManage(item.item)"
+                  @keydown.esc="manageModal.editandoItem = null"
+                />
+                <button @click="salvarEdicaoManage(item.item)" :disabled="manageModal.salvando" class="btn-primary rounded-lg px-2.5 py-1.5 text-xs font-semibold disabled:opacity-40">
+                  {{ manageModal.salvando ? '...' : 'OK' }}
+                </button>
+                <button @click="manageModal.editandoItem = null" class="btn-ghost rounded-lg border px-2.5 py-1.5 text-xs">✕</button>
+              </template>
+            </div>
+          </div>
+
+          <p v-if="manageModal.erro" class="mt-3 text-sm text-red-400">{{ manageModal.erro }}</p>
         </div>
       </div>
     </transition>
@@ -426,106 +530,289 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import TemaDarkLight from '@/components/TemaDarkLight.vue'
+import DataTable from '@/components/DataTable.vue'
+import IconeDisplay from '@/components/IconeDisplay.vue'
+import IconeInput from '@/components/IconeInput.vue'
 import {
   listarArmas,
   listarCategoriasEquipamento,
+  listarClassesEquipamento,
+  listarTiposEquipamento,
+  listarPropriedadesEquipamento,
   criarArma,
   editarArma,
   deletarArma,
+  criarClasseEquipamento,
+  editarClasseEquipamento,
+  deletarClasseEquipamento,
+  criarTipoEquipamento,
+  editarTipoEquipamento,
+  deletarTipoEquipamento,
+  criarPropriedadeEquipamento,
+  editarPropriedadeEquipamento,
+  deletarPropriedadeEquipamento,
+  criarCategoriaEquipamento,
+  editarCategoriaEquipamento,
+  deletarCategoriaEquipamento,
   type ArmaApi,
+  type ClasseEquipamento,
+  type TipoEquipamento,
+  type PropriedadeEquipamento,
   type CategoriaEquipamento,
 } from '@/lib/api/armas.api'
 
-const router = useRouter()
+// ── Definição de colunas da tabela ───────────────────────────────────────────
+
+const colunasTabela = [
+  { label: 'Nome' },
+  { label: 'Classe', classe: 'hidden sm:block' },
+  { label: 'Dano' },
+  { label: 'Tipos / Categorias', classe: 'hidden sm:block' },
+]
+
+// ── Estado ───────────────────────────────────────────────────────────────────
+
+const router    = useRouter()
 const authStore = useAuthStore()
 
-const armas = ref<ArmaApi[]>([])
-const categorias = ref<CategoriaEquipamento[]>([])
+const armas       = ref<ArmaApi[]>([])
+const categorias  = ref<CategoriaEquipamento[]>([])
+const classes     = ref<ClasseEquipamento[]>([])
+const tipos       = ref<TipoEquipamento[]>([])
+const propriedades = ref<PropriedadeEquipamento[]>([])
+
 const carregando = ref(false)
-const salvando = ref(false)
-const deletando = ref(false)
-const feedback = ref('')
+const salvando   = ref(false)
+const deletando  = ref(false)
+const feedback      = ref('')
 const feedbackError = ref(false)
 
-const filtroNome = ref('')
-const filtroTipo = ref('')
-const filtroCategoria = ref<number | null>(null)
+const filtroNome   = ref('')
+const filtroClasse = ref<number | null>(null)
 
 const mostrarForm = ref(false)
-const editandoId = ref<string | null>(null)
-const formFeedback = ref('')
+const editandoId  = ref<string | null>(null)
+const formFeedback      = ref('')
 const formFeedbackError = ref(false)
 
 const armaParaDeletar = ref<ArmaApi | null>(null)
 
+// Dropdown ativo (key do campo)
+const dropdownAtivo = ref<string | null>(null)
+
 const form = reactive({
   nome: '',
-  tipo: '',
   dano: '',
   peso: null as number | null,
-  propriedades: '',
   valor: null as number | null,
+  classe_equipamento_item: null as number | null,
+  tipo_equipamento_item: [] as number[],
   categoria_equipamento_item: [] as number[],
+  propriedade_equipamento_item: [] as number[],
   descricao_equipamento: '',
   pre_requisitos: '',
 })
 
-const TIPO_COLORS: Record<string, string> = {
-  espada: 'bg-blue-500/15 text-blue-300 border border-blue-500/25',
-  arco: 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/25',
-  maça: 'bg-orange-500/15 text-orange-300 border border-orange-500/25',
-  maca: 'bg-orange-500/15 text-orange-300 border border-orange-500/25',
-  lança: 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/25',
-  lanca: 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/25',
-  adaga: 'bg-purple-500/15 text-purple-300 border border-purple-500/25',
-  machado: 'bg-red-500/15 text-red-300 border border-red-500/25',
-  cajado: 'bg-violet-500/15 text-violet-300 border border-violet-500/25',
-  besta: 'bg-amber-500/15 text-amber-300 border border-amber-500/25',
+// ── Modal: Adicionar ─────────────────────────────────────────────────────────
+
+type LookupTipo = 'classe' | 'tipo' | 'propriedade' | 'categoria'
+
+interface LookupItem {
+  item: number
+  descricao: string
+  classe_item?: number | null
+  icone?: string | null
 }
 
-function tipoBadgeClass(tipo: string): string {
-  const key = (tipo || '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
-  return TIPO_COLORS[key] ?? 'bg-zinc-500/15 text-zinc-300 border border-zinc-500/25'
-}
-
-function categoriaNome(itemId: number): string {
-  return categorias.value.find((c) => c.item === itemId)?.descricao ?? String(itemId)
-}
-
-const tiposUnicos = computed(() => {
-  const set = new Set(armas.value.map((a) => a.tipo).filter(Boolean))
-  return [...set].sort((a, b) => a.localeCompare(b, 'pt-BR'))
+const addModal = reactive({
+  aberto: false,
+  tipo: 'classe' as LookupTipo,
+  descricao: '',
+  classeItem: null as number | null,
+  icone: '',
+  salvando: false,
+  erro: '',
 })
 
+// ── Icon picker: mapeamento keyword → emojis sugeridos ────────────────────────
+
+const ICONE_MAPA = [
+  { kw: ['arma', 'espada', 'sword', 'lamina', 'gume', 'blade'], em: ['⚔️', '🗡️', 'mdi-sword', 'mdi-sword-cross', 'mdi-axe'] },
+  { kw: ['arco', 'bow', 'flecha', 'arrow', 'besta'], em: ['🏹', 'mdi-bow-arrow'] },
+  { kw: ['armadura', 'armor', 'coura', 'placa', 'blindagem'], em: ['🛡️', '🪖', 'mdi-shield', 'mdi-shield-sword', 'mdi-shield-half-full'] },
+  { kw: ['escudo', 'shield', 'defesa', 'bloqueio'], em: ['🛡️', 'mdi-shield', 'mdi-shield-outline'] },
+  { kw: ['lanca', 'lança', 'spear', 'haste', 'polearm'], em: ['🔱', 'mdi-spear'] },
+  { kw: ['cajado', 'staff', 'baculo', 'bordao', 'bordão', 'vara'], em: ['🪄', 'mdi-wand', 'mdi-wizard-hat'] },
+  { kw: ['magia', 'magic', 'feitico', 'spell', 'arcano'], em: ['🔮', '✨', 'mdi-magic-staff', 'mdi-star-four-points', 'mdi-auto-fix'] },
+  { kw: ['pocao', 'poção', 'potion', 'alquimia', 'elixir'], em: ['🧪', '⚗️', 'mdi-flask', 'mdi-flask-outline', 'mdi-bottle-tonic'] },
+  { kw: ['livro', 'tomo', 'grimorio', 'scroll', 'pergaminho', 'book'], em: ['📚', '📖', 'mdi-book-open', 'mdi-book-open-page-variant', 'mdi-scroll'] },
+  { kw: ['joia', 'gem', 'pedra', 'rubi', 'diamante', 'cristal'], em: ['💎', 'mdi-diamond', 'mdi-diamond-stone', 'mdi-crystal-ball'] },
+  { kw: ['anel', 'ring'], em: ['💍', 'mdi-ring'] },
+  { kw: ['amuleto', 'amulet', 'colar', 'necklace', 'pingente'], em: ['📿', '⚜️', 'mdi-necklace'] },
+  { kw: ['explosivo', 'bomb', 'bomba', 'granada', 'dinamite'], em: ['💣', '🧨', 'mdi-bomb'] },
+  { kw: ['roupa', 'clothes', 'vestimenta', 'manto', 'capa', 'robe'], em: ['👘', '🧥', 'mdi-tshirt-crew', 'mdi-hanger'] },
+  { kw: ['bota', 'boot', 'sapato', 'calcado', 'calçado'], em: ['👢', 'mdi-shoe-sneaker', 'mdi-boot'] },
+  { kw: ['luva', 'glove', 'manopla', 'gauntlet'], em: ['🧤', 'mdi-boxing-glove'] },
+  { kw: ['capacete', 'helmet', 'elmo', 'chapeu', 'chapéu'], em: ['⛑️', '🪖', 'mdi-hard-hat', 'mdi-crown'] },
+  { kw: ['ferramenta', 'tool', 'craft', 'artesanato', 'oficina'], em: ['🔧', '🛠️', 'mdi-hammer', 'mdi-wrench', 'mdi-tools'] },
+  { kw: ['consumivel', 'consumível', 'comida', 'food', 'fruta', 'refeicao'], em: ['🍖', '🍎', 'mdi-food', 'mdi-food-apple'] },
+  { kw: ['moeda', 'ouro', 'gold', 'tesouro', 'treasure', 'dinheiro'], em: ['🪙', '💰', 'mdi-cash-multiple', 'mdi-trophy', 'mdi-coins'] },
+  { kw: ['mochila', 'bag', 'bolsa', 'aventura', 'adventure'], em: ['🎒', '🧳', 'mdi-bag-personal', 'mdi-backpack'] },
+  { kw: ['montaria', 'mount', 'cavalo', 'horse', 'veiculo', 'veículo'], em: ['🐴', 'mdi-horse', 'mdi-horse-variant'] },
+  { kw: ['mapa', 'map', 'rota', 'bussola', 'bússola'], em: ['🗺️', '🧭', 'mdi-map', 'mdi-compass'] },
+  { kw: ['escuro', 'sombra', 'dark', 'assassino', 'furtivo'], em: ['🥷', '🖤', 'mdi-ninja', 'mdi-eye-outline', 'mdi-knife'] },
+  { kw: ['fogo', 'fire', 'chama', 'flame', 'incendio'], em: ['🔥', 'mdi-fire', 'mdi-flare'] },
+  { kw: ['gelo', 'ice', 'frost', 'frio', 'congelado'], em: ['❄️', '🧊', 'mdi-snowflake', 'mdi-ice-cream'] },
+  { kw: ['trovao', 'trovão', 'thunder', 'raio', 'lightning'], em: ['⚡', 'mdi-lightning-bolt', 'mdi-weather-lightning'] },
+  { kw: ['veneno', 'poison', 'toxina', 'acido', 'ácido'], em: ['☠️', '🐍', 'mdi-skull-crossbones', 'mdi-skull'] },
+  { kw: ['sagrado', 'holy', 'divino', 'divine', 'bencao', 'bênção'], em: ['✝️', '⭐', 'mdi-church', 'mdi-cross', 'mdi-star'] },
+  { kw: ['musica', 'música', 'music', 'instrumento', 'bardo'], em: ['🎵', '🎶', 'mdi-music', 'mdi-guitar-electric', 'mdi-music-note'] },
+]
+
+const ICONES_PADRAO = ['⚔️', 'mdi-sword', '🛡️', 'mdi-shield', '🔮', 'mdi-flask', '📜', 'mdi-book-open', '💎', 'mdi-diamond', '🏹', 'mdi-fire']
+
+function sugestaoIcones(descricao: string): string[] {
+  const texto = descricao
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+  const set = new Set<string>()
+  for (const { kw, em } of ICONE_MAPA) {
+    if (kw.some((k) => texto.includes(k))) em.forEach((e) => set.add(e))
+  }
+  return set.size > 0 ? [...set].slice(0, 12) : ICONES_PADRAO
+}
+
+const sugestoesIconeAddModal = computed(() =>
+  addModal.tipo === 'classe' ? sugestaoIcones(addModal.descricao) : []
+)
+
+const addModalTitulo = computed(() => {
+  const map: Record<LookupTipo, string> = { classe: 'Nova Classe', tipo: 'Novo Tipo', propriedade: 'Nova Propriedade', categoria: 'Nova Categoria' }
+  return map[addModal.tipo]
+})
+
+const addModalTipoLabel = computed(() => {
+  const map: Record<LookupTipo, string> = { classe: 'classe', tipo: 'tipo', propriedade: 'propriedade', categoria: 'categoria' }
+  return map[addModal.tipo]
+})
+
+// ── Modal: Gerenciar ─────────────────────────────────────────────────────────
+
+const manageModal = reactive({
+  aberto: false,
+  tipo: 'classe' as LookupTipo,
+  itens: [] as LookupItem[],
+  editandoItem: null as number | null,
+  novaDescricao: '',
+  salvando: false,
+  deletando: null as number | null,
+  erro: '',
+})
+
+const manageModalTitulo = computed(() => {
+  const map: Record<LookupTipo, string> = { classe: 'Gerenciar Classes', tipo: 'Gerenciar Tipos', propriedade: 'Gerenciar Propriedades', categoria: 'Gerenciar Categorias' }
+  return map[manageModal.tipo]
+})
+
+// ── Computed ─────────────────────────────────────────────────────────────────
+
+const tiposFiltrados = computed(() =>
+  form.classe_equipamento_item
+    ? tipos.value.filter((t) => t.classe_item === form.classe_equipamento_item)
+    : []
+)
+
+const propriedadesFiltradas = computed(() =>
+  form.classe_equipamento_item
+    ? propriedades.value.filter((p) => p.classe_item === form.classe_equipamento_item)
+    : []
+)
+
+const categoriasFiltradas = computed(() => categorias.value)
+
 const armasFiltradas = computed(() => {
-  const nome = filtroNome.value.trim().toLowerCase()
-  const tipo = filtroTipo.value
-  const cat = filtroCategoria.value
+  const nome   = filtroNome.value.trim().toLowerCase()
+  const classe = filtroClasse.value
   return armas.value.filter((a) => {
     if (nome && !a.nome.toLowerCase().includes(nome)) return false
-    if (tipo && a.tipo !== tipo) return false
-    if (cat !== null && !a.categoria_equipamento_item.includes(cat)) return false
+    if (classe !== null && a.classe_equipamento_item !== classe) return false
     return true
   })
 })
 
+// ── Lookup: resolve nomes ─────────────────────────────────────────────────────
+
+function classeNome(item: number | null): string {
+  if (!item) return '—'
+  return classes.value.find((c) => c.item === item)?.descricao ?? String(item)
+}
+function classeLabel(item: number | null): string {
+  if (!item) return 'Selecionar classe...'
+  const c = classes.value.find((cl) => cl.item === item)
+  if (!c) return String(item)
+  // Para MDI, não inclui o nome no label (será renderizado via IconeDisplay no template)
+  if (c.icone?.startsWith('mdi-')) return c.descricao
+  return c.icone ? `${c.icone} ${c.descricao}` : c.descricao
+}
+
+function classeIcone(item: number | null): string | null | undefined {
+  if (!item) return null
+  return classes.value.find((cl) => cl.item === item)?.icone
+}
+function tipoNome(item: number): string {
+  return tipos.value.find((t) => t.item === item)?.descricao ?? String(item)
+}
+function categoriaNome(item: number): string {
+  return categorias.value.find((c) => c.item === item)?.descricao ?? String(item)
+}
+function propriedadeNome(item: number): string {
+  return propriedades.value.find((p) => p.item === item)?.descricao ?? String(item)
+}
+
+// ── Dropdown ──────────────────────────────────────────────────────────────────
+
+function toggleDropdown(key: string) {
+  dropdownAtivo.value = dropdownAtivo.value === key ? null : key
+}
+
+function fecharDropdowns() {
+  dropdownAtivo.value = null
+}
+
+function selecionarClasse(item: number | null) {
+  form.classe_equipamento_item = item
+  form.tipo_equipamento_item = []
+  form.propriedade_equipamento_item = []
+  dropdownAtivo.value = null
+}
+
+function removeDoForm(tipo: 'tipo' | 'categoria' | 'propriedade', item: number) {
+  if (tipo === 'tipo') form.tipo_equipamento_item = form.tipo_equipamento_item.filter((i) => i !== item)
+  else if (tipo === 'categoria') form.categoria_equipamento_item = form.categoria_equipamento_item.filter((i) => i !== item)
+  else form.propriedade_equipamento_item = form.propriedade_equipamento_item.filter((i) => i !== item)
+}
+
+// ── Form: CRUD de equipamento ─────────────────────────────────────────────────
+
 function resetForm() {
-  form.nome = ''
-  form.tipo = ''
-  form.dano = ''
-  form.peso = null
-  form.propriedades = ''
-  form.valor = null
+  form.nome                       = ''
+  form.dano                       = ''
+  form.peso                       = null
+  form.valor                      = null
+  form.classe_equipamento_item    = null
+  form.tipo_equipamento_item      = []
   form.categoria_equipamento_item = []
-  form.descricao_equipamento = ''
-  form.pre_requisitos = ''
-  formFeedback.value = ''
+  form.propriedade_equipamento_item = []
+  form.descricao_equipamento      = ''
+  form.pre_requisitos             = ''
+  formFeedback.value      = ''
   formFeedbackError.value = false
-  editandoId.value = null
+  editandoId.value        = null
 }
 
 function abrirFormNova() {
@@ -539,19 +826,20 @@ function fecharForm() {
 }
 
 function iniciarEdicao(arma: ArmaApi) {
-  editandoId.value = arma.id
-  form.nome = arma.nome
-  form.tipo = arma.tipo
-  form.dano = arma.dano ?? ''
-  form.peso = arma.peso
-  form.propriedades = arma.propriedades
-  form.valor = arma.valor
-  form.categoria_equipamento_item = [...(arma.categoria_equipamento_item ?? [])]
-  form.descricao_equipamento = arma.descricao_equipamento ?? ''
-  form.pre_requisitos = arma.pre_requisitos ?? ''
-  formFeedback.value = ''
+  editandoId.value                    = arma.id
+  form.nome                           = arma.nome
+  form.dano                           = arma.dano ?? ''
+  form.peso                           = arma.peso
+  form.valor                          = arma.valor
+  form.classe_equipamento_item        = arma.classe_equipamento_item ?? null
+  form.tipo_equipamento_item          = [...(arma.tipo_equipamento_item ?? [])]
+  form.categoria_equipamento_item     = [...(arma.categoria_equipamento_item ?? [])]
+  form.propriedade_equipamento_item   = [...(arma.propriedade_equipamento_item ?? [])]
+  form.descricao_equipamento          = arma.descricao_equipamento ?? ''
+  form.pre_requisitos                 = arma.pre_requisitos ?? ''
+  formFeedback.value      = ''
   formFeedbackError.value = false
-  mostrarForm.value = true
+  mostrarForm.value       = true
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
@@ -562,11 +850,20 @@ function confirmarDelete(arma: ArmaApi) {
 async function carregar() {
   carregando.value = true
   try {
-    const [equipamentos, cats] = await Promise.all([listarArmas(), listarCategoriasEquipamento()])
-    armas.value = equipamentos
-    categorias.value = cats
+    const [eqs, cats, cls, tips, props] = await Promise.all([
+      listarArmas(),
+      listarCategoriasEquipamento(),
+      listarClassesEquipamento(),
+      listarTiposEquipamento(),
+      listarPropriedadesEquipamento(),
+    ])
+    armas.value        = eqs
+    categorias.value   = cats
+    classes.value      = cls
+    tipos.value        = tips
+    propriedades.value = props
   } catch {
-    feedback.value = 'Erro ao carregar equipamentos.'
+    feedback.value      = 'Erro ao carregar dados.'
     feedbackError.value = true
   } finally {
     carregando.value = false
@@ -574,41 +871,40 @@ async function carregar() {
 }
 
 async function salvar() {
-  if (!form.nome.trim() || !form.tipo.trim()) return
-  salvando.value = true
-  formFeedback.value = ''
-  try {
-    const pesoNum = form.peso != null && !isNaN(form.peso) ? form.peso : null
-    const valorNum = form.valor != null && !isNaN(form.valor) ? form.valor : null
+  if (!form.nome.trim()) return
+  salvando.value      = true
+  formFeedback.value  = ''
 
+  try {
     const payload = {
-      nome: form.nome,
-      tipo: form.tipo,
-      dano: form.dano.trim() || undefined,
-      peso: pesoNum,
-      propriedades: form.propriedades,
-      valor: valorNum,
-      categoria_equipamento_item: form.categoria_equipamento_item,
-      descricao_equipamento: form.descricao_equipamento.trim() || null,
-      pre_requisitos: form.pre_requisitos.trim() || null,
+      nome:                         form.nome,
+      dano:                         form.dano.trim() || undefined,
+      peso:                         form.peso != null && !isNaN(form.peso) ? form.peso : null,
+      valor:                        form.valor != null && !isNaN(form.valor) ? form.valor : null,
+      classe_equipamento_item:      form.classe_equipamento_item,
+      tipo_equipamento_item:        form.tipo_equipamento_item,
+      categoria_equipamento_item:   form.categoria_equipamento_item,
+      propriedade_equipamento_item: form.propriedade_equipamento_item,
+      descricao_equipamento:        form.descricao_equipamento.trim() || null,
+      pre_requisitos:               form.pre_requisitos.trim() || null,
     }
 
     if (editandoId.value) {
       const atualizada = await editarArma(editandoId.value, payload)
       const idx = armas.value.findIndex((a) => a.id === editandoId.value)
       if (idx !== -1) armas.value[idx] = atualizada
-      formFeedback.value = 'Equipamento atualizado com sucesso.'
+      formFeedback.value      = 'Equipamento atualizado com sucesso.'
       formFeedbackError.value = false
     } else {
       const nova = await criarArma(payload)
       armas.value.push(nova)
       armas.value.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
-      formFeedback.value = 'Equipamento criado com sucesso.'
+      formFeedback.value      = 'Equipamento criado com sucesso.'
       formFeedbackError.value = false
       resetForm()
     }
   } catch (err: any) {
-    formFeedback.value = err?.response?.data?.message || 'Erro ao salvar equipamento.'
+    formFeedback.value      = err?.response?.data?.message || 'Erro ao salvar equipamento.'
     formFeedbackError.value = true
   } finally {
     salvando.value = false
@@ -620,54 +916,168 @@ async function executarDelete() {
   deletando.value = true
   try {
     await deletarArma(armaParaDeletar.value.id)
-    armas.value = armas.value.filter((a) => a.id !== armaParaDeletar.value!.id)
+    armas.value           = armas.value.filter((a) => a.id !== armaParaDeletar.value!.id)
     armaParaDeletar.value = null
-    feedback.value = 'Equipamento deletado com sucesso.'
-    feedbackError.value = false
+    feedback.value        = 'Equipamento deletado com sucesso.'
+    feedbackError.value   = false
   } catch (err: any) {
-    feedback.value = err?.response?.data?.message || 'Erro ao deletar equipamento.'
-    feedbackError.value = true
+    feedback.value        = err?.response?.data?.message || 'Erro ao deletar equipamento.'
+    feedbackError.value   = true
     armaParaDeletar.value = null
   } finally {
     deletando.value = false
   }
 }
 
-function goMasterPanel() {
-  router.push({ name: 'master-panel' })
+// ── Modal Adicionar ───────────────────────────────────────────────────────────
+
+function abrirAddModal(tipo: LookupTipo) {
+  addModal.tipo       = tipo
+  addModal.descricao  = ''
+  addModal.classeItem = form.classe_equipamento_item
+  addModal.icone      = ''
+  addModal.salvando   = false
+  addModal.erro       = ''
+  addModal.aberto     = true
 }
 
-async function logout() {
-  await authStore.sair()
-  router.push({ name: 'login' })
+async function salvarAddModal() {
+  if (!addModal.descricao.trim()) return
+  if (addModal.tipo !== 'classe' && addModal.tipo !== 'categoria' && !addModal.classeItem) return
+
+  addModal.salvando = true
+  addModal.erro     = ''
+
+  try {
+    if (addModal.tipo === 'classe') {
+      const nova = await criarClasseEquipamento({ descricao: addModal.descricao, icone: addModal.icone || null })
+      classes.value.push(nova)
+    } else if (addModal.tipo === 'tipo') {
+      const novo = await criarTipoEquipamento({ descricao: addModal.descricao, classe_item: addModal.classeItem! })
+      tipos.value.push(novo)
+    } else if (addModal.tipo === 'propriedade') {
+      const nova = await criarPropriedadeEquipamento({ descricao: addModal.descricao, classe_item: addModal.classeItem! })
+      propriedades.value.push(nova)
+    } else {
+      const nova = await criarCategoriaEquipamento({ descricao: addModal.descricao, classe_item: addModal.classeItem ?? null })
+      categorias.value.push(nova)
+    }
+    addModal.aberto = false
+  } catch (err: any) {
+    addModal.erro = err?.response?.data?.message || 'Erro ao salvar.'
+  } finally {
+    addModal.salvando = false
+  }
 }
+
+// ── Modal Gerenciar ───────────────────────────────────────────────────────────
+
+function abrirGerenciarModal(tipo: LookupTipo) {
+  manageModal.tipo         = tipo
+  manageModal.editandoItem = null
+  manageModal.novaDescricao = ''
+  manageModal.salvando     = false
+  manageModal.deletando    = null
+  manageModal.erro         = ''
+
+  const map: Record<LookupTipo, LookupItem[]> = {
+    classe:     classes.value,
+    tipo:       tipos.value,
+    propriedade: propriedades.value,
+    categoria:  categorias.value,
+  }
+  manageModal.itens = [...map[tipo]]
+  manageModal.aberto = true
+}
+
+function iniciarEdicaoManage(item: LookupItem) {
+  manageModal.editandoItem  = item.item
+  manageModal.novaDescricao = item.descricao
+  manageModal.erro          = ''
+}
+
+async function salvarEdicaoManage(itemId: number) {
+  if (!manageModal.novaDescricao.trim()) return
+  manageModal.salvando = true
+  manageModal.erro     = ''
+
+  try {
+    const payload = { descricao: manageModal.novaDescricao.trim() }
+
+    if (manageModal.tipo === 'classe') {
+      await editarClasseEquipamento(itemId, payload)
+      const i = classes.value.findIndex((c) => c.item === itemId)
+      if (i !== -1) classes.value[i].descricao = payload.descricao
+    } else if (manageModal.tipo === 'tipo') {
+      await editarTipoEquipamento(itemId, payload)
+      const i = tipos.value.findIndex((t) => t.item === itemId)
+      if (i !== -1) tipos.value[i].descricao = payload.descricao
+    } else if (manageModal.tipo === 'propriedade') {
+      await editarPropriedadeEquipamento(itemId, payload)
+      const i = propriedades.value.findIndex((p) => p.item === itemId)
+      if (i !== -1) propriedades.value[i].descricao = payload.descricao
+    } else {
+      await editarCategoriaEquipamento(itemId, payload)
+      const i = categorias.value.findIndex((c) => c.item === itemId)
+      if (i !== -1) categorias.value[i].descricao = payload.descricao
+    }
+
+    const mi = manageModal.itens.findIndex((i) => i.item === itemId)
+    if (mi !== -1) manageModal.itens[mi].descricao = payload.descricao
+    manageModal.editandoItem = null
+  } catch (err: any) {
+    manageModal.erro = err?.response?.data?.message || 'Erro ao salvar.'
+  } finally {
+    manageModal.salvando = false
+  }
+}
+
+async function deletarLookupItem(itemId: number) {
+  manageModal.deletando = itemId
+  manageModal.erro      = ''
+
+  try {
+    if (manageModal.tipo === 'classe') {
+      await deletarClasseEquipamento(itemId)
+      classes.value = classes.value.filter((c) => c.item !== itemId)
+    } else if (manageModal.tipo === 'tipo') {
+      await deletarTipoEquipamento(itemId)
+      tipos.value = tipos.value.filter((t) => t.item !== itemId)
+    } else if (manageModal.tipo === 'propriedade') {
+      await deletarPropriedadeEquipamento(itemId)
+      propriedades.value = propriedades.value.filter((p) => p.item !== itemId)
+    } else {
+      await deletarCategoriaEquipamento(itemId)
+      categorias.value = categorias.value.filter((c) => c.item !== itemId)
+    }
+
+    manageModal.itens = manageModal.itens.filter((i) => i.item !== itemId)
+  } catch (err: any) {
+    manageModal.erro = err?.response?.data?.message || 'Erro ao deletar.'
+  } finally {
+    manageModal.deletando = null
+  }
+}
+
+// ── Lifecycle ──────────────────────────────────────────────────────────────────
+
+function goMasterPanel() { router.push({ name: 'master-panel' }) }
+async function logout() { await authStore.sair(); router.push({ name: 'login' }) }
 
 onMounted(carregar)
+onUnmounted(() => { /* cleanup */ })
 </script>
 
 <style scoped>
 /* ── Page shell ──────────────────────────────────────────────────────────── */
-.page-root {
-  background: #070C18;
-}
-.page-header {
-  background: rgb(7 12 24 / 0.85);
-  border-color: rgb(255 255 255 / 0.07);
-}
-.back-btn {
-  border-color: rgb(255 255 255 / 0.12);
-  background: rgb(255 255 255 / 0.04);
-  color: #cbd5e1;
-}
-.back-btn:hover {
-  background: rgb(255 255 255 / 0.08);
-  color: #fff;
-}
+.page-root     { background: #070C18; }
+.page-header   { background: rgb(7 12 24 / 0.85); border-color: rgb(255 255 255 / 0.07); }
+.back-btn      { border-color: rgb(255 255 255 / 0.12); background: rgb(255 255 255 / 0.04); color: #cbd5e1; }
+.back-btn:hover { background: rgb(255 255 255 / 0.08); color: #fff; }
 
-/* ── Página títulos ──────────────────────────────────────────────────────── */
-.page-kicker  { color: #f87171; }
-.page-title   { color: #fca5a5; font-family: 'Cinzel', serif; }
-.page-sub     { color: #94a3b8; }
+.page-kicker { color: #f87171; }
+.page-title  { color: #fca5a5; font-family: 'Cinzel', serif; }
+.page-sub    { color: #94a3b8; }
 
 /* ── Campos ──────────────────────────────────────────────────────────────── */
 .field-label { color: #64748b; }
@@ -677,241 +1087,194 @@ onMounted(carregar)
   color: #e2e8f0;
 }
 .field-input::placeholder { color: #475569; }
-.field-input:focus {
-  border-color: rgb(248 113 113 / 0.5);
-  background: rgb(255 255 255 / 0.06);
-}
-.select-wrap { position: relative; }
-.select-caret {
-  position: absolute;
-  right: 0.75rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #475569;
-  pointer-events: none;
-  font-size: 0.9rem;
-}
+.field-input:focus { border-color: rgb(248 113 113 / 0.5); background: rgb(255 255 255 / 0.06); }
+.field-input:disabled { opacity: 0.5; cursor: not-allowed; }
+.placeholder-color { color: #475569; }
 
-/* ── Categoria chips (form) ──────────────────────────────────────────────── */
-.chip-active {
-  background: rgb(220 38 38 / 0.15);
-  border-color: rgb(220 38 38 / 0.5);
-  color: #fca5a5;
-}
-.chip-inactive {
-  background: rgb(255 255 255 / 0.03);
+.select-wrap    { position: relative; }
+.select-caret   { position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); color: #475569; pointer-events: none; }
+
+/* ── Dropdowns ───────────────────────────────────────────────────────────── */
+.dropdown-panel {
+  background: #0f172a;
   border-color: rgb(255 255 255 / 0.1);
-  color: #64748b;
 }
-.chip-inactive:hover {
-  border-color: rgb(255 255 255 / 0.2);
+.dropdown-item { color: #cbd5e1; }
+.dropdown-item:hover { background: rgb(255 255 255 / 0.05); }
+.dropdown-item-active { background: rgb(220 38 38 / 0.12); color: #fca5a5; }
+
+.check-active  { background: rgb(220 38 38 / 0.3); border-color: #f87171; color: #fca5a5; }
+.check-inactive { background: transparent; border-color: rgb(255 255 255 / 0.2); color: transparent; }
+
+/* ── Lookup buttons ──────────────────────────────────────────────────────── */
+.lookup-add-btn {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgb(248 113 113 / 0.4);
+  color: #fca5a5;
+  background: rgb(220 38 38 / 0.1);
+  transition: all 0.15s;
+}
+.lookup-add-btn:hover { background: rgb(220 38 38 / 0.2); }
+
+.lookup-edit-btn {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgb(255 255 255 / 0.12);
   color: #94a3b8;
+  background: rgb(255 255 255 / 0.04);
+  transition: all 0.15s;
 }
-.check-active {
-  background: rgb(220 38 38 / 0.3);
-  border-color: #f87171;
+.lookup-edit-btn:hover { background: rgb(255 255 255 / 0.08); color: #e2e8f0; }
+
+/* ── Tags selecionadas ───────────────────────────────────────────────────── */
+.lookup-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.7rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  background: rgb(220 38 38 / 0.15);
+  border: 1px solid rgb(220 38 38 / 0.35);
   color: #fca5a5;
 }
-.check-inactive {
-  background: transparent;
-  border-color: rgb(255 255 255 / 0.2);
-  color: transparent;
-}
 
-/* ── Categoria badges (tabela) ───────────────────────────────────────────── */
+/* ── Badges na tabela ────────────────────────────────────────────────────── */
+.lookup-row-badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 9999px;
+  background: rgb(96 165 250 / 0.12);
+  color: #93c5fd;
+  border: 1px solid rgb(96 165 250 / 0.25);
+}
 .categoria-row-badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 9999px;
   background: rgb(220 38 38 / 0.12);
   color: #fca5a5;
   border: 1px solid rgb(220 38 38 / 0.25);
 }
 
 /* ── Botões ──────────────────────────────────────────────────────────────── */
-.btn-primary {
-  background: #dc2626;
-  color: #fff;
-}
+.btn-primary { background: #dc2626; color: #fff; }
 .btn-primary:hover:not(:disabled) { background: #b91c1c; }
-.btn-ghost {
-  border-color: rgb(255 255 255 / 0.1);
-  color: #94a3b8;
-}
+.btn-ghost   { border-color: rgb(255 255 255 / 0.1); color: #94a3b8; }
 .btn-ghost:hover { background: rgb(255 255 255 / 0.05); color: #e2e8f0; }
 
 /* ── Formulário ──────────────────────────────────────────────────────────── */
-.form-card {
-  background: rgb(255 255 255 / 0.03);
-  border-color: rgb(248 113 113 / 0.2);
-}
-.form-title { color: #fca5a5; }
-.close-btn { color: #64748b; }
+.form-card   { background: rgb(255 255 255 / 0.03); border-color: rgb(248 113 113 / 0.2); }
+.form-title  { color: #fca5a5; }
+.close-btn   { color: #64748b; }
 .close-btn:hover { background: rgb(255 255 255 / 0.07); color: #e2e8f0; }
 
-/* ── Tabela ──────────────────────────────────────────────────────────────── */
-.weapons-table {
-  background: rgb(255 255 255 / 0.02);
-  border-color: rgb(255 255 255 / 0.07);
-}
-.table-head {
-  background: rgb(255 255 255 / 0.03);
-  border-color: rgb(255 255 255 / 0.07);
-  color: #64748b;
-}
-.weapon-row {
-  border-color: rgb(255 255 255 / 0.05);
-}
-.weapon-row:hover { background: rgb(255 255 255 / 0.025); }
-.row-even { background: rgb(0 0 0 / 0.12); }
-.row-even:hover { background: rgb(255 255 255 / 0.025); }
+/* ── Tabela (cores de células — o container/linhas ficam no DataTable.vue) ── */
 .weapon-name { color: #e2e8f0; }
-.dano-text { color: #fca5a5; }
-.text-muted { color: #64748b; }
-
-.empty-state { color: #475569; }
-
-/* ── Botões de ação ──────────────────────────────────────────────────────── */
-.action-btn-edit {
-  color: #60a5fa;
-  background: transparent;
-}
-.action-btn-edit:hover { background: rgb(96 165 250 / 0.12); }
-.action-btn-del {
-  color: #f87171;
-  background: transparent;
-}
-.action-btn-del:hover { background: rgb(248 113 113 / 0.12); }
+.dano-text   { color: #fca5a5; }
+.text-muted  { color: #64748b; }
 
 /* ── Modal ───────────────────────────────────────────────────────────────── */
-.modal-card {
-  background: #0f172a;
-  border-color: rgb(255 255 255 / 0.1);
-}
+.modal-card  { background: #0f172a; border-color: rgb(255 255 255 / 0.1); }
 .modal-title { color: #f1f5f9; }
-.modal-body { color: #94a3b8; }
+.modal-body  { color: #94a3b8; }
 .modal-body strong { color: #e2e8f0; }
 
-/* ── Transições ──────────────────────────────────────────────────────────── */
-.form-slide-enter-active,
-.form-slide-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
+/* ── Gerenciar modal ─────────────────────────────────────────────────────── */
+.manage-row {
+  border-color: rgb(255 255 255 / 0.07);
+  background: rgb(255 255 255 / 0.02);
 }
-.form-slide-enter-from,
-.form-slide-leave-to {
-  opacity: 0;
-  transform: translateY(-8px);
-}
+.manage-row:hover { background: rgb(255 255 255 / 0.04); }
 
-.modal-fade-enter-active,
-.modal-fade-leave-active {
-  transition: opacity 0.18s ease;
+/* ── Icon picker ─────────────────────────────────────────────────────────── */
+.icone-preview {
+  background: rgb(255 255 255 / 0.04);
+  border-color: rgb(255 255 255 / 0.1);
 }
-.modal-fade-enter-from,
-.modal-fade-leave-to { opacity: 0; }
-.modal-fade-enter-active .modal-card,
-.modal-fade-leave-active .modal-card {
-  transition: transform 0.18s ease;
+.icone-sugestao {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(255 255 255 / 0.04);
+  border: 1px solid rgb(255 255 255 / 0.08);
+  line-height: 1;
+  cursor: pointer;
 }
-.modal-fade-enter-from .modal-card,
-.modal-fade-leave-to .modal-card { transform: scale(0.95); }
+.icone-sugestao-emoji { padding: 0.25rem 0.35rem; min-width: 2.2rem; height: 2.2rem; }
+.icone-sugestao-mdi   { padding: 0.35rem 0.5rem;  min-width: 2.4rem; height: 2.4rem; color: #94a3b8; }
+.icone-sugestao:hover { background: rgb(255 255 255 / 0.1); border-color: rgb(255 255 255 / 0.2); transform: scale(1.08); }
+.icone-sugestao-mdi:hover { color: #e2e8f0; }
+.icone-sugestao-ativo { background: rgb(220 38 38 / 0.2); border-color: rgb(220 38 38 / 0.55); }
+.icone-sugestao-mdi.icone-sugestao-ativo { color: #fca5a5; }
+
+/* ── Transições ──────────────────────────────────────────────────────────── */
+.form-slide-enter-active, .form-slide-leave-active { transition: opacity 0.2s ease, transform 0.2s ease; }
+.form-slide-enter-from, .form-slide-leave-to { opacity: 0; transform: translateY(-8px); }
+
+.modal-fade-enter-active, .modal-fade-leave-active { transition: opacity 0.18s ease; }
+.modal-fade-enter-from, .modal-fade-leave-to { opacity: 0; }
+.modal-fade-enter-active .modal-card, .modal-fade-leave-active .modal-card { transition: transform 0.18s ease; }
+.modal-fade-enter-from .modal-card, .modal-fade-leave-to .modal-card { transform: scale(0.95); }
 
 /* ══ Light mode ═════════════════════════════════════════════════════════════ */
-:global(html.theme-light) .page-root { background: var(--bg-page); color: var(--text-main); }
+:global(html.theme-light) .page-root    { background: var(--bg-page); color: var(--text-main); }
 :global(html.theme-light) .page-ambient { display: none; }
-:global(html.theme-light) .page-header {
-  background: rgb(255 255 255 / 0.92);
-  border-color: var(--border-soft);
-}
-:global(html.theme-light) .back-btn {
-  border-color: var(--border-soft);
-  background: var(--bg-soft);
-  color: var(--text-muted);
-}
+:global(html.theme-light) .page-header  { background: rgb(255 255 255 / 0.92); border-color: var(--border-soft); }
+:global(html.theme-light) .back-btn     { border-color: var(--border-soft); background: var(--bg-soft); color: var(--text-muted); }
 :global(html.theme-light) .back-btn:hover { background: var(--accent-soft); color: var(--text-main); }
-:global(html.theme-light) .page-kicker { color: #dc2626; }
-:global(html.theme-light) .page-title { color: #991b1b; }
-:global(html.theme-light) .page-sub { color: var(--text-muted); }
+:global(html.theme-light) .page-kicker  { color: #dc2626; }
+:global(html.theme-light) .page-title   { color: #991b1b; }
+:global(html.theme-light) .page-sub     { color: var(--text-muted); }
 
-:global(html.theme-light) .field-label { color: var(--text-muted); }
-:global(html.theme-light) .field-input {
-  background: #fff;
-  border-color: var(--border-soft);
-  color: var(--text-main);
-}
-:global(html.theme-light) .field-input::placeholder { color: #94a3b8; }
-:global(html.theme-light) .field-input:focus {
-  border-color: #f87171;
-  box-shadow: 0 0 0 3px rgb(248 113 113 / 0.15);
-}
+:global(html.theme-light) .field-label  { color: var(--text-muted); }
+:global(html.theme-light) .field-input  { background: #fff; border-color: var(--border-soft); color: var(--text-main); }
+:global(html.theme-light) .field-input:focus { border-color: #f87171; box-shadow: 0 0 0 3px rgb(248 113 113 / 0.15); }
+:global(html.theme-light) .placeholder-color { color: #94a3b8; }
 
-:global(html.theme-light) .btn-primary { background: #dc2626; }
+:global(html.theme-light) .dropdown-panel { background: #fff; border-color: var(--border-soft); }
+:global(html.theme-light) .dropdown-item  { color: var(--text-main); }
+:global(html.theme-light) .dropdown-item:hover { background: var(--bg-soft); }
+:global(html.theme-light) .dropdown-item-active { background: rgb(220 38 38 / 0.08); color: #b91c1c; }
+:global(html.theme-light) .check-active   { background: rgb(220 38 38 / 0.15); border-color: #dc2626; color: #b91c1c; }
+
+:global(html.theme-light) .lookup-add-btn { border-color: rgb(220 38 38 / 0.4); color: #b91c1c; background: rgb(220 38 38 / 0.07); }
+:global(html.theme-light) .lookup-edit-btn { border-color: var(--border-soft); color: var(--text-muted); background: var(--bg-soft); }
+
+:global(html.theme-light) .lookup-tag { background: rgb(220 38 38 / 0.08); border-color: rgb(220 38 38 / 0.25); color: #b91c1c; }
+:global(html.theme-light) .lookup-row-badge { background: rgb(59 130 246 / 0.08); color: #1d4ed8; border-color: rgb(59 130 246 / 0.2); }
+:global(html.theme-light) .categoria-row-badge { background: rgb(220 38 38 / 0.08); color: #b91c1c; border-color: rgb(220 38 38 / 0.2); }
+
+:global(html.theme-light) .btn-primary  { background: #dc2626; }
 :global(html.theme-light) .btn-primary:hover:not(:disabled) { background: #b91c1c; }
-:global(html.theme-light) .btn-ghost {
-  border-color: var(--border-soft);
-  color: var(--text-muted);
-}
+:global(html.theme-light) .btn-ghost    { border-color: var(--border-soft); color: var(--text-muted); }
 :global(html.theme-light) .btn-ghost:hover { background: var(--bg-soft); color: var(--text-main); }
 
-:global(html.theme-light) .form-card {
-  background: var(--bg-card);
-  border-color: rgb(220 38 38 / 0.2);
-  box-shadow: 0 2px 12px rgb(0 0 0 / 0.06);
-}
-:global(html.theme-light) .form-title { color: #991b1b; }
-:global(html.theme-light) .close-btn { color: var(--text-muted); }
-:global(html.theme-light) .close-btn:hover { background: var(--bg-soft); }
+:global(html.theme-light) .form-card    { background: var(--bg-card); border-color: rgb(220 38 38 / 0.2); box-shadow: 0 2px 12px rgb(0 0 0 / 0.06); }
+:global(html.theme-light) .form-title   { color: #991b1b; }
 
-:global(html.theme-light) .chip-active {
-  background: rgb(220 38 38 / 0.1);
-  border-color: rgb(220 38 38 / 0.4);
-  color: #b91c1c;
-}
-:global(html.theme-light) .chip-inactive {
-  background: var(--bg-soft);
-  border-color: var(--border-soft);
-  color: var(--text-muted);
-}
-:global(html.theme-light) .check-active {
-  background: rgb(220 38 38 / 0.15);
-  border-color: #dc2626;
-  color: #b91c1c;
-}
-:global(html.theme-light) .categoria-row-badge {
-  background: rgb(220 38 38 / 0.08);
-  color: #b91c1c;
-  border-color: rgb(220 38 38 / 0.2);
-}
+:global(html.theme-light) .weapon-name  { color: var(--text-main); }
+:global(html.theme-light) .dano-text    { color: #dc2626; }
+:global(html.theme-light) .text-muted   { color: var(--text-muted); }
 
-:global(html.theme-light) .weapons-table {
-  background: var(--bg-card);
-  border-color: var(--border-soft);
-}
-:global(html.theme-light) .table-head {
-  background: var(--bg-soft);
-  border-color: var(--border-soft);
-  color: var(--text-muted);
-}
-:global(html.theme-light) .weapon-row { border-color: var(--border-soft); }
-:global(html.theme-light) .weapon-row:hover { background: var(--bg-soft); }
-:global(html.theme-light) .row-even { background: var(--bg-soft); }
-:global(html.theme-light) .row-even:hover { background: var(--accent-soft); }
-:global(html.theme-light) .weapon-name { color: var(--text-main); }
-:global(html.theme-light) .dano-text { color: #dc2626; }
-:global(html.theme-light) .text-muted { color: var(--text-muted); }
-:global(html.theme-light) .empty-state { color: var(--text-muted); }
-
-:global(html.theme-light) .action-btn-edit:hover { background: rgb(59 130 246 / 0.1); }
-:global(html.theme-light) .action-btn-del:hover { background: rgb(239 68 68 / 0.1); }
-
-:global(html.theme-light) .modal-card {
-  background: var(--bg-card);
-  border-color: var(--border-soft);
-  box-shadow: 0 20px 50px rgb(0 0 0 / 0.15);
-}
-:global(html.theme-light) .modal-title { color: var(--text-main); }
-:global(html.theme-light) .modal-body { color: var(--text-muted); }
+:global(html.theme-light) .modal-card   { background: var(--bg-card); border-color: var(--border-soft); box-shadow: 0 20px 50px rgb(0 0 0 / 0.15); }
+:global(html.theme-light) .modal-title  { color: var(--text-main); }
+:global(html.theme-light) .modal-body   { color: var(--text-muted); }
 :global(html.theme-light) .modal-body strong { color: var(--text-main); }
+:global(html.theme-light) .manage-row   { border-color: var(--border-soft); background: var(--bg-soft); }
+:global(html.theme-light) .manage-row:hover { background: var(--accent-soft); }
 
-:global(html.theme-light) .select-caret { color: var(--text-muted); }
-
-/* Badge de tipo - light mode */
-:global(html.theme-light) .tipo-badge { filter: saturate(1.2); }
+:global(html.theme-light) .icone-preview { background: #fff; border-color: var(--border-soft); }
+:global(html.theme-light) .icone-sugestao { background: var(--bg-soft); border-color: var(--border-soft); }
+:global(html.theme-light) .icone-sugestao-mdi { color: #64748b; }
+:global(html.theme-light) .icone-sugestao-mdi:hover { color: var(--text-main); background: var(--accent-soft); }
+:global(html.theme-light) .icone-sugestao:hover { background: var(--accent-soft); border-color: #fca5a5; }
+:global(html.theme-light) .icone-sugestao-ativo { background: rgb(220 38 38 / 0.1); border-color: rgb(220 38 38 / 0.45); }
+:global(html.theme-light) .icone-sugestao-mdi.icone-sugestao-ativo { color: #b91c1c; }
 </style>

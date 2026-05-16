@@ -101,8 +101,8 @@
               <!-- Cabeçalho do card -->
               <div class="flex items-start justify-between gap-2 mb-3">
                 <h3 class="eq-card-name text-base font-bold leading-tight">{{ eq.nome }}</h3>
-                <span class="eq-tipo-badge shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold" :class="tipoBadgeClass(eq.tipo)">
-                  {{ eq.tipo }}
+                <span v-if="eq.classe_equipamento_item" class="eq-tipo-badge shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold" :class="classeBadgeClass(eq.classe_equipamento_item)">
+                  {{ classeNome(eq.classe_equipamento_item) }}
                 </span>
               </div>
 
@@ -147,8 +147,8 @@
             <div class="flex-1 min-w-0">
               <h2 class="eq-modal-name text-2xl font-bold">{{ selecionado.nome }}</h2>
               <div class="flex flex-wrap items-center gap-2 mt-1">
-                <span class="eq-tipo-badge rounded-full px-2.5 py-0.5 text-xs font-semibold" :class="tipoBadgeClass(selecionado.tipo)">
-                  {{ selecionado.tipo }}
+                <span v-if="selecionado.classe_equipamento_item" class="eq-tipo-badge rounded-full px-2.5 py-0.5 text-xs font-semibold" :class="classeBadgeClass(selecionado.classe_equipamento_item)">
+                  {{ classeNome(selecionado.classe_equipamento_item) }}
                 </span>
                 <template v-if="selecionado.categoria_equipamento_item.length > 0">
                   <span
@@ -184,9 +184,14 @@
               <p class="eq-modal-text text-sm leading-relaxed">{{ selecionado.pre_requisitos }}</p>
             </div>
 
-            <div v-if="selecionado.propriedades">
+            <div v-if="selecionado.propriedade_equipamento_item.length > 0">
               <p class="eq-modal-label mb-1 text-xs uppercase tracking-widest">Propriedades</p>
-              <p class="eq-modal-text text-sm leading-relaxed">{{ selecionado.propriedades }}</p>
+              <div class="flex flex-wrap gap-1.5">
+                <span v-for="id in selecionado.propriedade_equipamento_item" :key="id"
+                  class="rounded-full border border-purple-500/30 bg-purple-500/10 px-2.5 py-0.5 text-xs text-purple-300">
+                  {{ id }}
+                </span>
+              </div>
             </div>
 
             <div class="flex flex-wrap gap-4">
@@ -221,8 +226,8 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import HamburgerDrawerMenu from '@/components/HamburgerDrawerMenu.vue'
 import { useAuthStore } from '@/stores/auth'
-import { listarArmasPublicas, listarCategoriasEquipamento } from '@/lib/api/armas.api'
-import type { ArmaApi, CategoriaEquipamento } from '@/lib/api/armas.api'
+import { listarArmasPublicas, listarCategoriasEquipamento, listarClassesEquipamento } from '@/lib/api/armas.api'
+import type { ArmaApi, CategoriaEquipamento, ClasseEquipamento } from '@/lib/api/armas.api'
 
 const router = useRouter()
 const route = useRoute()
@@ -230,6 +235,7 @@ const authStore = useAuthStore()
 
 const equipamentos = ref<ArmaApi[]>([])
 const categorias = ref<CategoriaEquipamento[]>([])
+const classes = ref<ClasseEquipamento[]>([])
 const carregando = ref(false)
 const erro = ref(false)
 const filtroNome = ref('')
@@ -275,6 +281,21 @@ function categoriaNome(itemId: number): string {
   return categorias.value.find((c) => c.item === itemId)?.descricao ?? String(itemId)
 }
 
+function classeNome(classeItem: number | null): string {
+  if (!classeItem) return ''
+  return classes.value.find((c) => c.item === classeItem)?.descricao ?? ''
+}
+
+function classeBadgeClass(classeItem: number | null): string {
+  const desc = classeNome(classeItem).toLowerCase()
+  if (!desc) return 'bg-zinc-500/15 text-zinc-300 border border-zinc-500/30'
+  if (desc.includes('armadura') || desc.includes('armor')) return 'bg-blue-500/15 text-blue-300 border border-blue-500/30'
+  if (desc.includes('escudo') || desc.includes('shield')) return 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30'
+  if (desc.includes('ferramenta') || desc.includes('tool')) return 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+  if (desc.includes('arma') || desc.includes('weapon') || desc.includes('sword')) return 'bg-red-500/15 text-red-300 border border-red-500/30'
+  return 'bg-purple-500/15 text-purple-300 border border-purple-500/30'
+}
+
 const equipamentosFiltrados = computed(() => {
   const nome = filtroNome.value.trim().toLowerCase()
   const cat = filtroCategoria.value
@@ -285,15 +306,6 @@ const equipamentosFiltrados = computed(() => {
   })
 })
 
-function tipoBadgeClass(tipo: string): string {
-  const t = (tipo || '').toLowerCase()
-  if (t.includes('armadura') || t.includes('armor')) return 'bg-blue-500/15 text-blue-300 border border-blue-500/30'
-  if (t.includes('escudo') || t.includes('shield')) return 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30'
-  if (t.includes('ferramenta') || t.includes('tool')) return 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
-  if (t.includes('vestuario') || t.includes('roupa') || t.includes('cloth')) return 'bg-pink-500/15 text-pink-300 border border-pink-500/30'
-  if (t.includes('acessorio') || t.includes('anel') || t.includes('colar')) return 'bg-purple-500/15 text-purple-300 border border-purple-500/30'
-  return 'bg-zinc-500/15 text-zinc-300 border border-zinc-500/30'
-}
 
 function irParaPersonagem() {
   showSettingsMenu.value = false
@@ -311,9 +323,10 @@ async function carregar() {
   carregando.value = true
   erro.value = false
   try {
-    const [eqs, cats] = await Promise.all([listarArmasPublicas(), listarCategoriasEquipamento()])
+    const [eqs, cats, cls] = await Promise.all([listarArmasPublicas(), listarCategoriasEquipamento(), listarClassesEquipamento()])
     equipamentos.value = eqs
     categorias.value = cats
+    classes.value = cls
   } catch {
     erro.value = true
   } finally {
