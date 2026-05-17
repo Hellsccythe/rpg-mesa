@@ -38,8 +38,8 @@ ArmasRouter.get("/classes", async (_req, res) => {
 
 ArmasRouter.get("/tipos", async (req, res) => {
   try {
-    const classeItem = req.query.classe ? Number(req.query.classe) : undefined;
-    res.json(await armaService.listarTipos(classeItem));
+    const categoriaItem = req.query.categoria ? Number(req.query.categoria) : undefined;
+    res.json(await armaService.listarTipos(categoriaItem));
   } catch (err: any) {
     res.status(400).json({ message: err?.message ?? "Erro ao listar tipos" });
   }
@@ -47,8 +47,8 @@ ArmasRouter.get("/tipos", async (req, res) => {
 
 ArmasRouter.get("/propriedades", async (req, res) => {
   try {
-    const classeItem = req.query.classe ? Number(req.query.classe) : undefined;
-    res.json(await armaService.listarPropriedades(classeItem));
+    const categoriaItem = req.query.categoria ? Number(req.query.categoria) : undefined;
+    res.json(await armaService.listarPropriedades(categoriaItem));
   } catch (err: any) {
     res.status(400).json({ message: err?.message ?? "Erro ao listar propriedades" });
   }

@@ -42,11 +42,11 @@
           </div>
 
           <div class="w-52">
-            <label class="field-label mb-1.5 block text-xs uppercase tracking-wide">Classe</label>
+            <label class="field-label mb-1.5 block text-xs uppercase tracking-wide">Categoria</label>
             <div class="select-wrap">
-              <select v-model="filtroClasse" class="field-input w-full appearance-none rounded-xl border px-3 py-2.5 pr-9 text-sm outline-none transition-colors">
-                <option :value="null">Todas as classes</option>
-                <option v-for="c in classes" :key="c.item" :value="c.item">{{ (c.icone && !c.icone.startsWith('mdi-')) ? c.icone + ' ' + c.descricao : c.descricao }}</option>
+              <select v-model="filtroCategoria" class="field-input w-full appearance-none rounded-xl border px-3 py-2.5 pr-9 text-sm outline-none transition-colors">
+                <option :value="null">Todas as categorias</option>
+                <option v-for="c in categorias" :key="c.item" :value="c.item">{{ (c.icone && !c.icone.startsWith('mdi-')) ? c.icone + ' ' + c.descricao : c.descricao }}</option>
               </select>
               <span class="select-caret">˅</span>
             </div>
@@ -84,51 +84,51 @@
                 <input v-model="form.dano" type="text" placeholder="Ex: 1d8+3" class="field-input w-full rounded-xl border px-3 py-2.5 text-sm font-mono outline-none transition-colors" />
               </div>
 
-              <!-- ── Classe (single-select dropdown) ─────────────────────── -->
+              <!-- ── Categoria (single-select dropdown — PRIMÁRIO) ─────────── -->
               <div class="sm:col-span-2 lg:col-span-3">
                 <div class="flex items-center gap-2 mb-1.5">
-                  <label class="field-label text-xs font-semibold uppercase tracking-wide">Classe</label>
-                  <button @click.stop="abrirAddModal('classe')" class="lookup-add-btn" title="Adicionar classe">+ Adicionar</button>
-                  <button @click.stop="abrirGerenciarModal('classe')" class="lookup-edit-btn" title="Gerenciar classes">✏ Gerenciar</button>
+                  <label class="field-label text-xs font-semibold uppercase tracking-wide">Categoria</label>
+                  <button @click.stop="abrirAddModal('categoria')" class="lookup-add-btn" title="Adicionar categoria">+ Adicionar</button>
+                  <button @click.stop="abrirGerenciarModal('categoria')" class="lookup-edit-btn" title="Gerenciar categorias">✏ Gerenciar</button>
                 </div>
 
                 <div class="relative" @click.stop>
                   <button
-                    @click.stop="toggleDropdown('classe')"
+                    @click.stop="toggleDropdown('categoria')"
                     class="field-input w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition-colors text-left flex items-center justify-between"
                   >
-                    <span :class="form.classe_equipamento_item ? 'flex items-center gap-1.5' : 'placeholder-color'">
-                      <IconeDisplay v-if="form.classe_equipamento_item && classeIcone(form.classe_equipamento_item)" :icone="classeIcone(form.classe_equipamento_item)" size="1rem" />
-                      {{ classeLabel(form.classe_equipamento_item) }}
+                    <span :class="form.categoria_equipamento_item ? 'flex items-center gap-1.5' : 'placeholder-color'">
+                      <IconeDisplay v-if="form.categoria_equipamento_item && categoriaIcone(form.categoria_equipamento_item)" :icone="categoriaIcone(form.categoria_equipamento_item)" size="1rem" />
+                      {{ categoriaLabel(form.categoria_equipamento_item) }}
                     </span>
                     <span class="text-zinc-500 ml-2">˅</span>
                   </button>
 
-                  <div v-if="dropdownAtivo === 'classe'" class="dropdown-panel absolute left-0 top-full mt-1 z-30 w-full rounded-xl border shadow-xl max-h-52 overflow-y-auto">
+                  <div v-if="dropdownAtivo === 'categoria'" class="dropdown-panel absolute left-0 top-full mt-1 z-30 w-full rounded-xl border shadow-xl max-h-52 overflow-y-auto">
                     <button
-                      v-if="form.classe_equipamento_item"
-                      @click.stop="selecionarClasse(null)"
+                      v-if="form.categoria_equipamento_item"
+                      @click.stop="selecionarCategoria(null)"
                       class="dropdown-item w-full text-left px-3 py-2 text-sm text-zinc-400 italic"
-                    >Nenhuma classe</button>
+                    >Nenhuma categoria</button>
                     <button
-                      v-for="c in classes"
+                      v-for="c in categorias"
                       :key="c.item"
-                      @click.stop="selecionarClasse(c.item)"
+                      @click.stop="selecionarCategoria(c.item)"
                       class="dropdown-item w-full text-left px-3 py-2 text-sm transition-colors flex items-center justify-between"
-                      :class="form.classe_equipamento_item === c.item ? 'dropdown-item-active' : ''"
+                      :class="form.categoria_equipamento_item === c.item ? 'dropdown-item-active' : ''"
                     >
                       <span class="flex items-center gap-1.5">
                         <IconeDisplay v-if="c.icone" :icone="c.icone" size="1rem" />
                         {{ c.descricao }}
                       </span>
-                      <span v-if="form.classe_equipamento_item === c.item" class="text-xs text-red-400">✓</span>
+                      <span v-if="form.categoria_equipamento_item === c.item" class="text-xs text-red-400">✓</span>
                     </button>
-                    <div v-if="classes.length === 0" class="px-3 py-2 text-sm text-zinc-500 italic">Nenhuma classe cadastrada.</div>
+                    <div v-if="categorias.length === 0" class="px-3 py-2 text-sm text-zinc-500 italic">Nenhuma categoria cadastrada.</div>
                   </div>
                 </div>
               </div>
 
-              <!-- ── Tipo (multi-select dropdown) ────────────────────────── -->
+              <!-- ── Tipo (multi-select dropdown, filtrado por categoria) ─── -->
               <div class="sm:col-span-2 lg:col-span-3">
                 <div class="flex items-center gap-2 mb-1.5">
                   <label class="field-label text-xs font-semibold uppercase tracking-wide">Tipos</label>
@@ -140,11 +140,11 @@
                   <button
                     @click.stop="toggleDropdown('tipo')"
                     class="field-input w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition-colors text-left flex items-center justify-between"
-                    :disabled="!form.classe_equipamento_item"
+                    :disabled="!form.categoria_equipamento_item"
                   >
                     <span :class="form.tipo_equipamento_item.length === 0 ? 'placeholder-color' : ''">
                       {{ form.tipo_equipamento_item.length === 0
-                        ? (form.classe_equipamento_item ? 'Selecionar tipos...' : 'Selecione uma classe primeiro')
+                        ? (form.categoria_equipamento_item ? 'Selecionar tipos...' : 'Selecione uma categoria primeiro')
                         : `${form.tipo_equipamento_item.length} tipo(s) selecionado(s)` }}
                     </span>
                     <span class="text-zinc-500 ml-2">˅</span>
@@ -166,7 +166,7 @@
                       {{ t.descricao }}
                     </label>
                     <div v-if="tiposFiltrados.length === 0" class="px-3 py-2 text-sm text-zinc-500 italic">
-                      {{ form.classe_equipamento_item ? 'Nenhum tipo para esta classe.' : 'Selecione uma classe primeiro.' }}
+                      {{ form.categoria_equipamento_item ? 'Nenhum tipo para esta categoria.' : 'Selecione uma categoria primeiro.' }}
                     </div>
                   </div>
                 </div>
@@ -180,49 +180,48 @@
                 </div>
               </div>
 
-              <!-- ── Categoria (multi-select dropdown) ───────────────────── -->
+              <!-- ── Classe (multi-select dropdown — SECUNDÁRIO) ─────────── -->
               <div class="sm:col-span-2 lg:col-span-3">
                 <div class="flex items-center gap-2 mb-1.5">
-                  <label class="field-label text-xs font-semibold uppercase tracking-wide">Categorias</label>
-                  <button @click.stop="abrirAddModal('categoria')" class="lookup-add-btn">+ Adicionar</button>
-                  <button @click.stop="abrirGerenciarModal('categoria')" class="lookup-edit-btn">✏ Gerenciar</button>
+                  <label class="field-label text-xs font-semibold uppercase tracking-wide">Classes</label>
+                  <button @click.stop="abrirAddModal('classe')" class="lookup-add-btn">+ Adicionar</button>
+                  <button @click.stop="abrirGerenciarModal('classe')" class="lookup-edit-btn">✏ Gerenciar</button>
                 </div>
 
                 <div class="relative" @click.stop>
                   <button
-                    @click.stop="toggleDropdown('categoria')"
+                    @click.stop="toggleDropdown('classe')"
                     class="field-input w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition-colors text-left flex items-center justify-between"
                   >
-                    <span :class="form.categoria_equipamento_item.length === 0 ? 'placeholder-color' : ''">
-                      {{ form.categoria_equipamento_item.length === 0 ? 'Selecionar categorias...' : `${form.categoria_equipamento_item.length} categoria(s) selecionada(s)` }}
+                    <span :class="form.classe_equipamento_item.length === 0 ? 'placeholder-color' : ''">
+                      {{ form.classe_equipamento_item.length === 0 ? 'Selecionar classes...' : `${form.classe_equipamento_item.length} classe(s) selecionada(s)` }}
                     </span>
                     <span class="text-zinc-500 ml-2">˅</span>
                   </button>
 
-                  <div v-if="dropdownAtivo === 'categoria'" class="dropdown-panel absolute left-0 top-full mt-1 z-30 w-full rounded-xl border shadow-xl max-h-52 overflow-y-auto">
+                  <div v-if="dropdownAtivo === 'classe'" class="dropdown-panel absolute left-0 top-full mt-1 z-30 w-full rounded-xl border shadow-xl max-h-52 overflow-y-auto">
                     <label
-                      v-for="c in categoriasFiltradas"
+                      v-for="c in classes"
                       :key="c.item"
                       class="dropdown-item flex cursor-pointer items-center gap-2.5 px-3 py-2 text-sm transition-colors"
-                      :class="form.categoria_equipamento_item.includes(c.item) ? 'dropdown-item-active' : ''"
+                      :class="form.classe_equipamento_item.includes(c.item) ? 'dropdown-item-active' : ''"
                       @click.stop
                     >
-                      <input type="checkbox" :value="c.item" v-model="form.categoria_equipamento_item" class="sr-only" />
+                      <input type="checkbox" :value="c.item" v-model="form.classe_equipamento_item" class="sr-only" />
                       <span class="flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[0.6rem]"
-                        :class="form.categoria_equipamento_item.includes(c.item) ? 'check-active' : 'check-inactive'">
-                        {{ form.categoria_equipamento_item.includes(c.item) ? '✓' : '' }}
+                        :class="form.classe_equipamento_item.includes(c.item) ? 'check-active' : 'check-inactive'">
+                        {{ form.classe_equipamento_item.includes(c.item) ? '✓' : '' }}
                       </span>
                       {{ c.descricao }}
-                      <span v-if="c.classe_item" class="ml-auto text-xs opacity-50">{{ classeNome(c.classe_item) }}</span>
                     </label>
-                    <div v-if="categoriasFiltradas.length === 0" class="px-3 py-2 text-sm text-zinc-500 italic">Nenhuma categoria cadastrada.</div>
+                    <div v-if="classes.length === 0" class="px-3 py-2 text-sm text-zinc-500 italic">Nenhuma classe cadastrada.</div>
                   </div>
                 </div>
 
-                <div v-if="form.categoria_equipamento_item.length > 0" class="mt-1.5 flex flex-wrap gap-1">
-                  <span v-for="id in form.categoria_equipamento_item" :key="id" class="lookup-tag">
-                    {{ categoriaNome(id) }}
-                    <button @click.stop="removeDoForm('categoria', id)" class="ml-1 opacity-60 hover:opacity-100">×</button>
+                <div v-if="form.classe_equipamento_item.length > 0" class="mt-1.5 flex flex-wrap gap-1">
+                  <span v-for="id in form.classe_equipamento_item" :key="id" class="lookup-tag">
+                    {{ classeNome(id) }}
+                    <button @click.stop="removeDoForm('classe', id)" class="ml-1 opacity-60 hover:opacity-100">×</button>
                   </span>
                 </div>
               </div>
@@ -239,11 +238,11 @@
                   <button
                     @click.stop="toggleDropdown('propriedade')"
                     class="field-input w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition-colors text-left flex items-center justify-between"
-                    :disabled="!form.classe_equipamento_item"
+                    :disabled="!form.categoria_equipamento_item"
                   >
                     <span :class="form.propriedade_equipamento_item.length === 0 ? 'placeholder-color' : ''">
                       {{ form.propriedade_equipamento_item.length === 0
-                        ? (form.classe_equipamento_item ? 'Selecionar propriedades...' : 'Selecione uma classe primeiro')
+                        ? (form.categoria_equipamento_item ? 'Selecionar propriedades...' : 'Selecione uma categoria primeiro')
                         : `${form.propriedade_equipamento_item.length} propriedade(s) selecionada(s)` }}
                     </span>
                     <span class="text-zinc-500 ml-2">˅</span>
@@ -265,7 +264,7 @@
                       {{ p.descricao }}
                     </label>
                     <div v-if="propriedadesFiltradas.length === 0" class="px-3 py-2 text-sm text-zinc-500 italic">
-                      {{ form.classe_equipamento_item ? 'Nenhuma propriedade para esta classe.' : 'Selecione uma classe primeiro.' }}
+                      {{ form.categoria_equipamento_item ? 'Nenhuma propriedade para esta categoria.' : 'Selecione uma categoria primeiro.' }}
                     </div>
                   </div>
                 </div>
@@ -329,20 +328,20 @@
           classe-grid="grid grid-cols-[1fr_auto_auto_auto_3rem] items-center gap-3 sm:grid-cols-[2fr_1fr_1fr_2fr_3rem]"
           :itens="armasFiltradas"
           :carregando="carregando"
-          :mensagem-vazia="filtroNome || filtroClasse ? 'Nenhum equipamento encontrado com esses filtros.' : 'Nenhum equipamento cadastrado ainda.'"
+          :mensagem-vazia="filtroNome || filtroCategoria ? 'Nenhum equipamento encontrado com esses filtros.' : 'Nenhum equipamento cadastrado ainda.'"
           @editar="iniciarEdicao"
           @deletar="confirmarDelete"
         >
           <template #linha="{ item }">
             <div class="min-w-0">
               <p class="weapon-name truncate text-sm font-semibold">{{ (item as ArmaApi).nome }}</p>
-              <span v-if="(item as ArmaApi).classe_equipamento_item" class="mt-0.5 inline-block text-[0.65rem] text-zinc-500 sm:hidden">
-                {{ classeNome((item as ArmaApi).classe_equipamento_item) }}
+              <span v-if="(item as ArmaApi).categoria_equipamento_item" class="mt-0.5 inline-block text-[0.65rem] text-zinc-500 sm:hidden">
+                {{ categoriaNome((item as ArmaApi).categoria_equipamento_item) }}
               </span>
             </div>
 
             <span class="hidden sm:block text-xs text-zinc-400">
-              {{ (item as ArmaApi).classe_equipamento_item ? classeNome((item as ArmaApi).classe_equipamento_item) : '—' }}
+              {{ (item as ArmaApi).categoria_equipamento_item ? categoriaNome((item as ArmaApi).categoria_equipamento_item) : '—' }}
             </span>
 
             <span class="dano-text font-mono text-sm font-bold">{{ (item as ArmaApi).dano || '—' }}</span>
@@ -351,15 +350,15 @@
               <template v-if="(item as ArmaApi).tipo_equipamento_item.length > 0">
                 <span v-for="id in (item as ArmaApi).tipo_equipamento_item" :key="`t${id}`" class="lookup-row-badge">{{ tipoNome(id) }}</span>
               </template>
-              <template v-if="(item as ArmaApi).categoria_equipamento_item.length > 0">
-                <span v-for="id in (item as ArmaApi).categoria_equipamento_item" :key="`c${id}`" class="categoria-row-badge">{{ categoriaNome(id) }}</span>
+              <template v-if="(item as ArmaApi).classe_equipamento_item.length > 0">
+                <span v-for="id in (item as ArmaApi).classe_equipamento_item" :key="`c${id}`" class="classe-row-badge">{{ classeNome(id) }}</span>
               </template>
-              <span v-if="(item as ArmaApi).tipo_equipamento_item.length === 0 && (item as ArmaApi).categoria_equipamento_item.length === 0" class="text-xs text-muted">—</span>
+              <span v-if="(item as ArmaApi).tipo_equipamento_item.length === 0 && (item as ArmaApi).classe_equipamento_item.length === 0" class="text-xs text-muted">—</span>
             </div>
           </template>
 
           <template #vazia-cta>
-            <button v-if="!filtroNome && !filtroClasse" @click="abrirFormNova" class="mt-2 text-xs text-red-400 hover:text-red-300 underline underline-offset-2 transition-colors">
+            <button v-if="!filtroNome && !filtroCategoria" @click="abrirFormNova" class="mt-2 text-xs text-red-400 hover:text-red-300 underline underline-offset-2 transition-colors">
               Cadastrar primeiro equipamento
             </button>
           </template>
@@ -397,15 +396,15 @@
         <div class="modal-card relative w-full max-w-sm rounded-2xl border p-6 shadow-2xl">
           <h3 class="modal-title mb-4 text-base font-bold">{{ addModalTitulo }}</h3>
 
-          <!-- Selecionar classe (para tipo, propriedade, categoria) -->
-          <div v-if="addModal.tipo !== 'classe'" class="mb-3">
+          <!-- Selecionar categoria (para tipo e propriedade) -->
+          <div v-if="addModal.tipo !== 'categoria' && addModal.tipo !== 'classe'" class="mb-3">
             <label class="field-label mb-1 block text-xs uppercase tracking-wide">
-              Classe <span v-if="addModal.tipo !== 'categoria'" class="text-red-400">*</span>
+              Categoria <span class="text-red-400">*</span>
             </label>
             <div class="select-wrap">
-              <select v-model="addModal.classeItem" class="field-input w-full appearance-none rounded-xl border px-3 py-2.5 pr-9 text-sm outline-none">
-                <option :value="null">{{ addModal.tipo === 'categoria' ? 'Sem classe' : 'Selecionar classe...' }}</option>
-                <option v-for="c in classes" :key="c.item" :value="c.item">{{ (c.icone && !c.icone.startsWith('mdi-')) ? c.icone + ' ' + c.descricao : c.descricao }}</option>
+              <select v-model="addModal.categoriaItem" class="field-input w-full appearance-none rounded-xl border px-3 py-2.5 pr-9 text-sm outline-none">
+                <option :value="null">Selecionar categoria...</option>
+                <option v-for="c in categorias" :key="c.item" :value="c.item">{{ (c.icone && !c.icone.startsWith('mdi-')) ? c.icone + ' ' + c.descricao : c.descricao }}</option>
               </select>
               <span class="select-caret">˅</span>
             </div>
@@ -422,8 +421,8 @@
             />
           </div>
 
-          <!-- Ícone (somente para classes) -->
-          <div v-if="addModal.tipo === 'classe'" class="mb-4">
+          <!-- Ícone (somente para categorias) -->
+          <div v-if="addModal.tipo === 'categoria'" class="mb-4">
             <label class="field-label mb-2 block text-xs uppercase tracking-wide">
               Ícone <span class="font-normal normal-case text-zinc-500">(opcional)</span>
             </label>
@@ -457,7 +456,7 @@
           <p v-if="addModal.erro" class="mb-3 text-sm text-red-400">{{ addModal.erro }}</p>
 
           <div class="flex gap-3">
-            <button @click="salvarAddModal" :disabled="addModal.salvando || !addModal.descricao.trim() || (addModal.tipo !== 'classe' && addModal.tipo !== 'categoria' && !addModal.classeItem)" class="btn-primary flex-1 rounded-xl py-2.5 text-sm font-semibold disabled:opacity-40">
+            <button @click="salvarAddModal" :disabled="addModal.salvando || !addModal.descricao.trim() || ((addModal.tipo === 'tipo' || addModal.tipo === 'propriedade') && !addModal.categoriaItem)" class="btn-primary flex-1 rounded-xl py-2.5 text-sm font-semibold disabled:opacity-40">
               {{ addModal.salvando ? 'Salvando...' : 'Salvar' }}
             </button>
             <button @click="addModal.aberto = false" class="btn-ghost flex-1 rounded-xl border py-2.5 text-sm font-medium">Cancelar</button>
@@ -495,7 +494,7 @@
                     <IconeDisplay v-if="item.icone" :icone="item.icone" size="1rem" class="shrink-0" />
                     {{ item.descricao }}
                   </p>
-                  <p v-if="item.classe_item" class="text-xs text-zinc-500 truncate">{{ classeNome(item.classe_item) }}</p>
+                  <p v-if="item.categoria_item" class="text-xs text-zinc-500 truncate">{{ categoriaNome(item.categoria_item) }}</p>
                 </div>
                 <button @click="iniciarEdicaoManage(item)" class="action-btn-edit rounded-lg p-1.5">
                   <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -546,6 +545,9 @@ import {
   criarArma,
   editarArma,
   deletarArma,
+  criarCategoriaEquipamento,
+  editarCategoriaEquipamento,
+  deletarCategoriaEquipamento,
   criarClasseEquipamento,
   editarClasseEquipamento,
   deletarClasseEquipamento,
@@ -555,23 +557,20 @@ import {
   criarPropriedadeEquipamento,
   editarPropriedadeEquipamento,
   deletarPropriedadeEquipamento,
-  criarCategoriaEquipamento,
-  editarCategoriaEquipamento,
-  deletarCategoriaEquipamento,
   type ArmaApi,
+  type CategoriaEquipamento,
   type ClasseEquipamento,
   type TipoEquipamento,
   type PropriedadeEquipamento,
-  type CategoriaEquipamento,
 } from '@/lib/api/armas.api'
 
 // ── Definição de colunas da tabela ───────────────────────────────────────────
 
 const colunasTabela = [
   { label: 'Nome' },
-  { label: 'Classe', classe: 'hidden sm:block' },
+  { label: 'Categoria', classe: 'hidden sm:block' },
   { label: 'Dano' },
-  { label: 'Tipos / Categorias', classe: 'hidden sm:block' },
+  { label: 'Tipos / Classes', classe: 'hidden sm:block' },
 ]
 
 // ── Estado ───────────────────────────────────────────────────────────────────
@@ -591,8 +590,8 @@ const deletando  = ref(false)
 const feedback      = ref('')
 const feedbackError = ref(false)
 
-const filtroNome   = ref('')
-const filtroClasse = ref<number | null>(null)
+const filtroNome      = ref('')
+const filtroCategoria = ref<number | null>(null)
 
 const mostrarForm = ref(false)
 const editandoId  = ref<string | null>(null)
@@ -601,7 +600,6 @@ const formFeedbackError = ref(false)
 
 const armaParaDeletar = ref<ArmaApi | null>(null)
 
-// Dropdown ativo (key do campo)
 const dropdownAtivo = ref<string | null>(null)
 
 const form = reactive({
@@ -609,9 +607,9 @@ const form = reactive({
   dano: '',
   peso: null as number | null,
   valor: null as number | null,
-  classe_equipamento_item: null as number | null,
+  categoria_equipamento_item: null as number | null,
+  classe_equipamento_item: [] as number[],
   tipo_equipamento_item: [] as number[],
-  categoria_equipamento_item: [] as number[],
   propriedade_equipamento_item: [] as number[],
   descricao_equipamento: '',
   pre_requisitos: '',
@@ -619,26 +617,26 @@ const form = reactive({
 
 // ── Modal: Adicionar ─────────────────────────────────────────────────────────
 
-type LookupTipo = 'classe' | 'tipo' | 'propriedade' | 'categoria'
+type LookupTipo = 'categoria' | 'classe' | 'tipo' | 'propriedade'
 
 interface LookupItem {
   item: number
   descricao: string
-  classe_item?: number | null
+  categoria_item?: number | null
   icone?: string | null
 }
 
 const addModal = reactive({
   aberto: false,
-  tipo: 'classe' as LookupTipo,
+  tipo: 'categoria' as LookupTipo,
   descricao: '',
-  classeItem: null as number | null,
+  categoriaItem: null as number | null,
   icone: '',
   salvando: false,
   erro: '',
 })
 
-// ── Icon picker: mapeamento keyword → emojis sugeridos ────────────────────────
+// ── Icon picker: mapeamento keyword → ícones sugeridos ────────────────────────
 
 const ICONE_MAPA = [
   { kw: ['arma', 'espada', 'sword', 'lamina', 'gume', 'blade'], em: ['⚔️', '🗡️', 'mdi-sword', 'mdi-sword-cross', 'mdi-axe'] },
@@ -646,31 +644,34 @@ const ICONE_MAPA = [
   { kw: ['armadura', 'armor', 'coura', 'placa', 'blindagem'], em: ['🛡️', '🪖', 'mdi-shield', 'mdi-shield-sword', 'mdi-shield-half-full'] },
   { kw: ['escudo', 'shield', 'defesa', 'bloqueio'], em: ['🛡️', 'mdi-shield', 'mdi-shield-outline'] },
   { kw: ['lanca', 'lança', 'spear', 'haste', 'polearm'], em: ['🔱', 'mdi-spear'] },
-  { kw: ['cajado', 'staff', 'baculo', 'bordao', 'bordão', 'vara'], em: ['🪄', 'mdi-wand', 'mdi-wizard-hat'] },
+  { kw: ['cajado', 'staff', 'baculo', 'bordao', 'bordão', 'vara'], em: ['🪄', 'mdi-wizard-hat'] },
   { kw: ['magia', 'magic', 'feitico', 'spell', 'arcano'], em: ['🔮', '✨', 'mdi-magic-staff', 'mdi-star-four-points', 'mdi-auto-fix'] },
   { kw: ['pocao', 'poção', 'potion', 'alquimia', 'elixir'], em: ['🧪', '⚗️', 'mdi-flask', 'mdi-flask-outline', 'mdi-bottle-tonic'] },
-  { kw: ['livro', 'tomo', 'grimorio', 'scroll', 'pergaminho', 'book'], em: ['📚', '📖', 'mdi-book-open', 'mdi-book-open-page-variant', 'mdi-scroll'] },
+  { kw: ['livro', 'tomo', 'grimorio', 'scroll', 'pergaminho', 'book'], em: ['📚', '📖', 'mdi-book-open', 'mdi-book-open-page-variant'] },
   { kw: ['joia', 'gem', 'pedra', 'rubi', 'diamante', 'cristal'], em: ['💎', 'mdi-diamond', 'mdi-diamond-stone', 'mdi-crystal-ball'] },
   { kw: ['anel', 'ring'], em: ['💍', 'mdi-ring'] },
   { kw: ['amuleto', 'amulet', 'colar', 'necklace', 'pingente'], em: ['📿', '⚜️', 'mdi-necklace'] },
   { kw: ['explosivo', 'bomb', 'bomba', 'granada', 'dinamite'], em: ['💣', '🧨', 'mdi-bomb'] },
   { kw: ['roupa', 'clothes', 'vestimenta', 'manto', 'capa', 'robe'], em: ['👘', '🧥', 'mdi-tshirt-crew', 'mdi-hanger'] },
-  { kw: ['bota', 'boot', 'sapato', 'calcado', 'calçado'], em: ['👢', 'mdi-shoe-sneaker', 'mdi-boot'] },
+  { kw: ['bota', 'boot', 'sapato', 'calcado', 'calçado'], em: ['👢', 'mdi-shoe-sneaker'] },
   { kw: ['luva', 'glove', 'manopla', 'gauntlet'], em: ['🧤', 'mdi-boxing-glove'] },
   { kw: ['capacete', 'helmet', 'elmo', 'chapeu', 'chapéu'], em: ['⛑️', '🪖', 'mdi-hard-hat', 'mdi-crown'] },
   { kw: ['ferramenta', 'tool', 'craft', 'artesanato', 'oficina'], em: ['🔧', '🛠️', 'mdi-hammer', 'mdi-wrench', 'mdi-tools'] },
-  { kw: ['consumivel', 'consumível', 'comida', 'food', 'fruta', 'refeicao'], em: ['🍖', '🍎', 'mdi-food', 'mdi-food-apple'] },
-  { kw: ['moeda', 'ouro', 'gold', 'tesouro', 'treasure', 'dinheiro'], em: ['🪙', '💰', 'mdi-cash-multiple', 'mdi-trophy', 'mdi-coins'] },
-  { kw: ['mochila', 'bag', 'bolsa', 'aventura', 'adventure'], em: ['🎒', '🧳', 'mdi-bag-personal', 'mdi-backpack'] },
-  { kw: ['montaria', 'mount', 'cavalo', 'horse', 'veiculo', 'veículo'], em: ['🐴', 'mdi-horse', 'mdi-horse-variant'] },
+  { kw: ['moeda', 'ouro', 'gold', 'tesouro', 'treasure', 'dinheiro'], em: ['🪙', '💰', 'mdi-cash-multiple', 'mdi-trophy'] },
+  { kw: ['mochila', 'bag', 'bolsa', 'aventura', 'adventure'], em: ['🎒', '🧳', 'mdi-bag-personal'] },
+  { kw: ['montaria', 'mount', 'cavalo', 'horse', 'veiculo'], em: ['🐴', 'mdi-horse', 'mdi-horse-variant'] },
   { kw: ['mapa', 'map', 'rota', 'bussola', 'bússola'], em: ['🗺️', '🧭', 'mdi-map', 'mdi-compass'] },
   { kw: ['escuro', 'sombra', 'dark', 'assassino', 'furtivo'], em: ['🥷', '🖤', 'mdi-ninja', 'mdi-eye-outline', 'mdi-knife'] },
   { kw: ['fogo', 'fire', 'chama', 'flame', 'incendio'], em: ['🔥', 'mdi-fire', 'mdi-flare'] },
-  { kw: ['gelo', 'ice', 'frost', 'frio', 'congelado'], em: ['❄️', '🧊', 'mdi-snowflake', 'mdi-ice-cream'] },
+  { kw: ['gelo', 'ice', 'frost', 'frio', 'congelado'], em: ['❄️', '🧊', 'mdi-snowflake'] },
   { kw: ['trovao', 'trovão', 'thunder', 'raio', 'lightning'], em: ['⚡', 'mdi-lightning-bolt', 'mdi-weather-lightning'] },
   { kw: ['veneno', 'poison', 'toxina', 'acido', 'ácido'], em: ['☠️', '🐍', 'mdi-skull-crossbones', 'mdi-skull'] },
   { kw: ['sagrado', 'holy', 'divino', 'divine', 'bencao', 'bênção'], em: ['✝️', '⭐', 'mdi-church', 'mdi-cross', 'mdi-star'] },
   { kw: ['musica', 'música', 'music', 'instrumento', 'bardo'], em: ['🎵', '🎶', 'mdi-music', 'mdi-guitar-electric', 'mdi-music-note'] },
+  { kw: ['utilitario', 'utilitário', 'utilidade', 'util'], em: ['🔑', '🗝️', 'mdi-key', 'mdi-tools', 'mdi-cog'] },
+  { kw: ['cura', 'heal', 'medico', 'saude', 'saúde'], em: ['💊', '🩹', 'mdi-flask-outline', 'mdi-bottle-tonic-plus'] },
+  { kw: ['cosmetico', 'cosmético', 'beleza', 'decoracao'], em: ['✨', '💄', 'mdi-shimmer', 'mdi-star'] },
+  { kw: ['exploracao', 'exploração', 'aventura', 'viagem'], em: ['🧭', '🗺️', 'mdi-compass', 'mdi-map', 'mdi-telescope'] },
 ]
 
 const ICONES_PADRAO = ['⚔️', 'mdi-sword', '🛡️', 'mdi-shield', '🔮', 'mdi-flask', '📜', 'mdi-book-open', '💎', 'mdi-diamond', '🏹', 'mdi-fire']
@@ -688,16 +689,16 @@ function sugestaoIcones(descricao: string): string[] {
 }
 
 const sugestoesIconeAddModal = computed(() =>
-  addModal.tipo === 'classe' ? sugestaoIcones(addModal.descricao) : []
+  addModal.tipo === 'categoria' ? sugestaoIcones(addModal.descricao) : []
 )
 
 const addModalTitulo = computed(() => {
-  const map: Record<LookupTipo, string> = { classe: 'Nova Classe', tipo: 'Novo Tipo', propriedade: 'Nova Propriedade', categoria: 'Nova Categoria' }
+  const map: Record<LookupTipo, string> = { categoria: 'Nova Categoria', classe: 'Nova Classe', tipo: 'Novo Tipo', propriedade: 'Nova Propriedade' }
   return map[addModal.tipo]
 })
 
 const addModalTipoLabel = computed(() => {
-  const map: Record<LookupTipo, string> = { classe: 'classe', tipo: 'tipo', propriedade: 'propriedade', categoria: 'categoria' }
+  const map: Record<LookupTipo, string> = { categoria: 'categoria', classe: 'classe', tipo: 'tipo', propriedade: 'propriedade' }
   return map[addModal.tipo]
 })
 
@@ -705,7 +706,7 @@ const addModalTipoLabel = computed(() => {
 
 const manageModal = reactive({
   aberto: false,
-  tipo: 'classe' as LookupTipo,
+  tipo: 'categoria' as LookupTipo,
   itens: [] as LookupItem[],
   editandoItem: null as number | null,
   novaDescricao: '',
@@ -715,61 +716,62 @@ const manageModal = reactive({
 })
 
 const manageModalTitulo = computed(() => {
-  const map: Record<LookupTipo, string> = { classe: 'Gerenciar Classes', tipo: 'Gerenciar Tipos', propriedade: 'Gerenciar Propriedades', categoria: 'Gerenciar Categorias' }
+  const map: Record<LookupTipo, string> = { categoria: 'Gerenciar Categorias', classe: 'Gerenciar Classes', tipo: 'Gerenciar Tipos', propriedade: 'Gerenciar Propriedades' }
   return map[manageModal.tipo]
 })
 
 // ── Computed ─────────────────────────────────────────────────────────────────
 
 const tiposFiltrados = computed(() =>
-  form.classe_equipamento_item
-    ? tipos.value.filter((t) => t.classe_item === form.classe_equipamento_item)
+  form.categoria_equipamento_item
+    ? tipos.value.filter((t) => t.categoria_item === form.categoria_equipamento_item)
     : []
 )
 
 const propriedadesFiltradas = computed(() =>
-  form.classe_equipamento_item
-    ? propriedades.value.filter((p) => p.classe_item === form.classe_equipamento_item)
+  form.categoria_equipamento_item
+    ? propriedades.value.filter((p) => p.categoria_item === form.categoria_equipamento_item)
     : []
 )
 
-const categoriasFiltradas = computed(() => categorias.value)
-
 const armasFiltradas = computed(() => {
-  const nome   = filtroNome.value.trim().toLowerCase()
-  const classe = filtroClasse.value
+  const nome = filtroNome.value.trim().toLowerCase()
+  const cat  = filtroCategoria.value
   return armas.value.filter((a) => {
     if (nome && !a.nome.toLowerCase().includes(nome)) return false
-    if (classe !== null && a.classe_equipamento_item !== classe) return false
+    if (cat !== null && a.categoria_equipamento_item !== cat) return false
     return true
   })
 })
 
 // ── Lookup: resolve nomes ─────────────────────────────────────────────────────
 
-function classeNome(item: number | null): string {
+function categoriaNome(item: number | null): string {
   if (!item) return '—'
-  return classes.value.find((c) => c.item === item)?.descricao ?? String(item)
+  return categorias.value.find((c) => c.item === item)?.descricao ?? String(item)
 }
-function classeLabel(item: number | null): string {
-  if (!item) return 'Selecionar classe...'
-  const c = classes.value.find((cl) => cl.item === item)
+
+function categoriaLabel(item: number | null): string {
+  if (!item) return 'Selecionar categoria...'
+  const c = categorias.value.find((cl) => cl.item === item)
   if (!c) return String(item)
-  // Para MDI, não inclui o nome no label (será renderizado via IconeDisplay no template)
   if (c.icone?.startsWith('mdi-')) return c.descricao
   return c.icone ? `${c.icone} ${c.descricao}` : c.descricao
 }
 
-function classeIcone(item: number | null): string | null | undefined {
+function categoriaIcone(item: number | null): string | null | undefined {
   if (!item) return null
-  return classes.value.find((cl) => cl.item === item)?.icone
+  return categorias.value.find((cl) => cl.item === item)?.icone
 }
+
+function classeNome(item: number): string {
+  return classes.value.find((c) => c.item === item)?.descricao ?? String(item)
+}
+
 function tipoNome(item: number): string {
   return tipos.value.find((t) => t.item === item)?.descricao ?? String(item)
 }
-function categoriaNome(item: number): string {
-  return categorias.value.find((c) => c.item === item)?.descricao ?? String(item)
-}
+
 function propriedadeNome(item: number): string {
   return propriedades.value.find((p) => p.item === item)?.descricao ?? String(item)
 }
@@ -784,32 +786,32 @@ function fecharDropdowns() {
   dropdownAtivo.value = null
 }
 
-function selecionarClasse(item: number | null) {
-  form.classe_equipamento_item = item
+function selecionarCategoria(item: number | null) {
+  form.categoria_equipamento_item = item
   form.tipo_equipamento_item = []
   form.propriedade_equipamento_item = []
   dropdownAtivo.value = null
 }
 
-function removeDoForm(tipo: 'tipo' | 'categoria' | 'propriedade', item: number) {
+function removeDoForm(tipo: 'tipo' | 'classe' | 'propriedade', item: number) {
   if (tipo === 'tipo') form.tipo_equipamento_item = form.tipo_equipamento_item.filter((i) => i !== item)
-  else if (tipo === 'categoria') form.categoria_equipamento_item = form.categoria_equipamento_item.filter((i) => i !== item)
+  else if (tipo === 'classe') form.classe_equipamento_item = form.classe_equipamento_item.filter((i) => i !== item)
   else form.propriedade_equipamento_item = form.propriedade_equipamento_item.filter((i) => i !== item)
 }
 
 // ── Form: CRUD de equipamento ─────────────────────────────────────────────────
 
 function resetForm() {
-  form.nome                       = ''
-  form.dano                       = ''
-  form.peso                       = null
-  form.valor                      = null
-  form.classe_equipamento_item    = null
-  form.tipo_equipamento_item      = []
-  form.categoria_equipamento_item = []
+  form.nome                         = ''
+  form.dano                         = ''
+  form.peso                         = null
+  form.valor                        = null
+  form.categoria_equipamento_item   = null
+  form.classe_equipamento_item      = []
+  form.tipo_equipamento_item        = []
   form.propriedade_equipamento_item = []
-  form.descricao_equipamento      = ''
-  form.pre_requisitos             = ''
+  form.descricao_equipamento        = ''
+  form.pre_requisitos               = ''
   formFeedback.value      = ''
   formFeedbackError.value = false
   editandoId.value        = null
@@ -831,9 +833,9 @@ function iniciarEdicao(arma: ArmaApi) {
   form.dano                           = arma.dano ?? ''
   form.peso                           = arma.peso
   form.valor                          = arma.valor
-  form.classe_equipamento_item        = arma.classe_equipamento_item ?? null
+  form.categoria_equipamento_item     = arma.categoria_equipamento_item ?? null
+  form.classe_equipamento_item        = [...(arma.classe_equipamento_item ?? [])]
   form.tipo_equipamento_item          = [...(arma.tipo_equipamento_item ?? [])]
-  form.categoria_equipamento_item     = [...(arma.categoria_equipamento_item ?? [])]
   form.propriedade_equipamento_item   = [...(arma.propriedade_equipamento_item ?? [])]
   form.descricao_equipamento          = arma.descricao_equipamento ?? ''
   form.pre_requisitos                 = arma.pre_requisitos ?? ''
@@ -881,9 +883,9 @@ async function salvar() {
       dano:                         form.dano.trim() || undefined,
       peso:                         form.peso != null && !isNaN(form.peso) ? form.peso : null,
       valor:                        form.valor != null && !isNaN(form.valor) ? form.valor : null,
+      categoria_equipamento_item:   form.categoria_equipamento_item,
       classe_equipamento_item:      form.classe_equipamento_item,
       tipo_equipamento_item:        form.tipo_equipamento_item,
-      categoria_equipamento_item:   form.categoria_equipamento_item,
       propriedade_equipamento_item: form.propriedade_equipamento_item,
       descricao_equipamento:        form.descricao_equipamento.trim() || null,
       pre_requisitos:               form.pre_requisitos.trim() || null,
@@ -932,35 +934,35 @@ async function executarDelete() {
 // ── Modal Adicionar ───────────────────────────────────────────────────────────
 
 function abrirAddModal(tipo: LookupTipo) {
-  addModal.tipo       = tipo
-  addModal.descricao  = ''
-  addModal.classeItem = form.classe_equipamento_item
-  addModal.icone      = ''
-  addModal.salvando   = false
-  addModal.erro       = ''
-  addModal.aberto     = true
+  addModal.tipo         = tipo
+  addModal.descricao    = ''
+  addModal.categoriaItem = form.categoria_equipamento_item
+  addModal.icone        = ''
+  addModal.salvando     = false
+  addModal.erro         = ''
+  addModal.aberto       = true
 }
 
 async function salvarAddModal() {
   if (!addModal.descricao.trim()) return
-  if (addModal.tipo !== 'classe' && addModal.tipo !== 'categoria' && !addModal.classeItem) return
+  if ((addModal.tipo === 'tipo' || addModal.tipo === 'propriedade') && !addModal.categoriaItem) return
 
   addModal.salvando = true
   addModal.erro     = ''
 
   try {
-    if (addModal.tipo === 'classe') {
-      const nova = await criarClasseEquipamento({ descricao: addModal.descricao, icone: addModal.icone || null })
+    if (addModal.tipo === 'categoria') {
+      const nova = await criarCategoriaEquipamento({ descricao: addModal.descricao, icone: addModal.icone || null })
+      categorias.value.push(nova)
+    } else if (addModal.tipo === 'classe') {
+      const nova = await criarClasseEquipamento({ descricao: addModal.descricao })
       classes.value.push(nova)
     } else if (addModal.tipo === 'tipo') {
-      const novo = await criarTipoEquipamento({ descricao: addModal.descricao, classe_item: addModal.classeItem! })
+      const novo = await criarTipoEquipamento({ descricao: addModal.descricao, categoria_item: addModal.categoriaItem! })
       tipos.value.push(novo)
-    } else if (addModal.tipo === 'propriedade') {
-      const nova = await criarPropriedadeEquipamento({ descricao: addModal.descricao, classe_item: addModal.classeItem! })
-      propriedades.value.push(nova)
     } else {
-      const nova = await criarCategoriaEquipamento({ descricao: addModal.descricao, classe_item: addModal.classeItem ?? null })
-      categorias.value.push(nova)
+      const nova = await criarPropriedadeEquipamento({ descricao: addModal.descricao, categoria_item: addModal.categoriaItem! })
+      propriedades.value.push(nova)
     }
     addModal.aberto = false
   } catch (err: any) {
@@ -973,20 +975,20 @@ async function salvarAddModal() {
 // ── Modal Gerenciar ───────────────────────────────────────────────────────────
 
 function abrirGerenciarModal(tipo: LookupTipo) {
-  manageModal.tipo         = tipo
-  manageModal.editandoItem = null
+  manageModal.tipo          = tipo
+  manageModal.editandoItem  = null
   manageModal.novaDescricao = ''
-  manageModal.salvando     = false
-  manageModal.deletando    = null
-  manageModal.erro         = ''
+  manageModal.salvando      = false
+  manageModal.deletando     = null
+  manageModal.erro          = ''
 
   const map: Record<LookupTipo, LookupItem[]> = {
-    classe:     classes.value,
-    tipo:       tipos.value,
+    categoria:   categorias.value,
+    classe:      classes.value,
+    tipo:        tipos.value,
     propriedade: propriedades.value,
-    categoria:  categorias.value,
   }
-  manageModal.itens = [...map[tipo]]
+  manageModal.itens  = [...map[tipo]]
   manageModal.aberto = true
 }
 
@@ -1004,7 +1006,11 @@ async function salvarEdicaoManage(itemId: number) {
   try {
     const payload = { descricao: manageModal.novaDescricao.trim() }
 
-    if (manageModal.tipo === 'classe') {
+    if (manageModal.tipo === 'categoria') {
+      await editarCategoriaEquipamento(itemId, payload)
+      const i = categorias.value.findIndex((c) => c.item === itemId)
+      if (i !== -1) categorias.value[i].descricao = payload.descricao
+    } else if (manageModal.tipo === 'classe') {
       await editarClasseEquipamento(itemId, payload)
       const i = classes.value.findIndex((c) => c.item === itemId)
       if (i !== -1) classes.value[i].descricao = payload.descricao
@@ -1012,14 +1018,10 @@ async function salvarEdicaoManage(itemId: number) {
       await editarTipoEquipamento(itemId, payload)
       const i = tipos.value.findIndex((t) => t.item === itemId)
       if (i !== -1) tipos.value[i].descricao = payload.descricao
-    } else if (manageModal.tipo === 'propriedade') {
+    } else {
       await editarPropriedadeEquipamento(itemId, payload)
       const i = propriedades.value.findIndex((p) => p.item === itemId)
       if (i !== -1) propriedades.value[i].descricao = payload.descricao
-    } else {
-      await editarCategoriaEquipamento(itemId, payload)
-      const i = categorias.value.findIndex((c) => c.item === itemId)
-      if (i !== -1) categorias.value[i].descricao = payload.descricao
     }
 
     const mi = manageModal.itens.findIndex((i) => i.item === itemId)
@@ -1037,18 +1039,18 @@ async function deletarLookupItem(itemId: number) {
   manageModal.erro      = ''
 
   try {
-    if (manageModal.tipo === 'classe') {
+    if (manageModal.tipo === 'categoria') {
+      await deletarCategoriaEquipamento(itemId)
+      categorias.value = categorias.value.filter((c) => c.item !== itemId)
+    } else if (manageModal.tipo === 'classe') {
       await deletarClasseEquipamento(itemId)
       classes.value = classes.value.filter((c) => c.item !== itemId)
     } else if (manageModal.tipo === 'tipo') {
       await deletarTipoEquipamento(itemId)
       tipos.value = tipos.value.filter((t) => t.item !== itemId)
-    } else if (manageModal.tipo === 'propriedade') {
+    } else {
       await deletarPropriedadeEquipamento(itemId)
       propriedades.value = propriedades.value.filter((p) => p.item !== itemId)
-    } else {
-      await deletarCategoriaEquipamento(itemId)
-      categorias.value = categorias.value.filter((c) => c.item !== itemId)
     }
 
     manageModal.itens = manageModal.itens.filter((i) => i.item !== itemId)
@@ -1093,6 +1095,11 @@ onUnmounted(() => { /* cleanup */ })
 
 .select-wrap    { position: relative; }
 .select-caret   { position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); color: #475569; pointer-events: none; }
+
+select.field-input option {
+  background: #0f172a;
+  color: #e2e8f0;
+}
 
 /* ── Dropdowns ───────────────────────────────────────────────────────────── */
 .dropdown-panel {
@@ -1153,7 +1160,7 @@ onUnmounted(() => { /* cleanup */ })
   color: #93c5fd;
   border: 1px solid rgb(96 165 250 / 0.25);
 }
-.categoria-row-badge {
+.classe-row-badge {
   display: inline-block;
   font-size: 0.65rem;
   padding: 0.1rem 0.4rem;
@@ -1175,10 +1182,16 @@ onUnmounted(() => { /* cleanup */ })
 .close-btn   { color: #64748b; }
 .close-btn:hover { background: rgb(255 255 255 / 0.07); color: #e2e8f0; }
 
-/* ── Tabela (cores de células — o container/linhas ficam no DataTable.vue) ── */
+/* ── Tabela ──────────────────────────────────────────────────────────────── */
 .weapon-name { color: #e2e8f0; }
 .dano-text   { color: #fca5a5; }
 .text-muted  { color: #64748b; }
+
+/* ── Botões de ação na tabela ────────────────────────────────────────────── */
+.action-btn-edit { color: #64748b; }
+.action-btn-edit:hover { background: rgb(255 255 255 / 0.07); color: #e2e8f0; }
+.action-btn-del  { color: #64748b; }
+.action-btn-del:hover:not(:disabled) { background: rgb(220 38 38 / 0.15); color: #fca5a5; }
 
 /* ── Modal ───────────────────────────────────────────────────────────────── */
 .modal-card  { background: #0f172a; border-color: rgb(255 255 255 / 0.1); }
@@ -1194,10 +1207,6 @@ onUnmounted(() => { /* cleanup */ })
 .manage-row:hover { background: rgb(255 255 255 / 0.04); }
 
 /* ── Icon picker ─────────────────────────────────────────────────────────── */
-.icone-preview {
-  background: rgb(255 255 255 / 0.04);
-  border-color: rgb(255 255 255 / 0.1);
-}
 .icone-sugestao {
   display: flex;
   align-items: center;
@@ -1249,7 +1258,7 @@ onUnmounted(() => { /* cleanup */ })
 
 :global(html.theme-light) .lookup-tag { background: rgb(220 38 38 / 0.08); border-color: rgb(220 38 38 / 0.25); color: #b91c1c; }
 :global(html.theme-light) .lookup-row-badge { background: rgb(59 130 246 / 0.08); color: #1d4ed8; border-color: rgb(59 130 246 / 0.2); }
-:global(html.theme-light) .categoria-row-badge { background: rgb(220 38 38 / 0.08); color: #b91c1c; border-color: rgb(220 38 38 / 0.2); }
+:global(html.theme-light) .classe-row-badge { background: rgb(220 38 38 / 0.08); color: #b91c1c; border-color: rgb(220 38 38 / 0.2); }
 
 :global(html.theme-light) .btn-primary  { background: #dc2626; }
 :global(html.theme-light) .btn-primary:hover:not(:disabled) { background: #b91c1c; }
@@ -1270,7 +1279,6 @@ onUnmounted(() => { /* cleanup */ })
 :global(html.theme-light) .manage-row   { border-color: var(--border-soft); background: var(--bg-soft); }
 :global(html.theme-light) .manage-row:hover { background: var(--accent-soft); }
 
-:global(html.theme-light) .icone-preview { background: #fff; border-color: var(--border-soft); }
 :global(html.theme-light) .icone-sugestao { background: var(--bg-soft); border-color: var(--border-soft); }
 :global(html.theme-light) .icone-sugestao-mdi { color: #64748b; }
 :global(html.theme-light) .icone-sugestao-mdi:hover { color: var(--text-main); background: var(--accent-soft); }
