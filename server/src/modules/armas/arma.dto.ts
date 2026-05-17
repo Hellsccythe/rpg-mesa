@@ -15,17 +15,17 @@ export class CriarArmaDto {
   @IsOptional()
   @IsInt()
   @Min(1)
-  classe_equipamento_item?: number;
+  categoria_equipamento_item?: number;
+
+  @IsOptional()
+  @IsArray()
+  @IsInt({ each: true })
+  classe_equipamento_item?: number[];
 
   @IsOptional()
   @IsArray()
   @IsInt({ each: true })
   tipo_equipamento_item?: number[];
-
-  @IsOptional()
-  @IsArray()
-  @IsInt({ each: true })
-  categoria_equipamento_item?: number[];
 
   @IsOptional()
   @IsArray()
@@ -69,17 +69,17 @@ export class EditarArmaDto {
   @IsOptional()
   @IsInt()
   @Min(1)
-  classe_equipamento_item?: number | null;
+  categoria_equipamento_item?: number | null;
+
+  @IsOptional()
+  @IsArray()
+  @IsInt({ each: true })
+  classe_equipamento_item?: number[];
 
   @IsOptional()
   @IsArray()
   @IsInt({ each: true })
   tipo_equipamento_item?: number[];
-
-  @IsOptional()
-  @IsArray()
-  @IsInt({ each: true })
-  categoria_equipamento_item?: number[];
 
   @IsOptional()
   @IsArray()
@@ -109,9 +109,9 @@ export class EditarArmaDto {
   valor?: number;
 }
 
-// ── Classe ────────────────────────────────────────────────────────────────────
+// ── Categoria (primário) ──────────────────────────────────────────────────────
 
-export class CriarClasseDto {
+export class CriarCategoriaDto {
   @IsString()
   @MaxLength(100)
   descricao: string;
@@ -122,7 +122,7 @@ export class CriarClasseDto {
   icone?: string;
 }
 
-export class EditarClasseDto {
+export class EditarCategoriaDto {
   @IsOptional()
   @IsString()
   @MaxLength(100)
@@ -134,6 +134,21 @@ export class EditarClasseDto {
   icone?: string | null;
 }
 
+// ── Classe (secundário) ───────────────────────────────────────────────────────
+
+export class CriarClasseDto {
+  @IsString()
+  @MaxLength(100)
+  descricao: string;
+}
+
+export class EditarClasseDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  descricao?: string;
+}
+
 // ── Tipo ──────────────────────────────────────────────────────────────────────
 
 export class CriarTipoDto {
@@ -143,7 +158,7 @@ export class CriarTipoDto {
 
   @IsInt()
   @Min(1)
-  classe_item: number;
+  categoria_item: number;
 }
 
 export class EditarTipoDto {
@@ -155,7 +170,7 @@ export class EditarTipoDto {
   @IsOptional()
   @IsInt()
   @Min(1)
-  classe_item?: number;
+  categoria_item?: number;
 }
 
 // ── Propriedade ───────────────────────────────────────────────────────────────
@@ -167,7 +182,7 @@ export class CriarPropriedadeDto {
 
   @IsInt()
   @Min(1)
-  classe_item: number;
+  categoria_item: number;
 }
 
 export class EditarPropriedadeDto {
@@ -179,30 +194,5 @@ export class EditarPropriedadeDto {
   @IsOptional()
   @IsInt()
   @Min(1)
-  classe_item?: number;
-}
-
-// ── Categoria ─────────────────────────────────────────────────────────────────
-
-export class CriarCategoriaDto {
-  @IsString()
-  @MaxLength(100)
-  descricao: string;
-
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  classe_item?: number;
-}
-
-export class EditarCategoriaDto {
-  @IsOptional()
-  @IsString()
-  @MaxLength(100)
-  descricao?: string;
-
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  classe_item?: number | null;
+  categoria_item?: number;
 }

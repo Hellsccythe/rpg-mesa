@@ -3,14 +3,14 @@ import { ensureMasterAccess } from "../../common/helpers/master-access.helper.js
 import type {
   CriarArmaDto,
   EditarArmaDto,
+  CriarCategoriaDto,
+  EditarCategoriaDto,
   CriarClasseDto,
   EditarClasseDto,
   CriarTipoDto,
   EditarTipoDto,
   CriarPropriedadeDto,
   EditarPropriedadeDto,
-  CriarCategoriaDto,
-  EditarCategoriaDto,
 } from "./arma.dto.js";
 
 const ARMAS_TABLE        = "equipamentos";
@@ -25,8 +25,8 @@ type ArmaRecord = {
   dano: string;
   peso: number | null;
   valor: number | null;
-  classe_equipamento_item: number | null;
-  categoria_equipamento_item: number[];
+  categoria_equipamento_item: number | null;
+  classe_equipamento_item: number[];
   tipo_equipamento_item: number[];
   propriedade_equipamento_item: number[];
   descricao_equipamento: string | null;
@@ -38,25 +38,24 @@ type ArmaRecord = {
 export type CategoriaEquipamento = {
   item: number;
   descricao: string;
-  classe_item?: number | null;
+  icone?: string | null;
 };
 
 export type ClasseEquipamento = {
   item: number;
   descricao: string;
-  icone?: string | null;
 };
 
 export type TipoEquipamento = {
   item: number;
   descricao: string;
-  classe_item: number;
+  categoria_item: number | null;
 };
 
 export type PropriedadeEquipamento = {
   item: number;
   descricao: string;
-  classe_item: number;
+  categoria_item: number | null;
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -96,8 +95,8 @@ function mapArma(row: any): ArmaRecord {
     dano: normalizeText(row?.dano),
     peso: normalizeDecimal(row?.peso),
     valor: normalizeDecimal(row?.valor),
-    classe_equipamento_item: normalizeIntOrNull(row?.classe_equipamento_item),
-    categoria_equipamento_item: normalizeIntArray(row?.categoria_equipamento_item),
+    categoria_equipamento_item: normalizeIntOrNull(row?.categoria_equipamento_item),
+    classe_equipamento_item: normalizeIntArray(row?.classe_equipamento_item),
     tipo_equipamento_item: normalizeIntArray(row?.tipo_equipamento_item),
     propriedade_equipamento_item: normalizeIntArray(row?.propriedade_equipamento_item),
     descricao_equipamento: normalizeTextOrNull(row?.descricao_equipamento),
@@ -109,10 +108,9 @@ function mapArma(row: any): ArmaRecord {
 
 const SELECT_FIELDS =
   "id, nome, dano, peso, valor, " +
-  "classe_equipamento_item, categoria_equipamento_item, tipo_equipamento_item, propriedade_equipamento_item, " +
+  "categoria_equipamento_item, classe_equipamento_item, tipo_equipamento_item, propriedade_equipamento_item, " +
   "descricao_equipamento, pre_requisitos, created_at, updated_at";
 
-// Retorna o próximo item (max + 1) para tabelas com PK integer
 async function proximoItem(tabela: string): Promise<number> {
   const { data } = await getAdminClient()
     .from(tabela)
@@ -125,12 +123,13 @@ async function proximoItem(tabela: string): Promise<number> {
 // ── Equipamentos ──────────────────────────────────────────────────────────────
 
 export const armaService = {
-  // ── Categorias ──────────────────────────────────────────────────────────────
+  // ── Categorias (primário) ────────────────────────────────────────────────────
 
   async listarCategorias(): Promise<CategoriaEquipamento[]> {
     const { data, error } = await getAdminClient()
       .from(CATEGORIAS_TABLE)
-      .select("item, descricao, classe_item")
+      .select("item, descricao, icone")
+      .is("deleted_at", null)
       .order("item", { ascending: true });
     if (error) throw error;
     return (data ?? []) as CategoriaEquipamento[];
@@ -144,11 +143,11 @@ export const armaService = {
       .insert({
         item,
         descricao: dto.descricao.trim(),
-        classe_item: dto.classe_item ?? null,
+        icone: dto.icone?.trim() ?? null,
         created_by: masterUser.id,
         updated_by: masterUser.id,
       })
-      .select("item, descricao, classe_item")
+      .select("item, descricao, icone")
       .single();
     if (error) throw error;
     return data as CategoriaEquipamento;
@@ -158,12 +157,13 @@ export const armaService = {
     await ensureMasterAccess(accessToken);
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (dto.descricao !== undefined) updates.descricao = dto.descricao.trim();
-    if ("classe_item" in dto) updates.classe_item = dto.classe_item ?? null;
+    if ("icone" in dto) updates.icone = dto.icone?.trim() ?? null;
     const { data, error } = await getAdminClient()
       .from(CATEGORIAS_TABLE)
       .update(updates)
       .eq("item", item)
-      .select("item, descricao, classe_item")
+      .is("deleted_at", null)
+      .select("item, descricao, icone")
       .single();
     if (error) throw error;
     return data as CategoriaEquipamento;
@@ -180,12 +180,12 @@ export const armaService = {
     return { success: true };
   },
 
-  // ── Classes ─────────────────────────────────────────────────────────────────
+  // ── Classes (secundário) ─────────────────────────────────────────────────────
 
   async listarClasses(): Promise<ClasseEquipamento[]> {
     const { data, error } = await getAdminClient()
       .from(CLASSES_TABLE)
-      .select("item, descricao, icone")
+      .select("item, descricao")
       .is("deleted_at", null)
       .order("item", { ascending: true });
     if (error) throw error;
@@ -200,11 +200,10 @@ export const armaService = {
       .insert({
         item,
         descricao: dto.descricao.trim(),
-        icone: dto.icone?.trim() ?? null,
         created_by: masterUser.id,
         updated_by: masterUser.id,
       })
-      .select("item, descricao, icone")
+      .select("item, descricao")
       .single();
     if (error) throw error;
     return data as ClasseEquipamento;
@@ -214,13 +213,12 @@ export const armaService = {
     await ensureMasterAccess(accessToken);
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (dto.descricao !== undefined) updates.descricao = dto.descricao.trim();
-    if ("icone" in dto) updates.icone = dto.icone?.trim() ?? null;
     const { data, error } = await getAdminClient()
       .from(CLASSES_TABLE)
       .update(updates)
       .eq("item", item)
       .is("deleted_at", null)
-      .select("item, descricao, icone")
+      .select("item, descricao")
       .single();
     if (error) throw error;
     return data as ClasseEquipamento;
@@ -239,13 +237,13 @@ export const armaService = {
 
   // ── Tipos ────────────────────────────────────────────────────────────────────
 
-  async listarTipos(classeItem?: number): Promise<TipoEquipamento[]> {
+  async listarTipos(categoriaItem?: number): Promise<TipoEquipamento[]> {
     let query = getAdminClient()
       .from(TIPOS_TABLE)
-      .select("item, descricao, classe_item")
+      .select("item, descricao, categoria_item")
       .is("deleted_at", null)
       .order("item", { ascending: true });
-    if (classeItem !== undefined) query = query.eq("classe_item", classeItem);
+    if (categoriaItem !== undefined) query = query.eq("categoria_item", categoriaItem);
     const { data, error } = await query;
     if (error) throw error;
     return (data ?? []) as TipoEquipamento[];
@@ -259,11 +257,11 @@ export const armaService = {
       .insert({
         item,
         descricao: dto.descricao.trim(),
-        classe_item: dto.classe_item,
+        categoria_item: dto.categoria_item,
         created_by: masterUser.id,
         updated_by: masterUser.id,
       })
-      .select("item, descricao, classe_item")
+      .select("item, descricao, categoria_item")
       .single();
     if (error) throw error;
     return data as TipoEquipamento;
@@ -273,13 +271,13 @@ export const armaService = {
     await ensureMasterAccess(accessToken);
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (dto.descricao !== undefined) updates.descricao = dto.descricao.trim();
-    if (dto.classe_item !== undefined) updates.classe_item = dto.classe_item;
+    if (dto.categoria_item !== undefined) updates.categoria_item = dto.categoria_item;
     const { data, error } = await getAdminClient()
       .from(TIPOS_TABLE)
       .update(updates)
       .eq("item", item)
       .is("deleted_at", null)
-      .select("item, descricao, classe_item")
+      .select("item, descricao, categoria_item")
       .single();
     if (error) throw error;
     return data as TipoEquipamento;
@@ -298,13 +296,13 @@ export const armaService = {
 
   // ── Propriedades ─────────────────────────────────────────────────────────────
 
-  async listarPropriedades(classeItem?: number): Promise<PropriedadeEquipamento[]> {
+  async listarPropriedades(categoriaItem?: number): Promise<PropriedadeEquipamento[]> {
     let query = getAdminClient()
       .from(PROPRIEDADES_TABLE)
-      .select("item, descricao, classe_item")
+      .select("item, descricao, categoria_item")
       .is("deleted_at", null)
       .order("item", { ascending: true });
-    if (classeItem !== undefined) query = query.eq("classe_item", classeItem);
+    if (categoriaItem !== undefined) query = query.eq("categoria_item", categoriaItem);
     const { data, error } = await query;
     if (error) throw error;
     return (data ?? []) as PropriedadeEquipamento[];
@@ -318,11 +316,11 @@ export const armaService = {
       .insert({
         item,
         descricao: dto.descricao.trim(),
-        classe_item: dto.classe_item,
+        categoria_item: dto.categoria_item,
         created_by: masterUser.id,
         updated_by: masterUser.id,
       })
-      .select("item, descricao, classe_item")
+      .select("item, descricao, categoria_item")
       .single();
     if (error) throw error;
     return data as PropriedadeEquipamento;
@@ -332,13 +330,13 @@ export const armaService = {
     await ensureMasterAccess(accessToken);
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (dto.descricao !== undefined) updates.descricao = dto.descricao.trim();
-    if (dto.classe_item !== undefined) updates.classe_item = dto.classe_item;
+    if (dto.categoria_item !== undefined) updates.categoria_item = dto.categoria_item;
     const { data, error } = await getAdminClient()
       .from(PROPRIEDADES_TABLE)
       .update(updates)
       .eq("item", item)
       .is("deleted_at", null)
-      .select("item, descricao, classe_item")
+      .select("item, descricao, categoria_item")
       .single();
     if (error) throw error;
     return data as PropriedadeEquipamento;
@@ -387,8 +385,8 @@ export const armaService = {
         dano: dto.dano?.trim() ?? "",
         peso: dto.peso ?? null,
         valor: dto.valor ?? null,
-        classe_equipamento_item: dto.classe_equipamento_item ?? null,
-        categoria_equipamento_item: dto.categoria_equipamento_item ?? [],
+        categoria_equipamento_item: dto.categoria_equipamento_item ?? null,
+        classe_equipamento_item: dto.classe_equipamento_item ?? [],
         tipo_equipamento_item: dto.tipo_equipamento_item ?? [],
         propriedade_equipamento_item: dto.propriedade_equipamento_item ?? [],
         descricao_equipamento: dto.descricao_equipamento?.trim() ?? null,
@@ -420,8 +418,8 @@ export const armaService = {
     if (dto.dano !== undefined) updates.dano = dto.dano.trim();
     if (dto.peso !== undefined) updates.peso = dto.peso;
     if (dto.valor !== undefined) updates.valor = dto.valor;
-    if ("classe_equipamento_item" in dto) updates.classe_equipamento_item = dto.classe_equipamento_item ?? null;
-    if (dto.categoria_equipamento_item !== undefined) updates.categoria_equipamento_item = dto.categoria_equipamento_item ?? [];
+    if ("categoria_equipamento_item" in dto) updates.categoria_equipamento_item = dto.categoria_equipamento_item ?? null;
+    if (dto.classe_equipamento_item !== undefined) updates.classe_equipamento_item = dto.classe_equipamento_item ?? [];
     if (dto.tipo_equipamento_item !== undefined) updates.tipo_equipamento_item = dto.tipo_equipamento_item ?? [];
     if (dto.propriedade_equipamento_item !== undefined) updates.propriedade_equipamento_item = dto.propriedade_equipamento_item ?? [];
     if (dto.descricao_equipamento !== undefined) updates.descricao_equipamento = dto.descricao_equipamento?.trim() ?? null;
