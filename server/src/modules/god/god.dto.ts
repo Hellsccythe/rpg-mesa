@@ -1,4 +1,4 @@
-import { IsOptional, IsString } from "class-validator";
+import { IsNumber, IsOptional, IsString } from "class-validator";
 
 export class SalvarGodDto {
   @IsString()
@@ -11,6 +11,10 @@ export class SalvarGodDto {
   @IsOptional()
   @IsString()
   title?: string;
+
+  @IsOptional()
+  @IsNumber()
+  indole_id?: number | null;
 
   @IsOptional()
   @IsString()
@@ -49,6 +53,10 @@ export class EditarGodDto {
   @IsOptional()
   @IsString()
   title?: string;
+
+  @IsOptional()
+  @IsNumber()
+  indole_id?: number | null;
 
   @IsOptional()
   @IsString()

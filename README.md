@@ -180,6 +180,11 @@ Todas as migrations ficam em `database/migrations/` e devem ser aplicadas em ord
 | `009_lore_notes.sql` | Tabela `lore_notes` (notas de lore do mestre) |
 | `010_lore_notes_character.sql` | Coluna `character_id` em `lore_notes` (nota por personagem) |
 | `011_lore_notes_pdf_url.sql` | Coluna `pdf_url` em `lore_notes` (anexo PDF opcional) |
+| `012` a `015` | Auditoría, racas, equipamentos, tabelas acessórias de equipamento (classe_equipamento, tipo, propriedade, categoria) |
+| `016` a `018` | Refinamentos de equipamentos e campos adicionais |
+| `019_tabelas_acessorias_equipamento.sql` | 10 tabelas de lookup para equipamentos (arma/armadura/variados: tipo, categoria, propriedade, classe) |
+| `020_skill_lookup_tables.sql` | Tabelas `skill_tipo`, `skill_categoria`, `skill_tipo_dano` + colunas lookup em `skills` |
+| `021_skill_extra_fields.sql` | Remove colunas legadas `type`/`category` de `skills`; adiciona `damage_display`, `damage_base`, `effect_description`, `effect_value`, `custo`, `cooldown`, `range`, `required_class` |
 
 ---
 
@@ -249,6 +254,10 @@ Na raiz do repositorio:
 | `/master/deuses` | `MasterGodsView` | CRUD completo de deuses com upload de imagem |
 | `/master/mapas` | `MasterMapsView` | Gerenciamento de mapas e pontos de interesse |
 | `/master/personagens` | `MasterCharactersView` | Ajuste de enquadramento da imagem no modal de login por personagem |
+| `/master/equipamentos` | `MasterWeaponsView` | CRUD de equipamentos |
+| `/master/racas` | `MasterRacasView` | CRUD de racas |
+| `/master/skills` | `MasterSkillsView` | Catalogo de skills + gestao de lookup (tipo, categoria, tipo de dano) |
+| `/master/tabelas-acessorias` | `MasterTabelasAcessoriasView` | Gestao das 10 tabelas de lookup de equipamentos (arma/armadura/variados) |
 
 ---
 
@@ -274,8 +283,9 @@ Na raiz do repositorio:
 
 - Deuses: CRUD completo com upload de imagem e configuracao de posicao (card e modal).
 - Classes e titulos: criados pelo mestre e associados a personagens pelo painel.
-- Skills: adicionadas individualmente a personagens pelo painel.
+- Skills: catalogo gerenciado em `/master/skills`; campos tipo/categoria/tipo de dano via dropdowns de lookup. Campos extras: dano, efeito, custo, cooldown, alcance, classe requerida.
 - Mapas: gerenciados em `/master/mapas` com pontos de interesse clicaveis.
+- Tabelas acessorias de equipamento: gerenciadas em `/master/tabelas-acessorias` (10 tabelas de lookup organizadas em familias arma/armadura/variados).
 
 ### Notas de Lore
 

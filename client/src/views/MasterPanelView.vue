@@ -25,7 +25,7 @@
             <button
               type="button"
               class="notification-bell"
-              :title="`${pendingCount} pendência(s)`"
+              :title="`${pendingCount} pendência(s) de alteração`"
               :aria-label="`${pendingCount} pendências de aprovação`"
               @click="goSection('pendencias')"
             >
@@ -34,6 +34,20 @@
                 <path d="M9 17a3 3 0 0 0 6 0"/>
               </svg>
               <span v-if="pendingCount > 0" class="notification-badge">{{ pendingCount }}</span>
+            </button>
+
+            <button
+              type="button"
+              class="notification-bell"
+              :title="`${criacaoPendenteCount} solicitação(ões) de criação de personagem`"
+              :aria-label="`${criacaoPendenteCount} solicitações de criação pendentes`"
+              @click="router.push({ name: 'master-logins' })"
+            >
+              <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+              <span v-if="criacaoPendenteCount > 0" class="notification-badge">{{ criacaoPendenteCount }}</span>
             </button>
 
             <button
@@ -322,6 +336,76 @@
             <p class="mt-0.5 text-xs text-zinc-500">Gerencie as raças jogáveis da campanha</p>
             <span class="mt-3 inline-block text-xs text-violet-400 group-hover:text-violet-300">Abrir guia →</span>
           </button>
+
+          <button @click="goMasterSkills" class="gm-link-card group text-left">
+            <div class="gm-icon-wrap mb-3 bg-emerald-500/10 text-emerald-400">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            </div>
+            <p class="font-semibold text-zinc-100 group-hover:text-white">Skills</p>
+            <p class="mt-0.5 text-xs text-zinc-500">Crie e edite o catálogo de habilidades da campanha</p>
+            <span class="mt-3 inline-block text-xs text-emerald-400 group-hover:text-emerald-300">Abrir guia →</span>
+          </button>
+
+          <button @click="goMasterClasses" class="gm-link-card group text-left">
+            <div class="gm-icon-wrap mb-3 bg-sky-500/10 text-sky-400">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 1.1 2.24 2 5 2s5-.9 5-2v-5"/></svg>
+            </div>
+            <p class="font-semibold text-zinc-100 group-hover:text-white">Classes</p>
+            <p class="mt-0.5 text-xs text-zinc-500">Crie e edite as classes jogáveis da campanha</p>
+            <span class="mt-3 inline-block text-xs text-sky-400 group-hover:text-sky-300">Abrir guia →</span>
+          </button>
+
+          <button @click="router.push({ name: 'master-logins' })" class="gm-link-card group text-left">
+            <div class="gm-icon-wrap mb-3 bg-violet-500/10 text-violet-400 relative">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              <span v-if="criacaoPendenteCount > 0" class="absolute -right-1 -top-1 min-w-[1rem] rounded-full bg-red-500 px-1 py-px text-center text-[0.55rem] font-bold leading-none text-white">{{ criacaoPendenteCount }}</span>
+            </div>
+            <p class="font-semibold text-zinc-100 group-hover:text-white">Solicitações de Criação</p>
+            <p class="mt-0.5 text-xs text-zinc-500">Aprovar ou rejeitar novos personagens enviados pelos jogadores</p>
+            <span class="mt-3 inline-block text-xs text-violet-400 group-hover:text-violet-300">Abrir guia →</span>
+          </button>
+        </div>
+
+        <!-- ── Tabelas Acessórias ───────────────────────────────────────────── -->
+        <div>
+          <p class="mb-3 text-xs font-bold tracking-[0.25em] uppercase text-zinc-600">Tabelas Acessórias</p>
+          <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <button @click="goTabelasAcessorias" class="gm-link-card group text-left">
+              <div class="gm-icon-wrap mb-3 bg-orange-500/10 text-orange-400">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+              </div>
+              <p class="font-semibold text-zinc-100 group-hover:text-white">Tipos de Equipamento</p>
+              <p class="mt-0.5 text-xs text-zinc-500">Arma, Armadura, Variados e seus tipos filhos</p>
+              <span class="mt-3 inline-block text-xs text-orange-400 group-hover:text-orange-300">Abrir guia →</span>
+            </button>
+
+            <button @click="goTabelasAcessorias" class="gm-link-card group text-left">
+              <div class="gm-icon-wrap mb-3 bg-orange-500/10 text-orange-400">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+              </div>
+              <p class="font-semibold text-zinc-100 group-hover:text-white">Categorias</p>
+              <p class="mt-0.5 text-xs text-zinc-500">Categorias de arma, armadura e variados</p>
+              <span class="mt-3 inline-block text-xs text-orange-400 group-hover:text-orange-300">Abrir guia →</span>
+            </button>
+
+            <button @click="goTabelasAcessorias" class="gm-link-card group text-left">
+              <div class="gm-icon-wrap mb-3 bg-orange-500/10 text-orange-400">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              </div>
+              <p class="font-semibold text-zinc-100 group-hover:text-white">Propriedades</p>
+              <p class="mt-0.5 text-xs text-zinc-500">Propriedades de cada família de equipamento</p>
+              <span class="mt-3 inline-block text-xs text-orange-400 group-hover:text-orange-300">Abrir guia →</span>
+            </button>
+
+            <button @click="goTabelasAcessorias" class="gm-link-card group text-left">
+              <div class="gm-icon-wrap mb-3 bg-orange-500/10 text-orange-400">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </div>
+              <p class="font-semibold text-zinc-100 group-hover:text-white">Classes</p>
+              <p class="mt-0.5 text-xs text-zinc-500">Classes de cada família de equipamento</p>
+              <span class="mt-3 inline-block text-xs text-orange-400 group-hover:text-orange-300">Abrir guia →</span>
+            </button>
+          </div>
         </div>
 
         <!-- ── Emails + Ferramentas de Personagem ─────────────────────────── -->
@@ -711,6 +795,7 @@ import {
   setAvatarFocalPoint,
   setCharacterGodInfo,
 } from '@/lib/api/personagens.api'
+import { contarSolicitacoesPendentes } from '@/lib/api/character-creation-requests.api'
 import { listPublicGods } from '@/lib/api/gods.api'
 import type { GodApi } from '@/types/supabase'
 import { adicionarPontosDeClasse } from '@/lib/api/classes.api'
@@ -923,7 +1008,7 @@ async function salvarFocalPoint() {
 
 // ── God Additional Info ──────────────────────────────────────────────────────
 const godInfoCharacterId = ref('')
-const godInfoGodId = ref('')
+const godInfoGodId = ref<string | number>('')
 const godInfoText = ref('')
 const loadingGodInfo = ref(false)
 const godInfoFeedback = ref('')
@@ -965,6 +1050,7 @@ const deleteCharacterName = computed(
 
 const pendingApprovals = computed(() => masterApprovalsStore.pendingApprovals)
 const pendingCount = computed(() => pendingApprovals.value.length)
+const criacaoPendenteCount = ref(0)
 const characters = computed(() => charactersStore.publicCharacters)
 
 const characterOptions = computed(() =>
@@ -983,6 +1069,7 @@ const selectedGod = computed(() =>
 watch(focalCharId, carregarFocalChar)
 const panelMenuItems = [
   { id: 'pendencias', label: 'Pendencias' },
+  { id: 'criacao-personagens', label: 'Criação Personagens' },
   { id: 'emails-cadastro', label: 'Cadastro Email' },
   { id: 'lore-notes', label: 'Notas de Lore' },
   { id: 'avatar-focal', label: 'Posição do Avatar' },
@@ -991,6 +1078,9 @@ const panelMenuItems = [
   { id: 'mapas', label: 'Mapas' },
   { id: 'armas', label: 'Equipamentos' },
   { id: 'racas', label: 'Raças' },
+  { id: 'skills', label: 'Skills' },
+  { id: 'classes', label: 'Classes' },
+  { id: 'tabelas-acessorias', label: 'Tab. Acessórias' },
   { id: 'deletar-personagem', label: 'Deletar Personagem', danger: true },
   { id: 'logout', label: 'Logout', danger: true },
 ]
@@ -998,6 +1088,11 @@ const panelMenuItems = [
 async function handlePanelMenuSelect(itemId: string) {
   if (itemId === 'pendencias') {
     goSection('pendencias')
+    return
+  }
+
+  if (itemId === 'criacao-personagens') {
+    router.push({ name: 'master-logins' })
     return
   }
 
@@ -1041,6 +1136,21 @@ async function handlePanelMenuSelect(itemId: string) {
     return
   }
 
+  if (itemId === 'skills') {
+    goMasterSkills()
+    return
+  }
+
+  if (itemId === 'classes') {
+    goMasterClasses()
+    return
+  }
+
+  if (itemId === 'tabelas-acessorias') {
+    goTabelasAcessorias()
+    return
+  }
+
   if (itemId === 'deletar-personagem') {
     goSection('deletar-personagem')
     return
@@ -1067,6 +1177,7 @@ async function loadAll() {
       carregarEmailsLiberados(),
       carregarLoreNotes(),
       carregarDeusesParaInfo(),
+      contarSolicitacoesPendentes().then((c) => { criacaoPendenteCount.value = c }).catch(() => {}),
     ])
   } catch {
     feedback.value = 'Nao foi possivel carregar os dados do painel mestre.'
@@ -1115,7 +1226,7 @@ async function removerEmailLiberado(email: string) {
   }
 }
 
-async function review(characterId: string, approve: boolean) {
+async function review(characterId: string | number, approve: boolean) {
   loading.value = true
   feedback.value = ''
   try {
@@ -1270,7 +1381,7 @@ async function deletarPersonagem() {
   }
 }
 
-function irParaDashboardPersonagem(characterId: string) {
+function irParaDashboardPersonagem(characterId: string | number) {
   authStore.definirPersonagemAtivo(characterId)
   router.push({ name: 'dashboard', query: { characterId } })
 }
@@ -1298,6 +1409,18 @@ function goMasterWeapons() {
 
 function goMasterRacas() {
   router.push({ name: 'master-racas' })
+}
+
+function goMasterSkills() {
+  router.push({ name: 'master-skills' })
+}
+
+function goMasterClasses() {
+  router.push({ name: 'master-classes' })
+}
+
+function goTabelasAcessorias() {
+  router.push({ name: 'master-tabelas-acessorias' })
 }
 
 async function logout() {

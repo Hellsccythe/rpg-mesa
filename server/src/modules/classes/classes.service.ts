@@ -1,6 +1,6 @@
 import { getAdminClient } from "../../config/database/supabase/client.js";
 import { ensureMasterAccess } from "../../common/helpers/master-access.helper.js";
-import type { SalvarClasseDto } from "./classes.dto.js";
+import type { SalvarClasseDto, EditarClasseDto } from "./classes.dto.js";
 
 export const classesService = {
   async listar() {
@@ -54,5 +54,39 @@ export const classesService = {
 
     if (error) throw error;
     return data;
+  },
+
+  async editar(id: string, dto: EditarClasseDto, accessToken?: string) {
+    const masterUser = await ensureMasterAccess(accessToken);
+    const admin = getAdminClient();
+    const campos: Record<string, any> = { updated_by: masterUser.id };
+    if (dto.name !== undefined) campos.name = dto.name.trim();
+    if (dto.tier !== undefined) campos.tier = dto.tier.trim();
+    if (dto.description !== undefined) campos.description = dto.description.trim();
+    if (dto.maxLevel !== undefined) campos.max_level = dto.maxLevel;
+    if (dto.statBonuses !== undefined) campos.stat_bonuses = dto.statBonuses;
+    if (dto.requirements !== undefined) campos.requirements = dto.requirements;
+    if (dto.startingSkills !== undefined) campos.starting_skills = dto.startingSkills;
+    const { data, error } = await admin
+      .from("classes")
+      .update(campos)
+      .eq("id", id)
+      .is("deleted_at", null)
+      .select("*")
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async deletar(id: string, accessToken?: string) {
+    const masterUser = await ensureMasterAccess(accessToken);
+    const admin = getAdminClient();
+    const { error } = await admin
+      .from("classes")
+      .update({ deleted_at: new Date().toISOString(), deleted_by: masterUser.id })
+      .eq("id", id)
+      .is("deleted_at", null);
+    if (error) throw error;
+    return { ok: true };
   },
 };

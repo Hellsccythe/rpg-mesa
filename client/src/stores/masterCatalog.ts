@@ -57,6 +57,7 @@ export const useMasterCatalogStore = defineStore('masterCatalog', {
       description?: string
       title?: string
       indole?: string
+      indole_id?: number | null
       dogma?: string
       anatema?: string
       weapons?: string
@@ -78,12 +79,13 @@ export const useMasterCatalogStore = defineStore('masterCatalog', {
     },
 
     async updateGod(
-      godId: string,
+      godId: string | number,
       payload: {
         name?: string
         description?: string
         title?: string
         indole?: string
+        indole_id?: number | null
         dogma?: string
         anatema?: string
         weapons?: string
@@ -133,7 +135,7 @@ export const useMasterCatalogStore = defineStore('masterCatalog', {
       cityDescription?: string
       cityCulture?: string
       mapType?: 'city' | 'localized'
-      parentCityMapId?: string
+      parentCityMapId?: string | number
     }) {
       this.loading = true
       this.error = null
@@ -150,7 +152,7 @@ export const useMasterCatalogStore = defineStore('masterCatalog', {
     },
 
     async updateCityMap(
-      cityMapId: string,
+      cityMapId: string | number,
       payload: {
         name?: string
         mapReference?: string
@@ -162,7 +164,7 @@ export const useMasterCatalogStore = defineStore('masterCatalog', {
         cityDescription?: string
         cityCulture?: string
         mapType?: 'city' | 'localized'
-        parentCityMapId?: string
+        parentCityMapId?: string | number
       },
     ) {
       this.loading = true

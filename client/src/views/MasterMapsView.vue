@@ -383,7 +383,7 @@ type Tab = 'existing' | 'create-city' | 'create-child'
 type EditorTarget = 'existing' | 'newCity' | 'newChild'
 
 type MapEditorState = {
-  id: string
+  id: string | number
   name: string
   mapReference: string
   description: string
@@ -393,7 +393,7 @@ type MapEditorState = {
   cityDescription: string
   cityCulture: string
   mapType: 'city' | 'localized'
-  parentCityMapId: string
+  parentCityMapId: string | number
   pointsOfInterest: PointOfInterestApi[]
 }
 
@@ -402,7 +402,7 @@ const MapPointEditor = defineComponent({
   props: {
     imageUrl: { type: String, required: true },
     points: { type: Array as () => PointOfInterestApi[], required: true },
-    targetOptions: { type: Array as () => Array<{ id: string; name: string }>, required: true },
+    targetOptions: { type: Array as () => Array<{ id: string | number; name: string }>, required: true },
     editable: { type: Boolean, default: true },
   },
   emits: ['change'],
@@ -792,7 +792,7 @@ const loading = ref(false)
 const feedback = ref('')
 const feedbackError = ref(false)
 const activeTab = ref<Tab>('existing')
-const existingSelectedId = ref('')
+const existingSelectedId = ref<string | number>('')
 const existingEditMode = ref(false)
 const existingSnapshot = ref<MapEditorState | null>(null)
 const showLegacyPreview = ref(false)
@@ -971,7 +971,7 @@ function resetEditor(target: MapEditorState, mapType: 'city' | 'localized') {
   target.pointsOfInterest = []
 }
 
-function selectExistingMap(mapId: string) {
+function selectExistingMap(mapId: string | number) {
   const found = maps.value.find((m) => m.id === mapId)
   if (!found) return
   showLegacyPreview.value = false
@@ -994,8 +994,8 @@ function goToCreateCityTabFromLegacy() {
   showLegacyPreview.value = false
 }
 
-function onSelectParentGroup(parentId: string) {
-  if (parentId.startsWith('orphan-')) return
+function onSelectParentGroup(parentId: string | number) {
+  if (String(parentId).startsWith('orphan-')) return
   selectExistingMap(parentId)
 }
 

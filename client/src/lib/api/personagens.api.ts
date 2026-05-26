@@ -19,7 +19,7 @@ export async function listMyCharacters(params: ListarPersonagemDto = {}) {
   return data
 }
 
-export async function getCharacterById(characterId: string, isMaster: boolean) {
+export async function getCharacterById(characterId: string | number, isMaster: boolean) {
   const endpoint = isMaster ? `/personagens/admin/${characterId}` : `/personagens/${characterId}`
   const { data } = await api.get<PersonagemApi>(endpoint)
   return data
@@ -42,13 +42,13 @@ export async function registrarECriarPersonagem(payload: {
   return data
 }
 
-export async function editCharacter(characterId: string, payload: EditarPersonagemDto) {
+export async function editCharacter(characterId: string | number, payload: EditarPersonagemDto) {
   const { data } = await api.patch<PersonagemApi>(`/personagens/${characterId}`, payload)
   return data
 }
 
 export async function requestCharacterChange(
-  characterId: string,
+  characterId: string | number,
   payload: SolicitarAlteracaoPersonagemDto,
 ) {
   const { data } = await api.patch<PersonagemApi>(
@@ -63,7 +63,7 @@ export async function listPendingApprovals() {
   return data
 }
 
-export async function reviewPendingApproval(characterId: string, approve: boolean) {
+export async function reviewPendingApproval(characterId: string | number, approve: boolean) {
   const { data } = await api.post<PersonagemApi>(
     `/personagens/admin/solicitacoes/${characterId}/revisar`,
     { approve },
@@ -71,17 +71,15 @@ export async function reviewPendingApproval(characterId: string, approve: boolea
   return data
 }
 
-export async function addAdventureNoteToCharacter(characterId: string, note: string) {
+export async function addAdventureNoteToCharacter(characterId: string | number, note: string) {
   const { data } = await api.post<PersonagemApi>(
     `/personagens/admin/personagens/${characterId}/notas`,
-    {
-      note,
-    },
+    { note },
   )
   return data
 }
 
-export async function setAvatarFocalPoint(characterId: string, focalPoint: string) {
+export async function setAvatarFocalPoint(characterId: string | number, focalPoint: string) {
   const { data } = await api.patch<PersonagemApi>(
     `/personagens/admin/${characterId}/avatar-focal-point`,
     { focalPoint },
@@ -89,7 +87,7 @@ export async function setAvatarFocalPoint(characterId: string, focalPoint: strin
   return data
 }
 
-export async function setModalHeroPosition(characterId: string, position: string) {
+export async function setModalHeroPosition(characterId: string | number, position: string) {
   const { data } = await api.patch<PersonagemApi>(
     `/personagens/admin/${characterId}/modal-hero-position`,
     { position },
@@ -119,14 +117,14 @@ export async function removeCharacterCreationAllowedEmail(email: string) {
   return data
 }
 
-export async function deleteCharacterAsMaster(characterId: string) {
+export async function deleteCharacterAsMaster(characterId: string | number) {
   const { data } = await api.delete<{ success: boolean }>(`/personagens/admin/${characterId}`)
   return data
 }
 
 export async function setCharacterGodInfo(
-  characterId: string,
-  godId: string,
+  characterId: string | number,
+  godId: string | number,
   text: string,
 ) {
   const { data } = await api.patch<PersonagemApi>(

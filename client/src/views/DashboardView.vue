@@ -793,16 +793,16 @@ const quickInventory = computed<InventoryItem[]>(() => {
   return Array.isArray(inv) ? inv : []
 })
 
-function notifKey(charId: string) { return `rpg-mesa.notif-seen-${charId}` }
-function getLastSeen(charId: string): Date {
+function notifKey(charId: string | number) { return `rpg-mesa.notif-seen-${charId}` }
+function getLastSeen(charId: string | number): Date {
   const val = localStorage.getItem(notifKey(charId))
   return val ? new Date(val) : new Date(0)
 }
-function saveLastSeen(charId: string) {
+function saveLastSeen(charId: string | number) {
   localStorage.setItem(notifKey(charId), new Date().toISOString())
 }
 
-async function loadNotifications(charId: string) {
+async function loadNotifications(charId: string | number) {
   const lastSeen = getLastSeen(charId)
   const list: Notification[] = []
   try {
@@ -978,7 +978,7 @@ async function loadPending() {
   finally { settingsLoading.value = false }
 }
 
-async function reviewRequest(characterId: string, approve: boolean) {
+async function reviewRequest(characterId: string | number, approve: boolean) {
   settingsLoading.value = true
   try {
     await masterApprovalsStore.reviewPendingApproval(characterId, approve)
@@ -1093,7 +1093,7 @@ async function loadCharacter() {
   if (!characterId && !authStore.eMestre) {
     try {
       await charactersStore.fetchCharacters()
-      characterId = charactersStore.myCharacters[0]?.characterId ?? ''
+      characterId = String(charactersStore.myCharacters[0]?.characterId ?? '')
       if (characterId) {
         authStore.definirPersonagemAtivo(characterId)
         await router.replace({ name: 'dashboard', query: { characterId } })
@@ -1118,7 +1118,7 @@ async function loadCharacter() {
     if (!authStore.eMestre && maybeError?.response?.status === 404) {
       try {
         await charactersStore.fetchCharacters()
-        const fallbackId = charactersStore.myCharacters[0]?.characterId ?? ''
+        const fallbackId = String(charactersStore.myCharacters[0]?.characterId ?? '')
         if (fallbackId) {
           authStore.definirPersonagemAtivo(fallbackId)
           await router.replace({ name: 'dashboard', query: { characterId: fallbackId } })

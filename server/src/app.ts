@@ -10,6 +10,10 @@ import { TitulosRouter } from "./modules/titulos/titulos.module.js";
 import { LoreNotesRouter } from "./modules/lore-notes/lore-notes.module.js";
 import { ArmasRouter } from "./modules/armas/arma.module.js";
 import { RacasRouter } from "./modules/racas/raca.module.js";
+import { TabelasAcessoriasRouter } from "./modules/tabelas-acessorias/tabelas-acessorias.module.js";
+import { IndoleRouter } from "./modules/indole/indole.module.js";
+import { GeneroRouter } from "./modules/genero/genero.module.js";
+import { CharacterCreationRouter } from "./modules/character-creation/character-creation.module.js";
 
 const app = express();
 
@@ -56,5 +60,9 @@ app.use("/api/titulos", TitulosRouter);
 app.use("/api/lore-notes", LoreNotesRouter);
 app.use("/api/armas", ArmasRouter);
 app.use("/api/racas", RacasRouter);
+app.use("/api/tabelas-acessorias", TabelasAcessoriasRouter);
+app.use("/api/indole", IndoleRouter);
+app.use("/api/genero", GeneroRouter);
+app.use("/api/character-creation-requests", CharacterCreationRouter);
 
 export default app;

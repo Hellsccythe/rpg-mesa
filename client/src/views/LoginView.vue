@@ -298,7 +298,9 @@
       @close="fecharModalCriacao"
     >
       <template #header>
-        <h2 class="login-modal-title-blue text-2xl font-bold">Criar Novo Personagem</h2>
+        <h2 class="login-modal-title-blue text-2xl font-bold">
+          {{ criacaoEnviada ? 'Solicitacao Enviada' : 'Criar Novo Personagem' }}
+        </h2>
         <button
           @click="fecharModalCriacao"
           :disabled="carregandoCriacao"
@@ -309,185 +311,285 @@
         </button>
       </template>
 
-      <div>
-        <label class="login-modal-label mb-3 block text-sm">Avatar do Personagem</label>
-        <div
-          class="login-create-dropzone relative flex h-80 flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed transition-all"
-          :class="[
-            carregandoCriacao
-              ? 'cursor-wait opacity-70 pointer-events-none'
-              : 'cursor-pointer active:scale-[0.995]',
-            { 'login-create-dropzone-dragging': arrastando },
-          ]"
-          @dragover.prevent="arrastando = true"
-          @dragleave.prevent="arrastando = false"
-          @drop.prevent="soltarArquivo"
-          @click="acionarInputArquivo"
+      <!-- Estado de sucesso -->
+      <div
+        v-if="criacaoEnviada"
+        class="flex flex-col items-center justify-center gap-6 py-8 text-center"
+      >
+        <div class="text-6xl leading-none">⏳</div>
+        <div>
+          <h3 class="login-modal-text-main text-xl font-bold">Aguardando aprovacao do mestre</h3>
+          <p class="login-modal-muted mt-3 leading-relaxed">
+            Sua solicitacao foi enviada com sucesso. O mestre revisara suas informacoes e voce
+            sera notificado quando o personagem for aprovado ou rejeitado.
+          </p>
+        </div>
+        <button
+          @click="fecharModalCriacao"
+          class="login-modal-submit action-btn rounded-2xl px-8 py-3 font-semibold transition-colors"
         >
-          <input
-            ref="inputArquivoCriacao"
-            type="file"
-            accept="image/*"
-            class="hidden"
-            @change="selecionarArquivo"
-          />
+          Fechar
+        </button>
+      </div>
 
-          <div
-            v-if="urlPreviewCriacao"
-            class="relative flex h-full w-full items-center justify-center px-6"
+      <!-- Formulário -->
+      <template v-else>
+        <!-- Avatar -->
+        <div>
+          <label class="login-modal-label mb-3 block text-sm"
+            >Avatar do Personagem <span class="text-red-400">*</span></label
           >
+          <div
+            class="login-create-dropzone relative flex h-80 flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed transition-all"
+            :class="[
+              carregandoCriacao
+                ? 'cursor-wait opacity-70 pointer-events-none'
+                : 'cursor-pointer active:scale-[0.995]',
+              { 'login-create-dropzone-dragging': arrastando },
+            ]"
+            @dragover.prevent="arrastando = true"
+            @dragleave.prevent="arrastando = false"
+            @drop.prevent="soltarArquivo"
+            @click="acionarInputArquivo"
+          >
+            <input
+              ref="inputArquivoCriacao"
+              type="file"
+              accept="image/*"
+              class="hidden"
+              @change="selecionarArquivo"
+            />
             <div
-              class="login-create-preview relative aspect-square w-full max-w-[18rem] overflow-hidden rounded-2xl border"
+              v-if="avatarPreviewUrl"
+              class="relative flex h-full w-full items-center justify-center px-6"
             >
-              <img :src="urlPreviewCriacao" class="h-full w-full object-cover" alt="preview" />
+              <div
+                class="login-create-preview relative aspect-square w-full max-w-[18rem] overflow-hidden rounded-2xl border"
+              >
+                <img :src="avatarPreviewUrl" class="h-full w-full object-cover" alt="preview" />
+              </div>
+              <button
+                @click.stop="removerImagem"
+                :disabled="carregandoCriacao"
+                class="login-create-remove action-btn absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full text-xl disabled:cursor-wait disabled:opacity-60"
+              >
+                ✕
+              </button>
             </div>
-            <button
-              @click.stop="removerImagem"
-              :disabled="carregandoCriacao"
-              class="login-create-remove action-btn absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full text-xl disabled:cursor-wait disabled:opacity-60"
+            <div v-else class="text-center">
+              <p class="login-modal-text-main text-lg">Arraste ou clique para adicionar avatar</p>
+              <p class="login-modal-muted mt-1 text-sm">PNG, JPG ou WEBP • Max 5MB</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Nome + Sobrenome -->
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div>
+            <label class="login-modal-label mb-2 block text-sm"
+              >Nome <span class="text-red-400">*</span></label
             >
-              ✕
-            </button>
+            <input
+              v-model="nomePersonagem"
+              type="text"
+              class="login-modal-input w-full rounded-2xl border px-6 py-4 text-lg outline-none"
+              placeholder="Ex: Elandor"
+            />
           </div>
-
-          <div v-else class="text-center">
-            <p class="login-modal-text-main text-lg">Arraste ou clique para adicionar avatar</p>
-            <p class="login-modal-muted mt-1 text-sm">PNG, JPG ou WEBP • Max 5MB</p>
+          <div>
+            <label class="login-modal-label mb-2 block text-sm"
+              >Sobrenome <span class="text-zinc-500">(opcional)</span></label
+            >
+            <input
+              v-model="sobrenomePersonagem"
+              type="text"
+              class="login-modal-input w-full rounded-2xl border px-6 py-4 text-lg outline-none"
+              placeholder="Ex: Templario"
+            />
           </div>
         </div>
-      </div>
 
-      <div>
-        <label class="login-modal-label mb-2 block text-sm">Nome do Personagem</label>
-        <input
-          v-model="formularioCriacao.nome"
-          type="text"
-          class="login-modal-input w-full rounded-2xl border px-6 py-4 text-lg outline-none"
-          placeholder="Ex: Sir Elandor, o Guardiao Templario"
-        />
-      </div>
-
-      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <p class="login-modal-muted sm:col-span-2 text-xs">
-          Use o e-mail liberado pelo mestre. Crie um usuario unico para fazer login — ele pode ser diferente do seu e-mail.
-        </p>
-
-        <div class="sm:col-span-2">
-          <label class="login-modal-label mb-2 block text-sm">E-mail liberado pelo mestre</label>
-          <input
-            v-model="emailContaCriacao"
-            type="email"
-            autocomplete="email"
-            class="login-modal-input w-full rounded-2xl border px-6 py-4 outline-none"
-            placeholder="email@cadastrado.com"
-          />
+        <!-- Email + Username -->
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <p class="login-modal-muted sm:col-span-2 text-xs">
+            Use o e-mail liberado pelo mestre. Crie um usuario unico para fazer login.
+          </p>
+          <div class="sm:col-span-2">
+            <label class="login-modal-label mb-2 block text-sm"
+              >E-mail liberado pelo mestre <span class="text-red-400">*</span></label
+            >
+            <input
+              v-model="emailContaCriacao"
+              type="email"
+              autocomplete="email"
+              class="login-modal-input w-full rounded-2xl border px-6 py-4 outline-none"
+              placeholder="email@cadastrado.com"
+            />
+          </div>
+          <div class="sm:col-span-2">
+            <label class="login-modal-label mb-2 block text-sm"
+              >Nome de usuario (para login) <span class="text-red-400">*</span></label
+            >
+            <input
+              v-model="usernameContaCriacao"
+              type="text"
+              autocomplete="username"
+              class="login-modal-input w-full rounded-2xl border px-6 py-4 outline-none"
+              placeholder="ex: hellsccythe (3-20 letras)"
+            />
+            <p class="mt-1 text-xs text-zinc-500">Apenas letras, numeros, _ e -.</p>
+          </div>
         </div>
 
-        <div class="sm:col-span-2">
-          <label class="login-modal-label mb-2 block text-sm">Nome de usuario (para login)</label>
-          <input
-            v-model="usernameContaCriacao"
-            type="text"
-            autocomplete="username"
-            class="login-modal-input w-full rounded-2xl border px-6 py-4 outline-none"
-            placeholder="ex: hellsccythe (3-20 chars)"
-          />
-          <p class="mt-1 text-xs text-zinc-500">Apenas letras, numeros, _ e -. Sera usado para entrar no jogo.</p>
+        <!-- Senha -->
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div>
+            <label class="login-modal-label mb-2 block text-sm"
+              >Senha <span class="text-red-400">*</span></label
+            >
+            <input
+              v-model="senhaContaCriacao"
+              type="password"
+              autocomplete="new-password"
+              class="login-modal-input w-full rounded-2xl border px-6 py-4 outline-none"
+              placeholder="Min. 8 letras"
+            />
+            <div class="mt-2 flex gap-1">
+              <div
+                v-for="n in 4"
+                :key="n"
+                class="h-1 flex-1 rounded-full transition-colors"
+                :class="forcaSenha >= n ? forcaSenhaClasse : 'bg-zinc-700'"
+              />
+            </div>
+            <p class="mt-1 text-xs text-zinc-500">Min. 8 letras, 1 maiuscula, 1 numero, 1 especial.</p>
+          </div>
+          <div>
+            <label class="login-modal-label mb-2 block text-sm"
+              >Confirmar senha <span class="text-red-400">*</span></label
+            >
+            <input
+              v-model="confirmacaoSenha"
+              type="password"
+              autocomplete="new-password"
+              class="login-modal-input w-full rounded-2xl border px-6 py-4 outline-none"
+              placeholder="Repita sua senha"
+            />
+          </div>
         </div>
 
+        <!-- Genero + Indole -->
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div>
+            <label class="login-modal-label mb-2 block text-sm"
+              >Genero <span class="text-red-400">*</span></label
+            >
+            <VSelect
+              id="create-character-genero"
+              v-model="formularioCriacao.generoId"
+              :options="opcoesGeneroSelect"
+              aria-label="Selecionar genero do personagem"
+              root-class="w-full"
+              trigger-class="login-modal-input px-6 py-4 !rounded-2xl"
+            />
+          </div>
+          <div>
+            <label class="login-modal-label mb-2 block text-sm"
+              >Indole <span class="text-red-400">*</span></label
+            >
+            <VSelect
+              id="create-character-indole"
+              v-model="formularioCriacao.indoleId"
+              :options="opcoesIndoleSelect"
+              aria-label="Selecionar indole do personagem"
+              root-class="w-full"
+              trigger-class="login-modal-input px-6 py-4 !rounded-2xl"
+            />
+          </div>
+        </div>
+
+        <!-- Aparencia fisica -->
         <div>
-          <label class="login-modal-label mb-2 block text-sm">Senha</label>
-          <input
-            v-model="senhaContaCriacao"
-            type="password"
-            autocomplete="new-password"
-            class="login-modal-input w-full rounded-2xl border px-6 py-4 outline-none"
-            placeholder="Minimo 6 caracteres"
+          <div class="mb-2 flex items-center justify-between">
+            <label class="login-modal-label text-sm"
+              >Aparencia Fisica <span class="text-red-400">*</span></label
+            >
+            <span
+              class="text-xs"
+              :class="charsAparencia >= 30 ? 'text-green-400' : 'text-zinc-500'"
+              >{{ charsAparencia }}/30 letras (sem espacos)</span
+            >
+          </div>
+          <textarea
+            v-model="formularioCriacao.aparencia"
+            rows="4"
+            class="login-modal-input min-h-[120px] w-full resize-y rounded-2xl border px-6 py-4 outline-none"
+            placeholder="Descreva a aparencia fisica do personagem..."
           />
         </div>
 
+        <!-- Historia -->
         <div>
-          <label class="login-modal-label mb-2 block text-sm">Confirmar senha</label>
-          <input
-            v-model="confirmacaoSenha"
-            type="password"
-            autocomplete="new-password"
-            class="login-modal-input w-full rounded-2xl border px-6 py-4 outline-none"
-            placeholder="Repita sua senha"
-          />
-        </div>
-      </div>
-
-      <div>
-        <label class="login-modal-label mb-2 block text-sm">Indole (Alinhamento)</label>
-        <v-select
-          id="create-character-indole"
-          v-model="formularioCriacao.indole"
-          :options="opcoesIndole"
-          aria-label="Selecionar indole do personagem"
-          root-class="w-full"
-          trigger-class="login-modal-input px-6 py-4 !rounded-2xl"
-        />
-      </div>
-
-      <div>
-        <label class="login-modal-label mb-2 block text-sm">Aparencia Fisica</label>
-        <textarea
-          v-model="formularioCriacao.aparencia"
-          rows="4"
-          class="login-modal-input min-h-[120px] w-full resize-y rounded-2xl border px-6 py-4 outline-none"
-          placeholder="Descreva a aparencia fisica do personagem..."
-        />
-      </div>
-
-      <div>
-        <label class="login-modal-label mb-2 block text-sm">Historia do Personagem</label>
-        <textarea
-          v-model="formularioCriacao.historia"
-          rows="8"
-          class="login-modal-input min-h-[200px] w-full resize-y rounded-2xl border px-6 py-4 outline-none"
-          placeholder="Escreva a historia completa do seu personagem aqui..."
-        />
-      </div>
-
-      <div>
-        <label class="login-modal-label mb-2 block text-sm"
-          >Documento da Historia (opcional - Word ou PDF)</label
-        >
-        <div
-          class="login-create-doczone rounded-2xl border-2 border-dashed p-8 text-center transition-colors"
-          :class="
-            carregandoCriacao
-              ? 'cursor-wait opacity-70 pointer-events-none'
-              : 'cursor-pointer active:scale-[0.995]'
-          "
-          @click="acionarInputDoc"
-        >
-          <input
-            ref="inputDocCriacao"
-            type="file"
-            accept=".doc,.docx,.pdf"
-            class="hidden"
-            @change="selecionarDoc"
-          />
-
+          <div class="mb-2 flex items-center justify-between">
+            <label class="login-modal-label text-sm"
+              >Historia do Personagem <span class="text-red-400">*</span></label
+            >
+            <span
+              class="text-xs"
+              :class="charsHistoria >= 100 ? 'text-green-400' : 'text-zinc-500'"
+              >{{ charsHistoria }}/100 letras</span
+            >
+          </div>
           <div
-            v-if="docSelecionado"
-            class="login-create-doc-selected flex items-center justify-center gap-2"
+            class="historia-preview login-modal-input min-h-[160px] w-full cursor-pointer rounded-2xl border px-6 py-4"
+            :class="formularioCriacao.historia ? 'text-sm leading-relaxed' : 'italic text-zinc-500'"
+            @click="abrirEditorHistoria"
+            title="Clique para escrever a historia"
           >
-            <span class="font-medium">{{ docSelecionado.name }}</span>
-          </div>
-          <div v-else>
-            <p class="login-modal-label">Clique para enviar documento</p>
-            <p class="login-modal-muted mt-1 text-xs">.doc, .docx ou .pdf</p>
+            <span v-if="!formularioCriacao.historia">Clique aqui para escrever a historia do personagem...</span>
+            <div v-else class="historia-preview-html" v-html="historiaHtml" />
           </div>
         </div>
-      </div>
+
+        <!-- Documento (alternativa ao texto) -->
+        <div>
+          <label class="login-modal-label mb-2 block text-sm"
+            >Documento da Historia
+            <span class="text-zinc-500">(alternativa — Word ou PDF)</span></label
+          >
+          <div
+            class="login-create-doczone rounded-2xl border-2 border-dashed p-8 text-center transition-colors"
+            :class="
+              carregandoCriacao
+                ? 'cursor-wait opacity-70 pointer-events-none'
+                : 'cursor-pointer active:scale-[0.995]'
+            "
+            @click="acionarInputDoc"
+          >
+            <input
+              ref="inputDocCriacao"
+              type="file"
+              accept=".doc,.docx,.pdf"
+              class="hidden"
+              @change="selecionarDoc"
+            />
+            <div
+              v-if="docSelecionadoCriacao"
+              class="login-create-doc-selected flex items-center justify-center gap-2"
+            >
+              <span class="font-medium">{{ docSelecionadoCriacao.name }}</span>
+            </div>
+            <div v-else>
+              <p class="login-modal-label">Clique para enviar documento</p>
+              <p class="login-modal-muted mt-1 text-xs">.doc, .docx ou .pdf</p>
+            </div>
+          </div>
+        </div>
+      </template>
 
       <template #footer>
-        <div class="space-y-3">
+        <div v-if="!criacaoEnviada" class="space-y-3">
           <p v-if="erroCriacao" class="text-sm text-red-400">{{ erroCriacao }}</p>
-
           <div class="flex justify-end gap-3">
             <button
               @click="fecharModalCriacao"
@@ -497,11 +599,92 @@
               Cancelar
             </button>
             <button
-              @click="criarPersonagem"
+              @click="submeterCriacao"
               :disabled="envioDesabilitado"
               class="login-modal-submit action-btn rounded-xl px-7 py-2 font-medium transition-all disabled:cursor-wait disabled:opacity-60"
             >
-              {{ carregandoCriacao ? 'Criando...' : 'Criar Personagem' }}
+              {{ carregandoCriacao ? 'Enviando...' : 'Enviar Solicitacao' }}
+            </button>
+          </div>
+        </div>
+      </template>
+    </Modal>
+
+    <!-- ══ Modal editor de história ══════════════════════════════════════════ -->
+    <Modal
+      v-if="historiaEditorAberto"
+      panel-class="max-w-3xl historia-editor-modal"
+      body-class="p-0"
+      :show-close-button="false"
+      :close-on-backdrop="false"
+      :close-on-esc="false"
+      @close="historiaEditorAberto = false"
+    >
+      <!-- Toolbar -->
+      <div class="editor-toolbar flex flex-wrap items-center gap-1 border-b px-4 py-2">
+        <button type="button" class="editor-btn font-serif text-base font-bold" title="Titulo" @mousedown.prevent="formatDoc('formatBlock', 'h2')">T</button>
+        <button type="button" class="editor-btn font-serif text-sm font-semibold" title="Subtitulo" @mousedown.prevent="formatDoc('formatBlock', 'h3')">t</button>
+        <div class="h-5 w-px bg-white/20" />
+        <button type="button" class="editor-btn font-bold" title="Negrito (Ctrl+B)" @mousedown.prevent="formatDoc('bold')"><strong>B</strong></button>
+        <button type="button" class="editor-btn italic" title="Italico (Ctrl+I)" @mousedown.prevent="formatDoc('italic')"><em>I</em></button>
+        <button type="button" class="editor-btn underline" title="Sublinhado (Ctrl+U)" @mousedown.prevent="formatDoc('underline')">U</button>
+        <div class="h-5 w-px bg-white/20" />
+        <button type="button" class="editor-btn" title="Lista com marcadores" @mousedown.prevent="formatDoc('insertUnorderedList')">• Lista</button>
+        <button type="button" class="editor-btn" title="Lista numerada" @mousedown.prevent="formatDoc('insertOrderedList')">1. Lista</button>
+        <div class="h-5 w-px bg-white/20" />
+        <button type="button" class="editor-btn" title="Linha separadora" @mousedown.prevent="formatDoc('insertHorizontalRule')">—</button>
+        <button type="button" class="editor-btn" title="Paragrafo normal" @mousedown.prevent="formatDoc('formatBlock', 'p')">¶</button>
+        <div class="h-5 w-px bg-white/20" />
+        <button type="button" class="editor-btn text-zinc-400" title="Desfazer (Ctrl+Z)" @mousedown.prevent="formatDoc('undo')">↩</button>
+        <button type="button" class="editor-btn text-zinc-400" title="Refazer (Ctrl+Y)" @mousedown.prevent="formatDoc('redo')">↪</button>
+        <div class="h-5 w-px bg-white/20" />
+        <select
+          class="editor-font-select"
+          title="Fonte"
+          @mousedown="saveSelection"
+          @change="aplicarFonte(($event.target as HTMLSelectElement).value); ($event.target as HTMLSelectElement).value = ''"
+        >
+          <option value="" disabled selected>Fonte...</option>
+          <option value="Arial">Arial</option>
+          <option value="Georgia">Georgia</option>
+          <option value="Cinzel">Cinzel</option>
+          <option value="EB Garamond">Garamond</option>
+          <option value="Palatino Linotype">Palatino</option>
+          <option value="Courier New">Courier</option>
+        </select>
+
+        <div class="ml-auto text-xs" :class="charsHistoria >= 100 ? 'text-green-400' : 'text-zinc-500'">
+          {{ charsHistoria }}/100 letras
+        </div>
+      </div>
+
+      <!-- Área de edição -->
+      <div
+        ref="editorRef"
+        contenteditable="true"
+        class="editor-content"
+        @keydown="onEditorKeydown"
+        @mouseup="saveSelection"
+        @keyup="saveSelection"
+      />
+
+      <template #footer>
+        <div class="flex items-center justify-between gap-3 px-1">
+          <p class="text-xs text-zinc-500">Use Ctrl+B / Ctrl+I / Ctrl+U para formatar o texto selecionado.</p>
+          <div class="flex gap-2">
+            <button
+              type="button"
+              class="login-modal-cancel-btn action-btn rounded-xl border px-5 py-2 text-sm transition-colors"
+              @click="historiaEditorAberto = false"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              class="login-modal-submit action-btn rounded-xl px-6 py-2 text-sm font-medium transition-all"
+              @click="confirmarHistoria"
+            >
+              Confirmar
             </button>
           </div>
         </div>
@@ -511,16 +694,21 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Modal from '@/components/Modal.vue'
 import VSelect from '@/components/VSelect.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useCharactersStore } from '@/stores/characters'
 import { useSmartImageFocus } from '@/composables/useSmartImageFocus'
-import { registrarECriarPersonagem } from '@/lib/api/personagens.api'
-import { uploadAvatar, uploadHistoryDocument } from '@/lib/supabase/storage'
-import type { PersonagemPublicoApi } from '@/types/supabase'
+import {
+  submeterSolicitacaoCriacao,
+  uploadAvatarCriacao,
+  uploadHistoriaDoc,
+} from '@/lib/api/character-creation-requests.api'
+import { listarIndole } from '@/lib/api/indole.api'
+import { listarGeneros } from '@/lib/api/genero.api'
+import type { IndoleApi, GeneroApi, PersonagemPublicoApi } from '@/types/supabase'
 
 const storePersonagens = useCharactersStore()
 const authStore = useAuthStore()
@@ -555,32 +743,41 @@ const senhaMestre = ref('')
 const carregandoMestre = ref(false)
 const erroMestre = ref('')
 
-const inputArquivoCriacao = ref<HTMLInputElement | null>(null)
-const inputDocCriacao = ref<HTMLInputElement | null>(null)
-const urlPreviewCriacao = ref<string | null>(null)
-const arquivoSelecionado = ref<File | null>(null)
-const docSelecionado = ref<File | null>(null)
-const arrastando = ref(false)
 const carregandoCriacao = ref(false)
 const erroCriacao = ref('')
+const criacaoEnviada = ref(false)
 const emailContaCriacao = ref('')
 const usernameContaCriacao = ref('')
 const senhaContaCriacao = ref('')
 const confirmacaoSenha = ref('')
+const nomePersonagem = ref('')
+const sobrenomePersonagem = ref('')
+const arrastando = ref(false)
+const avatarArquivoCriacao = ref<File | null>(null)
+const avatarPreviewUrl = ref('')
+const docSelecionadoCriacao = ref<File | null>(null)
+const inputArquivoCriacao = ref<HTMLInputElement | null>(null)
+const inputDocCriacao = ref<HTMLInputElement | null>(null)
+const historiaEditorAberto = ref(false)
+const historiaHtml = ref('')
+const editorRef = ref<HTMLElement | null>(null)
+let savedRange: Range | null = null
 const formularioCriacao = ref({
-  nome: '',
-  indole: 'neutro',
+  indoleId: null as number | null,
+  generoId: null as number | null,
   aparencia: '',
   historia: '',
 })
 
-const opcoesIndole = [
-  { value: 'bom', label: 'Bom' },
-  { value: 'neutro-bom', label: 'Neutro com tendencias boas' },
-  { value: 'neutro', label: 'Neutro' },
-  { value: 'neutro-ruim', label: 'Neutro com tendencias ruins' },
-  { value: 'ruim', label: 'Ruim' },
-]
+const opcoesIndole = ref<IndoleApi[]>([])
+const opcoesGenero = ref<GeneroApi[]>([])
+
+const opcoesIndoleSelect = computed(() =>
+  opcoesIndole.value.map((i) => ({ value: i.id, label: i.descricao })),
+)
+const opcoesGeneroSelect = computed(() =>
+  opcoesGenero.value.map((g) => ({ value: g.id, label: g.descricao })),
+)
 
 const personagens = computed(() => storePersonagens.publicCharacters)
 const layout = computed(() => storePersonagens.layout)
@@ -599,10 +796,16 @@ const algumCarregamento = computed(
 
 const envioDesabilitado = computed(() => {
   if (carregandoCriacao.value) return true
-  if (!formularioCriacao.value.nome.trim()) return true
+  if (!nomePersonagem.value.trim()) return true
+  if (!avatarArquivoCriacao.value) return true
+  if (!usernameContaCriacao.value.trim()) return true
   if (!emailContaCriacao.value.trim()) return true
   if (!senhaContaCriacao.value) return true
   if (!confirmacaoSenha.value) return true
+  if (formularioCriacao.value.aparencia.replace(/\s/g, '').length < 30) return true
+  const temHistoria = formularioCriacao.value.historia.length >= 100
+  const temDoc = !!docSelecionadoCriacao.value
+  if (!temHistoria && !temDoc) return true
   return false
 })
 
@@ -612,6 +815,8 @@ onMounted(async () => {
     router.replace({ path: route.path, query: {} })
   }
   await storePersonagens.fetchPaginaInicial()
+  listarIndole().then((data) => { opcoesIndole.value = data }).catch(() => {})
+  listarGeneros().then((data) => { opcoesGenero.value = data }).catch(() => {})
 })
 
 function traduzirErroAuth(mensagem: string): string {
@@ -717,66 +922,207 @@ async function logarMestre() {
   }
 }
 
+const charsAparencia = computed(() => formularioCriacao.value.aparencia.replace(/\s/g, '').length)
+const charsHistoria = computed(() => formularioCriacao.value.historia.length)
+const forcaSenha = computed(() => {
+  const s = senhaContaCriacao.value
+  if (!s) return 0
+  let pts = 0
+  if (s.length >= 8) pts++
+  if (/[A-Z]/.test(s)) pts++
+  if (/[0-9]/.test(s)) pts++
+  if (/[^a-zA-Z0-9]/.test(s)) pts++
+  return pts
+})
+const forcaSenhaClasse = computed(() => {
+  if (forcaSenha.value <= 1) return 'bg-red-500'
+  if (forcaSenha.value === 2) return 'bg-orange-400'
+  if (forcaSenha.value === 3) return 'bg-yellow-400'
+  return 'bg-green-500'
+})
+
+async function comprimirImagem(file: File, maxPx = 800, q = 0.82): Promise<File> {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file)
+    const img = new Image()
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const scale = Math.min(1, maxPx / Math.max(img.width, img.height))
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.round(img.width * scale)
+      canvas.height = Math.round(img.height * scale)
+      const ctx = canvas.getContext('2d')!
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) { resolve(file); return }
+          resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }))
+        },
+        'image/jpeg',
+        q,
+      )
+    }
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file) }
+    img.src = url
+  })
+}
+
 function acionarInputArquivo() {
-  if (carregandoCriacao.value) return
   inputArquivoCriacao.value?.click()
 }
 
-function selecionarArquivo(event: Event) {
-  const alvo = event.target as HTMLInputElement
-  if (alvo.files?.[0]) processarAvatar(alvo.files[0])
+async function processarImagemAvatar(file: File) {
+  if (!file.type.startsWith('image/')) return
+  if (file.size > 5 * 1024 * 1024) {
+    erroCriacao.value = 'Imagem muito grande. Maximo 5MB.'
+    return
+  }
+  const comprimida = await comprimirImagem(file)
+  avatarArquivoCriacao.value = comprimida
+  if (avatarPreviewUrl.value) URL.revokeObjectURL(avatarPreviewUrl.value)
+  avatarPreviewUrl.value = URL.createObjectURL(comprimida)
+  erroCriacao.value = ''
 }
 
-function soltarArquivo(event: DragEvent) {
+async function selecionarArquivo(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (file) await processarImagemAvatar(file)
+  input.value = ''
+}
+
+async function soltarArquivo(event: DragEvent) {
   arrastando.value = false
-  if (event.dataTransfer?.files?.[0]) processarAvatar(event.dataTransfer.files[0])
-}
-
-function processarAvatar(arquivo: File) {
-  if (!arquivo.type.startsWith('image/')) {
-    alert('Apenas imagens sao permitidas!')
-    return
-  }
-
-  if (arquivo.size > 5 * 1024 * 1024) {
-    alert('O arquivo deve ter no maximo 5MB!')
-    return
-  }
-
-  arquivoSelecionado.value = arquivo
-  urlPreviewCriacao.value = URL.createObjectURL(arquivo)
+  const file = event.dataTransfer?.files?.[0]
+  if (file) await processarImagemAvatar(file)
 }
 
 function removerImagem() {
-  urlPreviewCriacao.value = null
-  arquivoSelecionado.value = null
+  avatarArquivoCriacao.value = null
+  if (avatarPreviewUrl.value) URL.revokeObjectURL(avatarPreviewUrl.value)
+  avatarPreviewUrl.value = ''
 }
 
 function acionarInputDoc() {
-  if (carregandoCriacao.value) return
   inputDocCriacao.value?.click()
 }
 
+function saveSelection() {
+  const sel = window.getSelection()
+  if (sel && sel.rangeCount > 0) {
+    savedRange = sel.getRangeAt(0).cloneRange()
+  }
+}
+
+function aplicarFonte(fontName: string) {
+  if (!fontName) return
+  editorRef.value?.focus()
+  if (savedRange) {
+    const sel = window.getSelection()
+    sel?.removeAllRanges()
+    sel?.addRange(savedRange)
+  }
+  document.execCommand('fontName', false, fontName)
+}
+
+function abrirEditorHistoria() {
+  if (!document.querySelector('link[data-editor-fonts]')) {
+    const link = document.createElement('link')
+    link.rel = 'stylesheet'
+    link.href = 'https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=EB+Garamond:ital,wght@0,400;0,700;1,400&display=swap'
+    link.dataset.editorFonts = '1'
+    document.head.appendChild(link)
+  }
+  historiaEditorAberto.value = true
+  nextTick(() => {
+    if (!editorRef.value) return
+    editorRef.value.innerHTML = historiaHtml.value || ''
+    editorRef.value.focus()
+    const range = document.createRange()
+    range.selectNodeContents(editorRef.value)
+    range.collapse(false)
+    const sel = window.getSelection()
+    sel?.removeAllRanges()
+    sel?.addRange(range)
+  })
+}
+
+const BLOCK_TAGS = new Set(['h1','h2','h3','h4','h5','h6','p','div','li','blockquote','pre'])
+
+function blockTagAtCursor(): string | null {
+  const sel = window.getSelection()
+  if (!sel || sel.rangeCount === 0) return null
+  let node: Node | null = sel.getRangeAt(0).startContainer
+  if (node.nodeType === Node.TEXT_NODE) node = node.parentElement
+  while (node && node !== editorRef.value) {
+    const tag = (node as Element).tagName?.toLowerCase()
+    if (tag && BLOCK_TAGS.has(tag)) return tag
+    node = (node as Element).parentElement
+  }
+  return null
+}
+
+function formatDoc(command: string, value?: string) {
+  editorRef.value?.focus()
+  if (command === 'formatBlock' && value && ['h2', 'h3'].includes(value)) {
+    if (blockTagAtCursor() === value) {
+      document.execCommand('formatBlock', false, 'p')
+      return
+    }
+  }
+  document.execCommand(command, false, value)
+}
+
+function onEditorKeydown(event: KeyboardEvent) {
+  if (event.ctrlKey || event.metaKey) {
+    if (event.key === 'b') { event.preventDefault(); formatDoc('bold'); return }
+    if (event.key === 'i') { event.preventDefault(); formatDoc('italic'); return }
+    if (event.key === 'u') { event.preventDefault(); formatDoc('underline'); return }
+    if (event.key === 'z') { event.preventDefault(); formatDoc('undo'); return }
+    if (event.key === 'y') { event.preventDefault(); formatDoc('redo'); return }
+  }
+
+  if (event.key === 'Enter') {
+    const tag = blockTagAtCursor()
+    if (tag === 'h2' || tag === 'h3') {
+      setTimeout(() => document.execCommand('formatBlock', false, 'p'), 0)
+    }
+  }
+}
+
+function confirmarHistoria() {
+  if (editorRef.value) {
+    historiaHtml.value = editorRef.value.innerHTML
+    formularioCriacao.value.historia = editorRef.value.innerText
+  }
+  historiaEditorAberto.value = false
+}
+
 function selecionarDoc(event: Event) {
-  const alvo = event.target as HTMLInputElement
-  if (alvo.files?.[0]) docSelecionado.value = alvo.files[0]
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (file) docSelecionadoCriacao.value = file
+  input.value = ''
 }
 
 function resetarFormulario() {
+  nomePersonagem.value = ''
+  sobrenomePersonagem.value = ''
+  removerImagem()
+  docSelecionadoCriacao.value = null
+  historiaHtml.value = ''
   formularioCriacao.value = {
-    nome: '',
-    indole: 'neutro',
+    indoleId: null,
+    generoId: null,
     aparencia: '',
     historia: '',
   }
   erroCriacao.value = ''
+  criacaoEnviada.value = false
   emailContaCriacao.value = ''
   usernameContaCriacao.value = ''
   senhaContaCriacao.value = ''
   confirmacaoSenha.value = ''
-  urlPreviewCriacao.value = null
-  arquivoSelecionado.value = null
-  docSelecionado.value = null
 }
 
 function fecharModalCriacao() {
@@ -784,118 +1130,216 @@ function fecharModalCriacao() {
   resetarFormulario()
 }
 
-async function criarPersonagem() {
-  if (!formularioCriacao.value.nome.trim()) {
-    erroCriacao.value = 'Informe o nome do personagem.'
+async function submeterCriacao() {
+  const nome = nomePersonagem.value.trim()
+  if (!nome) { erroCriacao.value = 'Informe o nome do personagem.'; return }
+
+  if (!avatarArquivoCriacao.value) { erroCriacao.value = 'Adicione um avatar para o personagem.'; return }
+
+  const username = usernameContaCriacao.value.trim()
+  if (!username) { erroCriacao.value = 'Informe o nome de usuario.'; return }
+  if (!/^[a-zA-Z0-9_-]{3,30}$/.test(username)) {
+    erroCriacao.value = 'Nome de usuario deve ter 3-30 caracteres (letras, numeros, _ ou -).'
     return
   }
 
   const email = emailContaCriacao.value.trim().toLowerCase()
-  if (!email) {
-    erroCriacao.value = 'Informe o e-mail liberado pelo mestre.'
+  if (!email) { erroCriacao.value = 'Informe o e-mail liberado pelo mestre.'; return }
+
+  const senha = senhaContaCriacao.value
+  if (!senha || senha.length < 8) { erroCriacao.value = 'A senha deve ter pelo menos 8 caracteres.'; return }
+  if (!/[A-Z]/.test(senha)) { erroCriacao.value = 'A senha deve ter pelo menos 1 letra maiuscula.'; return }
+  if (!/[0-9]/.test(senha)) { erroCriacao.value = 'A senha deve ter pelo menos 1 numero.'; return }
+  if (!/[^a-zA-Z0-9]/.test(senha)) { erroCriacao.value = 'A senha deve ter pelo menos 1 caractere especial.'; return }
+  if (senha !== confirmacaoSenha.value) { erroCriacao.value = 'As senhas nao conferem.'; return }
+
+  const aparencia = formularioCriacao.value.aparencia.trim()
+  if (aparencia.replace(/\s/g, '').length < 30) {
+    erroCriacao.value = 'Aparencia fisica deve ter pelo menos 30 caracteres (sem espacos).'
     return
   }
 
-  const username = usernameContaCriacao.value.trim().toLowerCase()
-  if (!username) {
-    erroCriacao.value = 'Informe o nome de usuario para login.'
-    return
-  }
-  if (!/^[a-z0-9_-]{3,20}$/.test(username)) {
-    erroCriacao.value = 'Usuario deve ter 3-20 caracteres (letras, numeros, _ ou -).'
-    return
-  }
-
-  if (!senhaContaCriacao.value || senhaContaCriacao.value.length < 6) {
-    erroCriacao.value = 'A senha deve ter pelo menos 6 caracteres.'
-    return
-  }
-
-  if (senhaContaCriacao.value !== confirmacaoSenha.value) {
-    erroCriacao.value = 'A confirmacao de senha nao confere.'
+  const historia = formularioCriacao.value.historia.trim()
+  if (historia.length < 100 && !docSelecionadoCriacao.value) {
+    erroCriacao.value = 'Historia deve ter pelo menos 100 caracteres ou envie um documento.'
     return
   }
 
   carregandoCriacao.value = true
   erroCriacao.value = ''
 
-  let personagemCriado: Awaited<ReturnType<typeof registrarECriarPersonagem>>
-
-  // Passo 1: servidor cria usuario + personagem
   try {
-    personagemCriado = await registrarECriarPersonagem({
-      email,
+    const { publicUrl: avatarUrl } = await uploadAvatarCriacao(avatarArquivoCriacao.value)
+
+    let historiaDocUrl: string | undefined
+    if (docSelecionadoCriacao.value) {
+      const { publicUrl } = await uploadHistoriaDoc(docSelecionadoCriacao.value)
+      historiaDocUrl = publicUrl
+    }
+
+    const nomeCompleto = sobrenomePersonagem.value.trim()
+      ? `${nome} ${sobrenomePersonagem.value.trim()}`
+      : nome
+
+    await submeterSolicitacaoCriacao({
+      nome: nomeCompleto,
       username,
-      senha: senhaContaCriacao.value,
-      nome: formularioCriacao.value.nome.trim(),
-      data: {
-        indole: formularioCriacao.value.indole,
-        appearance: formularioCriacao.value.aparencia,
-        history: formularioCriacao.value.historia,
-      },
+      password: senha,
+      email,
+      avatarUrl,
+      indoleId: formularioCriacao.value.indoleId,
+      generoId: formularioCriacao.value.generoId,
+      aparenciaFisica: aparencia,
+      historiaTexto: historiaHtml.value || historia || undefined,
+      historiaDocUrl,
     })
+    criacaoEnviada.value = true
   } catch (err: any) {
-    carregandoCriacao.value = false
-    const mensagemErro = String(err?.response?.data?.message ?? err?.message ?? '')
-
-    if (/liberado/i.test(mensagemErro)) {
+    const msg = String(err?.response?.data?.message ?? err?.message ?? '')
+    if (/liberado|whitelist/i.test(msg)) {
       erroCriacao.value = 'Este e-mail nao foi liberado pelo mestre. Solicite a liberacao e tente novamente.'
-      return
+    } else if (/username.*ja|usuario.*existe/i.test(msg)) {
+      erroCriacao.value = 'Este nome de usuario ja esta em uso. Escolha outro.'
+    } else {
+      erroCriacao.value = msg || 'Erro ao enviar solicitacao. Tente novamente.'
     }
-    if (/cadastrado/i.test(mensagemErro)) {
-      erroCriacao.value = 'Este e-mail ja esta cadastrado. Verifique a senha informada.'
-      return
-    }
-    erroCriacao.value = `Erro ao criar personagem: ${mensagemErro || 'Tente novamente.'}`
-    return
-  }
-
-  // Passo 2: login com as credenciais recem-criadas (username@rpg.internal)
-  try {
-    await authStore.entrar(`${username}@rpg.internal`, senhaContaCriacao.value, personagemCriado.characterId)
-  } catch (err: any) {
+  } finally {
     carregandoCriacao.value = false
-    const mensagemErro = String(err?.message ?? '')
-    erroCriacao.value = `Personagem criado! Erro ao fazer login automatico: ${traduzirErroAuth(mensagemErro) || mensagemErro}. Clique no personagem para entrar.`
-    await storePersonagens.fetchPaginaInicial()
-    fecharModalCriacao()
-    return
   }
-
-  const userId = authStore.usuario?.id
-
-  if (arquivoSelecionado.value && userId) {
-    try {
-      const publicUrl = await uploadAvatar(arquivoSelecionado.value, userId)
-      await storePersonagens.editCharacter(personagemCriado.characterId, { avatarUrl: publicUrl })
-    } catch {
-      // Avatar falhou mas personagem foi criado
-    }
-  }
-
-  if (docSelecionado.value && userId) {
-    try {
-      const doc = await uploadHistoryDocument(docSelecionado.value, userId)
-      await storePersonagens.editCharacter(personagemCriado.characterId, {
-        data: {
-          historyDocumentPath: doc.path,
-          historyDocumentName: doc.name,
-          historyDocumentMimeType: doc.mimeType,
-        },
-      })
-    } catch {
-      // Doc falhou mas personagem foi criado
-    }
-  }
-
-  carregandoCriacao.value = false
-  fecharModalCriacao()
-  authStore.definirPersonagemAtivo(personagemCriado.characterId)
-  router.push({ name: 'dashboard', query: { characterId: personagemCriado.characterId } })
 }
 </script>
 
 <style scoped>
+/* ── Preview de história ───────────────────────────────────────────────── */
+.historia-preview {
+  cursor: pointer;
+  transition: border-color 0.15s;
+  overflow: hidden;
+  max-height: 180px;
+}
+.historia-preview:hover {
+  border-color: rgb(139 92 246 / 0.5);
+}
+.historia-preview-html {
+  pointer-events: none;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+}
+.historia-preview-html :deep(h2) { font-size: 1rem; font-weight: 700; margin-bottom: 0.25rem; }
+.historia-preview-html :deep(h3) { font-size: 0.875rem; font-weight: 600; margin-bottom: 0.2rem; }
+.historia-preview-html :deep(p) { margin-bottom: 0.25rem; }
+.historia-preview-html :deep(ul), .historia-preview-html :deep(ol) { padding-left: 1.25rem; margin-bottom: 0.25rem; }
+
+/* ── Editor de história ────────────────────────────────────────────────── */
+:deep(.historia-editor-modal) {
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+}
+
+.editor-toolbar {
+  background: rgb(0 0 0 / 0.35);
+  border-color: rgb(255 255 255 / 0.08);
+  flex-shrink: 0;
+}
+
+.editor-btn {
+  min-width: 2rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.4rem;
+  font-size: 0.8125rem;
+  color: #d4d4d8;
+  border: 1px solid transparent;
+  transition: background 0.1s, border-color 0.1s;
+  cursor: pointer;
+}
+.editor-btn:hover {
+  background: rgb(255 255 255 / 0.1);
+  border-color: rgb(255 255 255 / 0.12);
+  color: #fff;
+}
+
+.editor-content {
+  flex: 1;
+  min-height: 360px;
+  max-height: calc(90vh - 200px);
+  overflow-y: auto;
+  padding: 1.5rem 2rem;
+  outline: none;
+  font-size: 0.9375rem;
+  line-height: 1.75;
+  color: #e4e4e7;
+  background: rgb(10 12 20 / 0.6);
+  caret-color: #a78bfa;
+}
+.editor-content:empty::before {
+  content: 'Comece a escrever a historia do seu personagem...';
+  color: #52525b;
+  pointer-events: none;
+}
+.editor-content :deep(h2) {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #f4f4f5;
+  margin: 1rem 0 0.4rem;
+}
+.editor-content :deep(h3) {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #d4d4d8;
+  margin: 0.75rem 0 0.3rem;
+}
+.editor-content :deep(p) {
+  margin-bottom: 0.6rem;
+}
+.editor-content :deep(ul), .editor-content :deep(ol) {
+  padding-left: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+.editor-content :deep(li) {
+  margin-bottom: 0.2rem;
+}
+.editor-content :deep(hr) {
+  border: none;
+  border-top: 1px solid rgb(255 255 255 / 0.15);
+  margin: 1rem 0;
+}
+.editor-content :deep(strong) { color: #f4f4f5; }
+.editor-content :deep(em) { color: #c4b5fd; }
+.editor-content :deep(u) { text-decoration-color: rgb(167 139 250 / 0.5); }
+
+/* ── Fontes aplicadas via execCommand('fontName') ── */
+.editor-content :deep(font[face="Arial"]) { font-family: Arial, sans-serif; }
+.editor-content :deep(font[face="Georgia"]) { font-family: Georgia, serif; }
+.editor-content :deep(font[face="Cinzel"]) { font-family: 'Cinzel', serif; }
+.editor-content :deep(font[face="EB Garamond"]) { font-family: 'EB Garamond', serif; }
+.editor-content :deep(font[face="Palatino Linotype"]) { font-family: 'Palatino Linotype', Palatino, serif; }
+.editor-content :deep(font[face="Courier New"]) { font-family: 'Courier New', monospace; }
+
+/* ── Select de fonte ── */
+.editor-font-select {
+  height: 1.75rem;
+  padding: 0 0.5rem;
+  border-radius: 0.4rem;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  background: rgb(0 0 0 / 0.4);
+  color: #d4d4d8;
+  font-size: 0.75rem;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.1s;
+}
+.editor-font-select:hover {
+  border-color: rgb(255 255 255 / 0.2);
+  color: #fff;
+}
+.editor-font-select option {
+  background: #1a1a2e;
+  color: #e4e4e7;
+}
+
 .action-btn {
   transition:
     transform 140ms ease,

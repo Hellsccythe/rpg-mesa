@@ -6,6 +6,7 @@ export interface SaveGodPayload {
   description?: string
   title?: string
   indole?: string
+  indole_id?: number | null
   dogma?: string
   anatema?: string
   weapons?: string
@@ -28,7 +29,7 @@ export async function createGod(payload: SaveGodPayload) {
   return data
 }
 
-export async function updateGod(godId: string, payload: Partial<SaveGodPayload>) {
+export async function updateGod(godId: string | number, payload: Partial<SaveGodPayload>) {
   const { data } = await api.patch<GodApi>(`/gods/admin/${godId}`, payload)
   return data
 }

@@ -866,6 +866,19 @@ const findStaticGodByName = (name?: string) => {
   return staticGods.find((god) => normalizeText(god.name || '') === normalizedName) ?? null
 }
 
+const INDOLE_CODIGO_PT: Record<string, string> = {
+  bom: 'Bom',
+  'neutro-bom': 'Neutro e Bom',
+  neutro: 'Neutro',
+  'neutro-ruim': 'Neutro e Maligno',
+  ruim: 'Maligno',
+}
+
+function traduzirCodigoIndole(codigo: string | undefined | null): string {
+  if (!codigo) return ''
+  return INDOLE_CODIGO_PT[codigo.toLowerCase()] ?? codigo
+}
+
 const mapApiGodToDisplayGod = (god: Partial<GodApi> | null | undefined) => {
   const source = god && typeof god === 'object' ? god : {}
   const fallbackGod = findStaticGodByName(source.name)
@@ -881,7 +894,7 @@ const mapApiGodToDisplayGod = (god: Partial<GodApi> | null | undefined) => {
     godId: (source as any).id ?? null,
     name: pickFirstText(source.name, fallbackGod?.name, 'Sem nome'),
     title: pickFirstText(source.title, fallbackGod?.title),
-    alinhamento: pickFirstText(source.indole, fallbackGod?.alinhamento, 'Neutro'),
+    alinhamento: traduzirCodigoIndole(source.indole) || pickFirstText(fallbackGod?.alinhamento, 'Neutro'),
     icon: pickFirstText(fallbackGod?.icon, '✦'),
     iconImage: source.imageUrl ?? '',
     cardImagePosition: pickFirstText(fallbackGod?.cardImagePosition, 'center 22%'),

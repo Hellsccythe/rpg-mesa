@@ -12,7 +12,7 @@ export interface SaveCityMapPayload {
   cityDescription?: string
   cityCulture?: string
   mapType?: 'city' | 'localized'
-  parentCityMapId?: string
+  parentCityMapId?: string | number
 }
 
 export async function listCityMapsForCityView() {
@@ -30,7 +30,7 @@ export async function createCityMap(payload: SaveCityMapPayload) {
   return data
 }
 
-export async function updateCityMap(cityMapId: string, payload: Partial<SaveCityMapPayload>) {
+export async function updateCityMap(cityMapId: string | number, payload: Partial<SaveCityMapPayload>) {
   const { data } = await api.patch<CityMapApi>(`/city-maps/admin/${cityMapId}`, payload)
   return data
 }

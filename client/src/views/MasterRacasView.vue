@@ -478,8 +478,6 @@ async function salvarNovaSkill() {
     const nova = await criarSkillCatalogo({
       name: modalSkill.nome.trim(),
       description: modalSkill.description.trim() || undefined,
-      type: modalSkill.type || undefined,
-      category: modalSkill.category || undefined,
       raca_vinculada: modalSkill.category === 'Racial' ? modalSkill.raca_vinculada.trim() || undefined : undefined,
     })
     skillsCatalogo.value.push(nova)

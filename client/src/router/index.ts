@@ -90,6 +90,30 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresMaster: true },
     },
     {
+      path: '/master/skills',
+      name: 'master-skills',
+      component: () => import('@/views/MasterSkillsView.vue'),
+      meta: { requiresAuth: true, requiresMaster: true },
+    },
+    {
+      path: '/master/tabelas-acessorias',
+      name: 'master-tabelas-acessorias',
+      component: () => import('@/views/MasterTabelasAcessoriasView.vue'),
+      meta: { requiresAuth: true, requiresMaster: true },
+    },
+    {
+      path: '/master/logins',
+      name: 'master-logins',
+      component: () => import('@/views/MasterLoginRequestsView.vue'),
+      meta: { requiresAuth: true, requiresMaster: true },
+    },
+    {
+      path: '/master/classes',
+      name: 'master-classes',
+      component: () => import('@/views/MasterClassesView.vue'),
+      meta: { requiresAuth: true, requiresMaster: true },
+    },
+    {
       path: '/equipamentos',
       name: 'equipamentos',
       component: () => import('@/views/EquipamentosView.vue'),

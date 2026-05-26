@@ -45,4 +45,28 @@ ClassesRouter.post("/admin", async (req, res) => {
   }
 });
 
+ClassesRouter.patch("/admin/:id", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    const resultado = await classesService.editar(req.params.id, req.body, token);
+    res.status(200).json(resultado);
+  } catch (error: any) {
+    const status =
+      error?.message?.includes("autenticado") || error?.message?.includes("restrito") ? 401 : 400;
+    res.status(status).json({ message: error?.message ?? "Erro ao editar classe" });
+  }
+});
+
+ClassesRouter.delete("/admin/:id", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    const resultado = await classesService.deletar(req.params.id, token);
+    res.status(200).json(resultado);
+  } catch (error: any) {
+    const status =
+      error?.message?.includes("autenticado") || error?.message?.includes("restrito") ? 401 : 400;
+    res.status(status).json({ message: error?.message ?? "Erro ao deletar classe" });
+  }
+});
+
 export { classesController as ClassesController };

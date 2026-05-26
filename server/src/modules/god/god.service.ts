@@ -5,12 +5,16 @@ import sharp from "sharp";
 
 const GODS_BUCKET = "gods";
 
+type IndoleRef = { id: number; codigo: string; descricao: string } | null;
+
 type GodRecord = {
   id: string;
   name: string;
   description: string;
   title: string;
   indole: string;
+  indole_id: number | null;
+  indole_obj: IndoleRef;
   dogma: string;
   anatema: string;
   weapons: string;
@@ -95,7 +99,7 @@ function currentGodDetails(row: any, data: any): GodDetails {
   };
 }
 
-function mapGod(row: any): GodRecord {
+function mapGod(row: any, indoleMap?: Map<number, IndoleRef>): GodRecord {
   const data = row?.data && typeof row.data === "object" ? row.data : {};
   const details = currentGodDetails(row, data);
   const rawImage = details.imageUrl;
@@ -106,12 +110,19 @@ function mapGod(row: any): GodRecord {
       : getAdminClient().storage.from(GODS_BUCKET).getPublicUrl(normalizeStoragePath(rawImage)).data.publicUrl
     : "";
 
+  const indoleId: number | null = typeof row?.indole_id === "number" ? row.indole_id : null;
+  const indoleObj: IndoleRef = indoleId !== null && indoleMap ? (indoleMap.get(indoleId) ?? null) : null;
+  // usa codigo como chave de filtro no frontend; fallback para string legada do data.indole
+  const indoleStr = indoleObj ? indoleObj.codigo : details.indole;
+
   return {
     id: String(row?.id ?? ""),
     name: normalizeText(row?.name),
     description: normalizeText(row?.description),
     title: details.title,
-    indole: details.indole,
+    indole: indoleStr,
+    indole_id: indoleId,
+    indole_obj: indoleObj,
     dogma: details.dogma,
     anatema: details.anatema,
     weapons: details.weapons,
@@ -120,6 +131,17 @@ function mapGod(row: any): GodRecord {
     createdAt: row?.created_at,
     updatedAt: row?.updated_at,
   };
+}
+
+async function fetchIndoleMap(): Promise<Map<number, IndoleRef>> {
+  const { data } = await getAdminClient()
+    .from("indole")
+    .select("id, codigo, descricao");
+  const map = new Map<number, IndoleRef>();
+  for (const row of data ?? []) {
+    map.set(row.id as number, { id: row.id as number, codigo: row.codigo as string, descricao: row.descricao as string });
+  }
+  return map;
 }
 
 async function removeImageFromStorage(imageUrl: string) {
@@ -174,12 +196,13 @@ export const godService = {
     const client = getSupabaseClient();
     const { data, error } = await client
       .from("gods")
-      .select("id, name, description, data, image_url, created_at, updated_at")
+      .select("id, name, description, data, image_url, indole_id, created_at, updated_at")
       .is("deleted_at", null)
       .order("created_at", { ascending: false });
 
     if (error) throw error;
-    return (data ?? []).map(mapGod);
+    const indoleMap = await fetchIndoleMap();
+    return (data ?? []).map((r) => mapGod(r, indoleMap));
   },
 
   async listar(accessToken?: string) {
@@ -188,32 +211,37 @@ export const godService = {
 
     const { data, error } = await admin
       .from("gods")
-      .select("id, name, description, data, image_url, created_at, updated_at")
+      .select("id, name, description, data, image_url, indole_id, created_at, updated_at")
       .is("deleted_at", null)
       .order("created_at", { ascending: false });
 
     if (error) throw error;
-    return (data ?? []).map(mapGod);
+    const indoleMap = await fetchIndoleMap();
+    return (data ?? []).map((r) => mapGod(r, indoleMap));
   },
 
   async salvar(dto: SalvarGodDto, accessToken?: string) {
     const masterUser = await ensureMasterAccess(accessToken);
     const admin = getAdminClient();
 
+    const insertPayload: Record<string, unknown> = {
+      name: dto.name.trim(),
+      description: dto.description?.trim() ?? "",
+      data: toGodDetails(dto),
+      created_by: masterUser.id,
+      updated_by: masterUser.id,
+    };
+    if (dto.indole_id !== undefined) insertPayload.indole_id = dto.indole_id ?? null;
+
     const { data, error } = await admin
       .from("gods")
-      .insert({
-        name: dto.name.trim(),
-        description: dto.description?.trim() ?? "",
-        data: toGodDetails(dto),
-        created_by: masterUser.id,
-        updated_by: masterUser.id,
-      })
-      .select("id, name, description, data, image_url, created_at, updated_at")
+      .insert(insertPayload)
+      .select("id, name, description, data, image_url, indole_id, created_at, updated_at")
       .single();
 
     if (error) throw error;
-    return mapGod(data);
+    const indoleMap = await fetchIndoleMap();
+    return mapGod(data, indoleMap);
   },
 
   async editar(godId: string, dto: EditarGodDto, accessToken?: string) {
@@ -222,7 +250,7 @@ export const godService = {
 
     const { data: current, error: currentError } = await admin
       .from("gods")
-      .select("id, name, description, data")
+      .select("id, name, description, data, indole_id")
       .eq("id", godId)
       .is("deleted_at", null)
       .single();
@@ -245,17 +273,19 @@ export const godService = {
     const updates: Record<string, unknown> = { data: nextDetails, updated_by: masterUser.id };
     if (dto.name !== undefined) updates.name = normalizeText(dto.name);
     if (dto.description !== undefined) updates.description = normalizeText(dto.description);
+    if (dto.indole_id !== undefined) updates.indole_id = dto.indole_id ?? null;
 
     const { data, error } = await admin
       .from("gods")
       .update(updates)
       .eq("id", godId)
       .is("deleted_at", null)
-      .select("id, name, description, data, image_url, created_at, updated_at")
+      .select("id, name, description, data, image_url, indole_id, created_at, updated_at")
       .single();
 
     if (error) throw error;
-    return mapGod(data);
+    const indoleMap = await fetchIndoleMap();
+    return mapGod(data, indoleMap);
   },
 
   async deletar(godId: string, accessToken?: string) {

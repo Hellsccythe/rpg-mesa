@@ -1,4 +1,7 @@
 // src/types/supabase.ts
+// id das entity tables agora é INTEGER (migration 022)
+// UUID permanece apenas em colunas de FK para auth.users (user_id, deleted_by, etc.)
+
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export interface Database {
@@ -6,39 +9,52 @@ export interface Database {
     Tables: {
       characters: {
         Row: {
-          id: string
-          user_id: string
+          id: number
+          user_id: string         // FK auth.users — permanece UUID
           campaign_id: string | null
           name: string
           level: number
           data: Json
           avatar_url: string | null
+          indole_id: number | null
+          genero_id: number | null
+          aparencia_fisica: string | null
+          historia_texto: string | null
+          historia_doc_url: string | null
           created_at: string
           updated_at: string
           deleted_at: string | null
-          deleted_by: string | null
+          deleted_by: string | null  // FK auth.users — permanece UUID
         }
         Insert: {
-          id?: string
           user_id: string
-          campaign_id?: string | null
           name: string
+          campaign_id?: string | null
           level?: number
           data?: Json
           avatar_url?: string | null
+          indole_id?: number | null
+          genero_id?: number | null
+          aparencia_fisica?: string | null
+          historia_texto?: string | null
+          historia_doc_url?: string | null
           created_at?: string
           updated_at?: string
           deleted_at?: string | null
           deleted_by?: string | null
         }
         Update: {
-          id?: string
           user_id?: string
           campaign_id?: string | null
           name?: string
           level?: number
           data?: Json
           avatar_url?: string | null
+          indole_id?: number | null
+          genero_id?: number | null
+          aparencia_fisica?: string | null
+          historia_texto?: string | null
+          historia_doc_url?: string | null
           created_at?: string
           updated_at?: string
           deleted_at?: string | null
@@ -47,7 +63,7 @@ export interface Database {
       }
       character_creation_whitelist: {
         Row: {
-          id: string
+          id: number
           email: string
           created_at: string
           created_by: string | null
@@ -57,7 +73,6 @@ export interface Database {
           deleted_by: string | null
         }
         Insert: {
-          id?: string
           email: string
           created_at?: string
           created_by?: string | null
@@ -67,7 +82,6 @@ export interface Database {
           deleted_by?: string | null
         }
         Update: {
-          id?: string
           email?: string
           created_at?: string
           created_by?: string | null
@@ -81,8 +95,48 @@ export interface Database {
   }
 }
 
+// ─── Lookup tables ──────────────────────────────────────────────────────────
+
+export interface IndoleApi {
+  id: number
+  codigo: string     // 'bom' | 'neutro-bom' | 'neutro' | 'neutro-ruim' | 'ruim'
+  descricao: string  // label display: 'Bom/Boa', 'Neutro Bom', etc.
+  created_at?: string
+}
+
+export interface GeneroApi {
+  id: number
+  codigo: string    // 'feminino' | 'masculino' | 'outro'
+  descricao: string // 'Feminino', 'Masculino', 'Outro'
+  pronome: string   // 'Ela', 'Ele', ''
+  created_at?: string
+}
+
+export interface CharacterCreationRequestApi {
+  id: number
+  nome: string
+  avatar_url: string | null
+  email: string
+  username: string
+  indole_id: number | null
+  indole?: IndoleApi | null
+  genero_id: number | null
+  genero?: GeneroApi | null
+  aparencia_fisica: string
+  historia_texto: string | null
+  historia_doc_url: string | null
+  status: 'pendente' | 'aprovado' | 'rejeitado'
+  rejeitado_motivo: string | null
+  revisado_em: string | null
+  revisado_por: string | null
+  created_at: string
+  updated_at: string
+}
+
+// ─── API interfaces ──────────────────────────────────────────────────────────
+
 export interface UsuarioApi {
-  id: string
+  id: string   // UUID do auth.users — mantém string
   email: string | undefined
 }
 
@@ -93,7 +147,7 @@ export interface LayoutApi {
 }
 
 export interface PersonagemPublicoApi {
-  characterId: string
+  characterId: number | string
   name: string
   level: number
   avatarUrl: string | null
@@ -103,13 +157,20 @@ export interface PersonagemPublicoApi {
 }
 
 export interface PersonagemApi {
-  characterId: string
-  userId: string
+  characterId: number | string
+  userId: string        // UUID auth.users
   campaignId: string | null
   name: string
   level: number
   data: any
   avatarUrl: string | null
+  indoleId: number | null
+  indole?: IndoleApi | null
+  generoId: number | null
+  genero?: GeneroApi | null
+  aparenciaFisica: string | null
+  historiaTexto: string | null
+  historiaDocUrl: string | null
   createdAt: string
   updatedAt: string
 }
@@ -130,6 +191,11 @@ export interface SalvarPersonagemDto {
   campaignId?: string
   avatarUrl?: string
   data?: Json
+  indoleId?: number | null
+  generoId?: number | null
+  aparenciaFisica?: string
+  historiaTexto?: string
+  historiaDocUrl?: string
 }
 
 export interface EditarPersonagemDto {
@@ -138,6 +204,11 @@ export interface EditarPersonagemDto {
   campaignId?: string
   avatarUrl?: string
   data?: Json
+  indoleId?: number | null
+  generoId?: number | null
+  aparenciaFisica?: string
+  historiaTexto?: string
+  historiaDocUrl?: string
 }
 
 export interface SolicitarAlteracaoPersonagemDto {
@@ -150,7 +221,7 @@ export interface SolicitarAlteracaoPersonagemDto {
 }
 
 export interface AprovacaoPendenteApi {
-  characterId: string
+  characterId: number | string
   currentName: string
   currentAvatarUrl: string | null
   currentHistory: string | null
@@ -166,21 +237,23 @@ export interface AprovacaoPendenteApi {
 }
 
 export interface PointOfInterestApi {
-  id?: string
+  id?: number | string
   name: string
   x: number
   y: number
   description?: string
-  targetCityMapId?: string
+  targetCityMapId?: number | string
   targetLabel?: string
 }
 
 export interface GodApi {
-  id: string
+  id: number | string
   name: string
   description: string
   title: string
-  indole: string
+  indole: string        // código: 'bom', 'neutro', 'ruim', etc.
+  indole_id: number | null
+  indole_obj?: IndoleApi | null  // objeto completo quando joined
   dogma: string
   anatema: string
   weapons: string
@@ -191,7 +264,7 @@ export interface GodApi {
 }
 
 export interface CityMapApi {
-  id: string
+  id: number | string
   name: string
   mapReference: string
   description: string
@@ -201,7 +274,7 @@ export interface CityMapApi {
   cityDescription: string
   cityCulture: string
   mapType: 'city' | 'localized'
-  parentCityMapId: string
+  parentCityMapId: number | string | null
   pointsOfInterest: PointOfInterestApi[]
   createdAt?: string
   updatedAt?: string

@@ -61,6 +61,26 @@ export class SalvarPersonagemDto {
   @IsOptional()
   @IsUrl()
   avatarUrl?: string;
+
+  @IsOptional()
+  @IsNumber()
+  indoleId?: number | null;
+
+  @IsOptional()
+  @IsNumber()
+  generoId?: number | null;
+
+  @IsOptional()
+  @IsString()
+  aparenciaFisica?: string;
+
+  @IsOptional()
+  @IsString()
+  historiaTexto?: string;
+
+  @IsOptional()
+  @IsString()
+  historiaDocUrl?: string;
 }
 
 // ==================== DTO PARA EDITAR PERSONAGEM ====================
@@ -79,6 +99,26 @@ export class EditarPersonagemDto {
   @ValidateNested()
   @Type(() => PersonagemDataDto)
   data?: PersonagemDataDto;
+
+  @IsOptional()
+  @IsNumber()
+  indoleId?: number | null;
+
+  @IsOptional()
+  @IsNumber()
+  generoId?: number | null;
+
+  @IsOptional()
+  @IsString()
+  aparenciaFisica?: string;
+
+  @IsOptional()
+  @IsString()
+  historiaTexto?: string;
+
+  @IsOptional()
+  @IsString()
+  historiaDocUrl?: string;
 }
 
 export class SolicitarAlteracaoPersonagemDto {

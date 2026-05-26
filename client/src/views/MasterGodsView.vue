@@ -147,17 +147,13 @@
                   placeholder="Titulo"
                   :disabled="!isEditing(god.id)"
                 />
-                <div class="select-wrap">
-                  <select
-                    v-model="draftFor(god.id).indole"
-                    class="tdl-campo appearance-none pr-12"
-                    :disabled="!isEditing(god.id)"
-                  >
-                    <option value="">— Indole —</option>
-                    <option v-for="opt in INDOLE_OPTIONS" :key="opt" :value="opt">{{ opt }}</option>
-                  </select>
-                  <span class="select-arrow" aria-hidden="true">˅</span>
-                </div>
+                <VSelect
+                  v-model="draftFor(god.id).indole_id"
+                  :options="opcoesIndoleSelect"
+                  :disabled="!isEditing(god.id)"
+                  root-class="w-full"
+                  trigger-class="tdl-campo"
+                />
                 <input
                   v-model="draftFor(god.id).weapons"
                   class="tdl-campo"
@@ -229,8 +225,8 @@
               </p>
 
               <div class="flex flex-wrap gap-2 text-xs">
-                <span :class="alignmentBadgeClass(draftFor(god.id).indole)">
-                  {{ normalizeAlignmentLabel(draftFor(god.id).indole) }}
+                <span :class="alignmentBadgeClass(god.indole || '')">
+                  {{ normalizeAlignmentLabel(god.indole || '') }}
                 </span>
                 <span
                   class="rounded-full border border-[#6B4E9E]/45 bg-[#0B1426] px-2.5 py-1 text-zinc-300"
@@ -306,13 +302,12 @@
           <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
             <input v-model="createForm.name" class="tdl-campo" placeholder="Nome" />
             <input v-model="createForm.title" class="tdl-campo" placeholder="Titulo" />
-            <div class="select-wrap">
-              <select v-model="createForm.indole" class="tdl-campo appearance-none pr-12">
-                <option value="">— Indole —</option>
-                <option v-for="opt in INDOLE_OPTIONS" :key="opt" :value="opt">{{ opt }}</option>
-              </select>
-              <span class="select-arrow" aria-hidden="true">˅</span>
-            </div>
+            <VSelect
+              v-model="createForm.indole_id"
+              :options="opcoesIndoleSelect"
+              root-class="w-full"
+              trigger-class="tdl-campo"
+            />
             <input v-model="createForm.weapons" class="tdl-campo" placeholder="Weapons" />
           </div>
           <input
@@ -354,17 +349,24 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import Modal from '@/components/Modal.vue'
 import TemaDarkLight from '@/components/TemaDarkLight.vue'
+import VSelect from '@/components/VSelect.vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useMasterCatalogStore } from '@/stores/masterCatalog'
 import { uploadGodImage } from '@/lib/api/gods.api'
-import type { GodApi } from '@/types/supabase'
+import { listarIndole } from '@/lib/api/indole.api'
+import type { GodApi, IndoleApi } from '@/types/supabase'
+
+const opcoesIndoleList = ref<IndoleApi[]>([])
+const opcoesIndoleSelect = computed(() =>
+  opcoesIndoleList.value.map((i) => ({ value: i.id, label: i.descricao })),
+)
 
 type GodFormState = {
   name: string
   description: string
   title: string
-  indole: string
+  indole_id: number | null
   dogma: string
   anatema: string
   weapons: string
@@ -381,19 +383,19 @@ const feedback = ref('')
 const feedbackError = ref(false)
 const nameFilter = ref('')
 const alignmentFilter = ref<'all' | 'bom' | 'mau' | 'neutro'>('all')
-const selectedCardId = ref('')
-const editingGodId = ref('')
+const selectedCardId = ref<string | number>('')
+const editingGodId = ref<string | number>('')
 const showCreate = ref(false)
 const createImageFile = ref<File | null>(null)
-const editImageFiles = reactive<Record<string, File | null>>({})
+const editImageFiles = reactive<Record<string | number, File | null>>({})
 
-const drafts = reactive<Record<string, GodFormState>>({})
+const drafts = reactive<Record<string | number, GodFormState>>({})
 
 const createForm = reactive<GodFormState>({
   name: '',
   description: '',
   title: '',
-  indole: '',
+  indole_id: null,
   dogma: '',
   anatema: '',
   weapons: '',
@@ -411,8 +413,8 @@ const filteredGods = computed(() => {
     const indole = (god.indole || '').toLowerCase()
     const matchesAlignment =
       alignmentFilter.value === 'all' ||
-      (alignmentFilter.value === 'bom' && indole.includes('bom')) ||
-      (alignmentFilter.value === 'mau' && (indole.includes('mau') || indole.includes('mal'))) ||
+      (alignmentFilter.value === 'bom' && (indole.includes('bom') || indole.includes('boa'))) ||
+      (alignmentFilter.value === 'mau' && (indole.includes('mau') || indole.includes('mal') || indole === 'ruim' || indole.includes('ruim'))) ||
       (alignmentFilter.value === 'neutro' && indole.includes('neutro'))
 
     return matchesName && matchesAlignment
@@ -433,7 +435,9 @@ function normalizeAlignmentLabel(raw: string) {
     value.includes('maligno') ||
     value.includes('maligna') ||
     value.includes('mau') ||
-    value.includes('mal')
+    value.includes('mal') ||
+    value === 'ruim' ||
+    value.endsWith('-ruim')
 
   if (hasNeutral && hasGood) return 'Neutro Bom'
   if (hasNeutral && hasEvil) return 'Neutro Maligno'
@@ -456,20 +460,11 @@ function alignmentBadgeClass(raw: string) {
   return `${base} border-[#6B4E9E]/45`
 }
 
-const INDOLE_OPTIONS = ['Neutro', 'Bom/Boa', 'Maligno(a)', 'Neutro Bom', 'Neutro Maligno']
 
-function normalizeIndoleToCanonical(raw: string): string {
-  if (!raw) return ''
-  const label = normalizeAlignmentLabel(raw)
-  if (INDOLE_OPTIONS.includes(label)) return label
-  if (INDOLE_OPTIONS.includes(raw)) return raw
-  return raw
-}
-
-const editFileInputs = reactive<Record<string, HTMLInputElement | null>>({})
+const editFileInputs = reactive<Record<string | number, HTMLInputElement | null>>({})
 const createFileInputRef = ref<HTMLInputElement | null>(null)
 
-function triggerEditImagePick(event: MouseEvent, godId: string) {
+function triggerEditImagePick(event: MouseEvent, godId: string | number) {
   if (!isEditing(godId)) return
   event.stopPropagation()
   editFileInputs[godId]?.click()
@@ -484,7 +479,7 @@ function toFormState(god: GodApi): GodFormState {
     name: god.name || '',
     description: god.description || '',
     title: god.title || '',
-    indole: normalizeIndoleToCanonical(god.indole || ''),
+    indole_id: god.indole_id ?? null,
     dogma: god.dogma || '',
     anatema: god.anatema || '',
     weapons: god.weapons || '',
@@ -493,13 +488,14 @@ function toFormState(god: GodApi): GodFormState {
   }
 }
 
-function draftFor(godId: string): GodFormState {
+function draftFor(godId: string | number): GodFormState {
   if (!drafts[godId]) {
     const found = gods.value.find((god) => god.id === godId)
     drafts[godId] = found
       ? toFormState(found)
       : toFormState({
           id: godId,
+          indole_id: null,
           name: '',
           description: '',
           title: '',
@@ -509,21 +505,23 @@ function draftFor(godId: string): GodFormState {
           weapons: '',
           shortDescription: '',
           imageUrl: '',
+          createdAt: '',
+          updatedAt: '',
         })
   }
   return drafts[godId]
 }
 
-function selectCard(godId: string) {
+function selectCard(godId: string | number) {
   selectedCardId.value = selectedCardId.value === godId ? '' : godId
   draftFor(godId)
 }
 
-function isEditing(godId: string) {
+function isEditing(godId: string | number) {
   return editingGodId.value === godId
 }
 
-function startEdit(godId: string) {
+function startEdit(godId: string | number) {
   selectedCardId.value = godId
   editingGodId.value = godId
   editImageFiles[godId] = null
@@ -533,7 +531,7 @@ function startEdit(godId: string) {
   }
 }
 
-function cancelEdit(godId: string) {
+function cancelEdit(godId: string | number) {
   const found = gods.value.find((item) => item.id === godId)
   if (found) {
     drafts[godId] = toFormState(found)
@@ -542,7 +540,7 @@ function cancelEdit(godId: string) {
   editingGodId.value = ''
 }
 
-function onEditImageSelected(godId: string, event: Event) {
+function onEditImageSelected(godId: string | number, event: Event) {
   const target = event.target as HTMLInputElement | null
   const file = target?.files?.[0]
   if (!file) return
@@ -560,7 +558,7 @@ function onCreateImageSelected(event: Event) {
   createForm.imageUrl = URL.createObjectURL(file)
 }
 
-async function saveGod(godId: string) {
+async function saveGod(godId: string | number) {
   const draft = draftFor(godId)
   if (!draft.name.trim()) {
     feedback.value = 'Nome do deus e obrigatorio.'
@@ -587,7 +585,7 @@ async function saveGod(godId: string) {
       name: draft.name,
       description: draft.description,
       title: draft.title,
-      indole: draft.indole,
+      indole_id: draft.indole_id,
       dogma: draft.dogma,
       anatema: draft.anatema,
       weapons: draft.weapons,
@@ -608,7 +606,7 @@ function resetCreateForm() {
   createForm.name = ''
   createForm.description = ''
   createForm.title = ''
-  createForm.indole = ''
+  createForm.indole_id = null
   createForm.dogma = ''
   createForm.anatema = ''
   createForm.weapons = ''
@@ -648,7 +646,7 @@ async function createGod() {
       name: createForm.name,
       description: createForm.description,
       title: createForm.title,
-      indole: createForm.indole,
+      indole_id: createForm.indole_id,
       dogma: createForm.dogma,
       anatema: createForm.anatema,
       weapons: createForm.weapons,
@@ -696,6 +694,7 @@ async function logout() {
 
 onMounted(async () => {
   await fetchGods()
+  listarIndole().then((data) => { opcoesIndoleList.value = data }).catch(() => {})
 })
 </script>
 

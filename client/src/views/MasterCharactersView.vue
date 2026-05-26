@@ -122,11 +122,11 @@ const store = useCharactersStore()
 
 const loading = ref(false)
 const characters = ref<PersonagemPublicoApi[]>([])
-const xSlider = reactive<Record<string, number>>({})
-const ySlider = reactive<Record<string, number>>({})
-const posicoesPendentes = reactive<Record<string, string>>({})
-const salvando = reactive<Record<string, boolean>>({})
-const erros = reactive<Record<string, string>>({})
+const xSlider = reactive<Record<string | number, number>>({})
+const ySlider = reactive<Record<string | number, number>>({})
+const posicoesPendentes = reactive<Record<string | number, string>>({})
+const salvando = reactive<Record<string | number, boolean>>({})
+const erros = reactive<Record<string | number, string>>({})
 
 function parsePosition(pos: string | null): { x: number; y: number } {
   if (!pos) return { x: 50, y: 20 }
@@ -136,25 +136,25 @@ function parsePosition(pos: string | null): { x: number; y: number } {
   return { x: isNaN(x) ? 50 : x, y: isNaN(y) ? 20 : y }
 }
 
-function onSliderChange(id: string, axis: 'x' | 'y', value: number) {
+function onSliderChange(id: string | number, axis: 'x' | 'y', value: number) {
   if (axis === 'x') xSlider[id] = value
   else ySlider[id] = value
   posicoesPendentes[id] = `${xSlider[id] ?? 50}% ${ySlider[id] ?? 20}%`
 }
 
-function centralizar(id: string) {
+function centralizar(id: string | number) {
   xSlider[id] = 50
   ySlider[id] = 50
   posicoesPendentes[id] = '50% 50%'
 }
 
-function resetarAuto(id: string) {
+function resetarAuto(id: string | number) {
   xSlider[id] = 50
   ySlider[id] = 20
   delete posicoesPendentes[id]
 }
 
-async function salvar(id: string) {
+async function salvar(id: string | number) {
   salvando[id] = true
   erros[id] = ''
   try {

@@ -286,6 +286,11 @@ export const personagensService = {
         name: payload.name,
         level: payload.level ?? 1,
         avatar_url: payload.avatarUrl ?? null,
+        indole_id: payload.indoleId ?? null,
+        genero_id: payload.generoId ?? null,
+        aparencia_fisica: payload.aparenciaFisica ?? null,
+        historia_texto: payload.historiaTexto ?? null,
+        historia_doc_url: payload.historiaDocUrl ?? null,
         data: initialData,
       })
       .select(PERSONAGEM_SELECT_FIELDS)
@@ -309,6 +314,11 @@ export const personagensService = {
     if (dto.level !== undefined) updates.level = dto.level;
     if ((dto as any).avatarUrl !== undefined) updates.avatar_url = (dto as any).avatarUrl;
     if (dto.data !== undefined) updates.data = dto.data;
+    if (dto.indoleId !== undefined) updates.indole_id = dto.indoleId ?? null;
+    if (dto.generoId !== undefined) updates.genero_id = dto.generoId ?? null;
+    if (dto.aparenciaFisica !== undefined) updates.aparencia_fisica = dto.aparenciaFisica;
+    if (dto.historiaTexto !== undefined) updates.historia_texto = dto.historiaTexto;
+    if (dto.historiaDocUrl !== undefined) updates.historia_doc_url = dto.historiaDocUrl;
 
     const { data, error } = await supabase
       .from(PERSONAGEM_TABLE)

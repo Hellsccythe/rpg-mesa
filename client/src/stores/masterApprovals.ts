@@ -29,7 +29,7 @@ export const useMasterApprovalsStore = defineStore('masterApprovals', {
       }
     },
 
-    async reviewPendingApproval(characterId: string, approve: boolean) {
+    async reviewPendingApproval(characterId: string | number, approve: boolean) {
       this.loading = true
       this.error = null
       try {

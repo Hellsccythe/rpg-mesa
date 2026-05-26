@@ -375,7 +375,7 @@ const carregando = ref(false)
 const erroMapa = ref('')
 const mapasCidade = ref<CityMapApi[]>([])
 const slugCidadeSelecionada = ref('hamlet')
-const idMapaCidadeSelecionado = ref('')
+const idMapaCidadeSelecionado = ref<string | number>('')
 
 const opcoesCidade = computed(() => {
   const mapaPorSlug = new Map<string, string>()
@@ -423,7 +423,7 @@ const mapasLocalizados = computed(() =>
 )
 
 const mapaLocalizadoPorId = computed(() => {
-  const mapa = new Map<string, CityMapApi>()
+  const mapa = new Map<string | number, CityMapApi>()
   mapasLocalizados.value.forEach((item) => mapa.set(item.id, item))
   return mapa
 })

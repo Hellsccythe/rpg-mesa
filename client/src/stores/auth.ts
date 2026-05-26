@@ -109,20 +109,20 @@ export const useAuthStore = defineStore('auth', () => {
     eMestre.value = master
   }
 
-  const definirPersonagemAtivo = (idPersonagem: string) => {
-    persistirMetaAuth(idPersonagem, eMestre.value)
+  const definirPersonagemAtivo = (idPersonagem: string | number) => {
+    persistirMetaAuth(String(idPersonagem), eMestre.value)
   }
 
-  const ativarModoMestreParaPersonagem = (idPersonagem: string) => {
-    persistirMetaAuth(idPersonagem, true)
+  const ativarModoMestreParaPersonagem = (idPersonagem: string | number) => {
+    persistirMetaAuth(String(idPersonagem), true)
   }
 
-  const podeReutilizarSessao = (idPersonagem: string) => {
+  const podeReutilizarSessao = (idPersonagem: string | number) => {
     const meta = lerMetaAuth()
     if (!meta || !sessao.value || !usuario.value) return false
     if (Date.now() - meta.autenticadoEm >= DURACAO_SESSAO_MS) return false
     if (meta.eMestre) return true
-    return meta.idPersonagemAtivo === idPersonagem
+    return meta.idPersonagemAtivo === String(idPersonagem)
   }
 
   const garantirSessaoValida = async () => {
@@ -192,7 +192,7 @@ export const useAuthStore = defineStore('auth', () => {
   const entrar = async (
     email: string,
     senha: string,
-    idPersonagem: string | null,
+    idPersonagem: string | number | null,
     opcoes?: { comoMestre?: boolean },
   ) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password: senha })
@@ -200,7 +200,7 @@ export const useAuthStore = defineStore('auth', () => {
     const comoMestre = opcoes?.comoMestre === true
     gravarMetaAuth({
       autenticadoEm: Date.now(),
-      idPersonagemAtivo: comoMestre ? null : idPersonagem,
+      idPersonagemAtivo: comoMestre ? null : (idPersonagem != null ? String(idPersonagem) : null),
       eMestre: comoMestre,
     })
     await garantirSessaoValida()

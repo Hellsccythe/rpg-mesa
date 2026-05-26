@@ -39,28 +39,28 @@ export const useClassesStore = defineStore('classes', () => {
   }
 
   async function pickClass(
-    characterId: string,
+    characterId: string | number,
     payload: { classId: string; className: string; classTier: string },
   ): Promise<PersonagemApi> {
     return escolherClasse(characterId, payload)
   }
 
   async function pickInitialSkill(
-    characterId: string,
+    characterId: string | number,
     payload: { classId: string; skillName: string },
   ): Promise<PersonagemApi> {
     return escolherSkillInicial(characterId, payload)
   }
 
   async function levelClass(
-    characterId: string,
+    characterId: string | number,
     payload: { classId: string },
   ): Promise<PersonagemApi> {
     return levelarClasse(characterId, payload)
   }
 
   async function addClassPoints(
-    characterId: string,
+    characterId: string | number,
     payload: { pontos: number },
   ): Promise<PersonagemApi> {
     return adicionarPontosDeClasse(characterId, payload)

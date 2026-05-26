@@ -17,6 +17,11 @@ export interface PersonagemEntity {
   level: number;
   data: Record<string, unknown>;
   avatarUrl: string | null;
+  indoleId: number | null;
+  generoId: number | null;
+  aparenciaFisica: string | null;
+  historiaTexto: string | null;
+  historiaDocUrl: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -48,6 +53,21 @@ class PersonagemModel {
 
   @Column({ name: "avatar_url", nullable: true })
   avatarUrl!: string | null;
+
+  @Column({ name: "indole_id", nullable: true })
+  indoleId!: number | null;
+
+  @Column({ name: "genero_id", nullable: true })
+  generoId!: number | null;
+
+  @Column({ name: "aparencia_fisica", nullable: true })
+  aparenciaFisica!: string | null;
+
+  @Column({ name: "historia_texto", nullable: true })
+  historiaTexto!: string | null;
+
+  @Column({ name: "historia_doc_url", nullable: true })
+  historiaDocUrl!: string | null;
 
   @Column({ name: "created_at" })
   createdAt!: string;

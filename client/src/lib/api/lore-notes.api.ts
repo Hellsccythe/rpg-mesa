@@ -23,7 +23,7 @@ export interface CreateLoreNotePayload {
 }
 
 /** Lista notas globais + específicas do personagem (para jogadores). */
-export async function listLoreNotes(characterId?: string): Promise<LoreNoteApi[]> {
+export async function listLoreNotes(characterId?: string | number): Promise<LoreNoteApi[]> {
   const params = characterId ? { characterId } : {}
   const { data } = await api.get<LoreNoteApi[]>('/lore-notes', { params })
   return data

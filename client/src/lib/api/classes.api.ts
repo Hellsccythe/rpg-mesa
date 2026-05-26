@@ -37,7 +37,7 @@ export async function listarProgressaoLevel(): Promise<LevelProgressionApi[]> {
 }
 
 export async function escolherClasse(
-  characterId: string,
+  characterId: string | number,
   payload: { classId: string; className: string; classTier: string },
 ) {
   const { data } = await api.post(`/personagens/${characterId}/escolher-classe`, payload)
@@ -45,7 +45,7 @@ export async function escolherClasse(
 }
 
 export async function escolherSkillInicial(
-  characterId: string,
+  characterId: string | number,
   payload: { classId: string; skillName: string },
 ) {
   const { data } = await api.post(`/personagens/${characterId}/escolher-skill-inicial`, payload)
@@ -53,7 +53,7 @@ export async function escolherSkillInicial(
 }
 
 export async function levelarClasse(
-  characterId: string,
+  characterId: string | number,
   payload: { classId: string },
 ) {
   const { data } = await api.post(`/personagens/${characterId}/levar-classe`, payload)
@@ -61,19 +61,36 @@ export async function levelarClasse(
 }
 
 export async function adicionarPontosDeClasse(
-  characterId: string,
+  characterId: string | number,
   payload: { pontos: number },
 ) {
   const { data } = await api.post(`/personagens/admin/${characterId}/class-points`, payload)
   return data
 }
 
-export async function createClass(payload: {
+export interface SalvarClassePayload {
   name: string
   tier: string
   description: string
   maxLevel?: number
-}) {
-  const { data } = await api.post('/classes/admin', payload)
+  statBonuses?: Record<string, unknown> | null
+  requirements?: { min_level?: number; required_classes?: number[] } | null
+  startingSkills?: string[] | null
+}
+
+export type EditarClassePayload = Partial<SalvarClassePayload>
+
+export async function createClass(payload: SalvarClassePayload): Promise<ClasseApi> {
+  const { data } = await api.post<ClasseApi>('/classes/admin', payload)
+  return data
+}
+
+export async function editarClasse(id: string | number, payload: EditarClassePayload): Promise<ClasseApi> {
+  const { data } = await api.patch<ClasseApi>(`/classes/admin/${id}`, payload)
+  return data
+}
+
+export async function deletarClasse(id: string | number): Promise<{ ok: boolean }> {
+  const { data } = await api.delete<{ ok: boolean }>(`/classes/admin/${id}`)
   return data
 }

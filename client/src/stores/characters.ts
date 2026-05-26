@@ -65,7 +65,7 @@ export const useCharactersStore = defineStore('characters', {
       }
     },
 
-    async fetchCharacterById(characterId: string) {
+    async fetchCharacterById(characterId: string | number) {
       this.loading = true
       this.error = null
       try {
@@ -126,7 +126,7 @@ export const useCharactersStore = defineStore('characters', {
       }
     },
 
-    async editCharacter(characterId: string, payload: EditarPersonagemDto) {
+    async editCharacter(characterId: string | number, payload: EditarPersonagemDto) {
       this.loading = true
       this.error = null
       try {
@@ -143,7 +143,7 @@ export const useCharactersStore = defineStore('characters', {
       }
     },
 
-    async requestCharacterChange(characterId: string, payload: SolicitarAlteracaoPersonagemDto) {
+    async requestCharacterChange(characterId: string | number, payload: SolicitarAlteracaoPersonagemDto) {
       this.loading = true
       this.error = null
       try {
@@ -161,7 +161,7 @@ export const useCharactersStore = defineStore('characters', {
     },
 
     async requestCharacterChangeWithFiles(
-      characterId: string,
+      characterId: string | number,
       payload: SolicitarAlteracaoPersonagemDto,
       avatarFile?: File,
       historyDocFile?: File,
