@@ -507,16 +507,23 @@
 
               <!-- Modo edição inline -->
               <template v-else>
-                <input
-                  v-model="manageModal.novaDescricao"
-                  class="field-input flex-1 rounded-lg border px-2 py-1.5 text-sm outline-none"
-                  @keydown.enter="salvarEdicaoManage(item.item)"
-                  @keydown.esc="manageModal.editandoItem = null"
-                />
-                <button @click="salvarEdicaoManage(item.item)" :disabled="manageModal.salvando" class="btn-primary rounded-lg px-2.5 py-1.5 text-xs font-semibold disabled:opacity-40">
+                <div class="flex-1 flex flex-col gap-1.5 min-w-0">
+                  <input
+                    v-model="manageModal.novaDescricao"
+                    class="field-input w-full rounded-lg border px-2 py-1.5 text-sm outline-none"
+                    placeholder="Descrição"
+                    @keydown.esc="manageModal.editandoItem = null"
+                  />
+                  <IconeInput
+                    v-if="manageModal.tipo === 'categoria'"
+                    v-model="manageModal.novoIcone"
+                    placeholder="Emoji ⚔️ ou mdi-sword"
+                  />
+                </div>
+                <button @click="salvarEdicaoManage(item.item)" :disabled="manageModal.salvando" class="btn-primary self-start rounded-lg px-2.5 py-1.5 text-xs font-semibold disabled:opacity-40">
                   {{ manageModal.salvando ? '...' : 'OK' }}
                 </button>
-                <button @click="manageModal.editandoItem = null" class="btn-ghost rounded-lg border px-2.5 py-1.5 text-xs">✕</button>
+                <button @click="manageModal.editandoItem = null" class="btn-ghost self-start rounded-lg border px-2.5 py-1.5 text-xs">✕</button>
               </template>
             </div>
           </div>
@@ -710,6 +717,7 @@ const manageModal = reactive({
   itens: [] as LookupItem[],
   editandoItem: null as number | null,
   novaDescricao: '',
+  novoIcone: '',
   salvando: false,
   deletando: null as number | null,
   erro: '',
@@ -995,6 +1003,7 @@ function abrirGerenciarModal(tipo: LookupTipo) {
 function iniciarEdicaoManage(item: LookupItem) {
   manageModal.editandoItem  = item.item
   manageModal.novaDescricao = item.descricao
+  manageModal.novoIcone     = item.icone ?? ''
   manageModal.erro          = ''
 }
 
@@ -1004,28 +1013,32 @@ async function salvarEdicaoManage(itemId: number) {
   manageModal.erro     = ''
 
   try {
-    const payload = { descricao: manageModal.novaDescricao.trim() }
+    const descricao = manageModal.novaDescricao.trim()
 
     if (manageModal.tipo === 'categoria') {
-      await editarCategoriaEquipamento(itemId, payload)
+      const icone = manageModal.novoIcone.trim() || null
+      await editarCategoriaEquipamento(itemId, { descricao, icone })
       const i = categorias.value.findIndex((c) => c.item === itemId)
-      if (i !== -1) categorias.value[i].descricao = payload.descricao
+      if (i !== -1) { categorias.value[i].descricao = descricao; categorias.value[i].icone = icone }
     } else if (manageModal.tipo === 'classe') {
-      await editarClasseEquipamento(itemId, payload)
+      await editarClasseEquipamento(itemId, { descricao })
       const i = classes.value.findIndex((c) => c.item === itemId)
-      if (i !== -1) classes.value[i].descricao = payload.descricao
+      if (i !== -1) classes.value[i].descricao = descricao
     } else if (manageModal.tipo === 'tipo') {
-      await editarTipoEquipamento(itemId, payload)
+      await editarTipoEquipamento(itemId, { descricao })
       const i = tipos.value.findIndex((t) => t.item === itemId)
-      if (i !== -1) tipos.value[i].descricao = payload.descricao
+      if (i !== -1) tipos.value[i].descricao = descricao
     } else {
-      await editarPropriedadeEquipamento(itemId, payload)
+      await editarPropriedadeEquipamento(itemId, { descricao })
       const i = propriedades.value.findIndex((p) => p.item === itemId)
-      if (i !== -1) propriedades.value[i].descricao = payload.descricao
+      if (i !== -1) propriedades.value[i].descricao = descricao
     }
 
     const mi = manageModal.itens.findIndex((i) => i.item === itemId)
-    if (mi !== -1) manageModal.itens[mi].descricao = payload.descricao
+    if (mi !== -1) {
+      manageModal.itens[mi].descricao = descricao
+      if (manageModal.tipo === 'categoria') manageModal.itens[mi].icone = manageModal.novoIcone.trim() || null
+    }
     manageModal.editandoItem = null
   } catch (err: any) {
     manageModal.erro = err?.response?.data?.message || 'Erro ao salvar.'
