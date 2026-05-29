@@ -1,5 +1,5 @@
 import { getAdminClient, getSupabaseClient } from "../../config/database/supabase/client.js";
-import { ensureMasterAccess } from "../../common/helpers/master-access.helper.js";
+import { ensureMasterAccess, getUserDisplayEmail } from "../../common/helpers/master-access.helper.js";
 import type { CriarRacaDto, EditarRacaDto } from "./raca.dto.js";
 
 const RACAS_TABLE = "racas";
@@ -74,8 +74,8 @@ export const racaService = {
         lore: dto.lore?.trim() ?? null,
         habilidades: dto.habilidades ?? [],
         atributos_bonus: dto.atributos_bonus ?? [],
-        created_by: masterUser.id,
-        updated_by: masterUser.id,
+        created_by: getUserDisplayEmail(masterUser),
+        updated_by: getUserDisplayEmail(masterUser),
       })
       .select(SELECT_FIELDS)
       .single();
@@ -97,7 +97,7 @@ export const racaService = {
 
     if (currentError || !current) throw new Error("Raça não encontrada");
 
-    const updates: Record<string, unknown> = { updated_by: masterUser.id };
+    const updates: Record<string, unknown> = { updated_by: getUserDisplayEmail(masterUser) };
     if (dto.nome !== undefined)           updates.nome = dto.nome.trim();
     if (dto.foto_url !== undefined)       updates.foto_url = dto.foto_url?.trim() ?? null;
     if (dto.descricao !== undefined)      updates.descricao = dto.descricao?.trim() ?? null;
@@ -132,7 +132,7 @@ export const racaService = {
 
     const { error } = await admin
       .from(RACAS_TABLE)
-      .update({ deleted_at: new Date().toISOString(), deleted_by: masterUser.id })
+      .update({ deleted_at: new Date().toISOString(), deleted_by: getUserDisplayEmail(masterUser) })
       .eq("id", racaId)
       .is("deleted_at", null);
 

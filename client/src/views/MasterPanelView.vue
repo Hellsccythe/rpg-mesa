@@ -135,8 +135,8 @@
                   <p class="text-xs text-zinc-500">Solicitado por {{ request.requestedByEmail || 'desconhecido' }}</p>
                 </div>
                 <div class="flex shrink-0 gap-2">
-                  <button @click="review(request.characterId, true)" class="gm-btn-success">Aprovar</button>
-                  <button @click="review(request.characterId, false)" class="gm-btn-danger-sm">Rejeitar</button>
+                  <button @click="abrirConfirmacaoReview(request, true)" class="gm-btn-success">Aprovar</button>
+                  <button @click="abrirConfirmacaoReview(request, false)" class="gm-btn-danger-sm">Rejeitar</button>
                 </div>
               </div>
               <div class="grid grid-cols-2 gap-2">
@@ -277,7 +277,7 @@
                 <p class="mt-0.5 text-xs text-zinc-700">{{ nota.content.split(/\n---+\n/).length }} página(s)</p>
               </div>
               <button
-                @click="deletarLoreNote(nota.id)"
+                @click="abrirConfirmacaoDeleteLore(nota)"
                 :disabled="loadingLoreNotes"
                 class="shrink-0 rounded-lg border border-red-500/40 px-3 py-1.5 text-xs font-semibold text-red-400 transition-colors hover:bg-red-900/25 disabled:opacity-40"
               >
@@ -364,6 +364,24 @@
             <p class="mt-0.5 text-xs text-zinc-500">Aprovar ou rejeitar novos personagens enviados pelos jogadores</p>
             <span class="mt-3 inline-block text-xs text-violet-400 group-hover:text-violet-300">Abrir guia →</span>
           </button>
+
+          <button @click="router.push({ name: 'master-usuarios' })" class="gm-link-card group text-left">
+            <div class="gm-icon-wrap mb-3 bg-cyan-500/10 text-cyan-400">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <p class="font-semibold text-zinc-100 group-hover:text-white">Gerenciar Usuários</p>
+            <p class="mt-0.5 text-xs text-zinc-500">Ver contas GMs e players, resetar senhas e editar dados</p>
+            <span class="mt-3 inline-block text-xs text-cyan-400 group-hover:text-cyan-300">Abrir guia →</span>
+          </button>
+
+          <button @click="router.push({ name: 'master-imagens' })" class="gm-link-card group text-left">
+            <div class="gm-icon-wrap mb-3 bg-fuchsia-500/10 text-fuchsia-400">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            </div>
+            <p class="font-semibold text-zinc-100 group-hover:text-white">Backup de Imagens</p>
+            <p class="mt-0.5 text-xs text-zinc-500">Baixe todas as imagens do projeto organizadas por seção</p>
+            <span class="mt-3 inline-block text-xs text-fuchsia-400 group-hover:text-fuchsia-300">Abrir guia →</span>
+          </button>
         </div>
 
         <!-- ── Tabelas Acessórias ───────────────────────────────────────────── -->
@@ -408,59 +426,8 @@
           </div>
         </div>
 
-        <!-- ── Emails + Ferramentas de Personagem ─────────────────────────── -->
+        <!-- ── Ferramentas de Personagem ─────────────────────────────────── -->
         <section class="gm-card border-violet-500/15">
-          <!-- Emails -->
-          <div id="emails-cadastro" class="mb-7">
-            <div class="gm-card-header">
-              <div class="gm-icon-wrap bg-violet-500/10 text-violet-400">
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-              </div>
-              <div>
-                <h2 class="gm-title">Emails Liberados para Cadastro</h2>
-                <p class="gm-subtitle">Apenas estes emails podem criar personagem</p>
-              </div>
-            </div>
-
-            <div class="flex flex-col gap-3 sm:flex-row">
-              <input
-                v-model="novoEmailLiberado"
-                type="email"
-                placeholder="email-do-player@dominio.com"
-                class="gm-input flex-1"
-                aria-label="Email do player"
-              />
-              <button
-                @click="adicionarEmailLiberado"
-                :disabled="loadingEmailsLiberados || !novoEmailLiberado.trim()"
-                class="gm-btn-violet shrink-0 disabled:cursor-wait disabled:opacity-50"
-              >
-                {{ loadingEmailsLiberados ? 'Salvando...' : 'Liberar Email' }}
-              </button>
-            </div>
-
-            <div class="mt-3 space-y-2">
-              <p v-if="!emailsLiberadosCriacao.length" class="gm-empty">Nenhum email liberado no momento.</p>
-              <div
-                v-for="email in emailsLiberadosCriacao"
-                :key="email"
-                class="gm-inner-box flex items-center justify-between gap-2 rounded-xl border border-white/[0.05] bg-black/20 px-4 py-2.5"
-              >
-                <span class="text-sm text-zinc-300">{{ email }}</span>
-                <button
-                  @click="removerEmailLiberado(email)"
-                  :disabled="loadingEmailsLiberados"
-                  class="shrink-0 rounded-lg border border-red-500/40 px-3 py-1 text-xs font-semibold text-red-400 hover:bg-red-900/20 disabled:cursor-wait disabled:opacity-50 transition-colors"
-                >
-                  Remover
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Divisor -->
-          <div class="mb-6 h-px bg-white/[0.06]" />
-
           <!-- Ferramentas rápidas -->
           <div>
             <div class="gm-card-header mb-4">
@@ -773,6 +740,72 @@
         </p>
       </main>
     </TemaDarkLight>
+
+    <!-- Modal Confirmação Deletar Lore Note -->
+    <Modal
+      v-if="modalDeleteLoreId !== null"
+      panel-class="max-w-sm"
+      body-class="space-y-4 p-6"
+      :show-close-button="false"
+      tema="escuro"
+      :close-on-backdrop="false"
+      @close="fecharConfirmacaoDeleteLore"
+    >
+      <h3 class="text-base font-bold text-white">Deletar Nota de Lore</h3>
+      <p class="text-sm text-zinc-400">
+        Tem certeza que deseja deletar a nota <span class="font-semibold text-white">"{{ tituloDeleteLore }}"</span>? Esta ação não pode ser desfeita.
+      </p>
+      <div class="flex gap-3">
+        <button
+          @click="fecharConfirmacaoDeleteLore"
+          class="flex-1 rounded-xl border border-white/10 py-2 text-sm text-zinc-300 hover:border-white/20"
+        >
+          Cancelar
+        </button>
+        <button
+          @click="confirmarDeleteLore"
+          :disabled="loadingLoreNotes"
+          class="flex-1 rounded-xl bg-red-700 py-2 text-sm font-semibold text-white hover:bg-red-600 disabled:opacity-50"
+        >
+          Deletar
+        </button>
+      </div>
+    </Modal>
+
+    <!-- Modal Confirmação Aprovar/Rejeitar Pendência -->
+    <Modal
+      v-if="modalReviewId !== null"
+      panel-class="max-w-sm"
+      body-class="space-y-4 p-6"
+      :show-close-button="false"
+      tema="escuro"
+      :close-on-backdrop="false"
+      @close="fecharConfirmacaoReview"
+    >
+      <h3 class="text-base font-bold text-white">
+        {{ modalReviewApprove ? 'Aprovar' : 'Rejeitar' }} Solicitação
+      </h3>
+      <p class="text-sm text-zinc-400">
+        Confirma a <span class="font-semibold" :class="modalReviewApprove ? 'text-emerald-300' : 'text-red-300'">{{ modalReviewApprove ? 'aprovação' : 'rejeição' }}</span>
+        da solicitação de <span class="font-semibold text-white">{{ nomeReview }}</span>?
+      </p>
+      <div class="flex gap-3">
+        <button
+          @click="fecharConfirmacaoReview"
+          class="flex-1 rounded-xl border border-white/10 py-2 text-sm text-zinc-300 hover:border-white/20"
+        >
+          Cancelar
+        </button>
+        <button
+          @click="confirmarReview"
+          :disabled="loading"
+          class="flex-1 rounded-xl py-2 text-sm font-semibold text-white disabled:opacity-50"
+          :class="modalReviewApprove ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-red-700 hover:bg-red-600'"
+        >
+          {{ loading ? 'Processando...' : (modalReviewApprove ? 'Confirmar Aprovação' : 'Confirmar Rejeição') }}
+        </button>
+      </div>
+    </Modal>
   </div>
 </template>
 
@@ -783,21 +816,19 @@ import { useAuthStore } from '@/stores/auth'
 import { useCharactersStore } from '@/stores/characters'
 import { useMasterApprovalsStore } from '@/stores/masterApprovals'
 import { useMasterCatalogStore } from '@/stores/masterCatalog'
+import Modal from '@/components/Modal.vue'
 import HamburgerDrawerMenu from '@/components/HamburgerDrawerMenu.vue'
 import TemaDarkLight from '@/components/TemaDarkLight.vue'
 import VSelect from '@/components/VSelect.vue'
 import {
-  addCharacterCreationAllowedEmail,
   deleteCharacterAsMaster,
   getCharacterById,
-  listCharacterCreationAllowedEmails,
-  removeCharacterCreationAllowedEmail,
   setAvatarFocalPoint,
   setCharacterGodInfo,
 } from '@/lib/api/personagens.api'
 import { contarSolicitacoesPendentes } from '@/lib/api/character-creation-requests.api'
 import { listPublicGods } from '@/lib/api/gods.api'
-import type { GodApi } from '@/types/supabase'
+import type { GodApi, AprovacaoPendenteApi } from '@/types/supabase'
 import { adicionarPontosDeClasse } from '@/lib/api/classes.api'
 import {
   listAllLoreNotes,
@@ -826,10 +857,6 @@ const classDescription = ref('')
 const titleTier = ref('Comum')
 const titleDescription = ref('')
 const adventureNote = ref('')
-const emailsLiberadosCriacao = ref<string[]>([])
-const novoEmailLiberado = ref('')
-const loadingEmailsLiberados = ref(false)
-
 const classPointsCharacterId = ref('')
 const classPointsAmount = ref(1)
 const loadingClassPoints = ref(false)
@@ -911,6 +938,26 @@ async function criarLoreNote() {
   } finally {
     loadingLoreNotes.value = false
   }
+}
+
+const modalDeleteLoreId = ref<string | null>(null)
+const tituloDeleteLore = ref('')
+
+function abrirConfirmacaoDeleteLore(nota: LoreNoteApi) {
+  modalDeleteLoreId.value = nota.id
+  tituloDeleteLore.value = nota.title
+}
+
+function fecharConfirmacaoDeleteLore() {
+  modalDeleteLoreId.value = null
+  tituloDeleteLore.value = ''
+}
+
+async function confirmarDeleteLore() {
+  if (modalDeleteLoreId.value === null) return
+  const id = modalDeleteLoreId.value
+  fecharConfirmacaoDeleteLore()
+  await deletarLoreNote(id)
 }
 
 async function deletarLoreNote(id: string) {
@@ -1070,7 +1117,8 @@ watch(focalCharId, carregarFocalChar)
 const panelMenuItems = [
   { id: 'pendencias', label: 'Pendencias' },
   { id: 'criacao-personagens', label: 'Criação Personagens' },
-  { id: 'emails-cadastro', label: 'Cadastro Email' },
+  { id: 'gerenciar-usuarios', label: 'Usuários' },
+  { id: 'backup-imagens', label: 'Backup Imagens' },
   { id: 'lore-notes', label: 'Notas de Lore' },
   { id: 'avatar-focal', label: 'Posição do Avatar' },
   { id: 'god-info', label: 'Info Deuses' },
@@ -1096,13 +1144,18 @@ async function handlePanelMenuSelect(itemId: string) {
     return
   }
 
-  if (itemId === 'guia-deuses') {
-    goMasterGods()
+  if (itemId === 'gerenciar-usuarios') {
+    router.push({ name: 'master-usuarios' })
     return
   }
 
-  if (itemId === 'emails-cadastro') {
-    goSection('emails-cadastro')
+  if (itemId === 'backup-imagens') {
+    router.push({ name: 'master-imagens' })
+    return
+  }
+
+  if (itemId === 'guia-deuses') {
+    goMasterGods()
     return
   }
 
@@ -1174,7 +1227,6 @@ async function loadAll() {
     await Promise.all([
       masterApprovalsStore.fetchPendingApprovals(),
       charactersStore.fetchPaginaInicial(),
-      carregarEmailsLiberados(),
       carregarLoreNotes(),
       carregarDeusesParaInfo(),
       contarSolicitacoesPendentes().then((c) => { criacaoPendenteCount.value = c }).catch(() => {}),
@@ -1187,43 +1239,27 @@ async function loadAll() {
   }
 }
 
-async function carregarEmailsLiberados() {
-  const data = await listCharacterCreationAllowedEmails()
-  emailsLiberadosCriacao.value = [...(data.emails ?? [])].sort((a, b) => a.localeCompare(b))
+const modalReviewId = ref<string | number | null>(null)
+const modalReviewApprove = ref(true)
+const nomeReview = ref('')
+
+function abrirConfirmacaoReview(request: AprovacaoPendenteApi, approve: boolean) {
+  modalReviewId.value = request.characterId
+  modalReviewApprove.value = approve
+  nomeReview.value = request.currentName
 }
 
-async function adicionarEmailLiberado() {
-  const email = novoEmailLiberado.value.trim().toLowerCase()
-  if (!email) return
-
-  loadingEmailsLiberados.value = true
-  try {
-    await addCharacterCreationAllowedEmail(email)
-    novoEmailLiberado.value = ''
-    await carregarEmailsLiberados()
-    feedback.value = 'Email liberado para criacao de personagem.'
-    feedbackError.value = false
-  } catch (err: any) {
-    feedback.value = err?.response?.data?.message || 'Erro ao liberar email.'
-    feedbackError.value = true
-  } finally {
-    loadingEmailsLiberados.value = false
-  }
+function fecharConfirmacaoReview() {
+  modalReviewId.value = null
+  nomeReview.value = ''
 }
 
-async function removerEmailLiberado(email: string) {
-  loadingEmailsLiberados.value = true
-  try {
-    await removeCharacterCreationAllowedEmail(email)
-    await carregarEmailsLiberados()
-    feedback.value = 'Email removido da lista de liberacao.'
-    feedbackError.value = false
-  } catch (err: any) {
-    feedback.value = err?.response?.data?.message || 'Erro ao remover email.'
-    feedbackError.value = true
-  } finally {
-    loadingEmailsLiberados.value = false
-  }
+async function confirmarReview() {
+  if (modalReviewId.value === null) return
+  const id = modalReviewId.value
+  const approve = modalReviewApprove.value
+  fecharConfirmacaoReview()
+  await review(id, approve)
 }
 
 async function review(characterId: string | number, approve: boolean) {

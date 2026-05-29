@@ -1,5 +1,5 @@
 import { getAdminClient, getSupabaseClient } from "../../config/database/supabase/client.js";
-import { ensureMasterAccess } from "../../common/helpers/master-access.helper.js";
+import { ensureMasterAccess, getUserDisplayEmail } from "../../common/helpers/master-access.helper.js";
 import type {
   CriarArmaDto,
   EditarArmaDto,
@@ -144,8 +144,8 @@ export const armaService = {
         item,
         descricao: dto.descricao.trim(),
         icone: dto.icone?.trim() ?? null,
-        created_by: masterUser.id,
-        updated_by: masterUser.id,
+        created_by: getUserDisplayEmail(masterUser),
+        updated_by: getUserDisplayEmail(masterUser),
       })
       .select("item, descricao, icone")
       .single();
@@ -173,7 +173,7 @@ export const armaService = {
     const masterUser = await ensureMasterAccess(accessToken);
     const { error } = await getAdminClient()
       .from(CATEGORIAS_TABLE)
-      .update({ deleted_at: new Date().toISOString(), deleted_by: masterUser.id })
+      .update({ deleted_at: new Date().toISOString(), deleted_by: getUserDisplayEmail(masterUser) })
       .eq("item", item)
       .is("deleted_at", null);
     if (error) throw error;
@@ -200,8 +200,8 @@ export const armaService = {
       .insert({
         item,
         descricao: dto.descricao.trim(),
-        created_by: masterUser.id,
-        updated_by: masterUser.id,
+        created_by: getUserDisplayEmail(masterUser),
+        updated_by: getUserDisplayEmail(masterUser),
       })
       .select("item, descricao")
       .single();
@@ -228,7 +228,7 @@ export const armaService = {
     const masterUser = await ensureMasterAccess(accessToken);
     const { error } = await getAdminClient()
       .from(CLASSES_TABLE)
-      .update({ deleted_at: new Date().toISOString(), deleted_by: masterUser.id })
+      .update({ deleted_at: new Date().toISOString(), deleted_by: getUserDisplayEmail(masterUser) })
       .eq("item", item)
       .is("deleted_at", null);
     if (error) throw error;
@@ -258,8 +258,8 @@ export const armaService = {
         item,
         descricao: dto.descricao.trim(),
         categoria_item: dto.categoria_item,
-        created_by: masterUser.id,
-        updated_by: masterUser.id,
+        created_by: getUserDisplayEmail(masterUser),
+        updated_by: getUserDisplayEmail(masterUser),
       })
       .select("item, descricao, categoria_item")
       .single();
@@ -287,7 +287,7 @@ export const armaService = {
     const masterUser = await ensureMasterAccess(accessToken);
     const { error } = await getAdminClient()
       .from(TIPOS_TABLE)
-      .update({ deleted_at: new Date().toISOString(), deleted_by: masterUser.id })
+      .update({ deleted_at: new Date().toISOString(), deleted_by: getUserDisplayEmail(masterUser) })
       .eq("item", item)
       .is("deleted_at", null);
     if (error) throw error;
@@ -317,8 +317,8 @@ export const armaService = {
         item,
         descricao: dto.descricao.trim(),
         categoria_item: dto.categoria_item,
-        created_by: masterUser.id,
-        updated_by: masterUser.id,
+        created_by: getUserDisplayEmail(masterUser),
+        updated_by: getUserDisplayEmail(masterUser),
       })
       .select("item, descricao, categoria_item")
       .single();
@@ -346,7 +346,7 @@ export const armaService = {
     const masterUser = await ensureMasterAccess(accessToken);
     const { error } = await getAdminClient()
       .from(PROPRIEDADES_TABLE)
-      .update({ deleted_at: new Date().toISOString(), deleted_by: masterUser.id })
+      .update({ deleted_at: new Date().toISOString(), deleted_by: getUserDisplayEmail(masterUser) })
       .eq("item", item)
       .is("deleted_at", null);
     if (error) throw error;
@@ -391,8 +391,8 @@ export const armaService = {
         propriedade_equipamento_item: dto.propriedade_equipamento_item ?? [],
         descricao_equipamento: dto.descricao_equipamento?.trim() ?? null,
         pre_requisitos: dto.pre_requisitos?.trim() ?? null,
-        created_by: masterUser.id,
-        updated_by: masterUser.id,
+        created_by: getUserDisplayEmail(masterUser),
+        updated_by: getUserDisplayEmail(masterUser),
       })
       .select(SELECT_FIELDS)
       .single();
@@ -412,7 +412,7 @@ export const armaService = {
 
     const updates: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
-      updated_by: masterUser.id,
+      updated_by: getUserDisplayEmail(masterUser),
     };
     if (dto.nome !== undefined) updates.nome = dto.nome.trim();
     if (dto.dano !== undefined) updates.dano = dto.dano.trim();
@@ -447,7 +447,7 @@ export const armaService = {
     if (fetchError || !arma) throw new Error("Equipamento não encontrado");
     const { error } = await getAdminClient()
       .from(ARMAS_TABLE)
-      .update({ deleted_at: new Date().toISOString(), deleted_by: masterUser.id })
+      .update({ deleted_at: new Date().toISOString(), deleted_by: getUserDisplayEmail(masterUser) })
       .eq("id", armaId)
       .is("deleted_at", null);
     if (error) throw error;

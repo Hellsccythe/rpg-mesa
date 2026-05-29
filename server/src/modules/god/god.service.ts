@@ -1,5 +1,5 @@
 import { getAdminClient, getSupabaseClient } from "../../config/database/supabase/client.js";
-import { ensureMasterAccess } from "../../common/helpers/master-access.helper.js";
+import { ensureMasterAccess, getUserDisplayEmail } from "../../common/helpers/master-access.helper.js";
 import type { EditarGodDto, SalvarGodDto } from "./god.dto.js";
 import sharp from "sharp";
 
@@ -228,8 +228,8 @@ export const godService = {
       name: dto.name.trim(),
       description: dto.description?.trim() ?? "",
       data: toGodDetails(dto),
-      created_by: masterUser.id,
-      updated_by: masterUser.id,
+      created_by: getUserDisplayEmail(masterUser),
+      updated_by: getUserDisplayEmail(masterUser),
     };
     if (dto.indole_id !== undefined) insertPayload.indole_id = dto.indole_id ?? null;
 
@@ -270,7 +270,7 @@ export const godService = {
       imageUrl: dto.imageUrl !== undefined ? normalizeText(dto.imageUrl) : existing.imageUrl,
     };
 
-    const updates: Record<string, unknown> = { data: nextDetails, updated_by: masterUser.id };
+    const updates: Record<string, unknown> = { data: nextDetails, updated_by: getUserDisplayEmail(masterUser) };
     if (dto.name !== undefined) updates.name = normalizeText(dto.name);
     if (dto.description !== undefined) updates.description = normalizeText(dto.description);
     if (dto.indole_id !== undefined) updates.indole_id = dto.indole_id ?? null;
@@ -303,7 +303,7 @@ export const godService = {
 
     const { error } = await admin
       .from("gods")
-      .update({ deleted_at: new Date().toISOString(), deleted_by: masterUser.id })
+      .update({ deleted_at: new Date().toISOString(), deleted_by: getUserDisplayEmail(masterUser) })
       .eq("id", godId)
       .is("deleted_at", null);
 

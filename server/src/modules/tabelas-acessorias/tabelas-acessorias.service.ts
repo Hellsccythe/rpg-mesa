@@ -1,5 +1,5 @@
 import { getAdminClient } from "../../config/database/supabase/client.js";
-import { ensureMasterAccess } from "../../common/helpers/master-access.helper.js";
+import { ensureMasterAccess, getUserDisplayEmail } from "../../common/helpers/master-access.helper.js";
 
 async function nextItem(tabela: string): Promise<number> {
   const admin = getAdminClient();
@@ -33,7 +33,7 @@ async function criar(
   const item = await nextItem(tabela);
   const { data, error } = await admin
     .from(tabela)
-    .insert({ ...campos, item, created_by: user.id, updated_by: user.id })
+    .insert({ ...campos, item, created_by: getUserDisplayEmail(user), updated_by: getUserDisplayEmail(user) })
     .select("*")
     .single();
   if (error) throw error;
@@ -50,7 +50,7 @@ async function editar(
   const admin = getAdminClient();
   const { data, error } = await admin
     .from(tabela)
-    .update({ ...campos, updated_by: user.id })
+    .update({ ...campos, updated_by: getUserDisplayEmail(user) })
     .eq("item", item)
     .is("deleted_at", null)
     .select("*")
@@ -64,7 +64,7 @@ async function deletar(tabela: string, item: number, accessToken?: string) {
   const admin = getAdminClient();
   const { error } = await admin
     .from(tabela)
-    .update({ deleted_at: new Date().toISOString(), deleted_by: user.id })
+    .update({ deleted_at: new Date().toISOString(), deleted_by: getUserDisplayEmail(user) })
     .eq("item", item)
     .is("deleted_at", null);
   if (error) throw error;

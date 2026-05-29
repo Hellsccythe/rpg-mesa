@@ -108,6 +108,24 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresMaster: true },
     },
     {
+      path: '/master/usuarios',
+      name: 'master-usuarios',
+      component: () => import('@/views/MasterUsersView.vue'),
+      meta: { requiresAuth: true, requiresMaster: true },
+    },
+    {
+      path: '/master/imagens',
+      name: 'master-imagens',
+      component: () => import('@/views/MasterImagesView.vue'),
+      meta: { requiresAuth: true, requiresMaster: true },
+    },
+    {
+      path: '/onboarding',
+      name: 'onboarding',
+      component: () => import('@/views/OnboardingView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/master/classes',
       name: 'master-classes',
       component: () => import('@/views/MasterClassesView.vue'),

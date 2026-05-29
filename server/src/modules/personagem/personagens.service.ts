@@ -1,6 +1,6 @@
 // server/src/modules/personagem/personagens.service.ts
 import { getAdminClient, getSupabaseClient } from "../../config/database/supabase/client.js";
-import { getMasterEmails } from "../../common/helpers/master-access.helper.js";
+import { getMasterEmails, getUserDisplayEmail } from "../../common/helpers/master-access.helper.js";
 import {
   PERSONAGEM_SELECT_FIELDS,
   PERSONAGEM_TABLE,
@@ -741,7 +741,7 @@ export const personagensService = {
     // Soft delete do registro com deleted_by
     let softDelete = await admin
       .from(PERSONAGEM_TABLE)
-      .update({ deleted_at: new Date().toISOString(), deleted_by: masterUser.id })
+      .update({ deleted_at: new Date().toISOString(), deleted_by: getUserDisplayEmail(masterUser) })
       .eq("id", characterId)
       .is("deleted_at", null);
 
@@ -948,7 +948,7 @@ export const personagensService = {
         email: normalizedEmail,
         deleted_at: null,
         deleted_by: null,
-        updated_by: masterUser.id,
+        updated_by: getUserDisplayEmail(masterUser),
       },
       { onConflict: "email" },
     );
@@ -1002,8 +1002,8 @@ export const personagensService = {
       .from(CHARACTER_CREATION_WHITELIST_TABLE)
       .update({
         deleted_at: new Date().toISOString(),
-        deleted_by: masterUser.id,
-        updated_by: masterUser.id,
+        deleted_by: getUserDisplayEmail(masterUser),
+        updated_by: getUserDisplayEmail(masterUser),
       })
       .is("deleted_at", null)
       .eq("email", normalizedEmail);
@@ -1011,7 +1011,7 @@ export const personagensService = {
     if (operation.error && isMissingColumnError(operation.error, "updated_by")) {
       operation = await admin
         .from(CHARACTER_CREATION_WHITELIST_TABLE)
-        .update({ deleted_at: new Date().toISOString(), deleted_by: masterUser.id })
+        .update({ deleted_at: new Date().toISOString(), deleted_by: getUserDisplayEmail(masterUser) })
         .is("deleted_at", null)
         .eq("email", normalizedEmail);
     }
@@ -1326,6 +1326,53 @@ export const personagensService = {
       .is("deleted_at", null)
       .select(PERSONAGEM_SELECT_FIELDS)
       .single();
+    if (error) throw error;
+    return mapPersonagem(data);
+  },
+
+  async escolherRaca(characterId: string, racaId: number, accessToken?: string) {
+    const supabase = getSupabaseClient(accessToken);
+    const { data: { user }, error: authErr } = await supabase.auth.getUser();
+    if (authErr || !user) throw new Error("Usuário não autenticado");
+
+    const admin = getAdminClient();
+
+    const { data: personagem, error: fetchErr } = await admin
+      .from(PERSONAGEM_TABLE)
+      .select("id, user_id, raca_id")
+      .eq("id", characterId)
+      .is("deleted_at", null)
+      .single();
+
+    if (fetchErr || !personagem) throw new Error("Personagem não encontrado.");
+
+    const masterEmails = getMasterEmails();
+    const isMaster = masterEmails.length > 0 && masterEmails.includes(user.email?.toLowerCase() ?? "");
+    if (!isMaster && (personagem as any).user_id !== user.id) {
+      throw new Error("Sem permissão para alterar este personagem.");
+    }
+
+    if ((personagem as any).raca_id !== null && (personagem as any).raca_id !== undefined) {
+      throw new Error("Raça já foi escolhida e não pode ser alterada.");
+    }
+
+    const { data: raca, error: racaErr } = await admin
+      .from("racas")
+      .select("id")
+      .eq("id", racaId)
+      .is("deleted_at", null)
+      .single();
+
+    if (racaErr || !raca) throw new Error("Raça não encontrada.");
+
+    const { data, error } = await admin
+      .from(PERSONAGEM_TABLE)
+      .update({ raca_id: racaId, updated_by: getUserDisplayEmail(user) })
+      .eq("id", characterId)
+      .is("deleted_at", null)
+      .select(PERSONAGEM_SELECT_FIELDS)
+      .single();
+
     if (error) throw error;
     return mapPersonagem(data);
   },

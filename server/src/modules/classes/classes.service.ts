@@ -1,5 +1,5 @@
 import { getAdminClient } from "../../config/database/supabase/client.js";
-import { ensureMasterAccess } from "../../common/helpers/master-access.helper.js";
+import { ensureMasterAccess, getUserDisplayEmail } from "../../common/helpers/master-access.helper.js";
 import type { SalvarClasseDto, EditarClasseDto } from "./classes.dto.js";
 
 export const classesService = {
@@ -46,8 +46,8 @@ export const classesService = {
         tier: dto.tier.trim(),
         description: dto.description.trim(),
         max_level: dto.maxLevel ?? 20,
-        created_by: masterUser.id,
-        updated_by: masterUser.id,
+        created_by: getUserDisplayEmail(masterUser),
+        updated_by: getUserDisplayEmail(masterUser),
       })
       .select("*")
       .single();
@@ -59,7 +59,7 @@ export const classesService = {
   async editar(id: string, dto: EditarClasseDto, accessToken?: string) {
     const masterUser = await ensureMasterAccess(accessToken);
     const admin = getAdminClient();
-    const campos: Record<string, any> = { updated_by: masterUser.id };
+    const campos: Record<string, any> = { updated_by: getUserDisplayEmail(masterUser) };
     if (dto.name !== undefined) campos.name = dto.name.trim();
     if (dto.tier !== undefined) campos.tier = dto.tier.trim();
     if (dto.description !== undefined) campos.description = dto.description.trim();
@@ -83,7 +83,7 @@ export const classesService = {
     const admin = getAdminClient();
     const { error } = await admin
       .from("classes")
-      .update({ deleted_at: new Date().toISOString(), deleted_by: masterUser.id })
+      .update({ deleted_at: new Date().toISOString(), deleted_by: getUserDisplayEmail(masterUser) })
       .eq("id", id)
       .is("deleted_at", null);
     if (error) throw error;

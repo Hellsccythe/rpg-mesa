@@ -161,9 +161,11 @@ export interface PersonagemApi {
   userId: string        // UUID auth.users
   campaignId: string | null
   name: string
+  username: string | null
   level: number
   data: any
   avatarUrl: string | null
+  racaId: number | null
   indoleId: number | null
   indole?: IndoleApi | null
   generoId: number | null

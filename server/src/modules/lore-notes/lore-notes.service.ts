@@ -1,5 +1,5 @@
 import { getAdminClient } from '../../config/database/supabase/client.js'
-import { ensureMasterAccess } from '../../common/helpers/master-access.helper.js'
+import { ensureMasterAccess, getUserDisplayEmail } from '../../common/helpers/master-access.helper.js'
 import type { CriarLoreNoteDto, EditarLoreNoteDto } from './lore-notes.dto.js'
 
 const TABLE = 'lore_notes'
@@ -58,8 +58,8 @@ export const loreNotesService = {
         pdf_url: dto.pdfUrl ?? null,
         ordem: dto.ordem ?? 0,
         character_id: dto.characterId ?? null,
-        created_by: masterUser.id,
-        updated_by: masterUser.id,
+        created_by: getUserDisplayEmail(masterUser),
+        updated_by: getUserDisplayEmail(masterUser),
       })
       .select('*')
       .single()
@@ -72,7 +72,7 @@ export const loreNotesService = {
     const admin = getAdminClient()
     const updates: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
-      updated_by: masterUser.id,
+      updated_by: getUserDisplayEmail(masterUser),
     }
     if (dto.title !== undefined) updates.title = dto.title.trim()
     if (dto.subtitle !== undefined) updates.subtitle = dto.subtitle
@@ -96,7 +96,7 @@ export const loreNotesService = {
     const admin = getAdminClient()
     const { error } = await admin
       .from(TABLE)
-      .update({ deleted_at: new Date().toISOString(), deleted_by: masterUser.id })
+      .update({ deleted_at: new Date().toISOString(), deleted_by: getUserDisplayEmail(masterUser) })
       .eq('id', id)
     if (error) throw error
   },

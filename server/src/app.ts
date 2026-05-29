@@ -14,6 +14,7 @@ import { TabelasAcessoriasRouter } from "./modules/tabelas-acessorias/tabelas-ac
 import { IndoleRouter } from "./modules/indole/indole.module.js";
 import { GeneroRouter } from "./modules/genero/genero.module.js";
 import { CharacterCreationRouter } from "./modules/character-creation/character-creation.module.js";
+import { UsuariosRouter } from "./modules/usuarios/usuarios.module.js";
 
 const app = express();
 
@@ -64,5 +65,6 @@ app.use("/api/tabelas-acessorias", TabelasAcessoriasRouter);
 app.use("/api/indole", IndoleRouter);
 app.use("/api/genero", GeneroRouter);
 app.use("/api/character-creation-requests", CharacterCreationRouter);
+app.use("/api/usuarios", UsuariosRouter);
 
 export default app;

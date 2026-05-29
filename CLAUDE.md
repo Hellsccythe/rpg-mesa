@@ -38,6 +38,8 @@ Sistema de gestão de sessões de RPG de mesa. Monorepo com Yarn 4 Workspaces.
 | `/master/skills` | MasterSkillsView | auth + isMaster |
 | `/master/tabelas-acessorias` | MasterTabelasAcessoriasView | auth + isMaster |
 | `/master/logins` | MasterLoginRequestsView | auth + isMaster |
+| `/master/usuarios` | MasterUsersView | auth + isMaster |
+| `/onboarding?characterId=` | OnboardingView | auth (player) |
 
 ## API Endpoints do Backend
 
@@ -85,6 +87,14 @@ Sistema de gestão de sessões de RPG de mesa. Monorepo com Yarn 4 Workspaces.
 | GET | `/api/character-creation-requests/admin/pendentes/count` | auth |
 | PATCH | `/api/character-creation-requests/admin/:id/aprovar` | isMaster |
 | PATCH | `/api/character-creation-requests/admin/:id/rejeitar` | isMaster |
+| GET | `/api/usuarios/admin` | isMaster |
+| PATCH | `/api/usuarios/admin/:id` | isMaster |
+| PATCH | `/api/usuarios/admin/:id/resetar-senha` | isMaster |
+| PATCH | `/api/usuarios/admin/:id/resetar-senha-padrao` | isMaster |
+| PATCH | `/api/usuarios/admin/:id/ativo` | isMaster |
+| POST | `/api/usuarios/admin/pre-registrar` | isMaster |
+| DELETE | `/api/usuarios/admin/:id/pre-registro` | isMaster |
+| PATCH | `/api/personagens/:id/escolher-raca` | auth (próprio player ou mestre) |
 
 ## Componentes Compartilhados
 
@@ -126,9 +136,29 @@ Documentação completa em `docs/COMPONENTS.md`.
 
 Schema completo em `docs/SCHEMA_CURRENT.sql`. Migrations em `database/migrations/` (001–026).
 
-**IMPORTANTE:** Migrations 022–023 converteram todas as PKs de UUID → INTEGER IDENTITY. Todas as tabelas de entidade usam `id INTEGER` como PK. Colunas `user_id`, `deleted_by`, `created_by`, `updated_by` que referenciam `auth.users` permanecem UUID.
+**IMPORTANTE:** Migrations 022–023 converteram todas as PKs de UUID → INTEGER IDENTITY. Todas as tabelas de entidade usam `id INTEGER` como PK. `user_id` (referência a `auth.users`) permanece UUID.
+
+**Migration 027:** `created_by`, `updated_by`, `deleted_by` foram convertidos de UUID → TEXT em todas as tabelas. Agora armazenam o **email do usuário** que realizou a ação (ex: `gm@exemplo.com`). Use sempre `getUserDisplayEmail(user)` nos serviços.
 
 **Referências entre tabelas são sempre por convenção de inteiro — nunca usar FOREIGN KEY constraints no banco.**
+
+### `usuarios` (migration 027)
+
+Contas de acesso ao sistema. Criada ao aprovar uma solicitação (players) ou seed manual (GMs).
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| id | INTEGER PK | IDENTITY |
+| auth_user_id | UUID | referência a `auth.users(id)` por convenção |
+| real_email | TEXT | email real do jogador ou GM |
+| username | TEXT | nullable — login handle |
+| tipo | TEXT | `'gm'` \| `'player'` |
+| ativo | BOOLEAN | default TRUE |
+| created_at / updated_at | timestamptz | |
+| deleted_at / deleted_by | timestamptz / TEXT | soft delete |
+
+Endpoints: `GET/PATCH /api/usuarios/admin`, `PATCH /api/usuarios/admin/:id/resetar-senha`, `PATCH /api/usuarios/admin/:id/ativo`.
+Tela: `/master/usuarios` → `MasterUsersView.vue`.
 
 ### `characters`
 
@@ -142,13 +172,14 @@ Schema completo em `docs/SCHEMA_CURRENT.sql`. Migrations em `database/migrations
 | level | integer | >= 1 |
 | data | jsonb | pendingChangeRequest, historyDocumentPath, adventureNotes, skills, titles, avatarFocalPoint, classPoints |
 | avatar_url | text | nullable |
+| raca_id | INTEGER | referência a `racas.id` (migration 027) — null até o onboarding |
 | indole_id | INTEGER | referência a `indole.id` (migration 024) |
 | genero_id | INTEGER | referência a `genero.id` (migration 025) |
 | aparencia_fisica | text | nullable |
 | historia_texto | text | nullable |
 | historia_doc_url | text | nullable |
-| deleted_at / deleted_by | timestamptz / UUID | soft delete |
-| created_by / updated_by | UUID | auditoria (migration 014) |
+| deleted_at / deleted_by | timestamptz / TEXT | soft delete (migration 027: deleted_by agora é TEXT/email) |
+| created_by / updated_by | TEXT | email do autor (migration 027, antes UUID) |
 
 ### `indole` (migration 024)
 
@@ -335,8 +366,19 @@ Notas de lore — ver migrations 009–011. PK convertida para INTEGER IDENTITY 
 
 ## Papéis de Usuário
 
-- **Jogador:** autenticado, acessa seu personagem no dashboard
-- **Mestre (`isMaster=true`):** acessa `/master`, pode abrir qualquer personagem, gerencia catálogos
+- **Jogador (tipo `player`):** autenticado, acessa apenas seu personagem no dashboard. Login com `{username}@rpg.internal`.
+- **Mestre (tipo `gm` / `isMaster=true`):** acessa `/master`, pode abrir qualquer personagem, gerencia catálogos. Login com email real. Definido via `MASTER_EMAILS` env var.
+
+Ambos os tipos têm registro na tabela `usuarios`. Players são criados automaticamente na aprovação.
+
+## Gerenciamento de Usuários
+
+- Tela: `/master/usuarios` → `MasterUsersView.vue`
+- Funções: listar todos, filtrar por tipo/status, editar username/tipo/nome do personagem, reset de senha, ativar/desativar conta, liberar/remover pré-registros
+- Username change atualiza: `usuarios.username` + `characters.username` + email Supabase Auth (`{novo}@rpg.internal`)
+- Desativar: aplica `ban_duration: "876600h"` via Supabase Admin API — bloqueia login
+- Reset Senha GM: modal manual com validação de regras (mín 8, maiúscula, número, especial)
+- Reset Senha Player: seta senha para `12345` + `user_metadata.requires_password_change = true`; no próximo login o DashboardView exibe modal obrigatório para troca de senha seguindo as regras; após confirmar grava `requires_password_change: false` via `supabase.auth.updateUser`
 
 ## Fluxo de Auth
 
@@ -354,8 +396,23 @@ Notas de lore — ver migrations 009–011. PK convertida para INTEGER IDENTITY 
 4. Frontend submete `POST /character-creation-requests` — sem auth, backend valida whitelist + unicidade de username + regras de senha/aparência/história
 5. Jogador vê tela "Aguardando aprovação do mestre" — **sem login automático**
 6. Mestre vê bell com contagem em `/master` e acessa `/master/logins`
-7. Mestre aprova: backend cria usuário Supabase Auth (`{username}@rpg.internal`) + registro em `characters`
+7. Mestre aprova: backend cria usuário Supabase Auth (`{username}@rpg.internal`) + registro em `characters` + registro em `usuarios`
 8. Mestre rejeita: preenche motivo (opcional)
+
+## Fluxo de Onboarding (primeiro login do player)
+
+Após aprovação, o player loga e passa pelo onboarding antes de acessar o dashboard.
+Ordem das etapas: **Raça → Passado → Classes → Atributos → Deuses → Equipamentos**
+
+Etapa 1 — Raça (implementada):
+1. `DashboardView` carrega o personagem e verifica `character.racaId === null`
+2. Se null e não for mestre → redireciona para `/onboarding?characterId=X` (`OnboardingView.vue`)
+3. Player vê grid de raças com imagem, descrição, atributos bônus e habilidades
+4. Clica em uma raça → tela de confirmação com aviso de escolha permanente
+5. Confirma → `PATCH /api/personagens/:id/escolher-raca` atualiza `characters.raca_id`
+6. Redireciona para `/dashboard`
+
+Próximas etapas (a implementar): Passado, Classes, Atributos, Deuses, Equipamentos.
 
 ## Storage (Supabase)
 

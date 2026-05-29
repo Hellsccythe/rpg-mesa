@@ -240,7 +240,11 @@ const computedOverlayStyle = computed(() => ({
   backgroundColor: 'var(--modal-overlay, rgb(2 6 23 / 0.68))',
 }))
 
-const computedPanelClass = computed(() => [props.panelClass])
+const computedPanelClass = computed(() => {
+  const c = props.panelClass
+  const hasClass = Array.isArray(c) ? c.length > 0 : !!c
+  return hasClass ? [c] : ['max-w-2xl']
+})
 
 const computedPanelStyle = computed(() => ({
   borderColor: 'var(--modal-border-soft, var(--border-soft))',

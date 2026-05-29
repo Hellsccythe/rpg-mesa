@@ -7,12 +7,14 @@
       <header class="page-header sticky top-0 z-20 border-b backdrop-blur-xl">
         <div class="mx-auto flex h-16 w-full max-w-7xl items-center px-4 sm:px-6">
           <div class="flex-none">
-            <HamburgerDrawerMenu
-              :items="menuItems"
-              active-item-id="logins"
-              aria-label="Menu do painel"
-              @select="handleMenu"
-            />
+            <button
+              type="button"
+              class="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-zinc-400 transition-all hover:border-white/20 hover:text-white"
+              @click="router.push({ name: 'master-panel' })"
+            >
+              <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              Painel
+            </button>
           </div>
           <div class="flex-1 text-center">
             <span class="text-xs font-bold tracking-[0.3em] uppercase text-amber-400">⚔ Gerenciar Logins ⚔</span>
@@ -28,12 +30,6 @@
                 <path d="M9 17a3 3 0 0 0 6 0"/>
               </svg>
               <span v-if="pendingCount > 0" class="notification-badge">{{ pendingCount }}</span>
-            </button>
-            <button
-              @click="router.push({ name: 'master-panel' })"
-              class="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-zinc-300 transition-all hover:border-white/20 hover:bg-white/[0.08]"
-            >
-              Painel
             </button>
           </div>
         </div>
@@ -151,8 +147,8 @@
               <!-- Ações (só para pendentes) -->
               <div v-if="req.status === 'pendente'" class="flex flex-wrap items-center gap-3 pt-1">
                 <button
-                  @click="aprovar(req.id)"
-                  :disabled="processando[req.id]"
+                  @click="abrirConfirmacaoAprovar(req)"
+                  :disabled="!!processando[req.id]"
                   class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-wait"
                 >
                   {{ processando[req.id] === 'aprovar' ? 'Aprovando...' : 'Aprovar' }}
@@ -173,6 +169,38 @@
 
       </main>
     </TemaDarkLight>
+
+    <!-- Modal Confirmação Aprovar -->
+    <Modal
+      v-if="modalAprovarId !== null"
+      panel-class="max-w-sm"
+      body-class="space-y-4 p-6"
+      :show-close-button="false"
+      tema="escuro"
+      :close-on-backdrop="false"
+      @close="fecharConfirmacaoAprovar"
+    >
+      <h3 class="text-base font-bold text-white">Aprovar Solicitação</h3>
+      <p class="text-sm text-zinc-400">
+        Confirma a aprovação de <span class="font-semibold text-white">{{ nomeAprovar }}</span>?
+        Isso criará a conta e o personagem no sistema.
+      </p>
+      <div class="flex gap-3">
+        <button
+          @click="fecharConfirmacaoAprovar"
+          class="flex-1 rounded-xl border border-white/10 py-2 text-sm text-zinc-300 hover:border-white/20"
+        >
+          Cancelar
+        </button>
+        <button
+          @click="confirmarAprovar"
+          :disabled="processando[modalAprovarId!] === 'aprovar'"
+          class="flex-1 rounded-xl bg-emerald-600 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
+        >
+          {{ processando[modalAprovarId!] === 'aprovar' ? 'Aprovando...' : 'Confirmar Aprovação' }}
+        </button>
+      </div>
+    </Modal>
 
     <!-- Modal de rejeição -->
     <Modal
@@ -210,11 +238,10 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref, computed } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import Modal from '@/components/Modal.vue'
 import TemaDarkLight from '@/components/TemaDarkLight.vue'
-import HamburgerDrawerMenu from '@/components/HamburgerDrawerMenu.vue'
 import {
   listarSolicitacoesPendentes,
   aprovarSolicitacao,
@@ -234,17 +261,8 @@ const sucessoAcao = reactive<Record<number, string>>({})
 const pendingCount = ref(0)
 const modalRejeicaoId = ref<number | null>(null)
 const motivoRejeicao = ref('')
-
-const menuItems = [
-  { id: 'panel', label: 'Painel Geral' },
-  { id: 'logins', label: 'Gerenciar Logins' },
-  { id: 'personagens', label: 'Personagens' },
-]
-
-function handleMenu(id: string) {
-  if (id === 'panel') router.push({ name: 'master-panel' })
-  if (id === 'personagens') router.push({ name: 'master-characters' })
-}
+const modalAprovarId = ref<number | null>(null)
+const nomeAprovar = ref('')
 
 function formatarData(iso: string) {
   if (!iso) return ''
@@ -266,6 +284,23 @@ async function carregarSolicitacoes() {
   } finally {
     carregando.value = false
   }
+}
+
+function abrirConfirmacaoAprovar(req: CharacterCreationRequestApi) {
+  modalAprovarId.value = req.id
+  nomeAprovar.value = req.nome
+}
+
+function fecharConfirmacaoAprovar() {
+  modalAprovarId.value = null
+  nomeAprovar.value = ''
+}
+
+async function confirmarAprovar() {
+  if (modalAprovarId.value === null) return
+  const id = modalAprovarId.value
+  fecharConfirmacaoAprovar()
+  await aprovar(id)
 }
 
 async function aprovar(id: number) {

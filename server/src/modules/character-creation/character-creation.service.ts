@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { getAdminClient } from "../../config/database/supabase/client.js";
-import { ensureMasterAccess } from "../../common/helpers/master-access.helper.js";
+import { ensureMasterAccess, getUserDisplayEmail } from "../../common/helpers/master-access.helper.js";
+import { usuariosService } from "../usuarios/usuarios.service.js";
 
 const REQUESTS_TABLE = "character_creation_requests";
 const PERSONAGEM_TABLE = "characters";
@@ -35,12 +36,16 @@ function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
-async function getWhitelistedEmails(): Promise<string[]> {
+async function checkEmailPreAutorizado(email: string): Promise<boolean> {
   const { data } = await getAdminClient()
-    .from("character_creation_whitelist")
-    .select("email")
-    .is("deleted_at", null);
-  return (data ?? []).map((r: any) => normalizeEmail(r.email)).filter(Boolean);
+    .from("usuarios")
+    .select("id")
+    .eq("real_email", email)
+    .is("auth_user_id", null)
+    .is("deleted_at", null)
+    .limit(1)
+    .maybeSingle();
+  return data != null;
 }
 
 export type SolicitacaoCriacaoDto = {
@@ -63,9 +68,9 @@ export const characterCreationService = {
     const email = normalizeEmail(dto.email);
     if (!isValidEmail(email)) throw new Error("Email inválido.");
 
-    const allowedEmails = await getWhitelistedEmails();
-    if (allowedEmails.length > 0 && !allowedEmails.includes(email)) {
-      throw new Error("Email não liberado pelo mestre para criação de personagem.");
+    const preAutorizado = await checkEmailPreAutorizado(email);
+    if (!preAutorizado) {
+      throw new Error("Email não autorizado pelo mestre para criação de personagem.");
     }
 
     const username = (dto.username ?? "").trim().toLowerCase();
@@ -206,6 +211,7 @@ export const characterCreationService = {
       user_metadata: {
         real_email: (req as any).email,
         username: (req as any).username,
+        display_name: (req as any).username,
       },
     });
 
@@ -238,12 +244,19 @@ export const characterCreationService = {
       throw charError;
     }
 
+    await usuariosService.criar({
+      auth_user_id: userId,
+      real_email: (req as any).email,
+      username: (req as any).username,
+      tipo: "player",
+    }).catch(() => null);
+
     await admin
       .from(REQUESTS_TABLE)
       .update({
         status: "aprovado",
         revisado_em: new Date().toISOString(),
-        revisado_por: masterUser.id,
+        revisado_por: getUserDisplayEmail(masterUser),
       })
       .eq("id", id);
 
@@ -270,7 +283,7 @@ export const characterCreationService = {
         status: "rejeitado",
         rejeitado_motivo: motivo?.trim() ?? null,
         revisado_em: new Date().toISOString(),
-        revisado_por: masterUser.id,
+        revisado_por: getUserDisplayEmail(masterUser),
       })
       .eq("id", id);
 

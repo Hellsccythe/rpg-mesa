@@ -223,6 +223,22 @@ PersonagensRouter.post("/:characterId/escolher-skill-inicial", async (req, res) 
   }
 });
 
+PersonagensRouter.patch("/:characterId/escolher-raca", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    const { raca_id } = req.body as { raca_id: number };
+    if (!raca_id || typeof raca_id !== "number") {
+      res.status(400).json({ message: "raca_id é obrigatório e deve ser um número." });
+      return;
+    }
+    const resultado = await personagensService.escolherRaca(req.params.characterId, raca_id, token);
+    res.status(200).json(resultado);
+  } catch (error: any) {
+    const status = error?.message?.includes("autenticado") ? 401 : error?.message?.includes("permissão") ? 403 : 400;
+    res.status(status).json({ message: error?.message ?? "Erro ao escolher raça" });
+  }
+});
+
 PersonagensRouter.post("/:characterId/levar-classe", async (req, res) => {
   try {
     const token = getBearerToken(req.headers.authorization);

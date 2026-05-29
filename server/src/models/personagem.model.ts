@@ -17,6 +17,7 @@ export interface PersonagemEntity {
   level: number;
   data: Record<string, unknown>;
   avatarUrl: string | null;
+  racaId: number | null;
   indoleId: number | null;
   generoId: number | null;
   aparenciaFisica: string | null;
@@ -53,6 +54,9 @@ class PersonagemModel {
 
   @Column({ name: "avatar_url", nullable: true })
   avatarUrl!: string | null;
+
+  @Column({ name: "raca_id", nullable: true })
+  racaId!: number | null;
 
   @Column({ name: "indole_id", nullable: true })
   indoleId!: number | null;

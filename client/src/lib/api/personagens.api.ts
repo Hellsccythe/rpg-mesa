@@ -142,3 +142,8 @@ export async function verificarSeMestre(): Promise<boolean> {
     return false
   }
 }
+
+export async function escolherRaca(characterId: string | number, raca_id: number): Promise<PersonagemApi> {
+  const { data } = await api.patch<PersonagemApi>(`/personagens/${characterId}/escolher-raca`, { raca_id })
+  return data
+}

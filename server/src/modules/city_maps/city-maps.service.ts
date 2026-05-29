@@ -2,6 +2,7 @@ import { getAdminClient } from "../../config/database/supabase/client.js";
 import {
   ensureAuthenticatedAccess,
   ensureMasterAccess,
+  getUserDisplayEmail,
 } from "../../common/helpers/master-access.helper.js";
 import type { EditarCityMapDto, PointOfInterestDto, SalvarCityMapDto } from "./city-maps.dto.js";
 import sharp from "sharp";
@@ -190,8 +191,8 @@ export const cityMapsService = {
         map_reference: dto.mapReference.trim(),
         description: dto.description?.trim() ?? "",
         data: dataPayload,
-        created_by: masterUser.id,
-        updated_by: masterUser.id,
+        created_by: getUserDisplayEmail(masterUser),
+        updated_by: getUserDisplayEmail(masterUser),
       })
       .select("id, name, map_reference, description, data, created_at, updated_at")
       .single();
@@ -215,7 +216,7 @@ export const cityMapsService = {
 
     const { error } = await admin
       .from("city_maps")
-      .update({ deleted_at: new Date().toISOString(), deleted_by: masterUser.id })
+      .update({ deleted_at: new Date().toISOString(), deleted_by: getUserDisplayEmail(masterUser) })
       .eq("id", cityMapId)
       .is("deleted_at", null);
 
@@ -270,7 +271,7 @@ export const cityMapsService = {
 
     const updates: Record<string, unknown> = {
       data: nextData,
-      updated_by: masterUser.id,
+      updated_by: getUserDisplayEmail(masterUser),
       ...(dto.name !== undefined ? { name: normalizeText(dto.name) } : {}),
       ...(dto.mapReference !== undefined ? { map_reference: normalizeText(dto.mapReference) } : {}),
       ...(dto.description !== undefined ? { description: normalizeText(dto.description) } : {}),

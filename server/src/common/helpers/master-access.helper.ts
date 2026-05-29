@@ -37,3 +37,10 @@ export function getMasterEmails(): string[] {
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
 }
+
+export function getUserDisplayEmail(user: {
+  email?: string;
+  user_metadata?: Record<string, unknown>;
+}): string {
+  return (user.user_metadata?.real_email as string | undefined) || user.email || "desconhecido";
+}
