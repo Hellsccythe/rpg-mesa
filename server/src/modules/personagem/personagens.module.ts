@@ -247,7 +247,7 @@ PersonagensRouter.patch("/:characterId/escolher-classe", async (req, res) => {
       res.status(400).json({ message: "classe_id é obrigatório e deve ser um número." });
       return;
     }
-    res.status(200).json(await personagensService.escolherClasse(req.params.characterId, classe_id, token));
+    res.status(200).json(await personagensService.escolherClasseInicial(req.params.characterId, classe_id, token));
   } catch (error: any) {
     const status = error?.message?.includes("autenticado") ? 401 : error?.message?.includes("permissão") ? 403 : 400;
     res.status(status).json({ message: error?.message ?? "Erro ao escolher classe" });

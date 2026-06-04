@@ -1377,7 +1377,7 @@ export const personagensService = {
     return mapPersonagem(data);
   },
 
-  async escolherClasse(characterId: string, classeId: number, accessToken?: string) {
+  async escolherClasseInicial(characterId: string, classeId: number, accessToken?: string) {
     const supabase = getSupabaseClient(accessToken);
     const { data: { user }, error: authErr } = await supabase.auth.getUser();
     if (authErr || !user) throw new Error("Usuário não autenticado");

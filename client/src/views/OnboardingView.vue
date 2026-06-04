@@ -467,7 +467,7 @@ import { listarPassados, type PassadoApi, type AtributoBonus } from '@/lib/api/p
 import { listPublicGods } from '@/lib/api/gods.api'
 import { listarArmasPublicas, type ArmaApi } from '@/lib/api/armas.api'
 import {
-  escolherRaca, escolherClasse, escolherPassado,
+  escolherRaca, escolherClasseInicial, escolherPassado,
   definirAtributos, escolherDeus, concluirOnboarding,
   getCharacterById,
 } from '@/lib/api/personagens.api'
@@ -695,7 +695,7 @@ async function confirmarClasse() {
   if (!classeSelecionada.value || !personagem.value) return
   salvando.value = true; erroEscolha.value = ''
   try {
-    await escolherClasse((personagem.value as any).characterId, Number(classeSelecionada.value.id))
+    await escolherClasseInicial((personagem.value as any).characterId, Number(classeSelecionada.value.id))
     confirmando.value = false
     etapa.value = 3
   } catch (err: any) {
