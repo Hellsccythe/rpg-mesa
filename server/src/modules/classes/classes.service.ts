@@ -46,6 +46,7 @@ export const classesService = {
         tier: dto.tier.trim(),
         description: dto.description.trim(),
         max_level: dto.maxLevel ?? 20,
+        requer_deus: dto.requerDeus ?? false,
         created_by: getUserDisplayEmail(masterUser),
         updated_by: getUserDisplayEmail(masterUser),
       })
@@ -67,6 +68,7 @@ export const classesService = {
     if (dto.statBonuses !== undefined) campos.stat_bonuses = dto.statBonuses;
     if (dto.requirements !== undefined) campos.requirements = dto.requirements;
     if (dto.startingSkills !== undefined) campos.starting_skills = dto.startingSkills;
+    if (dto.requerDeus !== undefined) campos.requer_deus = dto.requerDeus;
     const { data, error } = await admin
       .from("classes")
       .update(campos)

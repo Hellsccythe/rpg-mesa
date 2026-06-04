@@ -147,3 +147,33 @@ export async function escolherRaca(characterId: string | number, raca_id: number
   const { data } = await api.patch<PersonagemApi>(`/personagens/${characterId}/escolher-raca`, { raca_id })
   return data
 }
+
+export async function escolherPassado(characterId: string | number, passado_id: number): Promise<PersonagemApi> {
+  const { data } = await api.patch<PersonagemApi>(`/personagens/${characterId}/escolher-passado`, { passado_id })
+  return data
+}
+
+export async function escolherClasse(characterId: string | number, classe_id: number): Promise<PersonagemApi> {
+  const { data } = await api.patch<PersonagemApi>(`/personagens/${characterId}/escolher-classe`, { classe_id })
+  return data
+}
+
+export async function definirAtributos(characterId: string | number, atributos: {
+  aura: number; forca: number; destreza: number; resistencia: number; inteligencia: number
+}): Promise<PersonagemApi> {
+  const { data } = await api.patch<PersonagemApi>(`/personagens/${characterId}/definir-atributos`, atributos)
+  return data
+}
+
+export async function escolherDeus(characterId: string | number, deus_id: number | null): Promise<PersonagemApi> {
+  const { data } = await api.patch<PersonagemApi>(`/personagens/${characterId}/escolher-deus`, { deus_id })
+  return data
+}
+
+export async function concluirOnboarding(
+  characterId: string | number,
+  equipamentos: Array<{ id: number; nome: string; peso: number }>,
+): Promise<PersonagemApi> {
+  const { data } = await api.patch<PersonagemApi>(`/personagens/${characterId}/concluir-onboarding`, { equipamentos })
+  return data
+}

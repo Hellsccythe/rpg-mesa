@@ -1376,4 +1376,265 @@ export const personagensService = {
     if (error) throw error;
     return mapPersonagem(data);
   },
+
+  async escolherClasse(characterId: string, classeId: number, accessToken?: string) {
+    const supabase = getSupabaseClient(accessToken);
+    const { data: { user }, error: authErr } = await supabase.auth.getUser();
+    if (authErr || !user) throw new Error("Usuário não autenticado");
+
+    const admin = getAdminClient();
+    const { data: personagem, error: fetchErr } = await admin
+      .from(PERSONAGEM_TABLE)
+      .select("id, user_id, classe_id")
+      .eq("id", characterId)
+      .is("deleted_at", null)
+      .single();
+
+    if (fetchErr || !personagem) throw new Error("Personagem não encontrado.");
+
+    const masterEmails = getMasterEmails();
+    const isMaster = masterEmails.length > 0 && masterEmails.includes(user.email?.toLowerCase() ?? "");
+    if (!isMaster && (personagem as any).user_id !== user.id) throw new Error("Sem permissão para alterar este personagem.");
+    if ((personagem as any).classe_id != null) throw new Error("Classe já foi escolhida e não pode ser alterada.");
+
+    const { data: classe, error: classeErr } = await admin
+      .from("classes")
+      .select("id")
+      .eq("id", classeId)
+      .is("deleted_at", null)
+      .single();
+    if (classeErr || !classe) throw new Error("Classe não encontrada.");
+
+    const { data, error } = await admin
+      .from(PERSONAGEM_TABLE)
+      .update({ classe_id: classeId, updated_by: getUserDisplayEmail(user) })
+      .eq("id", characterId)
+      .is("deleted_at", null)
+      .select(PERSONAGEM_SELECT_FIELDS)
+      .single();
+    if (error) throw error;
+    return mapPersonagem(data);
+  },
+
+  async definirAtributos(characterId: string, atributos: {
+    aura: number; forca: number; destreza: number; resistencia: number; inteligencia: number;
+  }, accessToken?: string) {
+    const supabase = getSupabaseClient(accessToken);
+    const { data: { user }, error: authErr } = await supabase.auth.getUser();
+    if (authErr || !user) throw new Error("Usuário não autenticado");
+
+    const TOTAL = 10;
+    const values = [atributos.aura, atributos.forca, atributos.destreza, atributos.resistencia, atributos.inteligencia];
+    if (values.some(v => typeof v !== "number" || v < 0 || !Number.isInteger(v))) {
+      throw new Error("Todos os atributos devem ser inteiros não negativos.");
+    }
+    const soma = values.reduce((a, b) => a + b, 0);
+    if (soma !== TOTAL) throw new Error(`Os atributos devem somar exatamente ${TOTAL} pontos (somou ${soma}).`);
+
+    const admin = getAdminClient();
+    const { data: personagem, error: fetchErr } = await admin
+      .from(PERSONAGEM_TABLE)
+      .select("id, user_id, data")
+      .eq("id", characterId)
+      .is("deleted_at", null)
+      .single();
+    if (fetchErr || !personagem) throw new Error("Personagem não encontrado.");
+
+    const masterEmails = getMasterEmails();
+    const isMaster = masterEmails.length > 0 && masterEmails.includes(user.email?.toLowerCase() ?? "");
+    if (!isMaster && (personagem as any).user_id !== user.id) throw new Error("Sem permissão para alterar este personagem.");
+
+    const dataAtual = (personagem as any).data ?? {};
+    if (dataAtual.atributos != null) throw new Error("Atributos já foram definidos e não podem ser alterados.");
+
+    // Busca bônus do passado escolhido
+    const passadoId = (personagem as any).passado_id;
+    let bonus = { aura: 0, forca: 0, destreza: 0, resistencia: 0, inteligencia: 0 };
+    if (passadoId) {
+      const { data: passadoRow } = await admin
+        .from("passados")
+        .select("atributo_bonus")
+        .eq("id", passadoId)
+        .single();
+      if (passadoRow?.atributo_bonus) {
+        const b = passadoRow.atributo_bonus as any;
+        bonus = {
+          aura:         Number(b.aura         ?? 0),
+          forca:        Number(b.forca        ?? 0),
+          destreza:     Number(b.destreza     ?? 0),
+          resistencia:  Number(b.resistencia  ?? 0),
+          inteligencia: Number(b.inteligencia ?? 0),
+        };
+      }
+    }
+
+    const atributosFinais = {
+      aura:         atributos.aura         + bonus.aura,
+      forca:        atributos.forca        + bonus.forca,
+      destreza:     atributos.destreza     + bonus.destreza,
+      resistencia:  atributos.resistencia  + bonus.resistencia,
+      inteligencia: atributos.inteligencia + bonus.inteligencia,
+    };
+
+    const nextData = {
+      ...dataAtual,
+      atributos:      atributosFinais,
+      atributos_base: { ...atributos },
+      atributos_bonus_passado: bonus,
+    };
+
+    const { data, error } = await admin
+      .from(PERSONAGEM_TABLE)
+      .update({ data: nextData, updated_by: getUserDisplayEmail(user) })
+      .eq("id", characterId)
+      .is("deleted_at", null)
+      .select(PERSONAGEM_SELECT_FIELDS)
+      .single();
+    if (error) throw error;
+    return mapPersonagem(data);
+  },
+
+  async escolherDeus(characterId: string, deusId: number | null, accessToken?: string) {
+    const supabase = getSupabaseClient(accessToken);
+    const { data: { user }, error: authErr } = await supabase.auth.getUser();
+    if (authErr || !user) throw new Error("Usuário não autenticado");
+
+    const admin = getAdminClient();
+    const { data: personagem, error: fetchErr } = await admin
+      .from(PERSONAGEM_TABLE)
+      .select("id, user_id, classe_id, data")
+      .eq("id", characterId)
+      .is("deleted_at", null)
+      .single();
+    if (fetchErr || !personagem) throw new Error("Personagem não encontrado.");
+
+    const masterEmails = getMasterEmails();
+    const isMaster = masterEmails.length > 0 && masterEmails.includes(user.email?.toLowerCase() ?? "");
+    if (!isMaster && (personagem as any).user_id !== user.id) throw new Error("Sem permissão para alterar este personagem.");
+
+    const dataAtual = (personagem as any).data ?? {};
+    if (dataAtual.deusEtapaConcluida) throw new Error("Etapa de deus já foi concluída.");
+
+    if (deusId !== null) {
+      const { data: deus, error: deusErr } = await admin
+        .from("gods")
+        .select("id")
+        .eq("id", deusId)
+        .is("deleted_at", null)
+        .single();
+      if (deusErr || !deus) throw new Error("Deus não encontrado.");
+    } else {
+      const classeId = (personagem as any).classe_id;
+      if (classeId) {
+        const { data: classe } = await admin
+          .from("classes")
+          .select("requer_deus")
+          .eq("id", classeId)
+          .single();
+        if ((classe as any)?.requer_deus) throw new Error("Esta classe exige que um deus seja escolhido.");
+      }
+    }
+
+    const updates: Record<string, any> = {
+      updated_by: getUserDisplayEmail(user),
+      data: { ...dataAtual, deusEtapaConcluida: true },
+    };
+    if (deusId !== null) updates.deus_id = deusId;
+
+    const { data, error } = await admin
+      .from(PERSONAGEM_TABLE)
+      .update(updates)
+      .eq("id", characterId)
+      .is("deleted_at", null)
+      .select(PERSONAGEM_SELECT_FIELDS)
+      .single();
+    if (error) throw error;
+    return mapPersonagem(data);
+  },
+
+  async concluirOnboarding(characterId: string, equipamentos: Array<{id: number; nome: string; peso: number}>, accessToken?: string) {
+    const supabase = getSupabaseClient(accessToken);
+    const { data: { user }, error: authErr } = await supabase.auth.getUser();
+    if (authErr || !user) throw new Error("Usuário não autenticado");
+
+    const admin = getAdminClient();
+    const { data: personagem, error: fetchErr } = await admin
+      .from(PERSONAGEM_TABLE)
+      .select("id, user_id, data, onboarding_completo")
+      .eq("id", characterId)
+      .is("deleted_at", null)
+      .single();
+    if (fetchErr || !personagem) throw new Error("Personagem não encontrado.");
+
+    const masterEmails = getMasterEmails();
+    const isMaster = masterEmails.length > 0 && masterEmails.includes(user.email?.toLowerCase() ?? "");
+    if (!isMaster && (personagem as any).user_id !== user.id) throw new Error("Sem permissão para alterar este personagem.");
+    if ((personagem as any).onboarding_completo) throw new Error("Onboarding já foi concluído.");
+
+    const dataAtual = (personagem as any).data ?? {};
+    const forca = (dataAtual.atributos?.forca ?? 0) as number;
+    const pesoMaximo = forca * 2;
+    const pesoTotal = equipamentos.reduce((sum, e) => sum + (e.peso ?? 0), 0);
+    if (pesoTotal > pesoMaximo) {
+      throw new Error(`Peso total (${pesoTotal.toFixed(1)} kg) excede a capacidade de carga (${pesoMaximo} kg).`);
+    }
+
+    const nextData = { ...dataAtual, equipamentos_iniciais: equipamentos };
+    const { data, error } = await admin
+      .from(PERSONAGEM_TABLE)
+      .update({ data: nextData, onboarding_completo: true, updated_by: getUserDisplayEmail(user) })
+      .eq("id", characterId)
+      .is("deleted_at", null)
+      .select(PERSONAGEM_SELECT_FIELDS)
+      .single();
+    if (error) throw error;
+    return mapPersonagem(data);
+  },
+
+  async escolherPassado(characterId: string, passadoId: number, accessToken?: string) {
+    const supabase = getSupabaseClient(accessToken);
+    const { data: { user }, error: authErr } = await supabase.auth.getUser();
+    if (authErr || !user) throw new Error("Usuário não autenticado");
+
+    const admin = getAdminClient();
+
+    const { data: personagem, error: fetchErr } = await admin
+      .from(PERSONAGEM_TABLE)
+      .select("id, user_id, passado_id")
+      .eq("id", characterId)
+      .is("deleted_at", null)
+      .single();
+
+    if (fetchErr || !personagem) throw new Error("Personagem não encontrado.");
+
+    const masterEmails = getMasterEmails();
+    const isMaster = masterEmails.length > 0 && masterEmails.includes(user.email?.toLowerCase() ?? "");
+    if (!isMaster && (personagem as any).user_id !== user.id) {
+      throw new Error("Sem permissão para alterar este personagem.");
+    }
+
+    if ((personagem as any).passado_id !== null && (personagem as any).passado_id !== undefined) {
+      throw new Error("Passado já foi escolhido e não pode ser alterado.");
+    }
+
+    const { data: passado, error: passadoErr } = await admin
+      .from("passados")
+      .select("id")
+      .eq("id", passadoId)
+      .is("deleted_at", null)
+      .single();
+
+    if (passadoErr || !passado) throw new Error("Passado não encontrado.");
+
+    const { data, error } = await admin
+      .from(PERSONAGEM_TABLE)
+      .update({ passado_id: passadoId, updated_by: getUserDisplayEmail(user) })
+      .eq("id", characterId)
+      .is("deleted_at", null)
+      .select(PERSONAGEM_SELECT_FIELDS)
+      .single();
+
+    if (error) throw error;
+    return mapPersonagem(data);
+  },
 };

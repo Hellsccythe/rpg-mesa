@@ -76,6 +76,7 @@ export interface SalvarClassePayload {
   statBonuses?: Record<string, unknown> | null
   requirements?: { min_level?: number; required_classes?: number[] } | null
   startingSkills?: string[] | null
+  requerDeus?: boolean
 }
 
 export type EditarClassePayload = Partial<SalvarClassePayload>

@@ -166,6 +166,10 @@ export interface PersonagemApi {
   data: any
   avatarUrl: string | null
   racaId: number | null
+  classeId: number | null
+  passadoId: number | null
+  deusId: number | null
+  onboardingCompleto: boolean
   indoleId: number | null
   indole?: IndoleApi | null
   generoId: number | null

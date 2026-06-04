@@ -728,6 +728,7 @@ import { useCharactersStore } from '@/stores/characters'
 import { useMasterApprovalsStore } from '@/stores/masterApprovals'
 import { editCharacter } from '@/lib/api/personagens.api'
 import { listLoreNotes } from '@/lib/api/lore-notes.api'
+import { listarMinhasTelas } from '@/lib/api/player-telas.api'
 import type { PersonagemApi } from '@/types/supabase'
 
 interface InventoryItem {
@@ -833,19 +834,28 @@ const tabs = [
   { id: 'inventario', label: 'Inventário' },
 ]
 
-const dashboardHeaderMenuItems = [
-  { id: 'back', label: 'Voltar' },
-  { id: 'dashboard', label: 'Personagem' },
-  { id: 'deuses', label: 'Deuses' },
-  { id: 'cidade', label: 'Cidade' },
-  { id: 'skills', label: 'Skills' },
-  { id: 'titulos', label: 'Títulos' },
-  { id: 'classes', label: 'Classes' },
-  { id: 'npcs', label: 'NPCs' },
-  { id: 'racas', label: 'Raças' },
-  { id: 'equipamentos', label: 'Equipamentos' },
-  { id: 'notas', label: 'Notas de Aventura' },
+const telasHabilitadas = ref<string[]>([])
+
+const TODAS_TELAS_MENU = [
+  { id: 'back',         label: 'Voltar',          sempre: true },
+  { id: 'dashboard',    label: 'Personagem',       sempre: true },
+  { id: 'deuses',       label: 'Deuses',           sempre: false },
+  { id: 'cidade',       label: 'Cidade',           sempre: false },
+  { id: 'skills',       label: 'Skills',           sempre: false },
+  { id: 'titulos',      label: 'Títulos',          sempre: false },
+  { id: 'classes',      label: 'Classes',          sempre: false },
+  { id: 'npcs',         label: 'NPCs',             sempre: false },
+  { id: 'racas',        label: 'Raças',            sempre: false },
+  { id: 'equipamentos', label: 'Equipamentos',     sempre: false },
+  { id: 'notas',        label: 'Notas de Aventura',sempre: false },
 ]
+
+const dashboardHeaderMenuItems = computed(() => {
+  if (authStore.eMestre) return TODAS_TELAS_MENU.map(({ id, label }) => ({ id, label }))
+  return TODAS_TELAS_MENU
+    .filter(t => t.sempre || telasHabilitadas.value.includes(t.id))
+    .map(({ id, label }) => ({ id, label }))
+})
 
 const activeDashboardHeaderItem = computed(() => {
   if (route.name === 'dashboard') return 'dashboard'
@@ -1217,13 +1227,21 @@ async function loadCharacter() {
     character.value = await charactersStore.fetchCharacterById(characterId)
     authStore.definirPersonagemAtivo(characterId)
 
-    if (!authStore.eMestre && (character.value as any)?.racaId == null) {
+    if (!authStore.eMestre && !(character.value as any)?.onboardingCompleto) {
       await router.replace({ name: 'onboarding', query: { characterId } })
       return
     }
 
     initializeSettingsForm()
     await loadNotifications(characterId)
+
+    if (!authStore.eMestre) {
+      try {
+        telasHabilitadas.value = await listarMinhasTelas(characterId)
+      } catch {
+        telasHabilitadas.value = []
+      }
+    }
 
     if (!authStore.eMestre) {
       const { data: { user } } = await supabase.auth.getUser()

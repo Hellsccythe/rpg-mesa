@@ -120,6 +120,30 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresMaster: true },
     },
     {
+      path: '/master/passados',
+      name: 'master-passados',
+      component: () => import('@/views/MasterPassadosView.vue'),
+      meta: { requiresAuth: true, requiresMaster: true },
+    },
+    {
+      path: '/master/npcs',
+      name: 'master-npcs',
+      component: () => import('@/views/MasterNpcsView.vue'),
+      meta: { requiresAuth: true, requiresMaster: true },
+    },
+    {
+      path: '/master/telas',
+      name: 'master-telas',
+      component: () => import('@/views/MasterTelasView.vue'),
+      meta: { requiresAuth: true, requiresMaster: true },
+    },
+    {
+      path: '/npcs',
+      name: 'npcs',
+      component: () => import('@/views/NpcsView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/onboarding',
       name: 'onboarding',
       component: () => import('@/views/OnboardingView.vue'),

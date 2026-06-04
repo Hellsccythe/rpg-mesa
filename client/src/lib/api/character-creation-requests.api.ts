@@ -19,7 +19,18 @@ export async function submeterSolicitacaoCriacao(
 ): Promise<{ id: number; status: string }> {
   const { data } = await api.post<{ id: number; status: string }>(
     '/character-creation-requests',
-    payload,
+    {
+      nome: payload.nome,
+      username: payload.username,
+      password: payload.password,
+      email: payload.email,
+      avatar_url: payload.avatarUrl,
+      indole_id: payload.indoleId,
+      genero_id: payload.generoId,
+      aparencia_fisica: payload.aparenciaFisica,
+      historia_texto: payload.historiaTexto,
+      historia_doc_url: payload.historiaDocUrl,
+    },
   )
   return data
 }

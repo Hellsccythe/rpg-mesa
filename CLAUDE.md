@@ -39,6 +39,8 @@ Sistema de gestão de sessões de RPG de mesa. Monorepo com Yarn 4 Workspaces.
 | `/master/tabelas-acessorias` | MasterTabelasAcessoriasView | auth + isMaster |
 | `/master/logins` | MasterLoginRequestsView | auth + isMaster |
 | `/master/usuarios` | MasterUsersView | auth + isMaster |
+| `/master/imagens` | MasterImagesView | auth + isMaster |
+| `/master/passados` | MasterPassadosView | auth + isMaster |
 | `/onboarding?characterId=` | OnboardingView | auth (player) |
 
 ## API Endpoints do Backend
@@ -94,7 +96,12 @@ Sistema de gestão de sessões de RPG de mesa. Monorepo com Yarn 4 Workspaces.
 | PATCH | `/api/usuarios/admin/:id/ativo` | isMaster |
 | POST | `/api/usuarios/admin/pre-registrar` | isMaster |
 | DELETE | `/api/usuarios/admin/:id/pre-registro` | isMaster |
+| DELETE | `/api/usuarios/admin/:id` | isMaster (hard delete: auth + personagem + storage) |
 | PATCH | `/api/personagens/:id/escolher-raca` | auth (próprio player ou mestre) |
+| GET | `/api/passados` | público |
+| POST | `/api/passados/admin` | isMaster |
+| PATCH | `/api/passados/admin/:id` | isMaster |
+| DELETE | `/api/passados/admin/:id` | isMaster (soft delete) |
 
 ## Componentes Compartilhados
 
@@ -134,7 +141,7 @@ Documentação completa em `docs/COMPONENTS.md`.
 
 ## Banco de Dados — Tabelas
 
-Schema completo em `docs/SCHEMA_CURRENT.sql`. Migrations em `database/migrations/` (001–026).
+Schema completo em `docs/SCHEMA_CURRENT.sql`. Migrations em `database/migrations/` (001–032).
 
 **IMPORTANTE:** Migrations 022–023 converteram todas as PKs de UUID → INTEGER IDENTITY. Todas as tabelas de entidade usam `id INTEGER` como PK. `user_id` (referência a `auth.users`) permanece UUID.
 
@@ -349,6 +356,26 @@ Hierarquia de lookup para equipamentos. Todas seguem padrão `item INTEGER PK` +
 
 Gerenciadas em `/master/tabelas-acessorias`. Backend em `server/src/modules/tabelas-acessorias/`.
 
+### `passados` (migration 032)
+
+Origens/históricos dos personagens, gerenciados pelo mestre. Cada passado pode conceder múltiplas skills e/ou títulos ao player que o escolher no onboarding.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| id | INTEGER PK | IDENTITY |
+| nome | VARCHAR(100) | obrigatório |
+| descricao | TEXT | nullable |
+| foto_url | TEXT | nullable — URL de imagem de capa |
+| skill_ids | INTEGER[] | array de `skills.id` — skills concedidas |
+| titulo_ids | INTEGER[] | array de `titles.id` — títulos concedidos |
+| created_at / updated_at | timestamptz | |
+| created_by / updated_by | TEXT | email do autor |
+| deleted_at / deleted_by | timestamptz / TEXT | soft delete |
+
+Backend retorna passado enriquecido: além dos IDs, inclui `skills: [{id,name}]` e `titulos: [{id,name}]`.
+Tela: `/master/passados` → `MasterPassadosView.vue`.
+API: `GET /api/passados` (público), `POST/PATCH/DELETE /api/passados/admin[/:id]` (isMaster).
+
 ### `lore_notes`
 
 Notas de lore — ver migrations 009–011. PK convertida para INTEGER IDENTITY (migration 022).
@@ -364,6 +391,13 @@ Notas de lore — ver migrations 009–011. PK convertida para INTEGER IDENTITY 
 - **Nunca usar FOREIGN KEY constraints no banco** — referências entre tabelas são por convenção de inteiro apenas
 - IDs de entidades no frontend são `number | string` (union type) por compatibilidade com o período de transição UUID→INTEGER
 
+### Modal — padrões
+
+- `Modal.vue` tem default `max-w-2xl` quando nenhum `panel-class` é passado
+- Modais de confirmação pequenos usam `panel-class="max-w-sm"` + `tema="escuro"` + `:close-on-backdrop="false"`
+- **Toda ação destrutiva ou irreversível nas telas master deve ter modal de confirmação** antes de executar
+- Modais de formulário simples (2-3 campos): `max-w-sm`; formulários maiores: `max-w-md` ou `max-w-xl`
+
 ## Papéis de Usuário
 
 - **Jogador (tipo `player`):** autenticado, acessa apenas seu personagem no dashboard. Login com `{username}@rpg.internal`.
@@ -374,11 +408,12 @@ Ambos os tipos têm registro na tabela `usuarios`. Players são criados automati
 ## Gerenciamento de Usuários
 
 - Tela: `/master/usuarios` → `MasterUsersView.vue`
-- Funções: listar todos, filtrar por tipo/status, editar username/tipo/nome do personagem, reset de senha, ativar/desativar conta, liberar/remover pré-registros
-- Username change atualiza: `usuarios.username` + `characters.username` + email Supabase Auth (`{novo}@rpg.internal`)
+- Funções: listar todos, filtrar por tipo/status, editar username/tipo/nome do personagem, reset de senha, ativar/desativar conta, liberar/remover pré-registros, **deletar** (remove auth + personagem + avatar storage)
+- Username change atualiza: `usuarios.username` + `characters.username` + email Supabase Auth (`{novo}@rpg.internal`) + `user_metadata.display_name`
 - Desativar: aplica `ban_duration: "876600h"` via Supabase Admin API — bloqueia login
 - Reset Senha GM: modal manual com validação de regras (mín 8, maiúscula, número, especial)
 - Reset Senha Player: seta senha para `12345` + `user_metadata.requires_password_change = true`; no próximo login o DashboardView exibe modal obrigatório para troca de senha seguindo as regras; após confirmar grava `requires_password_change: false` via `supabase.auth.updateUser`
+- **Supabase Auth display_name**: todo usuário criado recebe `user_metadata.display_name = username` para identificação no dashboard Supabase. Migration 031 preencheu os existentes.
 
 ## Fluxo de Auth
 
@@ -391,13 +426,15 @@ Ambos os tipos têm registro na tabela `usuarios`. Players são criados automati
 ## Fluxo de Criação de Personagem
 
 1. Jogador acessa `/` (LoginView) e abre modal "Criar Novo Personagem"
-2. Preenche: avatar (obrigatório, comprimido canvas + sharp), nome + sobrenome, email (deve estar na whitelist), username (3-20 chars, a-z0-9_-), senha (mín 8, maiúscula, número, especial), gênero (VSelect → `genero`), índole (VSelect → `indole`), aparência física (mín 30 letras), história (mín 100 letras OU arquivo Word)
-3. Frontend faz upload do avatar para `character-avatars/pending/` via `POST /upload-avatar` (público)
-4. Frontend submete `POST /character-creation-requests` — sem auth, backend valida whitelist + unicidade de username + regras de senha/aparência/história
-5. Jogador vê tela "Aguardando aprovação do mestre" — **sem login automático**
-6. Mestre vê bell com contagem em `/master` e acessa `/master/logins`
-7. Mestre aprova: backend cria usuário Supabase Auth (`{username}@rpg.internal`) + registro em `characters` + registro em `usuarios`
-8. Mestre rejeita: preenche motivo (opcional)
+2. Preenche: avatar (obrigatório, comprimido canvas + sharp), nome + sobrenome, email (deve estar na whitelist), username (3-20 chars, a-z0-9_-), senha (mín 8, maiúscula, número, especial), gênero (VSelect → `genero`), índole (VSelect → `indole`), aparência física (**mín 100 letras** sem espaços), história (**mín 1000 letras** OU arquivo Word/PDF)
+3. **Bypass de teste**: incluir o texto `"mas a bicicleta e azul"` na aparência ou história pula as validações de tamanho mínimo (frontend + backend)
+4. Frontend faz upload do avatar para `character-avatars/pending/` via `POST /upload-avatar` (público)
+5. Frontend submete `POST /character-creation-requests` — sem auth, backend valida whitelist + unicidade de username + regras
+   - **Atenção:** a API `submeterSolicitacaoCriacao` mapeia camelCase → snake_case antes de enviar (ex: `aparenciaFisica → aparencia_fisica`)
+6. Jogador vê tela "Aguardando aprovação do mestre" — **sem login automático**
+7. Mestre vê bell com contagem em `/master` e acessa `/master/logins`
+8. Mestre aprova: backend cria usuário Supabase Auth (`{username}@rpg.internal`) + `display_name = username` + registro em `characters` + registro em `usuarios`
+9. Mestre rejeita: preenche motivo (opcional)
 
 ## Fluxo de Onboarding (primeiro login do player)
 
@@ -412,9 +449,20 @@ Etapa 1 — Raça (implementada):
 5. Confirma → `PATCH /api/personagens/:id/escolher-raca` atualiza `characters.raca_id`
 6. Redireciona para `/dashboard`
 
-Próximas etapas (a implementar): Passado, Classes, Atributos, Deuses, Equipamentos.
+Etapa 2 — Passado (catálogo implementado, integração no onboarding pendente):
+- Tabela `passados` (migration 032): `id`, `nome`, `descricao`, `foto_url`, `skill_ids[]`, `titulo_ids[]`
+- CRUD master em `/master/passados` (`MasterPassadosView.vue`)
+- Backend retorna passado enriquecido com `skills: [{id,name}]` e `titulos: [{id,name}]`
+- API: `client/src/lib/api/passados.api.ts`
+- **Falta:** integrar a escolha de passado no fluxo de onboarding (`OnboardingView.vue` step 2) e vincular à tabela `characters`
+
+Próximas etapas (a implementar): Passado (onboarding step 2), Classes, Atributos, Deuses, Equipamentos.
 
 ## Storage (Supabase)
 
 - Avatar: bucket `character-avatars` (`VITE_AVATAR_BUCKET`) — uploads pendentes em `pending/`, aprovados movidos para raiz
 - História: bucket `character-history` (`VITE_HISTORY_BUCKET`)
+
+## Backup de Imagens
+
+Tela `/master/imagens` (`MasterImagesView.vue`) mostra todas as imagens do projeto em 4 seções: Personagens, Deuses, Mapas, Raças. Cada imagem tem botão de download individual. Cada seção tem "Baixar tudo" que gera um ZIP com pasta nomeada (ex: `DEUSES.zip/DEUSES/`). Botão global "Baixar tudo" gera `IMAGENS.zip` com subpastas para cada seção. Usa JSZip no browser.

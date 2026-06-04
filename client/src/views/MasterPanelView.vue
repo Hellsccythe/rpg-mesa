@@ -337,6 +337,15 @@
             <span class="mt-3 inline-block text-xs text-violet-400 group-hover:text-violet-300">Abrir guia →</span>
           </button>
 
+          <button @click="router.push({ name: 'master-passados' })" class="gm-link-card group text-left">
+            <div class="gm-icon-wrap mb-3 bg-indigo-500/10 text-indigo-400">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            </div>
+            <p class="font-semibold text-zinc-100 group-hover:text-white">Passados</p>
+            <p class="mt-0.5 text-xs text-zinc-500">Origens dos personagens com skills e títulos concedidos</p>
+            <span class="mt-3 inline-block text-xs text-indigo-400 group-hover:text-indigo-300">Abrir guia →</span>
+          </button>
+
           <button @click="goMasterSkills" class="gm-link-card group text-left">
             <div class="gm-icon-wrap mb-3 bg-emerald-500/10 text-emerald-400">
               <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
@@ -353,6 +362,24 @@
             <p class="font-semibold text-zinc-100 group-hover:text-white">Classes</p>
             <p class="mt-0.5 text-xs text-zinc-500">Crie e edite as classes jogáveis da campanha</p>
             <span class="mt-3 inline-block text-xs text-sky-400 group-hover:text-sky-300">Abrir guia →</span>
+          </button>
+
+          <button @click="router.push({ name: 'master-npcs' })" class="gm-link-card group text-left">
+            <div class="gm-icon-wrap mb-3 bg-indigo-500/10 text-indigo-400">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <p class="font-semibold text-zinc-100 group-hover:text-white">NPCs</p>
+            <p class="mt-0.5 text-xs text-zinc-500">Crie NPCs e controle quais players podem vê-los</p>
+            <span class="mt-3 inline-block text-xs text-indigo-400 group-hover:text-indigo-300">Abrir guia →</span>
+          </button>
+
+          <button @click="router.push({ name: 'master-telas' })" class="gm-link-card group text-left">
+            <div class="gm-icon-wrap mb-3 bg-violet-500/10 text-violet-400">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+            </div>
+            <p class="font-semibold text-zinc-100 group-hover:text-white">Controle de Telas</p>
+            <p class="mt-0.5 text-xs text-zinc-500">Configure quais telas do menu cada player pode acessar</p>
+            <span class="mt-3 inline-block text-xs text-violet-400 group-hover:text-violet-300">Abrir guia →</span>
           </button>
 
           <button @click="router.push({ name: 'master-logins' })" class="gm-link-card group text-left">
@@ -1126,6 +1153,9 @@ const panelMenuItems = [
   { id: 'mapas', label: 'Mapas' },
   { id: 'armas', label: 'Equipamentos' },
   { id: 'racas', label: 'Raças' },
+  { id: 'passados', label: 'Passados' },
+  { id: 'npcs', label: 'NPCs' },
+  { id: 'telas', label: 'Controle de Telas' },
   { id: 'skills', label: 'Skills' },
   { id: 'classes', label: 'Classes' },
   { id: 'tabelas-acessorias', label: 'Tab. Acessórias' },
@@ -1186,6 +1216,21 @@ async function handlePanelMenuSelect(itemId: string) {
 
   if (itemId === 'racas') {
     goMasterRacas()
+    return
+  }
+
+  if (itemId === 'passados') {
+    router.push({ name: 'master-passados' })
+    return
+  }
+
+  if (itemId === 'npcs') {
+    router.push({ name: 'master-npcs' })
+    return
+  }
+
+  if (itemId === 'telas') {
+    router.push({ name: 'master-telas' })
     return
   }
 

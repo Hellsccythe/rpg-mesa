@@ -190,6 +190,14 @@
                     Reset Senha
                   </button>
                   <button
+                    v-if="u.tipo === 'player' && u.personagem"
+                    type="button"
+                    class="rounded-xl border border-violet-500/30 bg-violet-500/10 px-3 py-1.5 text-xs font-semibold text-violet-400 transition-colors hover:bg-violet-500/20"
+                    @click="abrirModalTelas(u)"
+                  >
+                    Telas
+                  </button>
+                  <button
                     v-if="u.tipo !== 'gm'"
                     type="button"
                     class="rounded-xl border px-3 py-1.5 text-xs font-semibold transition-colors"
@@ -549,6 +557,66 @@
       </template>
     </Modal>
 
+    <!-- Modal Gerenciar Telas do Player -->
+    <Modal
+      v-if="modalTelasAberto"
+      title="Telas Habilitadas"
+      tema="escuro"
+      panel-class="max-w-sm"
+      :show-close-button="false"
+      :close-on-backdrop="false"
+      @close="modalTelasAberto = false"
+    >
+      <template #header>
+        <div>
+          <h3 class="text-base font-bold text-white">Telas do Player</h3>
+          <p class="text-xs text-zinc-500 mt-0.5">{{ usuarioTelas?.personagem?.name ?? usuarioTelas?.username }}</p>
+        </div>
+        <button type="button" @click="modalTelasAberto = false" class="ml-auto text-zinc-500 hover:text-white transition-colors">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </template>
+
+      <div class="p-5">
+        <div v-if="carregandoTelas" class="py-6 text-center text-xs text-zinc-500">Carregando...</div>
+        <div v-else class="space-y-1">
+          <label
+            v-for="tela in TELAS_DISPONIVEIS"
+            :key="tela.id"
+            class="flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-white/[0.04]"
+            :class="telasForm.includes(tela.id) ? 'bg-violet-950/30' : ''"
+          >
+            <input
+              type="checkbox"
+              :value="tela.id"
+              v-model="telasForm"
+              class="h-4 w-4 rounded accent-violet-500"
+            />
+            <span class="text-sm" :class="telasForm.includes(tela.id) ? 'text-violet-200 font-medium' : 'text-zinc-300'">
+              {{ tela.label }}
+            </span>
+          </label>
+        </div>
+        <div v-if="erroTelas" class="mt-3 rounded-xl border border-red-500/30 bg-red-950/20 px-3 py-2 text-xs text-red-400">{{ erroTelas }}</div>
+      </div>
+
+      <template #footer>
+        <div class="flex justify-end gap-3 px-5 py-4 border-t border-white/[0.06]">
+          <button type="button" class="rounded-xl border border-white/10 px-4 py-2 text-sm text-zinc-400 transition-colors hover:text-white" @click="modalTelasAberto = false">
+            Cancelar
+          </button>
+          <button
+            type="button"
+            :disabled="salvandoTelas"
+            class="rounded-xl bg-violet-700 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-violet-600 disabled:opacity-50"
+            @click="salvarTelas"
+          >
+            {{ salvandoTelas ? 'Salvando...' : 'Salvar' }}
+          </button>
+        </div>
+      </template>
+    </Modal>
+
   </div>
 </template>
 
@@ -569,6 +637,12 @@ import {
   deletarUsuario,
   type Usuario,
 } from '@/lib/api/usuarios.api'
+import {
+  listarTelasPlayer,
+  definirTelasPlayer,
+  TELAS_DISPONIVEIS,
+  type TelaId,
+} from '@/lib/api/player-telas.api'
 
 const router = useRouter()
 
@@ -841,6 +915,46 @@ async function executarToggle() {
 }
 
 onMounted(carregarUsuarios)
+
+// ── Gerenciar Telas ──────────────────────────────────────────────────────────
+
+const modalTelasAberto  = ref(false)
+const usuarioTelas      = ref<Usuario | null>(null)
+const telasForm         = ref<TelaId[]>([])
+const carregandoTelas   = ref(false)
+const salvandoTelas     = ref(false)
+const erroTelas         = ref('')
+
+async function abrirModalTelas(u: Usuario) {
+  usuarioTelas.value     = u
+  erroTelas.value        = ''
+  telasForm.value        = []
+  modalTelasAberto.value = true
+  carregandoTelas.value  = true
+  try {
+    if (u.personagem) {
+      telasForm.value = await listarTelasPlayer(u.personagem.id)
+    }
+  } catch (err: any) {
+    erroTelas.value = err?.response?.data?.error ?? err.message ?? 'Erro ao carregar telas.'
+  } finally {
+    carregandoTelas.value = false
+  }
+}
+
+async function salvarTelas() {
+  if (!usuarioTelas.value?.personagem) return
+  salvandoTelas.value = true
+  erroTelas.value     = ''
+  try {
+    await definirTelasPlayer(usuarioTelas.value.personagem.id, telasForm.value)
+    modalTelasAberto.value = false
+  } catch (err: any) {
+    erroTelas.value = err?.response?.data?.error ?? err.message ?? 'Erro ao salvar telas.'
+  } finally {
+    salvandoTelas.value = false
+  }
+}
 </script>
 
 <style scoped>

@@ -67,10 +67,44 @@
       "PowerShell(Get-ExecutionPolicy -List)",
       "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\Hellsccythe\\\\Documents\\\\rpg-mesa\" -Directory)",
       "Bash(Select-Object Name)",
-      "Bash(yarn tsc *)"
+      "Bash(yarn tsc *)",
+      "Bash(Test-Path \"c:\\\\Users\\\\Hellsccythe\\\\Documents\\\\rpg-mesa\\\\client\\\\src\\\\views\\\\OnboardingView.vue\")",
+      "PowerShell(Select-String -Path \"c:\\\\Users\\\\Hellsccythe\\\\Documents\\\\rpg-mesa\\\\client\\\\src\\\\stores\\\\auth.ts\" -Pattern \"obterMetaAuthLocal|export\" | Select-Object -First 15 | ForEach-Object { $_.Line })",
+      "Skill(update-config)",
+      "Skill(update-config:*)",
+      "PowerShell(python3 -c \"import json,sys; json.load\\(sys.stdin\\); print\\('JSON valido'\\)\")",
+      "Bash(python3 -m json.tool \"c:/Users/Hellsccythe/Documents/rpg-mesa/.claude/settings.local.json\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\Hellsccythe\\.claude\\projects\\c--Users-Hellsccythe-Documents-rpg-mesa\\memory"
+    ]
+  },
+  "hooks": {
+    "PreCompact": [
+      {
+        "matcher": "auto",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"systemMessage\":\"AVISO: Contexto chegando ao limite - compactando automaticamente. Na retomada, Claude atualizara CLAUDE.md e README.md antes de continuar.\",\"hookSpecificOutput\":{\"hookEventName\":\"PreCompact\",\"additionalContext\":\"CONTEXTO CHEIO: Inclua no resumo compacto: (1) qual task estava em andamento e em que estado ficou, (2) quais arquivos foram modificados nesta sessao, (3) o que falta fazer / proximos passos. Seja detalhado o suficiente para o proximo contexto continuar exatamente de onde parou.\"}}'",
+            "shell": "bash",
+            "statusMessage": "Contexto cheio — preparando compactacao..."
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "matcher": "auto",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PostCompact\",\"additionalContext\":\"O contexto foi compactado automaticamente por estar cheio. PRIMEIRA ACAO OBRIGATORIA — faca isso AGORA antes de qualquer outra tarefa: (1) Atualize a secao Contexto de Sessao em README.md com o estado atual do projeto: o que foi feito, o que esta pendente, quais arquivos foram modificados. (2) Atualize CLAUDE.md se houve mudancas tecnicas relevantes (novos endpoints, novos padroes, novas regras). (3) Envie uma mensagem clara ao usuario informando que o contexto foi compactado e que os docs foram atualizados, resumindo o que estava sendo feito.\"}}'",
+            "shell": "bash",
+            "statusMessage": "Retomando apos compactacao — atualizando documentacao..."
+          }
+        ]
+      }
     ]
   }
 }

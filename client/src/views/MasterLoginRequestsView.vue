@@ -125,7 +125,7 @@
               <div v-if="req.historia_texto || req.historia_doc_url" class="rounded-xl bg-white/[0.03] p-3">
                 <p class="mb-1 text-xs uppercase tracking-wider text-zinc-500">Historia</p>
                 <p v-if="req.historia_texto" class="text-sm leading-relaxed text-zinc-300 line-clamp-6">
-                  {{ req.historia_texto }}
+                  {{ req.historia_texto.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim() }}
                 </p>
                 <a
                   v-if="req.historia_doc_url"

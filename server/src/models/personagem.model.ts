@@ -18,6 +18,10 @@ export interface PersonagemEntity {
   data: Record<string, unknown>;
   avatarUrl: string | null;
   racaId: number | null;
+  classeId: number | null;
+  passadoId: number | null;
+  deusId: number | null;
+  onboardingCompleto: boolean;
   indoleId: number | null;
   generoId: number | null;
   aparenciaFisica: string | null;
@@ -57,6 +61,18 @@ class PersonagemModel {
 
   @Column({ name: "raca_id", nullable: true })
   racaId!: number | null;
+
+  @Column({ name: "classe_id", nullable: true })
+  classeId!: number | null;
+
+  @Column({ name: "passado_id", nullable: true })
+  passadoId!: number | null;
+
+  @Column({ name: "deus_id", nullable: true })
+  deusId!: number | null;
+
+  @Column({ name: "onboarding_completo" })
+  onboardingCompleto!: boolean;
 
   @Column({ name: "indole_id", nullable: true })
   indoleId!: number | null;

@@ -23,6 +23,9 @@ export class SalvarClasseDto {
 
   @IsOptional()
   startingSkills?: string[] | null;
+
+  @IsOptional()
+  requerDeus?: boolean;
 }
 
 export class EditarClasseDto {
@@ -51,4 +54,7 @@ export class EditarClasseDto {
 
   @IsOptional()
   startingSkills?: string[] | null;
+
+  @IsOptional()
+  requerDeus?: boolean;
 }

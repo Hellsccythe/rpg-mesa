@@ -239,6 +239,78 @@ PersonagensRouter.patch("/:characterId/escolher-raca", async (req, res) => {
   }
 });
 
+PersonagensRouter.patch("/:characterId/escolher-classe", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    const { classe_id } = req.body as { classe_id: number };
+    if (!classe_id || typeof classe_id !== "number") {
+      res.status(400).json({ message: "classe_id é obrigatório e deve ser um número." });
+      return;
+    }
+    res.status(200).json(await personagensService.escolherClasse(req.params.characterId, classe_id, token));
+  } catch (error: any) {
+    const status = error?.message?.includes("autenticado") ? 401 : error?.message?.includes("permissão") ? 403 : 400;
+    res.status(status).json({ message: error?.message ?? "Erro ao escolher classe" });
+  }
+});
+
+PersonagensRouter.patch("/:characterId/definir-atributos", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    const { aura, forca, destreza, resistencia, inteligencia } = req.body;
+    if ([aura, forca, destreza, resistencia, inteligencia].some(v => typeof v !== "number")) {
+      res.status(400).json({ message: "Todos os 5 atributos (aura, forca, destreza, resistencia, inteligencia) são obrigatórios." });
+      return;
+    }
+    res.status(200).json(await personagensService.definirAtributos(req.params.characterId, { aura, forca, destreza, resistencia, inteligencia }, token));
+  } catch (error: any) {
+    const status = error?.message?.includes("autenticado") ? 401 : error?.message?.includes("permissão") ? 403 : 400;
+    res.status(status).json({ message: error?.message ?? "Erro ao definir atributos" });
+  }
+});
+
+PersonagensRouter.patch("/:characterId/escolher-deus", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    const { deus_id } = req.body as { deus_id: number | null };
+    res.status(200).json(await personagensService.escolherDeus(req.params.characterId, deus_id ?? null, token));
+  } catch (error: any) {
+    const status = error?.message?.includes("autenticado") ? 401 : error?.message?.includes("permissão") ? 403 : 400;
+    res.status(status).json({ message: error?.message ?? "Erro ao escolher deus" });
+  }
+});
+
+PersonagensRouter.patch("/:characterId/concluir-onboarding", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    const { equipamentos } = req.body as { equipamentos: Array<{id: number; nome: string; peso: number}> };
+    if (!Array.isArray(equipamentos)) {
+      res.status(400).json({ message: "equipamentos deve ser um array." });
+      return;
+    }
+    res.status(200).json(await personagensService.concluirOnboarding(req.params.characterId, equipamentos, token));
+  } catch (error: any) {
+    const status = error?.message?.includes("autenticado") ? 401 : error?.message?.includes("permissão") ? 403 : 400;
+    res.status(status).json({ message: error?.message ?? "Erro ao concluir onboarding" });
+  }
+});
+
+PersonagensRouter.patch("/:characterId/escolher-passado", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    const { passado_id } = req.body as { passado_id: number };
+    if (!passado_id || typeof passado_id !== "number") {
+      res.status(400).json({ message: "passado_id é obrigatório e deve ser um número." });
+      return;
+    }
+    const resultado = await personagensService.escolherPassado(req.params.characterId, passado_id, token);
+    res.status(200).json(resultado);
+  } catch (error: any) {
+    const status = error?.message?.includes("autenticado") ? 401 : error?.message?.includes("permissão") ? 403 : 400;
+    res.status(status).json({ message: error?.message ?? "Erro ao escolher passado" });
+  }
+});
+
 PersonagensRouter.post("/:characterId/levar-classe", async (req, res) => {
   try {
     const token = getBearerToken(req.headers.authorization);
