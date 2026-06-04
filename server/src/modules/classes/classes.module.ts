@@ -33,6 +33,59 @@ ClassesRouter.get("/level-progression", async (_req, res) => {
   }
 });
 
+ClassesRouter.get("/admin", async (req, res) => {
+  try {
+    const resultado = await classesService.listarAdmin();
+    res.status(200).json(resultado);
+  } catch (error: any) {
+    res.status(500).json({ message: error?.message ?? "Erro ao listar classes" });
+  }
+});
+
+ClassesRouter.get("/para-player", async (req, res) => {
+  try {
+    const characterId = Number(req.query.characterId);
+    if (!Number.isInteger(characterId) || characterId < 1) {
+      res.status(400).json({ message: "characterId inválido." });
+      return;
+    }
+    res.status(200).json(await classesService.listarParaPlayer(characterId));
+  } catch (error: any) {
+    res.status(500).json({ message: error?.message ?? "Erro ao listar classes" });
+  }
+});
+
+ClassesRouter.get("/secretas/admin", async (req, res) => {
+  try {
+    res.status(200).json(await classesService.listarClassesSecretasAdmin(getBearerToken(req.headers.authorization)));
+  } catch (error: any) {
+    const status = error?.message?.includes("Acesso") ? 403 : 500;
+    res.status(status).json({ message: error?.message ?? "Erro" });
+  }
+});
+
+ClassesRouter.post("/secretas/admin/revelar", async (req, res) => {
+  try {
+    const { classeId, characterId } = req.body as { classeId: number; characterId: number };
+    if (!classeId || !characterId) { res.status(400).json({ message: "classeId e characterId são obrigatórios." }); return; }
+    res.status(200).json(await classesService.revelarClasseSecreta(classeId, characterId, getBearerToken(req.headers.authorization)));
+  } catch (error: any) {
+    const status = error?.message?.includes("Acesso") ? 403 : 400;
+    res.status(status).json({ message: error?.message ?? "Erro ao revelar classe" });
+  }
+});
+
+ClassesRouter.delete("/secretas/admin/revogar/:classeId", async (req, res) => {
+  try {
+    const classeId = Number(req.params.classeId);
+    if (!Number.isInteger(classeId)) { res.status(400).json({ message: "classeId inválido." }); return; }
+    res.status(200).json(await classesService.revogarClasseSecreta(classeId, getBearerToken(req.headers.authorization)));
+  } catch (error: any) {
+    const status = error?.message?.includes("Acesso") ? 403 : 400;
+    res.status(status).json({ message: error?.message ?? "Erro ao revogar" });
+  }
+});
+
 ClassesRouter.post("/admin", async (req, res) => {
   try {
     const token = getBearerToken(req.headers.authorization);

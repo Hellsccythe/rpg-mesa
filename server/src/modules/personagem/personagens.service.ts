@@ -291,6 +291,7 @@ export const personagensService = {
         aparencia_fisica: payload.aparenciaFisica ?? null,
         historia_texto: payload.historiaTexto ?? null,
         historia_doc_url: payload.historiaDocUrl ?? null,
+        status: 'vivo',
         data: initialData,
       })
       .select(PERSONAGEM_SELECT_FIELDS)
@@ -1374,6 +1375,32 @@ export const personagensService = {
       .single();
 
     if (error) throw error;
+    return mapPersonagem(data);
+  },
+
+  async alterarStatus(characterId: string, status: 'vivo' | 'morto', accessToken?: string) {
+    await ensureMasterAccess(accessToken);
+    if (status !== 'vivo' && status !== 'morto') throw new Error("Status inválido. Use 'vivo' ou 'morto'.");
+
+    const admin = getAdminClient();
+    const { data, error } = await admin
+      .from(PERSONAGEM_TABLE)
+      .update({ status, updated_by: 'master' })
+      .eq("id", characterId)
+      .is("deleted_at", null)
+      .select(PERSONAGEM_SELECT_FIELDS)
+      .single();
+
+    if (error) throw error;
+    if (!data) throw new Error("Personagem não encontrado.");
+
+    if (status === 'morto') {
+      await admin
+        .from("classe_secreta_revelada")
+        .delete()
+        .eq("character_id", characterId);
+    }
+
     return mapPersonagem(data);
   },
 

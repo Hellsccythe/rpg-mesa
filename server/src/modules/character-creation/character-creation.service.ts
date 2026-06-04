@@ -239,6 +239,7 @@ export const characterCreationService = {
       aparencia_fisica: (req as any).aparencia_fisica ?? null,
       historia_texto: (req as any).historia_texto ?? null,
       historia_doc_url: (req as any).historia_doc_url ?? null,
+      status: 'vivo',
       data: {},
     });
 

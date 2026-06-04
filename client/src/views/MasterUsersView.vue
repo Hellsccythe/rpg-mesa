@@ -146,6 +146,10 @@
                     <span v-if="u.username">@{{ u.username }}</span>
                     <span v-if="u.personagem">Personagem: <span class="text-zinc-400">{{ u.personagem.name }}</span> (Nv. {{ u.personagem.level }})</span>
                     <span v-if="u.auth_user_id !== null && u.personagem?.raca_id == null && u.tipo === 'player'" class="text-amber-400/70">⚠ Raça não escolhida</span>
+                    <span
+                      v-if="u.tipo === 'player' && (u.personagem as any)?.status === 'morto'"
+                      class="rounded-full bg-red-500/20 px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-wide text-red-400"
+                    >💀 Morto</span>
                   </div>
 
                   <p class="mt-1 text-[0.65rem] text-zinc-700">
@@ -179,15 +183,14 @@
                     class="rounded-xl border border-violet-500/30 bg-violet-500/10 px-3 py-1.5 text-xs font-semibold text-violet-400 transition-colors hover:bg-violet-500/20"
                     @click="abrirResetSenha(u)"
                   >
-                    Reset Senha
+                    Definir Senha
                   </button>
                   <button
-                    v-else
                     type="button"
                     class="rounded-xl border border-orange-500/30 bg-orange-500/10 px-3 py-1.5 text-xs font-semibold text-orange-400 transition-colors hover:bg-orange-500/20"
                     @click="abrirConfirmacaoResetPadrao(u)"
                   >
-                    Reset Senha
+                    Reset Padrão
                   </button>
                   <button
                     v-if="u.tipo === 'player' && u.personagem"
@@ -196,6 +199,22 @@
                     @click="abrirModalTelas(u)"
                   >
                     Telas
+                  </button>
+                  <button
+                    v-if="u.tipo === 'player' && u.personagem && (u.personagem as any).status !== 'morto'"
+                    type="button"
+                    class="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-400 transition-colors hover:bg-red-500/20"
+                    @click="matarPersonagem(u)"
+                  >
+                    💀 Matar
+                  </button>
+                  <button
+                    v-else-if="u.tipo === 'player' && u.personagem && (u.personagem as any).status === 'morto'"
+                    type="button"
+                    class="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-400 transition-colors hover:bg-emerald-500/20"
+                    @click="reviverPersonagem(u)"
+                  >
+                    ✨ Reviver
                   </button>
                   <button
                     v-if="u.tipo !== 'gm'"
@@ -447,7 +466,7 @@
       </template>
     </Modal>
 
-    <!-- Modal Confirmação Reset Padrão (player) -->
+    <!-- Modal Confirmação Reset Padrão (player e GM) -->
     <Modal
       v-if="modalConfirmacaoResetAberto"
       title="Resetar Senha"
@@ -462,7 +481,7 @@
           <span class="font-semibold text-white">{{ usuarioResetPadrao?.personagem?.name ?? usuarioResetPadrao?.username ?? usuarioResetPadrao?.real_email }}</span>
           para <span class="font-mono text-orange-300">12345</span>?
         </p>
-        <p class="mt-2 text-xs text-zinc-500">O jogador será obrigado a definir uma nova senha no próximo login.</p>
+        <p class="mt-2 text-xs text-zinc-500">O usuário será obrigado a definir uma nova senha no próximo login.</p>
         <div v-if="erroResetPadrao" class="mt-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
           {{ erroResetPadrao }}
         </div>
@@ -637,6 +656,7 @@ import {
   deletarUsuario,
   type Usuario,
 } from '@/lib/api/usuarios.api'
+import { alterarStatusPersonagem as apiAlterarStatus } from '@/lib/api/classes.api'
 import {
   listarTelasPlayer,
   definirTelasPlayer,
@@ -915,6 +935,29 @@ async function executarToggle() {
 }
 
 onMounted(carregarUsuarios)
+
+// ── Status do Personagem ─────────────────────────────────────────────────────
+
+async function matarPersonagem(u: Usuario) {
+  if (!u.personagem) return
+  if (!confirm(`Marcar "${u.personagem.name}" como morto? Isso vai liberar qualquer classe secreta que ele detinha.`)) return
+  try {
+    await apiAlterarStatus(u.personagem.id, 'morto')
+    ;(u.personagem as any).status = 'morto'
+  } catch (err: any) {
+    alert(err?.response?.data?.message ?? err.message ?? 'Erro ao alterar status.')
+  }
+}
+
+async function reviverPersonagem(u: Usuario) {
+  if (!u.personagem) return
+  try {
+    await apiAlterarStatus(u.personagem.id, 'vivo')
+    ;(u.personagem as any).status = 'vivo'
+  } catch (err: any) {
+    alert(err?.response?.data?.message ?? err.message ?? 'Erro ao alterar status.')
+  }
+}
 
 // ── Gerenciar Telas ──────────────────────────────────────────────────────────
 

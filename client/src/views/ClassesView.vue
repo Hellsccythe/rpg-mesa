@@ -1015,7 +1015,7 @@ async function init() {
   try {
     const characterId = String(route.query.characterId ?? authStore.idPersonagemAtivo ?? '')
     await Promise.all([
-      classesStore.fetchClasses(),
+      classesStore.fetchClasses(characterId || undefined),
       classesStore.fetchLevelProgression(),
       skillsStore.catalogo.length === 0 ? skillsStore.fetchCatalogo() : Promise.resolve(),
       characterId && !character.value

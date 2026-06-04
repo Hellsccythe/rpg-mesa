@@ -41,6 +41,7 @@ Sistema de gestão de sessões de RPG de mesa. Monorepo com Yarn 4 Workspaces.
 | `/master/usuarios` | MasterUsersView | auth + isMaster |
 | `/master/imagens` | MasterImagesView | auth + isMaster |
 | `/master/passados` | MasterPassadosView | auth + isMaster |
+| `/master/classes-secretas` | MasterClassesSecretasView | auth + isMaster |
 | `/onboarding?characterId=` | OnboardingView | auth (player) |
 
 ## API Endpoints do Backend
@@ -102,6 +103,12 @@ Sistema de gestão de sessões de RPG de mesa. Monorepo com Yarn 4 Workspaces.
 | POST | `/api/passados/admin` | isMaster |
 | PATCH | `/api/passados/admin/:id` | isMaster |
 | DELETE | `/api/passados/admin/:id` | isMaster (soft delete) |
+| GET | `/api/classes/admin` | isMaster |
+| GET | `/api/classes/para-player` | auth (retorna normais + secretas reveladas ao character) |
+| GET | `/api/classes/secretas/admin` | isMaster (lista classes secretas com titular atual) |
+| POST | `/api/classes/secretas/admin/revelar` | isMaster (revela classe secreta a um personagem) |
+| DELETE | `/api/classes/secretas/admin/revogar/:classeId` | isMaster (revoga acesso) |
+| PATCH | `/api/personagens/admin/:id/status` | isMaster (vivo \| morto; morte libera classe secreta) |
 
 ## Componentes Compartilhados
 
@@ -141,7 +148,7 @@ Documentação completa em `docs/COMPONENTS.md`.
 
 ## Banco de Dados — Tabelas
 
-Schema completo em `docs/SCHEMA_CURRENT.sql`. Migrations em `database/migrations/` (001–032).
+Schema completo em `docs/SCHEMA_CURRENT.sql`. Migrations em `database/migrations/` (001–045).
 
 **IMPORTANTE:** Migrations 022–023 converteram todas as PKs de UUID → INTEGER IDENTITY. Todas as tabelas de entidade usam `id INTEGER` como PK. `user_id` (referência a `auth.users`) permanece UUID.
 
@@ -177,9 +184,12 @@ Tela: `/master/usuarios` → `MasterUsersView.vue`.
 | name | text | |
 | username | text | login handle, único |
 | level | integer | >= 1 |
-| data | jsonb | pendingChangeRequest, historyDocumentPath, adventureNotes, skills, titles, avatarFocalPoint, classPoints |
+| data | jsonb | pendingChangeRequest, historyDocumentPath, adventureNotes, skills, titles, avatarFocalPoint, classPoints, **atributos**, **equipamentos_iniciais**, **deusEtapaConcluida** |
 | avatar_url | text | nullable |
-| raca_id | INTEGER | referência a `racas.id` (migration 027) — null até o onboarding |
+| raca_id | INTEGER | referência a `racas.id` — null até escolha no onboarding |
+| passado_id | INTEGER | referência a `passados.id` — null até escolha no onboarding |
+| deus_id | INTEGER | referência a `gods.id` — null se player pulou etapa |
+| status | TEXT | `'vivo'` \| `'morto'` — default `'vivo'` (migration 043) |
 | indole_id | INTEGER | referência a `indole.id` (migration 024) |
 | genero_id | INTEGER | referência a `genero.id` (migration 025) |
 | aparencia_fisica | text | nullable |
@@ -337,6 +347,26 @@ Tabelas de catálogo gerenciadas pelo mestre. PKs convertidas para INTEGER IDENT
 
 `gods` tem `indole_id INTEGER` referenciando `indole.id`.
 
+**`classes`** tem `is_secret BOOLEAN DEFAULT FALSE` (migration 042). Classes secretas não aparecem no onboarding nem para outros players — só são reveladas pelo mestre através de `/master/classes-secretas`. São exclusivas: apenas um personagem vivo por sessão pode deter cada classe secreta.
+
+**`titles`** tem `is_hidden BOOLEAN DEFAULT FALSE` (oculta requisitos) e `classe_secreta_id INTEGER DEFAULT NULL` (migration 045). Quando `classe_secreta_id` é preenchido, o título só é visível para players que tiverem essa classe secreta revelada.
+
+### `classe_secreta_revelada` (migration 044)
+
+Controla qual personagem detém cada classe secreta. Constraint `UNIQUE(classe_id)` garante exclusividade.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| id | INTEGER PK | IDENTITY |
+| classe_id | INTEGER | referência a `classes.id` — UNIQUE |
+| character_id | INTEGER | referência a `characters.id` |
+| revealed_at | TIMESTAMPTZ | data da revelação |
+| revealed_by | TEXT | email do mestre que revelou |
+
+- Ao revelar: mestre acessa `/master/classes-secretas`, seleciona classe e personagem → POST `/api/classes/secretas/admin/revelar`
+- Ao revogar: mestre clica em "Revogar" → DELETE `/api/classes/secretas/admin/revogar/:classeId`
+- Ao marcar personagem como morto: `alterarStatus` remove automaticamente todos os registros de `classe_secreta_revelada` do personagem, liberando as classes para outros
+
 ### Tabelas acessórias de equipamento (migrations 019)
 
 Hierarquia de lookup para equipamentos. Todas seguem padrão `item INTEGER PK` + `descricao VARCHAR(100)` + soft delete + auditoria. Referências por convenção de inteiro, sem constraints.
@@ -439,24 +469,65 @@ Ambos os tipos têm registro na tabela `usuarios`. Players são criados automati
 ## Fluxo de Onboarding (primeiro login do player)
 
 Após aprovação, o player loga e passa pelo onboarding antes de acessar o dashboard.
-Ordem das etapas: **Raça → Passado → Classes → Atributos → Deuses → Equipamentos**
+Ordem das etapas: **Raça → Classe → Passado → Atributos → Deuses → Equipamentos**
 
-Etapa 1 — Raça (implementada):
-1. `DashboardView` carrega o personagem e verifica `character.racaId === null`
-2. Se null e não for mestre → redireciona para `/onboarding?characterId=X` (`OnboardingView.vue`)
-3. Player vê grid de raças com imagem, descrição, atributos bônus e habilidades
-4. Clica em uma raça → tela de confirmação com aviso de escolha permanente
-5. Confirma → `PATCH /api/personagens/:id/escolher-raca` atualiza `characters.raca_id`
-6. Redireciona para `/dashboard`
+Todas as 6 etapas estão implementadas em `OnboardingView.vue`.
 
-Etapa 2 — Passado (catálogo implementado, integração no onboarding pendente):
-- Tabela `passados` (migration 032): `id`, `nome`, `descricao`, `foto_url`, `skill_ids[]`, `titulo_ids[]`
-- CRUD master em `/master/passados` (`MasterPassadosView.vue`)
-- Backend retorna passado enriquecido com `skills: [{id,name}]` e `titulos: [{id,name}]`
-- API: `client/src/lib/api/passados.api.ts`
-- **Falta:** integrar a escolha de passado no fluxo de onboarding (`OnboardingView.vue` step 2) e vincular à tabela `characters`
+| Etapa | Endpoint | Permanente? | Notas |
+|---|---|---|---|
+| 1 — Raça | `PATCH /api/personagens/:id/escolher-raca` | Sim | Atualiza `characters.raca_id` |
+| 2 — Classe | `PATCH /api/personagens/:id/escolher-classe-inicial` | Sim | Salva em `data.classes` |
+| 3 — Passado | `PATCH /api/personagens/:id/escolher-passado` | Sim | Atualiza `characters.passado_id`; concede skills/títulos do passado |
+| 4 — Atributos | `PATCH /api/personagens/:id/definir-atributos` | Sim | Salva em `data.atributos` |
+| 5 — Deus | `PATCH /api/personagens/:id/escolher-deus` | Sim | Atualiza `characters.deus_id`; pode ser pulado |
+| 6 — Equipamentos | `PATCH /api/personagens/:id/concluir-onboarding` | — | Salva `data.equipamentos_iniciais`; seta `onboarding_completo = true` |
 
-Próximas etapas (a implementar): Passado (onboarding step 2), Classes, Atributos, Deuses, Equipamentos.
+**Navegação entre etapas:** o player pode transitar livremente entre as etapas já concluídas usando o stepper no topo. `etapaMaxima` controla quais etapas são clicáveis. Ao concluir a etapa 6, é redirecionado para `/dashboard`.
+
+**Capacidade de carga (etapa 6):** `pesoMaximo = atributos.forca * 2`. Backend valida na conclusão do onboarding.
+
+**Gear menu:** botão de engrenagem fixo no topo direito do onboarding permite sair/fazer logout.
+
+**`DashboardView`** detecta `onboardingCompleto === false` e redireciona para `/onboarding`. Mestres nunca são redirecionados.
+
+## Status do Personagem
+
+- Campo `characters.status TEXT DEFAULT 'vivo' CHECK (status IN ('vivo', 'morto'))` (migration 043)
+- Mestre pode alterar em `/master/usuarios` (botão por linha) e em `/master` (grade de personagens)
+- Badge "Morto" aparece no **portrait sidebar** do `DashboardView` quando `status === 'morto'`
+- **Ao marcar como morto:** backend remove automaticamente registros de `classe_secreta_revelada`, liberando as classes secretas para outros personagens
+- Personagens mortos **não aparecem** na lista de seleção ao revelar uma classe secreta
+- Endpoint: `PATCH /api/personagens/admin/:id/status` → `{ status: 'vivo' | 'morto' }` (isMaster)
+
+## Classes Secretas
+
+- Coluna `classes.is_secret BOOLEAN DEFAULT FALSE` (migration 042)
+- Gerenciadas em `/master/classes-secretas` (`MasterClassesSecretasView.vue`)
+- Card no painel master (`/master`) com link direto para a tela
+- **Regras:**
+  - Só um personagem **vivo** pode deter cada classe secreta por vez (`UNIQUE classe_id` em `classe_secreta_revelada`)
+  - Se outro player desbloqueou e pegou, a classe some para o primeiro (que ainda não confirmou)
+  - Revelação manual pelo mestre: seleciona classe → seleciona personagem (só vivos aparecem)
+  - Revelação automática por requisitos: o mestre também pode fazer isso via a tela
+  - Morte do personagem → classe liberada automaticamente
+- **Títulos vinculados:** `titles.classe_secreta_id` referencia uma classe secreta; o título fica invisível para players sem aquela classe revelada
+
+## Dashboard (DashboardView)
+
+O dashboard do player exibe todas as informações selecionadas no onboarding:
+
+**Tab "Personagem":**
+- Visão geral: nível, pontos de classe, índole
+- Classes do personagem
+- **Atributos** (após onboarding): barras coloridas para Aura, Força, Destreza, Resistência, Inteligência
+- **Origem**: cards com raça, passado e deus (carregados via APIs públicas em background)
+- Skills e títulos concedidos
+- Notas de aventura (preview)
+
+**Tab "Inventário":**
+- **Equipamentos do onboarding** (`data.equipamentos_iniciais`): lista com peso por item
+- **Barra de capacidade de carga**: verde < 70%, âmbar 70–90%, vermelho ≥ 90%. Fórmula: `Força × 2`
+- Inventário geral (itens livres, sem peso) com mochila rápida (dropdown)
 
 ## Storage (Supabase)
 

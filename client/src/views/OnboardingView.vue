@@ -3,6 +3,32 @@
     <div class="fixed inset-0 -z-10 bg-gradient-to-br from-[#0B1623] via-[#080D18] to-[#120A22]" />
     <div class="fixed inset-0 -z-10 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgb(99_102_241/0.12),transparent)]" />
 
+    <!-- Gear menu fixo -->
+    <div v-if="!carregando" class="fixed top-4 right-4 z-50" @click.stop>
+      <button
+        type="button"
+        class="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.05] text-zinc-400 backdrop-blur-sm transition-all hover:border-white/20 hover:text-white"
+        title="Menu"
+        @click="showGearMenu = !showGearMenu"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+      <Transition name="dropdown">
+        <div v-if="showGearMenu" class="absolute right-0 mt-2 w-44 rounded-2xl border border-white/[0.08] bg-[#0E1422]/95 p-1.5 shadow-xl backdrop-blur-xl">
+          <button type="button" class="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-red-400 transition-colors hover:bg-red-500/10" @click="sairOnboarding">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Sair
+          </button>
+        </div>
+      </Transition>
+    </div>
+
+    <!-- Fechar dropdown ao clicar fora -->
+    <div v-if="showGearMenu" class="fixed inset-0 z-40" @click="showGearMenu = false" />
+
     <!-- Loading -->
     <div v-if="carregando" class="flex min-h-screen items-center justify-center">
       <div class="flex flex-col items-center gap-4">
@@ -159,14 +185,23 @@
         <!-- Stepper -->
         <div class="mt-2 flex flex-wrap items-center justify-center gap-2 text-xs">
           <div v-for="(step, idx) in stepperSteps" :key="step.id" class="flex items-center gap-2">
-            <div class="flex items-center gap-1.5" :class="etapa === step.etapa ? '' : etapa > step.etapa ? 'opacity-70' : 'opacity-35'">
+            <button
+              type="button"
+              class="flex items-center gap-1.5 transition-opacity"
+              :class="[
+                etapa === step.etapa ? '' : step.etapa <= etapaMaxima ? 'opacity-70 hover:opacity-100' : 'opacity-35',
+                step.etapa <= etapaMaxima && step.etapa !== etapa ? 'cursor-pointer' : step.etapa === etapa ? 'cursor-default' : 'cursor-not-allowed pointer-events-none'
+              ]"
+              :disabled="step.etapa > etapaMaxima"
+              @click="navegarParaEtapa(step.etapa as 1|2|3|4|5|6)"
+            >
               <div class="h-6 w-6 rounded-full flex items-center justify-center text-[0.6rem] font-bold"
                 :class="etapa > step.etapa ? 'bg-green-600 text-white' : etapa === step.etapa ? `${step.bgColor} text-white` : 'border border-white/20 text-zinc-500'">
                 <svg v-if="etapa > step.etapa" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>
                 <span v-else>{{ step.etapa }}</span>
               </div>
               <span :class="etapa === step.etapa ? `font-semibold ${step.textColor}` : 'text-zinc-600'">{{ step.label }}</span>
-            </div>
+            </button>
             <div v-if="idx < stepperSteps.length - 1" class="h-px w-4 bg-white/10" />
           </div>
         </div>
@@ -501,15 +536,18 @@ import {
   definirAtributos, escolherDeus, concluirOnboarding,
   getCharacterById,
 } from '@/lib/api/personagens.api'
-import { obterMetaAuthLocal } from '@/stores/auth'
+import { obterMetaAuthLocal, useAuthStore } from '@/stores/auth'
 import type { PersonagemApi, GodApi } from '@/types/supabase'
 
-const router = useRouter()
-const route  = useRoute()
+const router    = useRouter()
+const route     = useRoute()
+const authStore = useAuthStore()
 
 // ── Estado geral ─────────────────────────────────────────────────────────────
-const etapa      = ref<1|2|3|4|5|6>(1)
-const carregando = ref(true)
+const etapa           = ref<1|2|3|4|5|6>(1)
+const etapaMaxima     = ref<1|2|3|4|5|6>(1)
+const carregando      = ref(true)
+const showGearMenu    = ref(false)
 const confirmando = ref(false)
 const salvando   = ref(false)
 const erroEscolha = ref('')
@@ -660,6 +698,7 @@ async function carregar() {
       if (!p.data?.deusEtapaConcluida) etapa.value = 5
       else etapa.value = 6
     }
+    etapaMaxima.value = etapa.value
   } catch {
     router.replace({ name: 'login' })
   } finally {
@@ -709,6 +748,19 @@ function selecionarPassado(passado: PassadoApi) {
 }
 
 // ── Confirmações ──────────────────────────────────────────────────────────────
+function navegarParaEtapa(e: 1|2|3|4|5|6) {
+  if (e > etapaMaxima.value) return
+  confirmando.value = false
+  erroEscolha.value = ''
+  etapa.value = e
+}
+
+async function sairOnboarding() {
+  showGearMenu.value = false
+  try { await authStore.sair() } catch { /* ignore */ }
+  router.replace({ name: 'login' })
+}
+
 async function confirmarRaca() {
   if (!racaSelecionada.value || !personagem.value) return
   salvando.value = true; erroEscolha.value = ''
@@ -716,6 +768,7 @@ async function confirmarRaca() {
     await escolherRaca((personagem.value as any).characterId, Number(racaSelecionada.value.id))
     confirmando.value = false
     etapa.value = 2
+    if (etapaMaxima.value < 2) etapaMaxima.value = 2
   } catch (err: any) {
     erroEscolha.value = err?.response?.data?.message ?? err.message ?? 'Erro ao confirmar raça.'
   } finally { salvando.value = false }
@@ -728,6 +781,7 @@ async function confirmarClasse() {
     await escolherClasseInicial((personagem.value as any).characterId, Number(classeSelecionada.value.id))
     confirmando.value = false
     etapa.value = 3
+    if (etapaMaxima.value < 3) etapaMaxima.value = 3
   } catch (err: any) {
     erroEscolha.value = err?.response?.data?.message ?? err.message ?? 'Erro ao confirmar classe.'
   } finally { salvando.value = false }
@@ -740,6 +794,7 @@ async function confirmarPassado() {
     await escolherPassado((personagem.value as any).characterId, Number(passadoSelecionado.value.id))
     confirmando.value = false
     etapa.value = 4
+    if (etapaMaxima.value < 4) etapaMaxima.value = 4
   } catch (err: any) {
     erroEscolha.value = err?.response?.data?.message ?? err.message ?? 'Erro ao confirmar passado.'
   } finally { salvando.value = false }
@@ -751,6 +806,7 @@ async function confirmarAtributos() {
   try {
     await definirAtributos((personagem.value as any).characterId, { ...atributos })
     etapa.value = 5
+    if (etapaMaxima.value < 5) etapaMaxima.value = 5
   } catch (err: any) {
     erroEscolha.value = err?.response?.data?.message ?? err.message ?? 'Erro ao salvar atributos.'
   } finally { salvando.value = false }
@@ -762,6 +818,7 @@ async function confirmarDeus(deusId: number | null) {
   try {
     await escolherDeus((personagem.value as any).characterId, deusId)
     etapa.value = 6
+    if (etapaMaxima.value < 6) etapaMaxima.value = 6
   } catch (err: any) {
     erroEscolha.value = err?.response?.data?.message ?? err.message ?? 'Erro ao salvar deus.'
   } finally { salvando.value = false }
@@ -794,4 +851,8 @@ onMounted(carregar)
   outline: 2px solid rgb(99 102 241 / 0.6);
   outline-offset: 2px;
 }
+.dropdown-enter-active,
+.dropdown-leave-active { transition: opacity 0.15s ease, transform 0.15s ease; }
+.dropdown-enter-from,
+.dropdown-leave-to { opacity: 0; transform: translateY(-6px) scale(0.98); }
 </style>

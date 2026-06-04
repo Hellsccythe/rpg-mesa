@@ -25,6 +25,10 @@ export type TituloEnriquecido = {
   skill_ids: number[];
   skills: SkillResumo[];
   bonuses: AtributoBonus | null;
+  requirements: Record<string, unknown> | null;
+  is_hidden: boolean;
+  linked_hidden_class: boolean;
+  classe_secreta_id: number | null;
   created_at: string;
   updated_at: string;
 };
@@ -47,15 +51,19 @@ async function resolveSkills(skillIds: number[], admin: ReturnType<typeof getAdm
 function mapTitulo(row: any, skillMap: Record<number, string>): TituloEnriquecido {
   const skillIds: number[] = Array.isArray(row.skill_ids) ? row.skill_ids : [];
   return {
-    id:          row.id,
-    name:        row.name ?? "",
-    tier:        row.tier ?? "",
-    description: row.description ?? "",
-    skill_ids:   skillIds,
-    skills:      skillIds.map(id => ({ id, name: skillMap[id] ?? `Skill #${id}` })),
-    bonuses:     row.bonuses ?? null,
-    created_at:  row.created_at,
-    updated_at:  row.updated_at,
+    id:                  row.id,
+    name:                row.name ?? "",
+    tier:                row.tier ?? "",
+    description:         row.description ?? "",
+    skill_ids:           skillIds,
+    skills:              skillIds.map(id => ({ id, name: skillMap[id] ?? `Skill #${id}` })),
+    bonuses:             row.bonuses ?? null,
+    requirements:        row.requirements ?? null,
+    is_hidden:           row.is_hidden ?? false,
+    linked_hidden_class: row.linked_hidden_class ?? false,
+    classe_secreta_id:   row.classe_secreta_id ?? null,
+    created_at:          row.created_at,
+    updated_at:          row.updated_at,
   };
 }
 
@@ -89,8 +97,11 @@ export const titulosService = {
         name:           dto.name.trim(),
         tier:           dto.tier.trim(),
         description:    dto.description.trim(),
-        skill_ids:  (dto as any).skillIds ?? [],
-        bonuses:    (dto as any).bonuses ?? null,
+        skill_ids:           (dto as any).skillIds ?? [],
+        bonuses:             (dto as any).bonuses ?? null,
+        is_hidden:           (dto as any).is_hidden ?? false,
+        linked_hidden_class: (dto as any).linked_hidden_class ?? false,
+        classe_secreta_id:   (dto as any).classe_secreta_id ?? null,
         created_by:     getUserDisplayEmail(user),
         updated_by:     getUserDisplayEmail(user),
       })
@@ -115,8 +126,11 @@ export const titulosService = {
     if (dto.name          !== undefined) updates.name           = dto.name.trim();
     if (dto.tier          !== undefined) updates.tier           = dto.tier.trim();
     if (dto.description   !== undefined) updates.description    = dto.description.trim();
-    if (dto.skillIds !== undefined) updates.skill_ids = dto.skillIds;
-    if ((dto as any).bonuses !== undefined) updates.bonuses = (dto as any).bonuses;
+    if (dto.skillIds                     !== undefined) updates.skill_ids           = dto.skillIds;
+    if ((dto as any).bonuses             !== undefined) updates.bonuses             = (dto as any).bonuses;
+    if ((dto as any).is_hidden            !== undefined) updates.is_hidden            = (dto as any).is_hidden;
+    if ((dto as any).linked_hidden_class  !== undefined) updates.linked_hidden_class  = (dto as any).linked_hidden_class;
+    if ((dto as any).classe_secreta_id    !== undefined) updates.classe_secreta_id    = (dto as any).classe_secreta_id;
 
     const { data, error } = await admin
       .from("titles")

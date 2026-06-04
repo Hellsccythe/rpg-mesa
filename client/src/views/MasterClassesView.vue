@@ -33,6 +33,11 @@
               <span class="text-sm text-zinc-300">Exige escolha de deus no onboarding</span>
               <span class="text-xs text-amber-400/70">(Clérigos, Sacerdotes, Templários etc.)</span>
             </label>
+            <label class="flex items-center gap-2.5 cursor-pointer sm:col-span-2">
+              <input type="checkbox" v-model="form.is_secret" class="h-4 w-4 rounded accent-red-500" />
+              <span class="text-sm font-semibold text-red-300">Classe Secreta</span>
+              <span class="text-xs text-zinc-500">Invisível para players; só aparece quando o mestre revelar para um personagem específico</span>
+            </label>
 
             <!-- Skills iniciais — chip multi-select -->
             <div class="sm:col-span-2 space-y-2">
@@ -121,6 +126,10 @@
           <label class="flex items-center gap-2.5 cursor-pointer sm:col-span-2">
             <input type="checkbox" v-model="editModal.form.requer_deus" class="h-4 w-4 rounded accent-amber-500" />
             <span class="text-sm text-zinc-300">Exige escolha de deus no onboarding</span>
+          </label>
+          <label class="flex items-center gap-2.5 cursor-pointer sm:col-span-2">
+            <input type="checkbox" v-model="editModal.form.is_secret" class="h-4 w-4 rounded accent-red-500" />
+            <span class="text-sm font-semibold text-red-300">Classe Secreta</span>
           </label>
 
           <!-- Skills iniciais — chip multi-select -->
@@ -215,6 +224,7 @@ const form = ref({
   starting_skills: [] as string[],
   stat_bonuses_json: '',
   requer_deus: false,
+  is_secret: false,
 })
 
 const addSkillValue = ref<string | number>('')
@@ -235,6 +245,7 @@ const editModal = ref({
     starting_skills: [] as string[],
     stat_bonuses_json: '',
     requer_deus: false,
+    is_secret: false,
   },
 })
 
@@ -316,6 +327,7 @@ async function salvar() {
       statBonuses,
       startingSkills: form.value.starting_skills.length > 0 ? form.value.starting_skills : null,
       requerDeus: form.value.requer_deus,
+      isSecret: form.value.is_secret,
     })
     feedback.value = 'Classe criada com sucesso.'
     feedbackErro.value = false
@@ -352,6 +364,7 @@ function iniciarEdicao(item: ClasseApi) {
       starting_skills: skillsIniciais,
       stat_bonuses_json: bonuses,
       requer_deus: !!(item as any).requer_deus,
+      is_secret:   !!(item as any).is_secret,
     },
   }
   addSkillEditValue.value = ''
@@ -383,6 +396,7 @@ async function salvarEdicao() {
       statBonuses,
       startingSkills: editModal.value.form.starting_skills.length > 0 ? editModal.value.form.starting_skills : null,
       requerDeus: editModal.value.form.requer_deus,
+      isSecret: editModal.value.form.is_secret,
     })
     await carregar()
     fecharEditModal()

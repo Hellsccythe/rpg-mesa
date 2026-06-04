@@ -98,9 +98,33 @@
                 </div>
                 <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
                 <div class="absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/10 transition-all group-hover:ring-amber-500/60 group-hover:shadow-lg group-hover:shadow-amber-500/10" />
+                <!-- Status overlay para morto -->
+                <div v-if="(char as any).status === 'morto'" class="absolute inset-0 flex flex-col items-center justify-center rounded-2xl bg-black/70">
+                  <span class="text-2xl">💀</span>
+                  <span class="text-[0.6rem] font-bold uppercase tracking-widest text-red-400 mt-1">Morto</span>
+                </div>
                 <p class="absolute bottom-0 left-0 right-0 p-2 text-center text-[0.7rem] font-semibold leading-tight text-white [text-shadow:0_1px_4px_rgba(0,0,0,0.8)] line-clamp-2">
                   {{ char.name }}
                 </p>
+              </div>
+              <!-- Botão de status rápido -->
+              <div class="mt-1.5 flex gap-1">
+                <button
+                  v-if="(char as any).status !== 'morto'"
+                  type="button"
+                  class="flex-1 rounded-lg border border-red-500/30 bg-red-500/10 py-0.5 text-[0.6rem] font-semibold text-red-400 hover:bg-red-500/20 transition-colors"
+                  @click.stop="alterarStatusPersonagem(char.characterId, 'morto')"
+                >
+                  Matar
+                </button>
+                <button
+                  v-else
+                  type="button"
+                  class="flex-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 py-0.5 text-[0.6rem] font-semibold text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+                  @click.stop="alterarStatusPersonagem(char.characterId, 'vivo')"
+                >
+                  Reviver
+                </button>
               </div>
             </button>
           </div>
@@ -362,6 +386,15 @@
             <p class="font-semibold text-zinc-100 group-hover:text-white">Classes</p>
             <p class="mt-0.5 text-xs text-zinc-500">Crie e edite as classes jogáveis da campanha</p>
             <span class="mt-3 inline-block text-xs text-sky-400 group-hover:text-sky-300">Abrir guia →</span>
+          </button>
+
+          <button @click="router.push({ name: 'master-classes-secretas' })" class="gm-link-card group text-left">
+            <div class="gm-icon-wrap mb-3 bg-red-500/10 text-red-400">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <p class="font-semibold text-zinc-100 group-hover:text-white">Classes Secretas</p>
+            <p class="mt-0.5 text-xs text-zinc-500">Gerencie revelações exclusivas de classes ocultas</p>
+            <span class="mt-3 inline-block text-xs text-red-400 group-hover:text-red-300">Abrir guia →</span>
           </button>
 
           <button @click="router.push({ name: 'master-titulos' })" class="gm-link-card group text-left">
@@ -842,6 +875,76 @@
         </button>
       </div>
     </Modal>
+
+    <!-- Modal Troca Obrigatória de Senha -->
+    <Modal
+      v-if="showPasswordChangeModal"
+      title="Defina uma Nova Senha"
+      tema="escuro"
+      panel-class="max-w-sm"
+      :close-on-backdrop="false"
+    >
+      <div class="space-y-5 px-6 py-5">
+        <p class="text-sm text-zinc-400">Sua senha foi resetada. Defina uma nova senha para continuar acessando o painel.</p>
+
+        <div v-if="erroNovaSenha" class="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+          {{ erroNovaSenha }}
+        </div>
+
+        <div class="space-y-1">
+          <label class="block text-xs font-semibold uppercase tracking-wide text-zinc-400">Nova Senha</label>
+          <input
+            v-model="novaSenhaObrigatoria"
+            :type="mostrarNovaSenhaObrigatoria ? 'text' : 'password'"
+            class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-violet-500/40"
+            placeholder="Mín. 8 chars, maiúscula, número e especial"
+          />
+        </div>
+
+        <div class="space-y-1">
+          <label class="block text-xs font-semibold uppercase tracking-wide text-zinc-400">Confirmar Senha</label>
+          <input
+            v-model="novaSenhaObrigatoriaConfirmacao"
+            :type="mostrarNovaSenhaObrigatoria ? 'text' : 'password'"
+            class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-violet-500/40"
+            placeholder="Repita a senha"
+          />
+          <button
+            type="button"
+            class="mt-1 text-xs text-zinc-500 transition-colors hover:text-zinc-300"
+            @click="mostrarNovaSenhaObrigatoria = !mostrarNovaSenhaObrigatoria"
+          >
+            {{ mostrarNovaSenhaObrigatoria ? 'Ocultar' : 'Mostrar' }} senha
+          </button>
+        </div>
+
+        <ul class="space-y-1">
+          <li
+            v-for="regra in regrasNovaSenha"
+            :key="regra.label"
+            class="flex items-center gap-2 text-xs"
+            :class="regra.ok ? 'text-emerald-400' : 'text-zinc-600'"
+          >
+            <span>{{ regra.ok ? '✓' : '○' }}</span>
+            {{ regra.label }}
+          </li>
+        </ul>
+      </div>
+
+      <template #footer>
+        <div class="flex justify-end">
+          <button
+            type="button"
+            :disabled="salvandoNovaSenha || !novaSenhaValida"
+            class="rounded-xl bg-violet-600 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
+            @click="salvarNovaSenhaObrigatoria"
+          >
+            {{ salvandoNovaSenha ? 'Salvando...' : 'Confirmar' }}
+          </button>
+        </div>
+      </template>
+    </Modal>
+
   </div>
 </template>
 
@@ -865,7 +968,7 @@ import {
 import { contarSolicitacoesPendentes } from '@/lib/api/character-creation-requests.api'
 import { listPublicGods } from '@/lib/api/gods.api'
 import type { GodApi, AprovacaoPendenteApi } from '@/types/supabase'
-import { adicionarPontosDeClasse } from '@/lib/api/classes.api'
+import { adicionarPontosDeClasse, alterarStatusPersonagem as apiAlterarStatus } from '@/lib/api/classes.api'
 import {
   listAllLoreNotes,
   createLoreNote,
@@ -873,6 +976,7 @@ import {
 } from '@/lib/api/lore-notes.api'
 import type { LoreNoteApi } from '@/lib/api/lore-notes.api'
 import { uploadLorePdf } from '@/lib/supabase/storage'
+import { supabase } from '@/lib/supabase/client'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -1163,6 +1267,7 @@ const panelMenuItems = [
   { id: 'armas', label: 'Equipamentos' },
   { id: 'racas', label: 'Raças' },
   { id: 'passados', label: 'Passados' },
+  { id: 'classes-secretas', label: 'Classes Secretas' },
   { id: 'titulos-master', label: 'Títulos' },
   { id: 'npcs', label: 'NPCs' },
   { id: 'telas', label: 'Controle de Telas' },
@@ -1231,6 +1336,11 @@ async function handlePanelMenuSelect(itemId: string) {
 
   if (itemId === 'passados') {
     router.push({ name: 'master-passados' })
+    return
+  }
+
+  if (itemId === 'classes-secretas') {
+    router.push({ name: 'master-classes-secretas' })
     return
   }
 
@@ -1477,6 +1587,16 @@ async function deletarPersonagem() {
   }
 }
 
+async function alterarStatusPersonagem(characterId: string | number, status: 'vivo' | 'morto') {
+  try {
+    await apiAlterarStatus(characterId, status)
+    const char = characters.value.find(c => String(c.characterId) === String(characterId))
+    if (char) (char as any).status = status
+  } catch (err: any) {
+    alert(err?.response?.data?.message ?? err.message ?? 'Erro ao alterar status.')
+  }
+}
+
 function irParaDashboardPersonagem(characterId: string | number) {
   authStore.definirPersonagemAtivo(characterId)
   router.push({ name: 'dashboard', query: { characterId } })
@@ -1524,8 +1644,52 @@ async function logout() {
   router.push({ name: 'login' })
 }
 
+// ── Troca obrigatória de senha (após reset padrão) ────────────────────────────
+const showPasswordChangeModal = ref(false)
+const novaSenhaObrigatoria = ref('')
+const novaSenhaObrigatoriaConfirmacao = ref('')
+const mostrarNovaSenhaObrigatoria = ref(false)
+const salvandoNovaSenha = ref(false)
+const erroNovaSenha = ref('')
+
+const regrasNovaSenha = computed(() => [
+  { label: 'Mínimo 8 caracteres',         ok: novaSenhaObrigatoria.value.length >= 8 },
+  { label: 'Ao menos uma letra maiúscula', ok: /[A-Z]/.test(novaSenhaObrigatoria.value) },
+  { label: 'Ao menos um número',           ok: /[0-9]/.test(novaSenhaObrigatoria.value) },
+  { label: 'Ao menos um caractere especial', ok: /[^a-zA-Z0-9]/.test(novaSenhaObrigatoria.value) },
+  { label: 'Senhas coincidem',             ok: novaSenhaObrigatoria.value.length > 0 && novaSenhaObrigatoria.value === novaSenhaObrigatoriaConfirmacao.value },
+])
+const novaSenhaValida = computed(() => regrasNovaSenha.value.every((r) => r.ok))
+
+async function salvarNovaSenhaObrigatoria() {
+  if (!novaSenhaValida.value) return
+  salvandoNovaSenha.value = true
+  erroNovaSenha.value = ''
+  try {
+    const { error } = await supabase.auth.updateUser({
+      password: novaSenhaObrigatoria.value,
+      data: { requires_password_change: false },
+    })
+    if (error) throw error
+    showPasswordChangeModal.value = false
+  } catch (err: any) {
+    erroNovaSenha.value = err?.message ?? 'Erro ao salvar nova senha.'
+  } finally {
+    salvandoNovaSenha.value = false
+  }
+}
+
 onMounted(async () => {
   await loadAll()
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user?.user_metadata?.requires_password_change) {
+      novaSenhaObrigatoria.value = ''
+      novaSenhaObrigatoriaConfirmacao.value = ''
+      erroNovaSenha.value = ''
+      showPasswordChangeModal.value = true
+    }
+  } catch { /* silent */ }
 })
 </script>
 

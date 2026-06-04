@@ -19,6 +19,10 @@ export interface TituloApi {
   skill_ids: number[]
   skills: SkillResumo[]
   bonuses: AtributoBonus | null
+  requirements: Record<string, unknown> | null
+  is_hidden: boolean
+  linked_hidden_class: boolean
+  classe_secreta_id: number | null
   created_at?: string
   updated_at?: string
 }
@@ -29,6 +33,9 @@ export type SalvarTituloPayload = {
   description: string
   skillIds?: number[]
   bonuses?: AtributoBonus | null
+  is_hidden?: boolean
+  linked_hidden_class?: boolean
+  classe_secreta_id?: number | null
 }
 
 export async function listarCatalogoTitulos(): Promise<TituloApi[]> {

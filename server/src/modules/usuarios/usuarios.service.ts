@@ -166,7 +166,6 @@ export const usuariosService = {
       .single();
 
     if (fetchErr || !usuario) throw new Error("Usuário não encontrado.");
-    if ((usuario as any).tipo === "gm") throw new Error("Reset padrão não permitido para contas GM.");
     if (!(usuario as any).auth_user_id) {
       throw new Error("Usuário sem conta ativa. Aguardando criação de personagem.");
     }

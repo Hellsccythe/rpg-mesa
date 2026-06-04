@@ -4,46 +4,45 @@ Sistema de gestão de sessões de RPG de mesa. Monorepo com **Yarn 4 Workspaces*
 
 ---
 
-## Contexto de Sessão — Estado Atual (2026-06-03)
+## Estado Atual (2026-06-04)
 
 > **Leia esta seção primeiro se estiver retomando o projeto em um novo chat.**
 
-### O que foi implementado/corrigido (histórico relevante)
+### O que está implementado
 
-| Área | O que foi feito |
+| Área | Estado |
 |---|---|
-| **Criação de personagem** | Bug crítico corrigido: `aparenciaFisica` enviado em camelCase mas backend esperava `aparencia_fisica` — campo chegava `undefined` |
-| **Mínimos de validação** | Aparência física: **100 letras**; História: **1000 letras** (front + back) |
-| **Bypass de teste** | `"mas a bicicleta e azul"` em aparência ou história pula validações de tamanho |
-| **Modais de confirmação** | Todas as ações destrutivas nas telas master têm modal `max-w-sm` antes de executar |
-| **Modal.vue default** | Sem `panel-class` → usa `max-w-2xl` como padrão |
-| **Gerenciamento de usuários** | Deletar (auth + personagem + storage), reset de senha player (força troca no próximo login), display_name no Auth |
-| **Backup de imagens** | `/master/imagens` com download individual e ZIP por seção/global |
-| **OnboardingView** | Existe em `client/src/views/OnboardingView.vue` — grid de raças, stepper, redireciona para `/dashboard` |
-| **Passados (migration 032)** | ✅ Tabela criada no Supabase. CRUD master em `/master/passados`. Cards com imagem, skills (emerald) e títulos (amber). Falta: step 2 do onboarding + coluna `passado_id` em `characters` |
+| **Criação de personagem** | ✅ Fluxo completo: whitelist, upload avatar, aprovação master, notificação bell |
+| **Onboarding** | ✅ Todos os 6 passos: Raça → Classe → Passado → Atributos → Deus → Equipamentos |
+| **Navegação onboarding** | ✅ Player pode voltar/avançar entre etapas já concluídas pelo stepper; gear menu com logout |
+| **Dashboard** | ✅ Tab Personagem: atributos (barras), origem (raça/passado/deus), classes, skills, títulos |
+| **Inventário dashboard** | ✅ Tab Inventário: equipamentos do onboarding com barra de peso (Força × 2), inventário geral + mochila rápida |
+| **Gerenciamento de usuários** | ✅ Deletar, reset senha, ativar/desativar, pré-registros, matar/reviver personagem |
+| **Status do personagem** | ✅ `vivo` / `morto` — alterável em `/master/usuarios` e grade de `/master`; badge no dashboard |
+| **Classes secretas** | ✅ `is_secret` em classes, revelação exclusiva (1 player vivo/vez), tela `/master/classes-secretas` |
+| **Títulos vinculados** | ✅ `classe_secreta_id` — título invisível para players sem a classe secreta revelada |
+| **Backup de imagens** | ✅ `/master/imagens` com download individual e ZIP por seção/global |
+| **Passados (migration 032)** | ✅ CRUD master em `/master/passados`, integração completa no onboarding |
 
-### Estado atual do onboarding
+### Onboarding — todos os 6 passos
 
-| Passo | Status | Detalhe |
+| Passo | Endpoint | Notas |
 |---|---|---|
-| 1 — Raça | ✅ Implementado | `DashboardView` verifica `racaId == null` → redireciona para `/onboarding` |
-| 2 — Passado | ⚠️ Catálogo pronto, integração pendente | Tabela `passados` existe (migration 032), master gerencia em `/master/passados`, mas falta: (1) coluna `passado_id` em `characters` (migration 033), (2) step 2 no `OnboardingView`, (3) lógica no `DashboardView` de verificar se passado já foi escolhido |
-| 3–6 — Demais | ❌ A implementar | Classes, Atributos, Deuses, Equipamentos |
-
-### Próximas tarefas imediatas
-
-1. **Migration 033**: adicionar `passado_id INTEGER` (nullable) em `characters` referenciando `passados.id`
-2. **OnboardingView step 2**: depois de escolher raça, verificar `passadoId == null` e mostrar grid de passados para escolha
-3. **Endpoint** `PATCH /api/personagens/:id/escolher-passado`
-4. Testar fluxo completo: criação → aprovação → login → onboarding raça → onboarding passado → dashboard
+| 1 — Raça | `PATCH /api/personagens/:id/escolher-raca` | Permanente |
+| 2 — Classe | `PATCH /api/personagens/:id/escolher-classe-inicial` | Permanente; só classes normais (`is_secret = false`) |
+| 3 — Passado | `PATCH /api/personagens/:id/escolher-passado` | Permanente; concede skills/títulos do passado |
+| 4 — Atributos | `PATCH /api/personagens/:id/definir-atributos` | 10 pontos livres para distribuir |
+| 5 — Deus | `PATCH /api/personagens/:id/escolher-deus` | Pode ser pulado |
+| 6 — Equipamentos | `PATCH /api/personagens/:id/concluir-onboarding` | Limite de peso = Força × 2; conclui onboarding |
 
 ### Padrões estabelecidos
 
 - **Confirmação em ações master**: `<Modal panel-class="max-w-sm" tema="escuro" :close-on-backdrop="false">`
 - **API camelCase→snake_case**: frontend sempre envia snake_case ao backend
-- **Bypass de teste**: `"mas a bicicleta e azul"` pula validações de tamanho mínimo
-- **Cards de catálogo**: padrão com imagem + gradient overlay + chips coloridos por tipo (emerald=skills, amber=títulos, indigo/violet=habilidades de raça)
+- **Bypass de teste**: `"mas a bicicleta e azul"` em aparência ou história pula validações de tamanho mínimo
+- **Cards de catálogo**: padrão com imagem + gradient overlay + chips coloridos por tipo (emerald=skills, amber=títulos)
 - **Backend enrichment**: passados e raças retornam dados enriquecidos com nomes resolvidos (não só IDs)
+- **Classes secretas**: `is_secret = true` em `classes`; controle de posse em `classe_secreta_revelada`; morte libera automaticamente
 
 ---
 
@@ -159,18 +158,13 @@ Um mesmo e-mail real pode estar vinculado a múltiplos logins de jogador (um por
 
 ## Fluxo de Onboarding (pós-aprovação)
 
-Ao fazer o primeiro login, o jogador é redirecionado automaticamente para o fluxo de onboarding:
+Ao fazer o primeiro login, o jogador é redirecionado automaticamente para `/onboarding`. Todos os 6 passos estão implementados:
 
-| Passo | Tela | Status |
-|---|---|---|
-| 1 | Raça | Implementado (`/onboarding`) |
-| 2 | Passado | A implementar |
-| 3 | Classes | A implementar |
-| 4 | Atributos | A implementar |
-| 5 | Deuses | A implementar |
-| 6 | Equipamentos | A implementar |
+**Raça → Classe → Passado → Atributos → Deus → Equipamentos**
 
-O `DashboardView` detecta `character.racaId === null` e redireciona jogadores não-mestres para `/onboarding`. A escolha de raça é **permanente** e não pode ser alterada.
+O player pode navegar livremente entre etapas já concluídas usando o stepper. Ao finalizar a etapa 6, é redirecionado para o dashboard. Cada escolha é **permanente** — um modal de confirmação é exibido antes de confirmar.
+
+O `DashboardView` detecta `onboardingCompleto === false` e redireciona para `/onboarding`. Mestres nunca são redirecionados.
 
 ## Gerenciamento de Usuários
 
@@ -185,13 +179,34 @@ Acessível em `/master/usuarios`. O mestre pode:
 
 ## Banco de Dados
 
-Migrations em `database/migrations/` (001–032). Schema atual em `docs/SCHEMA_CURRENT.sql`.
+Migrations em `database/migrations/` (001–045). Schema atual em `docs/SCHEMA_CURRENT.sql`.
 
 Convenções importantes:
 - PKs são `INTEGER IDENTITY` (migrations 022–023 converteram de UUID)
 - Colunas `user_id` que referenciam `auth.users` permanecem UUID
 - Colunas de auditoria `created_by`, `updated_by`, `deleted_by` armazenam **e-mail** (TEXT)
 - **Sem FOREIGN KEY constraints** — referências entre tabelas são por convenção de inteiro
+- `characters.status TEXT DEFAULT 'vivo'` (migration 043) — `'vivo'` | `'morto'`
+- `classes.is_secret BOOLEAN DEFAULT FALSE` (migration 042) — classes exclusivas reveladas pelo mestre
+- `classe_secreta_revelada` (migration 044) — controla posse exclusiva de classes secretas
+- `titles.classe_secreta_id INTEGER DEFAULT NULL` (migration 045) — vincula título a uma classe secreta
+
+## Classes Secretas
+
+Classes com `is_secret = true` não aparecem no onboarding nem na listagem de classes do player. O mestre as gerencia em `/master/classes-secretas`:
+
+- **Revelar:** seleciona a classe e o personagem destino (apenas vivos). Fica registrado em `classe_secreta_revelada`.
+- **Exclusividade:** apenas um personagem vivo pode deter cada classe secreta. Se o player não confirmar e outro desbloquear antes, a classe some para o primeiro.
+- **Liberação por morte:** ao marcar um personagem como morto (`/master/usuarios` ou grade de `/master`), todas as suas classes secretas são liberadas automaticamente.
+- **Títulos vinculados:** um título com `classe_secreta_id` só aparece para players que tiverem aquela classe secreta revelada.
+
+## Status do Personagem
+
+O mestre pode marcar personagens como **Morto** ou **Vivo**:
+- Em `/master/usuarios`: botão na linha de cada player
+- Em `/master`: ícone de status na grade de personagens
+
+O badge "Morto" aparece no portrait do dashboard quando o personagem está morto. Personagens mortos não podem receber classes secretas.
 
 ## Deploy
 

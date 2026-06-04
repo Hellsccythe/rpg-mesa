@@ -140,6 +140,9 @@
                       <span class="text-[0.65rem] font-bold tracking-wider bg-violet-900/70 border border-violet-600/50 text-violet-200 px-2 py-0.5 rounded-full uppercase">
                         Nível {{ character.level }}
                       </span>
+                      <span v-if="character.status === 'morto'" class="text-[0.65rem] font-bold tracking-wider bg-red-950/80 border border-red-600/50 text-red-300 px-2 py-0.5 rounded-full uppercase">
+                        Morto
+                      </span>
                       <span v-if="characterClass" class="text-xs text-zinc-400 truncate max-w-[130px]">{{ characterClass }}</span>
                     </div>
                   </div>
@@ -227,6 +230,65 @@
                   </div>
                 </div>
 
+                <!-- Atributos -->
+                <div v-if="character.data?.atributos" class="dash-card p-5">
+                  <h3 class="dash-section-label mb-4">Atributos</h3>
+                  <div class="space-y-3">
+                    <div v-for="attr in ATRIBUTOS_DASHBOARD" :key="attr.key" class="flex items-center gap-3">
+                      <span class="text-[0.7rem] font-semibold text-zinc-500 w-24 shrink-0">{{ attr.label }}</span>
+                      <div class="flex-1 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                        <div
+                          class="h-full rounded-full transition-all duration-700"
+                          :class="attr.barColor"
+                          :style="`width: ${Math.min(((character.data.atributos as any)[attr.key] ?? 0) / 20 * 100, 100)}%`"
+                        />
+                      </div>
+                      <span class="text-xs font-bold w-5 text-right shrink-0" :class="attr.color">{{ (character.data.atributos as any)[attr.key] ?? 0 }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Origem: Raça, Passado, Deus -->
+                <div class="dash-card p-5">
+                  <h3 class="dash-section-label mb-4">Origem</h3>
+                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+
+                    <!-- Raça -->
+                    <div class="flex items-start gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+                      <div class="h-9 w-9 rounded-xl overflow-hidden border border-indigo-500/20 bg-indigo-900/20 shrink-0">
+                        <img v-if="racaPersonagem?.foto_url" :src="racaPersonagem.foto_url" :alt="racaPersonagem.nome" class="h-full w-full object-cover" />
+                        <div v-else class="flex h-full items-center justify-center text-sm text-indigo-400">⚔</div>
+                      </div>
+                      <div class="min-w-0">
+                        <p class="text-[0.6rem] font-bold uppercase tracking-widest text-indigo-400/70 mb-0.5">Raça</p>
+                        <p class="text-sm font-semibold text-zinc-200 truncate">{{ racaPersonagem?.nome ?? '—' }}</p>
+                      </div>
+                    </div>
+
+                    <!-- Passado -->
+                    <div class="flex items-start gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+                      <div class="h-9 w-9 rounded-xl overflow-hidden border border-violet-500/20 bg-violet-900/20 shrink-0">
+                        <img v-if="passadoPersonagem?.foto_url" :src="passadoPersonagem.foto_url" :alt="passadoPersonagem.nome" class="h-full w-full object-cover" />
+                        <div v-else class="flex h-full items-center justify-center text-sm text-violet-400">📜</div>
+                      </div>
+                      <div class="min-w-0">
+                        <p class="text-[0.6rem] font-bold uppercase tracking-widest text-violet-400/70 mb-0.5">Passado</p>
+                        <p class="text-sm font-semibold text-zinc-200 truncate">{{ passadoPersonagem?.nome ?? '—' }}</p>
+                      </div>
+                    </div>
+
+                    <!-- Deus -->
+                    <div class="flex items-start gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+                      <div class="h-9 w-9 rounded-xl overflow-hidden border border-amber-500/20 bg-amber-900/20 shrink-0 flex items-center justify-center text-sm text-amber-400">✦</div>
+                      <div class="min-w-0">
+                        <p class="text-[0.6rem] font-bold uppercase tracking-widest text-amber-400/70 mb-0.5">Deus</p>
+                        <p class="text-sm font-semibold text-zinc-200 truncate">{{ deusPersonagem?.name ?? 'Nenhum' }}</p>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
                 <!-- Skills -->
                 <div v-if="(character.data?.skills ?? []).length" class="dash-card p-5">
                   <h3 class="dash-section-label mb-3">Skills</h3>
@@ -268,29 +330,57 @@
               <!-- ── Tab: Inventário ─────────────────────────────────── -->
               <div v-show="activeTab === 'inventario'" class="space-y-3">
 
-                <!-- ── Equipamentos (future section) ─────────────────── -->
-                <div class="inv-equip-card dash-card overflow-hidden">
-                  <div class="inv-equip-inner px-5 py-4 flex items-center gap-4">
-                    <div class="inv-equip-icon-wrap flex-shrink-0">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M14.5 17.5L3 6 3 3l3 0 11.5 11.5"/>
-                        <path d="M13 19l6-6"/>
-                        <path d="M16 16l4 4"/>
-                        <path d="M19 21l2-2"/>
-                        <circle cx="4.5" cy="4.5" r="0.5" fill="currentColor"/>
+                <!-- ── Equipamentos do Onboarding ──────────────────── -->
+                <div class="dash-card overflow-hidden">
+
+                  <!-- Header com peso -->
+                  <div class="px-5 pt-4 pb-3 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-amber-400/70">
+                        <path d="M14.5 17.5L3 6 3 3l3 0 11.5 11.5"/><path d="M13 19l6-6"/><path d="M16 16l4 4"/><path d="M19 21l2-2"/>
                       </svg>
+                      <span class="text-xs font-semibold font-cinzel text-amber-400">Equipamentos</span>
+                      <span class="inv-count-badge">{{ equipamentosIniciais.length }} {{ equipamentosIniciais.length === 1 ? 'item' : 'itens' }}</span>
                     </div>
-                    <div class="flex-1 min-w-0">
-                      <div class="flex items-center gap-2 mb-0.5">
-                        <span class="text-xs font-semibold font-cinzel inv-equip-title">Equipamentos</span>
-                        <span class="inv-soon-badge">Em breve</span>
+                    <span class="text-[0.7rem] font-semibold tabular-nums" :class="pesoPorcentagem >= 90 ? 'text-red-400' : pesoPorcentagem >= 70 ? 'text-amber-400' : 'text-zinc-400'">
+                      {{ pesoAtual.toFixed(1) }} / {{ pesoMaximo.toFixed(1) }} kg
+                    </span>
+                  </div>
+
+                  <!-- Barra de peso -->
+                  <div class="mx-5 mb-1">
+                    <div class="h-1.5 rounded-full bg-white/[0.05] overflow-hidden">
+                      <div
+                        class="h-full rounded-full transition-all duration-700"
+                        :class="pesoPorcentagem >= 90 ? 'bg-red-500' : pesoPorcentagem >= 70 ? 'bg-amber-500' : 'bg-emerald-500'"
+                        :style="`width: ${pesoPorcentagem}%`"
+                      />
+                    </div>
+                    <div class="flex justify-between mt-1">
+                      <span class="text-[0.6rem] text-zinc-600">Capacidade de carga</span>
+                      <span class="text-[0.6rem] text-zinc-600">Força × 2</span>
+                    </div>
+                  </div>
+
+                  <!-- Lista -->
+                  <div class="px-5 pb-4 mt-3">
+                    <div v-if="!equipamentosIniciais.length" class="inv-empty-state">
+                      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" class="mx-auto mb-2 opacity-20">
+                        <path d="M14.5 17.5L3 6 3 3l3 0 11.5 11.5"/><path d="M13 19l6-6"/><path d="M16 16l4 4"/>
+                      </svg>
+                      <p class="text-sm font-medium" style="color:var(--text-muted)">Nenhum equipamento selecionado</p>
+                      <p class="text-xs mt-0.5 opacity-60" style="color:var(--text-muted)">Itens escolhidos no início da jornada aparecem aqui</p>
+                    </div>
+                    <div v-else class="space-y-1.5">
+                      <div
+                        v-for="eq in equipamentosIniciais"
+                        :key="eq.id"
+                        class="flex items-center justify-between rounded-xl border border-white/[0.05] bg-white/[0.02] px-3 py-2.5"
+                      >
+                        <span class="text-sm font-medium text-zinc-300 truncate">{{ eq.nome }}</span>
+                        <span class="text-xs text-zinc-500 ml-3 shrink-0 tabular-nums">{{ eq.peso.toFixed(1) }} kg</span>
                       </div>
-                      <p class="text-[0.68rem] inv-equip-sub leading-relaxed">Armas, armaduras e itens mágicos do catálogo do mestre aparecerão aqui</p>
                     </div>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="inv-equip-lock flex-shrink-0">
-                      <rect x="3" y="11" width="18" height="11" rx="2"/>
-                      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                    </svg>
                   </div>
                 </div>
 
@@ -729,7 +819,10 @@ import { useMasterApprovalsStore } from '@/stores/masterApprovals'
 import { editCharacter } from '@/lib/api/personagens.api'
 import { listLoreNotes } from '@/lib/api/lore-notes.api'
 import { listarMinhasTelas } from '@/lib/api/player-telas.api'
-import type { PersonagemApi } from '@/types/supabase'
+import { listarRacasPublicas, type RacaApi } from '@/lib/api/racas.api'
+import { listarPassados, type PassadoApi } from '@/lib/api/passados.api'
+import { listPublicGods } from '@/lib/api/gods.api'
+import type { PersonagemApi, GodApi } from '@/types/supabase'
 
 interface InventoryItem {
   id: string
@@ -907,6 +1000,48 @@ const quickInventory = computed<InventoryItem[]>(() => {
   const inv = character.value?.data?.quickInventory
   return Array.isArray(inv) ? inv : []
 })
+
+// ── Catálogos de lookup para exibição no dashboard ────────────────────────────
+const todasRacas    = ref<RacaApi[]>([])
+const todosPassados = ref<PassadoApi[]>([])
+const todosDeuses   = ref<GodApi[]>([])
+
+const racaPersonagem = computed(() => {
+  if (!character.value?.racaId) return null
+  return todasRacas.value.find(r => Number(r.id) === Number(character.value!.racaId)) ?? null
+})
+const passadoPersonagem = computed(() => {
+  if (!character.value?.passadoId) return null
+  return todosPassados.value.find(p => Number(p.id) === Number(character.value!.passadoId)) ?? null
+})
+const deusPersonagem = computed(() => {
+  if (!character.value?.deusId) return null
+  return todosDeuses.value.find(d => Number(d.id) === Number(character.value!.deusId)) ?? null
+})
+
+// ── Inventário de equipamentos (onboarding) ────────────────────────────────────
+const equipamentosIniciais = computed<Array<{id: number; nome: string; peso: number}>>(() => {
+  const equips = character.value?.data?.equipamentos_iniciais
+  return Array.isArray(equips) ? equips : []
+})
+const pesoMaximo = computed(() => {
+  const forca = (character.value?.data?.atributos as any)?.forca ?? 0
+  return (forca as number) * 2
+})
+const pesoAtual = computed(() =>
+  equipamentosIniciais.value.reduce((s, e) => s + (e.peso ?? 0), 0)
+)
+const pesoPorcentagem = computed(() =>
+  pesoMaximo.value > 0 ? Math.min((pesoAtual.value / pesoMaximo.value) * 100, 100) : 0
+)
+
+const ATRIBUTOS_DASHBOARD = [
+  { key: 'aura',         label: 'Aura',         color: 'text-pink-400',   barColor: 'bg-pink-500/70' },
+  { key: 'forca',        label: 'Força',        color: 'text-orange-400', barColor: 'bg-orange-500/70' },
+  { key: 'destreza',     label: 'Destreza',     color: 'text-green-400',  barColor: 'bg-green-500/70' },
+  { key: 'resistencia',  label: 'Resistência',  color: 'text-blue-400',   barColor: 'bg-blue-500/70' },
+  { key: 'inteligencia', label: 'Inteligência', color: 'text-violet-400', barColor: 'bg-violet-500/70' },
+] as const
 
 function notifKey(charId: string | number) { return `rpg-mesa.notif-seen-${charId}` }
 function getLastSeen(charId: string | number): Date {
@@ -1234,6 +1369,12 @@ async function loadCharacter() {
 
     initializeSettingsForm()
     await loadNotifications(characterId)
+
+    Promise.all([
+      listarRacasPublicas().then(r => { todasRacas.value = r }),
+      listarPassados().then(p => { todosPassados.value = p }),
+      listPublicGods().then(g => { todosDeuses.value = g }),
+    ]).catch(() => {})
 
     if (!authStore.eMestre) {
       try {

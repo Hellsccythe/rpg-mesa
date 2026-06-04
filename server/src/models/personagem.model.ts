@@ -22,6 +22,7 @@ export interface PersonagemEntity {
   passadoId: number | null;
   deusId: number | null;
   onboardingCompleto: boolean;
+  status: string;
   indoleId: number | null;
   generoId: number | null;
   aparenciaFisica: string | null;
@@ -73,6 +74,9 @@ class PersonagemModel {
 
   @Column({ name: "onboarding_completo" })
   onboardingCompleto!: boolean;
+
+  @Column({ name: "status" })
+  status!: string;
 
   @Column({ name: "indole_id", nullable: true })
   indoleId!: number | null;
