@@ -93,8 +93,18 @@
             </div>
             <div v-if="passadoSelecionado.titulos.length">
               <p class="text-[0.65rem] font-bold uppercase tracking-widest text-amber-400/70 mb-1.5">Títulos concedidos</p>
-              <div class="flex flex-wrap gap-1.5">
-                <span v-for="tit in passadoSelecionado.titulos" :key="tit.id" class="rounded-lg border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-xs text-amber-300">{{ tit.name }}</span>
+              <div class="space-y-2">
+                <div v-for="tit in passadoSelecionado.titulos" :key="tit.id">
+                  <span class="rounded-lg border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-xs text-amber-300">{{ tit.name }}</span>
+                  <div v-if="tit.skills && tit.skills.length" class="mt-1 ml-3 flex flex-wrap gap-1">
+                    <span class="text-[0.6rem] text-zinc-600 mr-1">concede:</span>
+                    <span
+                      v-for="sk in tit.skills"
+                      :key="sk.id"
+                      class="rounded-md border border-emerald-500/25 bg-emerald-950/30 px-1.5 py-0.5 text-[0.6rem] text-emerald-300"
+                    >{{ sk.name }}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -252,8 +262,15 @@
                 <div v-if="passado.skills.length" class="flex flex-wrap gap-1">
                   <span v-for="sk in passado.skills.slice(0,3)" :key="sk.id" class="rounded-lg border border-violet-500/30 bg-violet-500/10 px-2 py-0.5 text-[0.65rem] text-violet-300">{{ sk.name }}</span>
                 </div>
-                <div v-if="passado.titulos.length" class="flex flex-wrap gap-1">
-                  <span v-for="tit in passado.titulos.slice(0,3)" :key="tit.id" class="rounded-lg border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[0.65rem] text-amber-300">{{ tit.name }}</span>
+                <div v-if="passado.titulos.length" class="space-y-1">
+                  <div v-for="tit in passado.titulos.slice(0, 2)" :key="tit.id">
+                    <span class="rounded-lg border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[0.65rem] text-amber-300">{{ tit.name }}</span>
+                    <template v-if="tit.skills && tit.skills.length">
+                      <span class="text-[0.6rem] text-zinc-600 ml-1">→</span>
+                      <span v-for="sk in tit.skills.slice(0,2)" :key="sk.id" class="ml-1 rounded-md border border-emerald-500/25 bg-emerald-950/30 px-1.5 py-0.5 text-[0.6rem] text-emerald-300">{{ sk.name }}</span>
+                    </template>
+                  </div>
+                  <span v-if="passado.titulos.length > 2" class="rounded-lg border border-white/[0.06] bg-white/[0.04] px-2 py-0.5 text-[0.65rem] text-zinc-600">+{{ passado.titulos.length - 2 }} títulos</span>
                 </div>
               </div>
               <div class="mt-2 flex items-center justify-between text-xs font-semibold" :class="hover === passado.id ? 'text-violet-300' : 'text-zinc-600'">

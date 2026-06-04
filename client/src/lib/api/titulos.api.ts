@@ -1,18 +1,24 @@
 import { api } from '@/plugins/axios'
 import type { PersonagemApi } from '@/types/supabase'
 
+export type SkillResumo = { id: number; name: string }
+
 export interface TituloApi {
   id: number
   name: string
-  tier: 'Comum' | 'Raro' | 'Épico' | 'Lendário'
+  tier: string
   description: string
-  bonuses: Record<string, unknown>
-  requirements: Record<string, unknown>
-  is_hidden: boolean
-  linked_hidden_class: boolean
+  skill_ids: number[]
+  skills: SkillResumo[]
   created_at?: string
   updated_at?: string
-  deleted_at?: string | null
+}
+
+export type SalvarTituloPayload = {
+  name: string
+  tier: string
+  description: string
+  skillIds?: number[]
 }
 
 export async function listarCatalogoTitulos(): Promise<TituloApi[]> {
@@ -20,14 +26,21 @@ export async function listarCatalogoTitulos(): Promise<TituloApi[]> {
   return data
 }
 
-export async function createTitle(payload: { name: string; tier: string; description: string }) {
-  const { data } = await api.post('/titulos/admin', payload)
+export async function createTitle(payload: SalvarTituloPayload): Promise<TituloApi> {
+  const { data } = await api.post<TituloApi>('/titulos/admin', payload)
   return data
 }
 
+export async function editarTitulo(id: number, payload: Partial<SalvarTituloPayload>): Promise<TituloApi> {
+  const { data } = await api.patch<TituloApi>(`/titulos/admin/${id}`, payload)
+  return data
+}
+
+export async function deletarTitulo(id: number): Promise<void> {
+  await api.delete(`/titulos/admin/${id}`)
+}
+
 export async function addTitleToCharacter(characterId: string, titleName: string) {
-  const { data } = await api.post<PersonagemApi>(`/titulos/admin/personagens/${characterId}`, {
-    titleName,
-  })
+  const { data } = await api.post<PersonagemApi>(`/titulos/admin/personagens/${characterId}`, { titleName })
   return data
 }
