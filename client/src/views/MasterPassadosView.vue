@@ -205,20 +205,49 @@
               placeholder="Ex: Nobre Caído, Mercenário..."
             />
           </div>
-          <div class="space-y-1.5">
-            <label class="block text-xs font-semibold uppercase tracking-wide text-zinc-400">URL da Imagem</label>
-            <input
-              v-model="form.foto_url"
-              type="url"
-              class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/20"
-              placeholder="https://..."
-            />
-          </div>
-        </div>
+          <!-- Upload de imagem -->
+          <div class="space-y-2">
+            <label class="block text-xs font-semibold uppercase tracking-wide text-zinc-400">Imagem</label>
 
-        <!-- Preview de imagem -->
-        <div v-if="form.foto_url" class="overflow-hidden rounded-2xl border border-white/10" style="max-height:140px">
-          <img :src="form.foto_url" class="h-full w-full object-cover" style="max-height:140px" alt="preview" @error="form.foto_url = ''" />
+            <!-- Preview -->
+            <div v-if="form.foto_url" class="relative overflow-hidden rounded-2xl border border-white/10 bg-black/20" style="max-height:140px">
+              <img :src="form.foto_url" class="h-full w-full object-cover" style="max-height:140px" alt="preview" @error="form.foto_url = ''" />
+              <button
+                type="button"
+                class="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-lg bg-black/70 text-zinc-400 backdrop-blur-sm hover:text-red-400 transition-colors"
+                @click="form.foto_url = ''"
+                title="Remover imagem"
+              >
+                <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+
+            <!-- Drop zone -->
+            <div
+              v-else
+              class="relative flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-white/10 bg-white/[0.02] py-8 text-center transition-colors hover:border-violet-500/40 hover:bg-violet-950/10 cursor-pointer"
+              :class="uploadandoImagem ? 'opacity-60 pointer-events-none' : ''"
+              @click="($refs.fileInputPassado as HTMLInputElement).click()"
+              @dragover.prevent
+              @drop.prevent="onDropPassado"
+            >
+              <svg class="h-8 w-8 text-zinc-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <p v-if="uploadandoImagem" class="text-sm text-zinc-400 animate-pulse">Enviando...</p>
+              <div v-else>
+                <p class="text-sm font-medium text-zinc-300">Clique ou arraste uma imagem</p>
+                <p class="text-xs text-zinc-600 mt-0.5">JPG, PNG, WebP — máx. 8 MB</p>
+              </div>
+              <input
+                ref="fileInputPassado"
+                type="file"
+                accept="image/*"
+                class="hidden"
+                @change="onSelecionarImagemPassado"
+              />
+            </div>
+
+            <p v-if="erroUpload" class="text-xs text-red-400">{{ erroUpload }}</p>
+          </div>
         </div>
 
         <!-- Descrição -->
@@ -401,6 +430,36 @@ import {
 } from '@/lib/api/passados.api'
 import { api } from '@/plugins/axios'
 
+const uploadandoImagem = ref(false)
+const erroUpload       = ref('')
+
+async function uploadImagem(file: File) {
+  if (!file.type.startsWith('image/')) { erroUpload.value = 'Envie uma imagem válida.'; return }
+  if (file.size > 8 * 1024 * 1024) { erroUpload.value = 'Imagem excede 8 MB.'; return }
+  uploadandoImagem.value = true
+  erroUpload.value = ''
+  try {
+    const fd = new FormData()
+    fd.append('file', file)
+    const { data } = await api.post<{ publicUrl: string }>('/passados/admin/upload-image', fd)
+    form.value.foto_url = data.publicUrl
+  } catch (err: any) {
+    erroUpload.value = err?.response?.data?.error ?? err.message ?? 'Erro ao enviar imagem.'
+  } finally {
+    uploadandoImagem.value = false
+  }
+}
+
+function onSelecionarImagemPassado(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (file) uploadImagem(file)
+}
+
+function onDropPassado(e: DragEvent) {
+  const file = e.dataTransfer?.files?.[0]
+  if (file) uploadImagem(file)
+}
+
 const ATRIBUTOS_BONUS_CONFIG = [
   { key: 'aura' as const,         label: 'Aura',         color: 'text-pink-400' },
   { key: 'forca' as const,        label: 'Força',        color: 'text-orange-400' },
@@ -485,10 +544,12 @@ async function carregarCatalogos() {
 }
 
 function abrirModal(passado?: PassadoApi) {
-  editando.value  = passado ?? null
-  erroModal.value = ''
-  buscaSkill.value  = ''
-  buscaTitulo.value = ''
+  editando.value         = passado ?? null
+  erroModal.value        = ''
+  erroUpload.value       = ''
+  uploadandoImagem.value = false
+  buscaSkill.value       = ''
+  buscaTitulo.value      = ''
   if (passado) {
     const b = passado.atributo_bonus ?? {}
     form.value = {
