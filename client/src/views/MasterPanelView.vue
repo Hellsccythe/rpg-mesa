@@ -875,6 +875,76 @@
         </button>
       </div>
     </Modal>
+
+    <!-- Modal Troca Obrigatória de Senha -->
+    <Modal
+      v-if="showPasswordChangeModal"
+      title="Defina uma Nova Senha"
+      tema="escuro"
+      panel-class="max-w-sm"
+      :close-on-backdrop="false"
+    >
+      <div class="space-y-5 px-6 py-5">
+        <p class="text-sm text-zinc-400">Sua senha foi resetada. Defina uma nova senha para continuar acessando o painel.</p>
+
+        <div v-if="erroNovaSenha" class="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+          {{ erroNovaSenha }}
+        </div>
+
+        <div class="space-y-1">
+          <label class="block text-xs font-semibold uppercase tracking-wide text-zinc-400">Nova Senha</label>
+          <input
+            v-model="novaSenhaObrigatoria"
+            :type="mostrarNovaSenhaObrigatoria ? 'text' : 'password'"
+            class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-violet-500/40"
+            placeholder="Mín. 8 chars, maiúscula, número e especial"
+          />
+        </div>
+
+        <div class="space-y-1">
+          <label class="block text-xs font-semibold uppercase tracking-wide text-zinc-400">Confirmar Senha</label>
+          <input
+            v-model="novaSenhaObrigatoriaConfirmacao"
+            :type="mostrarNovaSenhaObrigatoria ? 'text' : 'password'"
+            class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-violet-500/40"
+            placeholder="Repita a senha"
+          />
+          <button
+            type="button"
+            class="mt-1 text-xs text-zinc-500 transition-colors hover:text-zinc-300"
+            @click="mostrarNovaSenhaObrigatoria = !mostrarNovaSenhaObrigatoria"
+          >
+            {{ mostrarNovaSenhaObrigatoria ? 'Ocultar' : 'Mostrar' }} senha
+          </button>
+        </div>
+
+        <ul class="space-y-1">
+          <li
+            v-for="regra in regrasNovaSenha"
+            :key="regra.label"
+            class="flex items-center gap-2 text-xs"
+            :class="regra.ok ? 'text-emerald-400' : 'text-zinc-600'"
+          >
+            <span>{{ regra.ok ? '✓' : '○' }}</span>
+            {{ regra.label }}
+          </li>
+        </ul>
+      </div>
+
+      <template #footer>
+        <div class="flex justify-end">
+          <button
+            type="button"
+            :disabled="salvandoNovaSenha || !novaSenhaValida"
+            class="rounded-xl bg-violet-600 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
+            @click="salvarNovaSenhaObrigatoria"
+          >
+            {{ salvandoNovaSenha ? 'Salvando...' : 'Confirmar' }}
+          </button>
+        </div>
+      </template>
+    </Modal>
+
   </div>
 </template>
 
@@ -906,6 +976,7 @@ import {
 } from '@/lib/api/lore-notes.api'
 import type { LoreNoteApi } from '@/lib/api/lore-notes.api'
 import { uploadLorePdf } from '@/lib/supabase/storage'
+import { supabase } from '@/lib/supabase/client'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -1573,8 +1644,52 @@ async function logout() {
   router.push({ name: 'login' })
 }
 
+// ── Troca obrigatória de senha (após reset padrão) ────────────────────────────
+const showPasswordChangeModal = ref(false)
+const novaSenhaObrigatoria = ref('')
+const novaSenhaObrigatoriaConfirmacao = ref('')
+const mostrarNovaSenhaObrigatoria = ref(false)
+const salvandoNovaSenha = ref(false)
+const erroNovaSenha = ref('')
+
+const regrasNovaSenha = computed(() => [
+  { label: 'Mínimo 8 caracteres',         ok: novaSenhaObrigatoria.value.length >= 8 },
+  { label: 'Ao menos uma letra maiúscula', ok: /[A-Z]/.test(novaSenhaObrigatoria.value) },
+  { label: 'Ao menos um número',           ok: /[0-9]/.test(novaSenhaObrigatoria.value) },
+  { label: 'Ao menos um caractere especial', ok: /[^a-zA-Z0-9]/.test(novaSenhaObrigatoria.value) },
+  { label: 'Senhas coincidem',             ok: novaSenhaObrigatoria.value.length > 0 && novaSenhaObrigatoria.value === novaSenhaObrigatoriaConfirmacao.value },
+])
+const novaSenhaValida = computed(() => regrasNovaSenha.value.every((r) => r.ok))
+
+async function salvarNovaSenhaObrigatoria() {
+  if (!novaSenhaValida.value) return
+  salvandoNovaSenha.value = true
+  erroNovaSenha.value = ''
+  try {
+    const { error } = await supabase.auth.updateUser({
+      password: novaSenhaObrigatoria.value,
+      data: { requires_password_change: false },
+    })
+    if (error) throw error
+    showPasswordChangeModal.value = false
+  } catch (err: any) {
+    erroNovaSenha.value = err?.message ?? 'Erro ao salvar nova senha.'
+  } finally {
+    salvandoNovaSenha.value = false
+  }
+}
+
 onMounted(async () => {
   await loadAll()
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user?.user_metadata?.requires_password_change) {
+      novaSenhaObrigatoria.value = ''
+      novaSenhaObrigatoriaConfirmacao.value = ''
+      erroNovaSenha.value = ''
+      showPasswordChangeModal.value = true
+    }
+  } catch { /* silent */ }
 })
 </script>
 

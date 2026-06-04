@@ -183,15 +183,14 @@
                     class="rounded-xl border border-violet-500/30 bg-violet-500/10 px-3 py-1.5 text-xs font-semibold text-violet-400 transition-colors hover:bg-violet-500/20"
                     @click="abrirResetSenha(u)"
                   >
-                    Reset Senha
+                    Definir Senha
                   </button>
                   <button
-                    v-else
                     type="button"
                     class="rounded-xl border border-orange-500/30 bg-orange-500/10 px-3 py-1.5 text-xs font-semibold text-orange-400 transition-colors hover:bg-orange-500/20"
                     @click="abrirConfirmacaoResetPadrao(u)"
                   >
-                    Reset Senha
+                    Reset Padrão
                   </button>
                   <button
                     v-if="u.tipo === 'player' && u.personagem"
@@ -467,7 +466,7 @@
       </template>
     </Modal>
 
-    <!-- Modal Confirmação Reset Padrão (player) -->
+    <!-- Modal Confirmação Reset Padrão (player e GM) -->
     <Modal
       v-if="modalConfirmacaoResetAberto"
       title="Resetar Senha"
@@ -482,7 +481,7 @@
           <span class="font-semibold text-white">{{ usuarioResetPadrao?.personagem?.name ?? usuarioResetPadrao?.username ?? usuarioResetPadrao?.real_email }}</span>
           para <span class="font-mono text-orange-300">12345</span>?
         </p>
-        <p class="mt-2 text-xs text-zinc-500">O jogador será obrigado a definir uma nova senha no próximo login.</p>
+        <p class="mt-2 text-xs text-zinc-500">O usuário será obrigado a definir uma nova senha no próximo login.</p>
         <div v-if="erroResetPadrao" class="mt-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
           {{ erroResetPadrao }}
         </div>
