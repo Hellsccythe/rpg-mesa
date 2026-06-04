@@ -41,8 +41,8 @@ TitulosRouter.patch("/admin/:id", async (req, res) => {
     const token = getBearerToken(req.headers.authorization);
     const id = Number(req.params.id);
     if (!Number.isInteger(id) || id < 1) { res.status(400).json({ message: "ID inválido." }); return; }
-    const { name, tier, description, skillIds } = req.body;
-    const resultado = await titulosService.editar(id, { name, tier, description, skillIds }, token);
+    const { name, tier, description, skillIds, bonuses } = req.body;
+    const resultado = await titulosService.editar(id, { name, tier, description, skillIds, bonuses } as any, token);
     res.status(200).json(resultado);
   } catch (error: any) {
     const status = error?.message?.includes("autenticado") ? 401 : error?.message?.includes("não encontrado") ? 404 : 400;
