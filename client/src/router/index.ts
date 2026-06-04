@@ -132,6 +132,12 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresMaster: true },
     },
     {
+      path: '/master/titulos',
+      name: 'master-titulos',
+      component: () => import('@/views/MasterTitulosView.vue'),
+      meta: { requiresAuth: true, requiresMaster: true },
+    },
+    {
       path: '/master/telas',
       name: 'master-telas',
       component: () => import('@/views/MasterTelasView.vue'),

@@ -364,6 +364,15 @@
             <span class="mt-3 inline-block text-xs text-sky-400 group-hover:text-sky-300">Abrir guia →</span>
           </button>
 
+          <button @click="router.push({ name: 'master-titulos' })" class="gm-link-card group text-left">
+            <div class="gm-icon-wrap mb-3 bg-amber-500/10 text-amber-400">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-5.82 3.25L7.82 14.14 3 9.27l6.91-1.01L12 2z"/></svg>
+            </div>
+            <p class="font-semibold text-zinc-100 group-hover:text-white">Títulos</p>
+            <p class="mt-0.5 text-xs text-zinc-500">Crie e edite títulos com skills concedidas</p>
+            <span class="mt-3 inline-block text-xs text-amber-400 group-hover:text-amber-300">Abrir guia →</span>
+          </button>
+
           <button @click="router.push({ name: 'master-npcs' })" class="gm-link-card group text-left">
             <div class="gm-icon-wrap mb-3 bg-indigo-500/10 text-indigo-400">
               <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -1154,6 +1163,7 @@ const panelMenuItems = [
   { id: 'armas', label: 'Equipamentos' },
   { id: 'racas', label: 'Raças' },
   { id: 'passados', label: 'Passados' },
+  { id: 'titulos-master', label: 'Títulos' },
   { id: 'npcs', label: 'NPCs' },
   { id: 'telas', label: 'Controle de Telas' },
   { id: 'skills', label: 'Skills' },
@@ -1221,6 +1231,11 @@ async function handlePanelMenuSelect(itemId: string) {
 
   if (itemId === 'passados') {
     router.push({ name: 'master-passados' })
+    return
+  }
+
+  if (itemId === 'titulos-master') {
+    router.push({ name: 'master-titulos' })
     return
   }
 

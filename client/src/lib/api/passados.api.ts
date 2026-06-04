@@ -1,7 +1,7 @@
 import { api } from '@/plugins/axios'
 
 export type SkillResumo  = { id: number; name: string }
-export type TituloResumo = { id: number; name: string }
+export type TituloResumo = { id: number; name: string; skills: SkillResumo[] }
 
 export type AtributoBonus = {
   aura?: number

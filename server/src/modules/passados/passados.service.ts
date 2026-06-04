@@ -4,7 +4,7 @@ import { ensureMasterAccess, getUserDisplayEmail } from "../../common/helpers/ma
 const TABLE = "passados";
 
 export type SkillResumo   = { id: number; name: string };
-export type TituloResumo  = { id: number; name: string };
+export type TituloResumo  = { id: number; name: string; skills: SkillResumo[] };
 
 export type AtributoBonus = {
   aura?: number;
@@ -28,7 +28,13 @@ export type PassadoApi = {
   updated_at: string;
 };
 
-function mapRow(row: any, skillMap: Record<number, string>, tituloMap: Record<number, string>): PassadoApi {
+type TituloComSkills = { name: string; skills: SkillResumo[] };
+
+function mapRow(
+  row: any,
+  skillMap: Record<number, string>,
+  tituloMap: Record<number, TituloComSkills>,
+): PassadoApi {
   const skillIds:  number[] = Array.isArray(row.skill_ids)  ? row.skill_ids  : [];
   const tituloIds: number[] = Array.isArray(row.titulo_ids) ? row.titulo_ids : [];
   return {
@@ -38,8 +44,12 @@ function mapRow(row: any, skillMap: Record<number, string>, tituloMap: Record<nu
     foto_url:       row.foto_url ?? null,
     skill_ids:      skillIds,
     titulo_ids:     tituloIds,
-    skills:         skillIds.map(id  => ({ id,  name: skillMap[id]  ?? `Skill #${id}`  })),
-    titulos:        tituloIds.map(id => ({ id,  name: tituloMap[id] ?? `Título #${id}` })),
+    skills:         skillIds.map(id => ({ id, name: skillMap[id] ?? `Skill #${id}` })),
+    titulos:        tituloIds.map(id => ({
+      id,
+      name:   tituloMap[id]?.name   ?? `Título #${id}`,
+      skills: tituloMap[id]?.skills ?? [],
+    })),
     atributo_bonus: row.atributo_bonus ?? null,
     created_at:     row.created_at,
     updated_at:     row.updated_at,
@@ -47,22 +57,34 @@ function mapRow(row: any, skillMap: Record<number, string>, tituloMap: Record<nu
 }
 
 async function buildMaps(rows: any[], admin: ReturnType<typeof getAdminClient>) {
-  const allSkillIds  = [...new Set<number>(rows.flatMap(r => r.skill_ids  ?? []))];
-  const allTituloIds = [...new Set<number>(rows.flatMap(r => r.titulo_ids ?? []))];
+  const allPassadoSkillIds = [...new Set<number>(rows.flatMap(r => r.skill_ids ?? []))];
+  const allTituloIds       = [...new Set<number>(rows.flatMap(r => r.titulo_ids ?? []))];
 
-  const [skillsRes, titulosRes] = await Promise.all([
-    allSkillIds.length
-      ? admin.from("skills").select("id, name").in("id", allSkillIds).is("deleted_at", null)
-      : Promise.resolve({ data: [] as any[], error: null }),
+  const [titulosRes] = await Promise.all([
     allTituloIds.length
-      ? admin.from("titles").select("id, name").in("id", allTituloIds).is("deleted_at", null)
-      : Promise.resolve({ data: [] as any[], error: null }),
+      ? admin.from("titles").select("id, name, skill_ids").in("id", allTituloIds).is("deleted_at", null)
+      : Promise.resolve({ data: [] as any[] }),
   ]);
 
-  const skillMap:  Record<number, string> = {};
-  const tituloMap: Record<number, string> = {};
-  for (const s of (skillsRes.data  ?? [])) skillMap[s.id]  = s.name;
-  for (const t of (titulosRes.data ?? [])) tituloMap[t.id] = t.name;
+  const tituloRows = titulosRes.data ?? [];
+  const allTituloSkillIds = [...new Set<number>(tituloRows.flatMap((t: any) => t.skill_ids ?? []))];
+  const allSkillIds = [...new Set<number>([...allPassadoSkillIds, ...allTituloSkillIds])];
+
+  const skillsRes = allSkillIds.length
+    ? await admin.from("skills").select("id, name").in("id", allSkillIds).is("deleted_at", null)
+    : { data: [] as any[] };
+
+  const skillMap: Record<number, string> = {};
+  for (const s of (skillsRes.data ?? [])) skillMap[s.id] = s.name;
+
+  const tituloMap: Record<number, TituloComSkills> = {};
+  for (const t of tituloRows) {
+    const tSkillIds: number[] = Array.isArray(t.skill_ids) ? t.skill_ids : [];
+    tituloMap[t.id] = {
+      name:   t.name,
+      skills: tSkillIds.map(id => ({ id, name: skillMap[id] ?? `Skill #${id}` })),
+    };
+  }
 
   return { skillMap, tituloMap };
 }
