@@ -153,7 +153,7 @@ export async function escolherPassado(characterId: string | number, passado_id: 
   return data
 }
 
-export async function escolherClasse(characterId: string | number, classe_id: number): Promise<PersonagemApi> {
+export async function escolherClasseInicial(characterId: string | number, classe_id: number): Promise<PersonagemApi> {
   const { data } = await api.patch<PersonagemApi>(`/personagens/${characterId}/escolher-classe`, { classe_id })
   return data
 }
