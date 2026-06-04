@@ -3,6 +3,14 @@ import type { PersonagemApi } from '@/types/supabase'
 
 export type SkillResumo = { id: number; name: string }
 
+export type AtributoBonus = {
+  aura?: number
+  forca?: number
+  destreza?: number
+  resistencia?: number
+  inteligencia?: number
+}
+
 export interface TituloApi {
   id: number
   name: string
@@ -10,6 +18,7 @@ export interface TituloApi {
   description: string
   skill_ids: number[]
   skills: SkillResumo[]
+  bonuses: AtributoBonus | null
   created_at?: string
   updated_at?: string
 }
@@ -19,6 +28,7 @@ export type SalvarTituloPayload = {
   tier: string
   description: string
   skillIds?: number[]
+  bonuses?: AtributoBonus | null
 }
 
 export async function listarCatalogoTitulos(): Promise<TituloApi[]> {

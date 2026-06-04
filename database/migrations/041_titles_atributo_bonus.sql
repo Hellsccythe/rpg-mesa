@@ -1,0 +1,4 @@
+-- Migration 041: NO-OP
+-- A coluna "bonuses" (JSONB) já existe na tabela titles e será usada para bônus de atributos.
+-- A coluna "requirements" (JSONB) também já existe.
+-- Nenhuma alteração necessária.

@@ -44,9 +44,10 @@
         :colunas="[
           { label: 'Nome' },
           { label: 'Tier', classe: 'hidden sm:block' },
-          { label: 'Skills', classe: 'hidden md:block' },
+          { label: 'Atributos', classe: 'hidden md:block' },
+          { label: 'Skills', classe: 'hidden lg:block' },
         ]"
-        classe-grid="grid grid-cols-[2fr_1fr_2fr_3rem_3rem] items-center gap-3"
+        classe-grid="grid grid-cols-[2fr_1fr_1.5fr_1.5fr_3rem_3rem] items-center gap-3"
         :itens="titulosFiltrados"
         :carregando="carregando"
         mensagem-vazia="Nenhum título cadastrado."
@@ -56,16 +57,30 @@
         <template #linha="{ item }">
           <p class="truncate text-sm font-medium text-zinc-100">{{ (item as TituloApi).name }}</p>
           <span class="hidden sm:block text-xs text-zinc-500">{{ (item as TituloApi).tier }}</span>
+          <!-- Atributos bônus -->
           <div class="hidden md:flex flex-wrap gap-1">
+            <template v-if="(item as TituloApi).bonuses && Object.keys((item as TituloApi).bonuses ?? {}).length">
+              <span
+                v-for="(val, key) in (item as TituloApi).bonuses"
+                :key="key"
+                v-if="val !== 0"
+                class="rounded-full border px-2 py-0.5 text-[0.6rem] font-semibold"
+                :class="(val as number) > 0 ? 'border-emerald-500/25 bg-emerald-950/30 text-emerald-300' : 'border-red-500/25 bg-red-950/30 text-red-300'"
+              >{{ (val as number) > 0 ? '+' : '' }}{{ val }} {{ atribLabel(String(key)) }}</span>
+            </template>
+            <span v-else class="text-[0.65rem] italic text-zinc-700">—</span>
+          </div>
+          <!-- Skills -->
+          <div class="hidden lg:flex flex-wrap gap-1">
             <span
-              v-for="sk in (item as TituloApi).skills.slice(0, 3)"
+              v-for="sk in (item as TituloApi).skills.slice(0, 2)"
               :key="sk.id"
               class="rounded-full border border-emerald-500/25 bg-emerald-950/30 px-2 py-0.5 text-[0.6rem] text-emerald-300"
             >{{ sk.name }}</span>
             <span
-              v-if="(item as TituloApi).skills.length > 3"
+              v-if="(item as TituloApi).skills.length > 2"
               class="rounded-full border border-white/[0.06] bg-white/[0.03] px-2 py-0.5 text-[0.6rem] text-zinc-600"
-            >+{{ (item as TituloApi).skills.length - 3 }}</span>
+            >+{{ (item as TituloApi).skills.length - 2 }}</span>
             <span v-if="!(item as TituloApi).skills.length" class="text-[0.65rem] italic text-zinc-700">—</span>
           </div>
         </template>
@@ -125,6 +140,58 @@
             class="w-full resize-none rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20"
             placeholder="Descreva o título e como ele pode ser obtido..."
           />
+        </div>
+
+        <!-- Bônus de Atributos -->
+        <div class="space-y-3">
+          <label class="block text-xs font-semibold uppercase tracking-wide text-rose-400/80">Bônus de Atributos</label>
+
+          <!-- Lista de bônus adicionados -->
+          <div v-if="form.bonusEntries.length" class="flex flex-wrap gap-2">
+            <div
+              v-for="(entry, idx) in form.bonusEntries"
+              :key="entry.key"
+              class="flex items-center gap-1.5 rounded-lg border px-2.5 py-1"
+              :class="entry.valor >= 0 ? 'border-emerald-500/30 bg-emerald-950/20' : 'border-red-500/30 bg-red-950/20'"
+            >
+              <span class="text-xs font-semibold" :class="entry.valor >= 0 ? 'text-emerald-300' : 'text-red-300'">
+                {{ atribLabel(entry.key) }}: {{ entry.valor >= 0 ? '+' : '' }}{{ entry.valor }}
+              </span>
+              <button type="button" class="text-zinc-500 hover:text-red-400 transition-colors" @click="removerBonusEntry(idx)">
+                <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+          </div>
+          <p v-else class="text-xs italic text-zinc-600">Nenhum bônus adicionado.</p>
+
+          <!-- Linha de adição: dropdown + valor + botão -->
+          <div class="flex gap-2 items-end">
+            <div class="flex-1 space-y-1">
+              <label class="block text-[0.65rem] text-zinc-500 uppercase tracking-wide">Atributo</label>
+              <VSelect
+                v-model="novoBonus.key"
+                :options="atributosDisponiveis"
+                placeholder="Selecione..."
+              />
+            </div>
+            <div class="w-28 space-y-1">
+              <label class="block text-[0.65rem] text-zinc-500 uppercase tracking-wide">Valor</label>
+              <input
+                v-model.number="novoBonus.valor"
+                type="number"
+                step="1"
+                class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white text-center outline-none focus:border-rose-500/50"
+                placeholder="ex: 2"
+              />
+            </div>
+            <button
+              type="button"
+              :disabled="!novoBonus.key || novoBonus.valor === 0"
+              class="rounded-xl bg-rose-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-600 disabled:opacity-40 disabled:cursor-not-allowed"
+              @click="adicionarBonusEntry"
+            >Adicionar</button>
+          </div>
+          <p class="text-[0.65rem] text-zinc-600">Positivo = bônus, negativo = penalidade.</p>
         </div>
 
         <!-- Skills concedidas -->
@@ -203,8 +270,53 @@ import { useRouter } from 'vue-router'
 import Modal from '@/components/Modal.vue'
 import DataTable from '@/components/DataTable.vue'
 import VSelect from '@/components/VSelect.vue'
-import { listarCatalogoTitulos, createTitle, editarTitulo, deletarTitulo, type TituloApi } from '@/lib/api/titulos.api'
+import { listarCatalogoTitulos, createTitle, editarTitulo, deletarTitulo, type TituloApi, type AtributoBonus } from '@/lib/api/titulos.api'
 import { api } from '@/plugins/axios'
+
+const ATRIBUTOS_CONFIG = [
+  { key: 'aura',         label: 'Aura' },
+  { key: 'forca',        label: 'Força' },
+  { key: 'destreza',     label: 'Destreza' },
+  { key: 'resistencia',  label: 'Resistência' },
+  { key: 'inteligencia', label: 'Inteligência' },
+]
+
+function atribLabel(key: string): string {
+  return ATRIBUTOS_CONFIG.find(a => a.key === key)?.label ?? key
+}
+
+type BonusEntry = { key: string; valor: number }
+
+const novoBonus = ref<BonusEntry>({ key: '', valor: 0 })
+
+const atributosDisponiveis = computed(() => {
+  const usados = new Set(form.value.bonusEntries.map(e => e.key))
+  return ATRIBUTOS_CONFIG
+    .filter(a => !usados.has(a.key))
+    .map(a => ({ value: a.key, label: a.label }))
+})
+
+function adicionarBonusEntry() {
+  if (!novoBonus.value.key || novoBonus.value.valor === 0) return
+  form.value.bonusEntries.push({ key: novoBonus.value.key, valor: novoBonus.value.valor })
+  novoBonus.value = { key: '', valor: 0 }
+}
+
+function removerBonusEntry(idx: number) {
+  form.value.bonusEntries.splice(idx, 1)
+}
+
+function bonusEntriesToObject(entries: BonusEntry[]): Record<string, number> | null {
+  if (!entries.length) return null
+  return Object.fromEntries(entries.map(e => [e.key, e.valor]))
+}
+
+function objectToBonusEntries(obj: Record<string, unknown> | null | undefined): BonusEntry[] {
+  if (!obj) return []
+  return Object.entries(obj)
+    .filter(([, v]) => typeof v === 'number' && v !== 0)
+    .map(([k, v]) => ({ key: k, valor: v as number }))
+}
 
 const router = useRouter()
 
@@ -240,7 +352,13 @@ const modalAberto = ref(false)
 const editando    = ref<TituloApi | null>(null)
 const salvando    = ref(false)
 const erroModal   = ref('')
-const form = ref({ name: '', tier: '', description: '', skillIds: [] as number[] })
+const form = ref({
+  name:         '',
+  tier:         '',
+  description:  '',
+  skillIds:     [] as number[],
+  bonusEntries: [] as BonusEntry[],
+})
 
 // Modal delete
 const modalDeleteAberto = ref(false)
@@ -271,10 +389,17 @@ function abrirModal(titulo?: TituloApi) {
   editando.value  = titulo ?? null
   erroModal.value = ''
   buscaSkill.value = ''
+  novoBonus.value = { key: '', valor: 0 }
   if (titulo) {
-    form.value = { name: titulo.name, tier: titulo.tier, description: titulo.description, skillIds: [...titulo.skill_ids] }
+    form.value = {
+      name:         titulo.name,
+      tier:         titulo.tier,
+      description:  titulo.description,
+      skillIds:     [...titulo.skill_ids],
+      bonusEntries: objectToBonusEntries(titulo.bonuses as any),
+    }
   } else {
-    form.value = { name: '', tier: '', description: '', skillIds: [] }
+    form.value = { name: '', tier: '', description: '', skillIds: [], bonusEntries: [] }
   }
   modalAberto.value = true
 }
@@ -294,6 +419,7 @@ async function salvar() {
       tier:        form.value.tier,
       description: form.value.description.trim(),
       skillIds:    form.value.skillIds,
+      bonuses:     bonusEntriesToObject(form.value.bonusEntries),
     }
     if (editando.value) {
       const updated = await editarTitulo(editando.value.id, payload)

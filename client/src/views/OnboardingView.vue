@@ -94,10 +94,23 @@
             <div v-if="passadoSelecionado.titulos.length">
               <p class="text-[0.65rem] font-bold uppercase tracking-widest text-amber-400/70 mb-1.5">Títulos concedidos</p>
               <div class="space-y-2">
-                <div v-for="tit in passadoSelecionado.titulos" :key="tit.id">
+                <div v-for="tit in passadoSelecionado.titulos" :key="tit.id" class="space-y-1">
                   <span class="rounded-lg border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-xs text-amber-300">{{ tit.name }}</span>
-                  <div v-if="tit.skills && tit.skills.length" class="mt-1 ml-3 flex flex-wrap gap-1">
-                    <span class="text-[0.6rem] text-zinc-600 mr-1">concede:</span>
+
+                  <!-- Bônus de atributos do título -->
+                  <div v-if="tit.bonuses && Object.values(tit.bonuses).some(v => v !== 0)" class="ml-3 flex flex-wrap gap-1">
+                    <template v-for="(val, key) in tit.bonuses" :key="key">
+                      <span
+                        v-if="val !== 0"
+                        class="rounded-md border px-1.5 py-0.5 text-[0.6rem] font-semibold"
+                        :class="(val as number) > 0 ? 'border-emerald-500/25 bg-emerald-950/30 text-emerald-300' : 'border-red-500/25 bg-red-950/30 text-red-300'"
+                      >{{ (val as number) > 0 ? '+' : '' }}{{ val }} {{ key }}</span>
+                    </template>
+                  </div>
+
+                  <!-- Skills do título -->
+                  <div v-if="tit.skills && tit.skills.length" class="ml-3 flex flex-wrap gap-1">
+                    <span class="text-[0.6rem] text-zinc-600 mr-1">skills:</span>
                     <span
                       v-for="sk in tit.skills"
                       :key="sk.id"

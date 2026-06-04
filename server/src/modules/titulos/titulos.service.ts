@@ -9,6 +9,14 @@ import type { AdicionarTituloPersonagemDto, SalvarTituloDto } from "./titulos.dt
 
 export type SkillResumo = { id: number; name: string };
 
+export type AtributoBonus = {
+  aura?: number;
+  forca?: number;
+  destreza?: number;
+  resistencia?: number;
+  inteligencia?: number;
+};
+
 export type TituloEnriquecido = {
   id: number;
   name: string;
@@ -16,6 +24,7 @@ export type TituloEnriquecido = {
   description: string;
   skill_ids: number[];
   skills: SkillResumo[];
+  bonuses: AtributoBonus | null;
   created_at: string;
   updated_at: string;
 };
@@ -44,6 +53,7 @@ function mapTitulo(row: any, skillMap: Record<number, string>): TituloEnriquecid
     description: row.description ?? "",
     skill_ids:   skillIds,
     skills:      skillIds.map(id => ({ id, name: skillMap[id] ?? `Skill #${id}` })),
+    bonuses:     row.bonuses ?? null,
     created_at:  row.created_at,
     updated_at:  row.updated_at,
   };
@@ -76,12 +86,13 @@ export const titulosService = {
     const { data, error } = await admin
       .from("titles")
       .insert({
-        name:        dto.name.trim(),
-        tier:        dto.tier.trim(),
-        description: dto.description.trim(),
-        skill_ids:   (dto as any).skillIds ?? [],
-        created_by:  getUserDisplayEmail(user),
-        updated_by:  getUserDisplayEmail(user),
+        name:           dto.name.trim(),
+        tier:           dto.tier.trim(),
+        description:    dto.description.trim(),
+        skill_ids:  (dto as any).skillIds ?? [],
+        bonuses:    (dto as any).bonuses ?? null,
+        created_by:     getUserDisplayEmail(user),
+        updated_by:     getUserDisplayEmail(user),
       })
       .select("*")
       .single();
@@ -93,7 +104,7 @@ export const titulosService = {
     return mapTitulo(data, skillMap);
   },
 
-  async editar(id: number, dto: Partial<SalvarTituloDto & { skillIds?: number[] }>, accessToken?: string): Promise<TituloEnriquecido> {
+  async editar(id: number, dto: Partial<SalvarTituloDto & { skillIds?: number[]; bonuses?: AtributoBonus | null }>, accessToken?: string): Promise<TituloEnriquecido> {
     const user = await ensureMasterAccess(accessToken);
     const admin = getAdminClient();
 
@@ -101,10 +112,11 @@ export const titulosService = {
       updated_by: getUserDisplayEmail(user),
       updated_at: new Date().toISOString(),
     };
-    if (dto.name        !== undefined) updates.name        = dto.name.trim();
-    if (dto.tier        !== undefined) updates.tier        = dto.tier.trim();
-    if (dto.description !== undefined) updates.description = dto.description.trim();
-    if (dto.skillIds    !== undefined) updates.skill_ids   = dto.skillIds;
+    if (dto.name          !== undefined) updates.name           = dto.name.trim();
+    if (dto.tier          !== undefined) updates.tier           = dto.tier.trim();
+    if (dto.description   !== undefined) updates.description    = dto.description.trim();
+    if (dto.skillIds !== undefined) updates.skill_ids = dto.skillIds;
+    if ((dto as any).bonuses !== undefined) updates.bonuses = (dto as any).bonuses;
 
     const { data, error } = await admin
       .from("titles")

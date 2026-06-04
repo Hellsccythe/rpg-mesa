@@ -28,7 +28,7 @@ export type PassadoApi = {
   updated_at: string;
 };
 
-type TituloComSkills = { name: string; skills: SkillResumo[] };
+type TituloComSkills = { name: string; skills: SkillResumo[]; bonuses: any | null };
 
 function mapRow(
   row: any,
@@ -47,8 +47,9 @@ function mapRow(
     skills:         skillIds.map(id => ({ id, name: skillMap[id] ?? `Skill #${id}` })),
     titulos:        tituloIds.map(id => ({
       id,
-      name:   tituloMap[id]?.name   ?? `Título #${id}`,
-      skills: tituloMap[id]?.skills ?? [],
+      name:    tituloMap[id]?.name    ?? `Título #${id}`,
+      skills:  tituloMap[id]?.skills  ?? [],
+      bonuses: tituloMap[id]?.bonuses ?? null,
     })),
     atributo_bonus: row.atributo_bonus ?? null,
     created_at:     row.created_at,
@@ -62,7 +63,7 @@ async function buildMaps(rows: any[], admin: ReturnType<typeof getAdminClient>) 
 
   const [titulosRes] = await Promise.all([
     allTituloIds.length
-      ? admin.from("titles").select("id, name, skill_ids").in("id", allTituloIds).is("deleted_at", null)
+      ? admin.from("titles").select("id, name, skill_ids, bonuses").in("id", allTituloIds).is("deleted_at", null)
       : Promise.resolve({ data: [] as any[] }),
   ]);
 
@@ -81,8 +82,9 @@ async function buildMaps(rows: any[], admin: ReturnType<typeof getAdminClient>) 
   for (const t of tituloRows) {
     const tSkillIds: number[] = Array.isArray(t.skill_ids) ? t.skill_ids : [];
     tituloMap[t.id] = {
-      name:   t.name,
-      skills: tSkillIds.map(id => ({ id, name: skillMap[id] ?? `Skill #${id}` })),
+      name:    t.name,
+      skills:  tSkillIds.map(id => ({ id, name: skillMap[id] ?? `Skill #${id}` })),
+      bonuses: t.bonuses ?? null,
     };
   }
 
