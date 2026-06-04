@@ -14,8 +14,16 @@ export interface ClasseApi {
   stat_bonuses?: Record<string, unknown> | string | null
   starting_skills?: string[] | null
   requirements?: ClassRequirements | null
+  requer_deus?: boolean
+  is_secret?: boolean
   created_at: string
   [key: string]: unknown
+}
+
+export type ClasseSecretaAdmin = ClasseApi & {
+  revelada: boolean
+  titular: { id: number; name: string; username: string | null; avatar_url: string | null; status: string } | null
+  revealed_at: string | null
 }
 
 export interface LevelProgressionApi {
@@ -77,6 +85,7 @@ export interface SalvarClassePayload {
   requirements?: { min_level?: number; required_classes?: number[] } | null
   startingSkills?: string[] | null
   requerDeus?: boolean
+  isSecret?: boolean
 }
 
 export type EditarClassePayload = Partial<SalvarClassePayload>
@@ -94,4 +103,33 @@ export async function editarClasse(id: string | number, payload: EditarClassePay
 export async function deletarClasse(id: string | number): Promise<{ ok: boolean }> {
   const { data } = await api.delete<{ ok: boolean }>(`/classes/admin/${id}`)
   return data
+}
+
+export async function listarClassesAdmin(): Promise<ClasseApi[]> {
+  const { data } = await api.get<ClasseApi[]>('/classes/admin')
+  return data
+}
+
+export async function listarClassesParaPlayer(characterId: number | string): Promise<ClasseApi[]> {
+  const { data } = await api.get<ClasseApi[]>('/classes/para-player', { params: { characterId } })
+  return data
+}
+
+export async function listarClassesSecretasAdmin(): Promise<ClasseSecretaAdmin[]> {
+  const { data } = await api.get<ClasseSecretaAdmin[]>('/classes/secretas/admin')
+  return data
+}
+
+export async function revelarClasseSecreta(classeId: number, characterId: number): Promise<{ success: boolean }> {
+  const { data } = await api.post('/classes/secretas/admin/revelar', { classeId, characterId })
+  return data
+}
+
+export async function revogarClasseSecreta(classeId: number): Promise<{ success: boolean }> {
+  const { data } = await api.delete(`/classes/secretas/admin/revogar/${classeId}`)
+  return data
+}
+
+export async function alterarStatusPersonagem(characterId: number | string, status: 'vivo' | 'morto'): Promise<void> {
+  await api.patch(`/personagens/admin/${characterId}/status`, { status })
 }

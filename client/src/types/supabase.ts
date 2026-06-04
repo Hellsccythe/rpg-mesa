@@ -170,6 +170,7 @@ export interface PersonagemApi {
   passadoId: number | null
   deusId: number | null
   onboardingCompleto: boolean
+  status: string
   indoleId: number | null
   indole?: IndoleApi | null
   generoId: number | null

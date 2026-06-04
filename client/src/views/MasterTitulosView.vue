@@ -222,6 +222,34 @@
           </div>
         </div>
 
+        <!-- Flags de visibilidade -->
+        <div class="space-y-2">
+          <label class="block text-xs font-semibold uppercase tracking-wide text-zinc-400">Visibilidade</label>
+          <label class="flex cursor-pointer items-center gap-2.5">
+            <input type="checkbox" v-model="form.is_hidden" class="h-4 w-4 rounded accent-amber-500" />
+            <div>
+              <span class="text-sm text-zinc-300">Ocultar requisitos</span>
+              <p class="text-[0.65rem] text-zinc-600">Player vê o título mas não vê como obtê-lo (mostra 🔒)</p>
+            </div>
+          </label>
+          <label class="flex cursor-pointer items-center gap-2.5">
+            <input type="checkbox" v-model="form.linked_hidden_class" class="h-4 w-4 rounded accent-red-500" />
+            <div>
+              <span class="text-sm text-zinc-300">Vincular a classe secreta</span>
+              <p class="text-[0.65rem] text-zinc-600">Título invisível para players sem a classe secreta específica</p>
+            </div>
+          </label>
+          <div v-if="form.linked_hidden_class" class="pl-6 space-y-1">
+            <label class="block text-[0.65rem] font-semibold uppercase tracking-wide text-zinc-500">Classe secreta vinculada</label>
+            <VSelect
+              v-model="form.classe_secreta_id"
+              :options="classesSecretasOptions"
+              placeholder="Selecionar classe secreta..."
+            />
+            <p v-if="!classesSecretas.length" class="text-[0.65rem] text-zinc-600 italic">Nenhuma classe secreta cadastrada ainda.</p>
+          </div>
+        </div>
+
         <div v-if="erroModal" class="rounded-xl border border-red-500/30 bg-red-950/20 px-4 py-3 text-sm text-red-400">{{ erroModal }}</div>
       </div>
 
@@ -271,6 +299,7 @@ import Modal from '@/components/Modal.vue'
 import DataTable from '@/components/DataTable.vue'
 import VSelect from '@/components/VSelect.vue'
 import { listarCatalogoTitulos, createTitle, editarTitulo, deletarTitulo, type TituloApi, type AtributoBonus } from '@/lib/api/titulos.api'
+import { listarClassesAdmin, type ClasseApi } from '@/lib/api/classes.api'
 import { api } from '@/plugins/axios'
 
 const ATRIBUTOS_CONFIG = [
@@ -338,6 +367,12 @@ const titulosFiltrados = computed(() =>
     : titulos.value
 )
 
+// Classes secretas para vincular ao título
+const classesSecretas = ref<ClasseApi[]>([])
+const classesSecretasOptions = computed(() =>
+  classesSecretas.value.map(c => ({ value: Number(c.id), label: c.name }))
+)
+
 // Catálogo de skills para o form
 const skillsCatalogo = ref<{ id: number; name: string }[]>([])
 const buscaSkill     = ref('')
@@ -353,11 +388,14 @@ const editando    = ref<TituloApi | null>(null)
 const salvando    = ref(false)
 const erroModal   = ref('')
 const form = ref({
-  name:         '',
-  tier:         '',
-  description:  '',
-  skillIds:     [] as number[],
-  bonusEntries: [] as BonusEntry[],
+  name:                '',
+  tier:                '',
+  description:         '',
+  skillIds:            [] as number[],
+  bonusEntries:        [] as BonusEntry[],
+  is_hidden:           false,
+  linked_hidden_class: false,
+  classe_secreta_id:   '' as number | string,
 })
 
 // Modal delete
@@ -380,8 +418,12 @@ async function carregar() {
 
 async function carregarSkills() {
   try {
-    const { data } = await api.get<any[]>('/skills/catalogo')
-    skillsCatalogo.value = (data ?? []).map(s => ({ id: Number(s.id), name: s.name }))
+    const [skillsData, classesData] = await Promise.all([
+      api.get<any[]>('/skills/catalogo').then(r => r.data),
+      listarClassesAdmin(),
+    ])
+    skillsCatalogo.value  = (skillsData ?? []).map(s => ({ id: Number(s.id), name: s.name }))
+    classesSecretas.value = classesData.filter(c => c.is_secret)
   } catch { /* silently */ }
 }
 
@@ -392,14 +434,17 @@ function abrirModal(titulo?: TituloApi) {
   novoBonus.value = { key: '', valor: 0 }
   if (titulo) {
     form.value = {
-      name:         titulo.name,
-      tier:         titulo.tier,
-      description:  titulo.description,
-      skillIds:     [...titulo.skill_ids],
-      bonusEntries: objectToBonusEntries(titulo.bonuses as any),
+      name:                titulo.name,
+      tier:                titulo.tier,
+      description:         titulo.description,
+      skillIds:            [...titulo.skill_ids],
+      bonusEntries:        objectToBonusEntries(titulo.bonuses as any),
+      is_hidden:           titulo.is_hidden ?? false,
+      linked_hidden_class: titulo.linked_hidden_class ?? false,
+      classe_secreta_id:   titulo.classe_secreta_id ?? '',
     }
   } else {
-    form.value = { name: '', tier: '', description: '', skillIds: [], bonusEntries: [] }
+    form.value = { name: '', tier: '', description: '', skillIds: [], bonusEntries: [], is_hidden: false, linked_hidden_class: false, classe_secreta_id: '' }
   }
   modalAberto.value = true
 }
@@ -415,11 +460,14 @@ async function salvar() {
   erroModal.value = ''
   try {
     const payload = {
-      name:        form.value.name.trim(),
-      tier:        form.value.tier,
-      description: form.value.description.trim(),
-      skillIds:    form.value.skillIds,
-      bonuses:     bonusEntriesToObject(form.value.bonusEntries),
+      name:                form.value.name.trim(),
+      tier:                form.value.tier,
+      description:         form.value.description.trim(),
+      skillIds:            form.value.skillIds,
+      bonuses:             bonusEntriesToObject(form.value.bonusEntries),
+      is_hidden:           form.value.is_hidden,
+      linked_hidden_class: form.value.linked_hidden_class,
+      classe_secreta_id:   form.value.linked_hidden_class && form.value.classe_secreta_id !== '' ? Number(form.value.classe_secreta_id) : null,
     }
     if (editando.value) {
       const updated = await editarTitulo(editando.value.id, payload)

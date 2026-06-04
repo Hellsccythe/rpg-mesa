@@ -73,7 +73,9 @@
       "Skill(update-config)",
       "Skill(update-config:*)",
       "PowerShell(python3 -c \"import json,sys; json.load\\(sys.stdin\\); print\\('JSON valido'\\)\")",
-      "Bash(python3 -m json.tool \"c:/Users/Hellsccythe/Documents/rpg-mesa/.claude/settings.local.json\")"
+      "Bash(python3 -m json.tool \"c:/Users/Hellsccythe/Documents/rpg-mesa/.claude/settings.local.json\")",
+      "Bash(grep -n \"^import { computed\\\\|computed,\" \"c:\\\\Users\\\\Hellsccythe\\\\Documents\\\\rpg-mesa\\\\client\\\\src\\\\views\\\\MasterTitulosView.vue\")",
+      "Bash(dir \"c:\\\\Users\\\\Hellsccythe\\\\Documents\\\\rpg-mesa\" -Filter \"*.md\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\Hellsccythe\\.claude\\projects\\c--Users-Hellsccythe-Documents-rpg-mesa\\memory"

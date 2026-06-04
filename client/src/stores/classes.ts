@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import {
   listarClasses,
+  listarClassesParaPlayer,
   listarProgressaoLevel,
   escolherClasse,
   escolherSkillInicial,
@@ -18,11 +19,13 @@ export const useClassesStore = defineStore('classes', () => {
   const loading = ref(false)
   const error = ref<string | null>(null)
 
-  async function fetchClasses() {
+  async function fetchClasses(characterId?: number | string) {
     loading.value = true
     error.value = null
     try {
-      classes.value = await listarClasses()
+      classes.value = characterId
+        ? await listarClassesParaPlayer(characterId)
+        : await listarClasses()
     } catch (err: any) {
       error.value = err?.message ?? 'Erro ao carregar classes'
     } finally {

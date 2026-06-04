@@ -98,9 +98,33 @@
                 </div>
                 <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
                 <div class="absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/10 transition-all group-hover:ring-amber-500/60 group-hover:shadow-lg group-hover:shadow-amber-500/10" />
+                <!-- Status overlay para morto -->
+                <div v-if="(char as any).status === 'morto'" class="absolute inset-0 flex flex-col items-center justify-center rounded-2xl bg-black/70">
+                  <span class="text-2xl">💀</span>
+                  <span class="text-[0.6rem] font-bold uppercase tracking-widest text-red-400 mt-1">Morto</span>
+                </div>
                 <p class="absolute bottom-0 left-0 right-0 p-2 text-center text-[0.7rem] font-semibold leading-tight text-white [text-shadow:0_1px_4px_rgba(0,0,0,0.8)] line-clamp-2">
                   {{ char.name }}
                 </p>
+              </div>
+              <!-- Botão de status rápido -->
+              <div class="mt-1.5 flex gap-1">
+                <button
+                  v-if="(char as any).status !== 'morto'"
+                  type="button"
+                  class="flex-1 rounded-lg border border-red-500/30 bg-red-500/10 py-0.5 text-[0.6rem] font-semibold text-red-400 hover:bg-red-500/20 transition-colors"
+                  @click.stop="alterarStatusPersonagem(char.characterId, 'morto')"
+                >
+                  Matar
+                </button>
+                <button
+                  v-else
+                  type="button"
+                  class="flex-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 py-0.5 text-[0.6rem] font-semibold text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+                  @click.stop="alterarStatusPersonagem(char.characterId, 'vivo')"
+                >
+                  Reviver
+                </button>
               </div>
             </button>
           </div>
@@ -362,6 +386,15 @@
             <p class="font-semibold text-zinc-100 group-hover:text-white">Classes</p>
             <p class="mt-0.5 text-xs text-zinc-500">Crie e edite as classes jogáveis da campanha</p>
             <span class="mt-3 inline-block text-xs text-sky-400 group-hover:text-sky-300">Abrir guia →</span>
+          </button>
+
+          <button @click="router.push({ name: 'master-classes-secretas' })" class="gm-link-card group text-left">
+            <div class="gm-icon-wrap mb-3 bg-red-500/10 text-red-400">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <p class="font-semibold text-zinc-100 group-hover:text-white">Classes Secretas</p>
+            <p class="mt-0.5 text-xs text-zinc-500">Gerencie revelações exclusivas de classes ocultas</p>
+            <span class="mt-3 inline-block text-xs text-red-400 group-hover:text-red-300">Abrir guia →</span>
           </button>
 
           <button @click="router.push({ name: 'master-titulos' })" class="gm-link-card group text-left">
@@ -865,7 +898,7 @@ import {
 import { contarSolicitacoesPendentes } from '@/lib/api/character-creation-requests.api'
 import { listPublicGods } from '@/lib/api/gods.api'
 import type { GodApi, AprovacaoPendenteApi } from '@/types/supabase'
-import { adicionarPontosDeClasse } from '@/lib/api/classes.api'
+import { adicionarPontosDeClasse, alterarStatusPersonagem as apiAlterarStatus } from '@/lib/api/classes.api'
 import {
   listAllLoreNotes,
   createLoreNote,
@@ -1163,6 +1196,7 @@ const panelMenuItems = [
   { id: 'armas', label: 'Equipamentos' },
   { id: 'racas', label: 'Raças' },
   { id: 'passados', label: 'Passados' },
+  { id: 'classes-secretas', label: 'Classes Secretas' },
   { id: 'titulos-master', label: 'Títulos' },
   { id: 'npcs', label: 'NPCs' },
   { id: 'telas', label: 'Controle de Telas' },
@@ -1231,6 +1265,11 @@ async function handlePanelMenuSelect(itemId: string) {
 
   if (itemId === 'passados') {
     router.push({ name: 'master-passados' })
+    return
+  }
+
+  if (itemId === 'classes-secretas') {
+    router.push({ name: 'master-classes-secretas' })
     return
   }
 
@@ -1474,6 +1513,16 @@ async function deletarPersonagem() {
     feedbackError.value = true
   } finally {
     loadingDelete.value = false
+  }
+}
+
+async function alterarStatusPersonagem(characterId: string | number, status: 'vivo' | 'morto') {
+  try {
+    await apiAlterarStatus(characterId, status)
+    const char = characters.value.find(c => String(c.characterId) === String(characterId))
+    if (char) (char as any).status = status
+  } catch (err: any) {
+    alert(err?.response?.data?.message ?? err.message ?? 'Erro ao alterar status.')
   }
 }
 

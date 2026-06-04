@@ -133,6 +133,19 @@ PersonagensRouter.post("/admin/personagens/:characterId/notas", async (req, res)
   }
 });
 
+PersonagensRouter.patch("/admin/:characterId/status", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    const { status } = req.body as { status: 'vivo' | 'morto' };
+    if (!status) { res.status(400).json({ message: "Campo 'status' é obrigatório." }); return; }
+    const resultado = await personagensService.alterarStatus(req.params.characterId, status, token);
+    res.status(200).json(resultado);
+  } catch (error: any) {
+    const status = error?.message?.includes("Acesso") ? 403 : 400;
+    res.status(status).json({ message: error?.message ?? "Erro ao alterar status" });
+  }
+});
+
 PersonagensRouter.patch("/admin/:characterId/god-info/:godId", async (req, res) => {
   try {
     const token = getBearerToken(req.headers.authorization);
