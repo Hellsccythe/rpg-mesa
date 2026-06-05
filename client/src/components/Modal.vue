@@ -280,8 +280,10 @@ const computedFooterStyle = computed(() => ({
 }))
 
 function handleBackdropClick(event: MouseEvent) {
-  const target = event.target as Node | null
-  if (target && panelRef.value?.contains(target)) return
+  // composedPath() captura o caminho no momento do click, antes de qualquer mutação no DOM.
+  // Sem isso, remover um elemento filho (ex: chip de skill) durante o handler faz o panelRef.contains() falhar.
+  const path = event.composedPath()
+  if (panelRef.value && path.includes(panelRef.value as EventTarget)) return
 
   if (props.closeOnBackdrop) {
     emit('close')

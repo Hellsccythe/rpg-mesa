@@ -370,168 +370,177 @@
     </TemaDarkLight>
 
     <!-- ══ Modal: Confirmar delete ══════════════════════════════════════════ -->
-    <transition name="modal-fade">
-      <div v-if="armaParaDeletar" class="fixed inset-0 z-50 flex items-center justify-center p-4" @click.self="armaParaDeletar = null">
-        <div class="modal-overlay absolute inset-0 bg-black/70 backdrop-blur-sm" />
-        <div class="modal-card relative w-full max-w-sm rounded-2xl border p-6 shadow-2xl">
-          <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-500/10">
-            <svg class="h-6 w-6 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-          </div>
-          <h3 class="modal-title mb-1 text-base font-bold">Deletar Equipamento</h3>
-          <p class="modal-body mb-4 text-sm">Tem certeza que deseja deletar <strong>{{ armaParaDeletar.nome }}</strong>? Esta ação é irreversível.</p>
-          <div class="flex gap-3">
-            <button @click="executarDelete" :disabled="deletando" class="flex-1 rounded-xl bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-500 disabled:opacity-50">
-              {{ deletando ? 'Deletando...' : 'Sim, deletar' }}
-            </button>
-            <button @click="armaParaDeletar = null" class="btn-ghost flex-1 rounded-xl border py-2.5 text-sm font-medium">Cancelar</button>
-          </div>
+    <Modal
+      v-if="armaParaDeletar"
+      panel-class="max-w-sm"
+      tema="escuro"
+      :show-close-button="false"
+      :close-on-backdrop="false"
+      @close="armaParaDeletar = null"
+    >
+      <div class="space-y-4 p-6">
+        <div class="flex h-12 w-12 items-center justify-center rounded-full bg-red-500/10">
+          <svg class="h-6 w-6 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-zinc-100 mb-1">Deletar Equipamento</h3>
+          <p class="text-sm text-zinc-400">Tem certeza que deseja deletar <strong class="text-zinc-200">{{ armaParaDeletar.nome }}</strong>? Esta ação é irreversível.</p>
+        </div>
+        <div class="flex gap-3">
+          <button type="button" @click="executarDelete" :disabled="deletando" class="flex-1 rounded-xl bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-500 disabled:opacity-50">
+            {{ deletando ? 'Deletando...' : 'Sim, deletar' }}
+          </button>
+          <button type="button" @click="armaParaDeletar = null" class="btn-ghost flex-1 rounded-xl border py-2.5 text-sm font-medium">Cancelar</button>
         </div>
       </div>
-    </transition>
+    </Modal>
 
     <!-- ══ Modal: Adicionar item de lookup ══════════════════════════════════ -->
-    <transition name="modal-fade">
-      <div v-if="addModal.aberto" class="fixed inset-0 z-50 flex items-center justify-center p-4" @click.self="addModal.aberto = false">
-        <div class="modal-overlay absolute inset-0 bg-black/70 backdrop-blur-sm" />
-        <div class="modal-card relative w-full max-w-sm rounded-2xl border p-6 shadow-2xl">
-          <h3 class="modal-title mb-4 text-base font-bold">{{ addModalTitulo }}</h3>
-
-          <!-- Selecionar categoria (para tipo e propriedade) -->
-          <div v-if="addModal.tipo !== 'categoria' && addModal.tipo !== 'classe'" class="mb-3">
-            <label class="field-label mb-1 block text-xs uppercase tracking-wide">
-              Categoria <span class="text-red-400">*</span>
-            </label>
-            <div class="select-wrap">
-              <select v-model="addModal.categoriaItem" class="field-input w-full appearance-none rounded-xl border px-3 py-2.5 pr-9 text-sm outline-none">
-                <option :value="null">Selecionar categoria...</option>
-                <option v-for="c in categorias" :key="c.item" :value="c.item">{{ (c.icone && !c.icone.startsWith('mdi-')) ? c.icone + ' ' + c.descricao : c.descricao }}</option>
-              </select>
-              <span class="select-caret">˅</span>
-            </div>
-          </div>
-
-          <div class="mb-4">
-            <label class="field-label mb-1 block text-xs uppercase tracking-wide">Descrição <span class="text-red-400">*</span></label>
-            <input
-              v-model="addModal.descricao"
-              type="text"
-              :placeholder="`Nome do(a) ${addModalTipoLabel}...`"
-              class="field-input w-full rounded-xl border px-3 py-2.5 text-sm outline-none"
-              @keydown.enter="salvarAddModal"
-            />
-          </div>
-
-          <!-- Ícone (somente para categorias) -->
-          <div v-if="addModal.tipo === 'categoria'" class="mb-4">
-            <label class="field-label mb-2 block text-xs uppercase tracking-wide">
-              Ícone <span class="font-normal normal-case text-zinc-500">(opcional)</span>
-            </label>
-
-            <IconeInput v-model="addModal.icone" placeholder="Emoji ⚔️ ou mdi-sword" />
-
-            <p class="mt-1.5 mb-2 text-[0.62rem] text-zinc-500">
-              Emoji direto (<span class="font-mono">⚔️</span>) ou comece com
-              <span class="font-mono">mdi-</span> para autocompletar ícones MDI
-            </p>
-
-            <!-- Grade de sugestões baseadas na descrição -->
-            <p class="mb-1 text-[0.65rem] uppercase tracking-wide text-zinc-500">
-              {{ addModal.descricao.trim() ? 'Sugestões para "' + addModal.descricao + '"' : 'Sugestões rápidas' }}
-            </p>
-            <div class="flex flex-wrap gap-1.5">
-              <button
-                v-for="icone in sugestoesIconeAddModal"
-                :key="icone"
-                type="button"
-                @click.stop="addModal.icone = icone"
-                class="icone-sugestao rounded-lg transition-all"
-                :class="[addModal.icone === icone ? 'icone-sugestao-ativo' : '', icone.startsWith('mdi-') ? 'icone-sugestao-mdi' : 'icone-sugestao-emoji']"
-                :title="icone"
-              >
-                <IconeDisplay :icone="icone" :size="icone.startsWith('mdi-') ? '1.15rem' : '1.25rem'" />
-              </button>
-            </div>
-          </div>
-
-          <p v-if="addModal.erro" class="mb-3 text-sm text-red-400">{{ addModal.erro }}</p>
-
-          <div class="flex gap-3">
-            <button @click="salvarAddModal" :disabled="addModal.salvando || !addModal.descricao.trim() || ((addModal.tipo === 'tipo' || addModal.tipo === 'propriedade') && !addModal.categoriaItem)" class="btn-primary flex-1 rounded-xl py-2.5 text-sm font-semibold disabled:opacity-40">
-              {{ addModal.salvando ? 'Salvando...' : 'Salvar' }}
-            </button>
-            <button @click="addModal.aberto = false" class="btn-ghost flex-1 rounded-xl border py-2.5 text-sm font-medium">Cancelar</button>
+    <Modal
+      v-if="addModal.aberto"
+      :title="addModalTitulo"
+      panel-class="max-w-sm"
+      tema="escuro"
+      :show-close-button="false"
+      :close-on-backdrop="false"
+      @close="addModal.aberto = false"
+    >
+      <div class="space-y-4 p-6">
+        <!-- Selecionar categoria (para tipo e propriedade) -->
+        <div v-if="addModal.tipo !== 'categoria' && addModal.tipo !== 'classe'">
+          <label class="field-label mb-1 block text-xs uppercase tracking-wide">
+            Categoria <span class="text-red-400">*</span>
+          </label>
+          <div class="select-wrap">
+            <select v-model="addModal.categoriaItem" class="field-input w-full appearance-none rounded-xl border px-3 py-2.5 pr-9 text-sm outline-none">
+              <option :value="null">Selecionar categoria...</option>
+              <option v-for="c in categorias" :key="c.item" :value="c.item">{{ (c.icone && !c.icone.startsWith('mdi-')) ? c.icone + ' ' + c.descricao : c.descricao }}</option>
+            </select>
+            <span class="select-caret">˅</span>
           </div>
         </div>
+
+        <div>
+          <label class="field-label mb-1 block text-xs uppercase tracking-wide">Descrição <span class="text-red-400">*</span></label>
+          <input
+            v-model="addModal.descricao"
+            type="text"
+            :placeholder="`Nome do(a) ${addModalTipoLabel}...`"
+            class="field-input w-full rounded-xl border px-3 py-2.5 text-sm outline-none"
+            @keydown.enter="salvarAddModal"
+          />
+        </div>
+
+        <!-- Ícone (somente para categorias) -->
+        <div v-if="addModal.tipo === 'categoria'">
+          <label class="field-label mb-2 block text-xs uppercase tracking-wide">
+            Ícone <span class="font-normal normal-case text-zinc-500">(opcional)</span>
+          </label>
+          <IconeInput v-model="addModal.icone" placeholder="Emoji ⚔️ ou mdi-sword" />
+          <p class="mt-1.5 mb-2 text-[0.62rem] text-zinc-500">
+            Emoji direto (<span class="font-mono">⚔️</span>) ou comece com
+            <span class="font-mono">mdi-</span> para autocompletar ícones MDI
+          </p>
+          <p class="mb-1 text-[0.65rem] uppercase tracking-wide text-zinc-500">
+            {{ addModal.descricao.trim() ? 'Sugestões para "' + addModal.descricao + '"' : 'Sugestões rápidas' }}
+          </p>
+          <div class="flex flex-wrap gap-1.5">
+            <button
+              v-for="icone in sugestoesIconeAddModal"
+              :key="icone"
+              type="button"
+              @click.stop="addModal.icone = icone"
+              class="icone-sugestao rounded-lg transition-all"
+              :class="[addModal.icone === icone ? 'icone-sugestao-ativo' : '', icone.startsWith('mdi-') ? 'icone-sugestao-mdi' : 'icone-sugestao-emoji']"
+              :title="icone"
+            >
+              <IconeDisplay :icone="icone" :size="icone.startsWith('mdi-') ? '1.15rem' : '1.25rem'" />
+            </button>
+          </div>
+        </div>
+
+        <p v-if="addModal.erro" class="text-sm text-red-400">{{ addModal.erro }}</p>
+
+        <div class="flex gap-3">
+          <button type="button" @click="salvarAddModal" :disabled="addModal.salvando || !addModal.descricao.trim() || ((addModal.tipo === 'tipo' || addModal.tipo === 'propriedade') && !addModal.categoriaItem)" class="btn-primary flex-1 rounded-xl py-2.5 text-sm font-semibold disabled:opacity-40">
+            {{ addModal.salvando ? 'Salvando...' : 'Salvar' }}
+          </button>
+          <button type="button" @click="addModal.aberto = false" class="btn-ghost flex-1 rounded-xl border py-2.5 text-sm font-medium">Cancelar</button>
+        </div>
       </div>
-    </transition>
+    </Modal>
 
     <!-- ══ Modal: Gerenciar itens de lookup ════════════════════════════════ -->
-    <transition name="modal-fade">
-      <div v-if="manageModal.aberto" class="fixed inset-0 z-50 flex items-center justify-center p-4" @click.self="manageModal.aberto = false">
-        <div class="modal-overlay absolute inset-0 bg-black/70 backdrop-blur-sm" />
-        <div class="modal-card relative w-full max-w-md rounded-2xl border p-6 shadow-2xl">
-          <div class="mb-4 flex items-center justify-between">
-            <h3 class="modal-title text-base font-bold">{{ manageModalTitulo }}</h3>
-            <button @click="manageModal.aberto = false" class="close-btn rounded-lg p-1.5">
-              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
+    <Modal
+      v-if="manageModal.aberto"
+      panel-class="max-w-md"
+      tema="escuro"
+      :show-close-button="false"
+      :close-on-backdrop="false"
+      @close="manageModal.aberto = false"
+    >
+      <template #header>
+        <h3 class="text-base font-bold text-zinc-100">{{ manageModalTitulo }}</h3>
+        <button type="button" @click="manageModal.aberto = false" class="ml-auto close-btn rounded-lg p-1.5">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </template>
+
+      <div class="px-6 py-4">
+        <div class="max-h-[50vh] overflow-y-auto space-y-1">
+          <div v-if="manageModal.itens.length === 0" class="py-8 text-center text-sm text-zinc-500 italic">
+            Nenhum item cadastrado.
           </div>
 
-          <div class="max-h-[50vh] overflow-y-auto space-y-1">
-            <div v-if="manageModal.itens.length === 0" class="py-8 text-center text-sm text-zinc-500 italic">
-              Nenhum item cadastrado.
-            </div>
+          <div
+            v-for="item in manageModal.itens"
+            :key="item.item"
+            class="manage-row flex items-center gap-2 rounded-xl border px-3 py-2"
+          >
+            <!-- Modo leitura -->
+            <template v-if="manageModal.editandoItem !== item.item">
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium truncate flex items-center gap-1.5">
+                  <IconeDisplay v-if="item.icone" :icone="item.icone" size="1rem" class="shrink-0" />
+                  {{ item.descricao }}
+                </p>
+                <p v-if="item.categoria_item" class="text-xs text-zinc-500 truncate">{{ categoriaNome(item.categoria_item) }}</p>
+              </div>
+              <button type="button" @click="iniciarEdicaoManage(item)" class="action-btn-edit rounded-lg p-1.5">
+                <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              <button type="button" @click="deletarLookupItem(item.item)" :disabled="manageModal.deletando === item.item" class="action-btn-del rounded-lg p-1.5">
+                <svg v-if="manageModal.deletando !== item.item" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                <div v-else class="h-3.5 w-3.5 animate-spin rounded-full border border-red-400 border-t-transparent" />
+              </button>
+            </template>
 
-            <div
-              v-for="item in manageModal.itens"
-              :key="item.item"
-              class="manage-row flex items-center gap-2 rounded-xl border px-3 py-2"
-            >
-              <!-- Modo leitura -->
-              <template v-if="manageModal.editandoItem !== item.item">
-                <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium truncate flex items-center gap-1.5">
-                    <IconeDisplay v-if="item.icone" :icone="item.icone" size="1rem" class="shrink-0" />
-                    {{ item.descricao }}
-                  </p>
-                  <p v-if="item.categoria_item" class="text-xs text-zinc-500 truncate">{{ categoriaNome(item.categoria_item) }}</p>
-                </div>
-                <button @click="iniciarEdicaoManage(item)" class="action-btn-edit rounded-lg p-1.5">
-                  <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                </button>
-                <button @click="deletarLookupItem(item.item)" :disabled="manageModal.deletando === item.item" class="action-btn-del rounded-lg p-1.5">
-                  <svg v-if="manageModal.deletando !== item.item" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                  <div v-else class="h-3.5 w-3.5 animate-spin rounded-full border border-red-400 border-t-transparent" />
-                </button>
-              </template>
-
-              <!-- Modo edição inline -->
-              <template v-else>
-                <div class="flex-1 flex flex-col gap-1.5 min-w-0">
-                  <input
-                    v-model="manageModal.novaDescricao"
-                    class="field-input w-full rounded-lg border px-2 py-1.5 text-sm outline-none"
-                    placeholder="Descrição"
-                    @keydown.esc="manageModal.editandoItem = null"
-                  />
-                  <IconeInput
-                    v-if="manageModal.tipo === 'categoria'"
-                    v-model="manageModal.novoIcone"
-                    placeholder="Emoji ⚔️ ou mdi-sword"
-                  />
-                </div>
-                <button @click="salvarEdicaoManage(item.item)" :disabled="manageModal.salvando" class="btn-primary self-start rounded-lg px-2.5 py-1.5 text-xs font-semibold disabled:opacity-40">
-                  {{ manageModal.salvando ? '...' : 'OK' }}
-                </button>
-                <button @click="manageModal.editandoItem = null" class="btn-ghost self-start rounded-lg border px-2.5 py-1.5 text-xs">✕</button>
-              </template>
-            </div>
+            <!-- Modo edição inline -->
+            <template v-else>
+              <div class="flex-1 flex flex-col gap-1.5 min-w-0">
+                <input
+                  v-model="manageModal.novaDescricao"
+                  class="field-input w-full rounded-lg border px-2 py-1.5 text-sm outline-none"
+                  placeholder="Descrição"
+                  @keydown.esc="manageModal.editandoItem = null"
+                />
+                <IconeInput
+                  v-if="manageModal.tipo === 'categoria'"
+                  v-model="manageModal.novoIcone"
+                  placeholder="Emoji ⚔️ ou mdi-sword"
+                />
+              </div>
+              <button type="button" @click="salvarEdicaoManage(item.item)" :disabled="manageModal.salvando" class="btn-primary self-start rounded-lg px-2.5 py-1.5 text-xs font-semibold disabled:opacity-40">
+                {{ manageModal.salvando ? '...' : 'OK' }}
+              </button>
+              <button type="button" @click="manageModal.editandoItem = null" class="btn-ghost self-start rounded-lg border px-2.5 py-1.5 text-xs">✕</button>
+            </template>
           </div>
-
-          <p v-if="manageModal.erro" class="mt-3 text-sm text-red-400">{{ manageModal.erro }}</p>
         </div>
+
+        <p v-if="manageModal.erro" class="mt-3 text-sm text-red-400">{{ manageModal.erro }}</p>
       </div>
-    </transition>
+    </Modal>
   </div>
 </template>
 
@@ -541,6 +550,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import TemaDarkLight from '@/components/TemaDarkLight.vue'
 import DataTable from '@/components/DataTable.vue'
+import Modal from '@/components/Modal.vue'
 import IconeDisplay from '@/components/IconeDisplay.vue'
 import IconeInput from '@/components/IconeInput.vue'
 import {
@@ -1206,11 +1216,7 @@ select.field-input option {
 .action-btn-del  { color: #64748b; }
 .action-btn-del:hover:not(:disabled) { background: rgb(220 38 38 / 0.15); color: #fca5a5; }
 
-/* ── Modal ───────────────────────────────────────────────────────────────── */
-.modal-card  { background: #0f172a; border-color: rgb(255 255 255 / 0.1); }
-.modal-title { color: #f1f5f9; }
-.modal-body  { color: #94a3b8; }
-.modal-body strong { color: #e2e8f0; }
+/* ── Modal local removido (usa componente global Modal.vue) ─────────────── */
 
 /* ── Gerenciar modal ─────────────────────────────────────────────────────── */
 .manage-row {
@@ -1240,10 +1246,6 @@ select.field-input option {
 .form-slide-enter-active, .form-slide-leave-active { transition: opacity 0.2s ease, transform 0.2s ease; }
 .form-slide-enter-from, .form-slide-leave-to { opacity: 0; transform: translateY(-8px); }
 
-.modal-fade-enter-active, .modal-fade-leave-active { transition: opacity 0.18s ease; }
-.modal-fade-enter-from, .modal-fade-leave-to { opacity: 0; }
-.modal-fade-enter-active .modal-card, .modal-fade-leave-active .modal-card { transition: transform 0.18s ease; }
-.modal-fade-enter-from .modal-card, .modal-fade-leave-to .modal-card { transform: scale(0.95); }
 
 /* ══ Light mode ═════════════════════════════════════════════════════════════ */
 :global(html.theme-light) .page-root    { background: var(--bg-page); color: var(--text-main); }
@@ -1285,10 +1287,6 @@ select.field-input option {
 :global(html.theme-light) .dano-text    { color: #dc2626; }
 :global(html.theme-light) .text-muted   { color: var(--text-muted); }
 
-:global(html.theme-light) .modal-card   { background: var(--bg-card); border-color: var(--border-soft); box-shadow: 0 20px 50px rgb(0 0 0 / 0.15); }
-:global(html.theme-light) .modal-title  { color: var(--text-main); }
-:global(html.theme-light) .modal-body   { color: var(--text-muted); }
-:global(html.theme-light) .modal-body strong { color: var(--text-main); }
 :global(html.theme-light) .manage-row   { border-color: var(--border-soft); background: var(--bg-soft); }
 :global(html.theme-light) .manage-row:hover { background: var(--accent-soft); }
 

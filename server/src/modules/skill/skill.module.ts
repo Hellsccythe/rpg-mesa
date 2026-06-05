@@ -94,6 +94,18 @@ SkillRouter.patch("/admin/catalogo/:id", async (req, res) => {
   }
 });
 
+SkillRouter.get("/admin/catalogo/:id/referencias", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    const resultado = await skillService.listarReferencias(req.params.id, token);
+    res.status(200).json(resultado);
+  } catch (error: any) {
+    const status =
+      error?.message?.includes("autenticado") || error?.message?.includes("restrito") ? 401 : 400;
+    res.status(status).json({ message: error?.message ?? "Erro ao buscar referências" });
+  }
+});
+
 SkillRouter.delete("/admin/catalogo/:id", async (req, res) => {
   try {
     const token = getBearerToken(req.headers.authorization);

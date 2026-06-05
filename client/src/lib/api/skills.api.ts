@@ -71,6 +71,17 @@ export async function deletarSkillCatalogo(id: string | number): Promise<{ ok: b
   return data
 }
 
+export interface SkillReferencias {
+  passados: { id: number; nome: string }[]
+  titulos:  { id: number; nome: string }[]
+  classes:  { id: number; nome: string }[]
+}
+
+export async function buscarReferenciasSkill(id: string | number): Promise<SkillReferencias> {
+  const { data } = await api.get<SkillReferencias>(`/skills/admin/catalogo/${id}/referencias`)
+  return data
+}
+
 export async function addSkillToCharacter(characterId: string, skillName: string) {
   const { data } = await api.post<PersonagemApi>(`/skills/admin/personagens/${characterId}`, {
     skillName,

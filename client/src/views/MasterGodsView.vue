@@ -253,6 +253,7 @@
     <Modal
       v-if="showCreate"
       :show-close-button="false"
+      :close-on-backdrop="false"
       overlay-class="bg-black/80 p-4"
       panel-class="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-3xl"
       body-class="p-5 sm:p-6"

@@ -141,7 +141,7 @@
     </TemaDarkLight>
 
     <!-- Modal edição -->
-    <Modal v-if="editModal.show" @close="fecharEditModal" panel-class="max-w-xl">
+    <Modal v-if="editModal.show" @close="fecharEditModal" panel-class="max-w-xl" :close-on-backdrop="false">
       <div class="p-6 space-y-3 overflow-y-auto" style="max-height:80vh">
         <p class="text-sm font-semibold text-zinc-100">Editar Skill</p>
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -177,11 +177,30 @@
     </Modal>
 
     <!-- Modal delete -->
-    <Modal v-if="deleteId !== null" @close="deleteId = null" panel-class="max-w-sm" :show-close-button="false">
-      <div class="p-6 text-center">
-        <p class="mb-4 text-zinc-200">Deletar a skill <strong class="text-white">{{ deleteNome }}</strong>?</p>
+    <Modal v-if="deleteId !== null" @close="deleteId = null" panel-class="max-w-sm" :show-close-button="false" :close-on-backdrop="false">
+      <div class="p-6 space-y-4">
+        <p class="text-zinc-200">
+          Deletar a skill <strong class="text-white">{{ deleteNome }}</strong>?
+        </p>
+
+        <!-- Carregando referências -->
+        <div v-if="carregandoRefs" class="text-xs text-zinc-500 italic">Verificando referências...</div>
+
+        <!-- Referências encontradas -->
+        <template v-else-if="deleteRefs && (deleteRefs.passados.length || deleteRefs.titulos.length || deleteRefs.classes.length)">
+          <div class="rounded-xl border border-amber-500/30 bg-amber-950/20 px-4 py-3 space-y-2">
+            <p class="text-xs font-semibold text-amber-400">Esta skill está sendo usada em:</p>
+            <ul class="space-y-0.5 text-xs text-zinc-400">
+              <li v-for="c in deleteRefs.classes"  :key="'c'+c.id">⚔ Classe: <span class="text-zinc-200">{{ c.nome }}</span></li>
+              <li v-for="p in deleteRefs.passados"  :key="'p'+p.id">📜 Passado: <span class="text-zinc-200">{{ p.nome }}</span></li>
+              <li v-for="t in deleteRefs.titulos"   :key="'t'+t.id">🏅 Título: <span class="text-zinc-200">{{ t.nome }}</span></li>
+            </ul>
+            <p class="text-xs text-amber-400/80">Ao confirmar, a skill será removida de todos esses registros.</p>
+          </div>
+        </template>
+
         <div class="flex justify-center gap-3">
-          <button @click="executarDelete" :disabled="carregando" class="rounded-xl bg-red-800/80 px-6 py-2 text-sm font-semibold text-white hover:bg-red-700/80 disabled:opacity-40">
+          <button @click="executarDelete" :disabled="carregando || carregandoRefs" class="rounded-xl bg-red-800/80 px-6 py-2 text-sm font-semibold text-white hover:bg-red-700/80 disabled:opacity-40">
             {{ carregando ? 'Deletando...' : 'Confirmar' }}
           </button>
           <button @click="deleteId = null" class="gm-btn-ghost">Cancelar</button>
@@ -200,8 +219,9 @@ import Modal from '@/components/Modal.vue'
 import VSelect from '@/components/VSelect.vue'
 import {
   listarCatalogoSkills, criarSkillCatalogo, editarSkillCatalogo, deletarSkillCatalogo,
+  buscarReferenciasSkill,
   skillTiposApi, skillCategoriasApi, skillTiposDanoApi,
-  type SkillApi, type SkillLookupApi,
+  type SkillApi, type SkillLookupApi, type SkillReferencias,
 } from '@/lib/api/skills.api'
 import { listarRacasPublicas, type RacaApi } from '@/lib/api/racas.api'
 import { listarClasses, type ClasseApi } from '@/lib/api/classes.api'
@@ -232,6 +252,8 @@ const feedbackErro = ref(false)
 
 const deleteId = ref<string | number | null>(null)
 const deleteNome = ref('')
+const deleteRefs = ref<SkillReferencias | null>(null)
+const carregandoRefs = ref(false)
 
 const emptyForm = () => ({
   name: '',
@@ -403,9 +425,15 @@ async function salvarEdicao() {
   }
 }
 
-function confirmarDelete(s: SkillApi) {
+async function confirmarDelete(s: SkillApi) {
   deleteId.value = s.id
   deleteNome.value = s.name
+  deleteRefs.value = null
+  carregandoRefs.value = true
+  try {
+    deleteRefs.value = await buscarReferenciasSkill(s.id)
+  } catch { /* exibe modal mesmo sem referências */ }
+  finally { carregandoRefs.value = false }
 }
 
 async function executarDelete() {
