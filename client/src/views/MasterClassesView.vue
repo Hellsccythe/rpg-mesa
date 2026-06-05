@@ -114,7 +114,7 @@
     </TemaDarkLight>
 
     <!-- Modal edição -->
-    <Modal v-if="editModal.show" @close="fecharEditModal" panel-class="max-w-xl">
+    <Modal v-if="editModal.show" @close="fecharEditModal" panel-class="max-w-xl" :close-on-backdrop="false">
       <div class="p-6 space-y-3 overflow-y-auto" style="max-height:80vh">
         <p class="text-sm font-semibold text-zinc-100">Editar Classe</p>
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -174,7 +174,7 @@
     </Modal>
 
     <!-- Modal delete -->
-    <Modal v-if="deleteId !== null" @close="deleteId = null" panel-class="max-w-sm" :show-close-button="false">
+    <Modal v-if="deleteId !== null" @close="deleteId = null" panel-class="max-w-sm" :show-close-button="false" :close-on-backdrop="false">
       <div class="p-6 text-center">
         <p class="mb-4 text-zinc-200">Deletar a classe <strong class="text-white">{{ deleteNome }}</strong>?</p>
         <div class="flex justify-center gap-3">

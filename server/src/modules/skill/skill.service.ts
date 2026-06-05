@@ -146,15 +146,75 @@ export const skillService = {
     return data;
   },
 
+  async listarReferencias(id: string, accessToken?: string) {
+    await ensureMasterAccess(accessToken);
+    const admin = getAdminClient();
+    const { data: skill } = await admin
+      .from("skills").select("id, name").eq("id", id).is("deleted_at", null).single();
+    if (!skill) throw new Error("Skill não encontrada.");
+
+    const skillId  = Number((skill as any).id);
+    const skillName: string = (skill as any).name;
+
+    const [{ data: passados }, { data: titulos }, { data: classes }] = await Promise.all([
+      admin.from("passados").select("id, nome, skill_ids").is("deleted_at", null),
+      admin.from("titles").select("id, name, skill_ids").is("deleted_at", null),
+      admin.from("classes").select("id, name, starting_skills").is("deleted_at", null),
+    ]);
+
+    return {
+      passados: (passados ?? []).filter((p: any) => (p.skill_ids ?? []).includes(skillId))
+        .map((p: any) => ({ id: p.id, nome: p.nome })),
+      titulos:  (titulos ?? []).filter((t: any) => (t.skill_ids ?? []).includes(skillId))
+        .map((t: any) => ({ id: t.id, nome: t.name })),
+      classes:  (classes ?? []).filter((c: any) => (c.starting_skills ?? []).includes(skillName))
+        .map((c: any) => ({ id: c.id, nome: c.name })),
+    };
+  },
+
   async deletarDoCatalogo(id: string, accessToken?: string) {
     const user = await ensureMasterAccess(accessToken);
     const admin = getAdminClient();
+
+    const { data: skill } = await admin
+      .from("skills").select("id, name").eq("id", id).is("deleted_at", null).single();
+    if (!skill) throw new Error("Skill não encontrada.");
+
+    const skillId  = Number((skill as any).id);
+    const skillName: string = (skill as any).name;
+
     const { error } = await admin
       .from("skills")
       .update({ deleted_at: new Date().toISOString(), deleted_by: user.id })
       .eq("id", id)
       .is("deleted_at", null);
     if (error) throw error;
+
+    // Cascade: remove de passados, títulos e classes em paralelo
+    const [{ data: passados }, { data: titulos }, { data: classes }] = await Promise.all([
+      admin.from("passados").select("id, skill_ids").is("deleted_at", null),
+      admin.from("titles").select("id, skill_ids").is("deleted_at", null),
+      admin.from("classes").select("id, starting_skills").is("deleted_at", null),
+    ]);
+
+    await Promise.all([
+      ...(passados ?? [])
+        .filter((p: any) => (p.skill_ids ?? []).includes(skillId))
+        .map((p: any) =>
+          admin.from("passados").update({ skill_ids: (p.skill_ids as number[]).filter((s) => s !== skillId) }).eq("id", p.id)
+        ),
+      ...(titulos ?? [])
+        .filter((t: any) => (t.skill_ids ?? []).includes(skillId))
+        .map((t: any) =>
+          admin.from("titles").update({ skill_ids: (t.skill_ids as number[]).filter((s) => s !== skillId) }).eq("id", t.id)
+        ),
+      ...(classes ?? [])
+        .filter((c: any) => (c.starting_skills ?? []).includes(skillName))
+        .map((c: any) =>
+          admin.from("classes").update({ starting_skills: (c.starting_skills as string[]).filter((s) => s !== skillName) }).eq("id", c.id)
+        ),
+    ]);
+
     return { ok: true };
   },
 

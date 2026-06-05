@@ -208,6 +208,7 @@
       panel-class="max-w-md"
       body-class="space-y-4 p-6"
       :show-close-button="false"
+      :close-on-backdrop="false"
       @close="fecharRejeicao"
     >
       <h3 class="text-lg font-bold text-white">Rejeitar Solicitação</h3>
