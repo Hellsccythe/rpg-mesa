@@ -103,6 +103,7 @@ Sistema de gestão de sessões de RPG de mesa. Monorepo com Yarn 4 Workspaces.
 | POST | `/api/passados/admin` | isMaster |
 | PATCH | `/api/passados/admin/:id` | isMaster |
 | DELETE | `/api/passados/admin/:id` | isMaster (soft delete) |
+| GET | `/api/skills/admin/catalogo/:id/referencias` | isMaster (passados, títulos e classes que usam a skill) |
 | GET | `/api/classes/admin` | isMaster |
 | GET | `/api/classes/para-player` | auth (retorna normais + secretas reveladas ao character) |
 | GET | `/api/classes/secretas/admin` | isMaster (lista classes secretas com titular atual) |
@@ -410,6 +411,21 @@ API: `GET /api/passados` (público), `POST/PATCH/DELETE /api/passados/admin[/:id
 
 Notas de lore — ver migrations 009–011. PK convertida para INTEGER IDENTITY (migration 022).
 
+## Integridade de Dados — Deleção em Cascata
+
+### Deleção de skill do catálogo (`DELETE /api/skills/admin/catalogo/:id`)
+
+Ao deletar uma skill, o backend (via `skillService.deletarDoCatalogo`) automaticamente:
+1. Faz soft-delete da skill em `skills`
+2. Remove o `skill.id` de `passados.skill_ids[]` em todos os passados que a referenciam
+3. Remove o `skill.id` de `titles.skill_ids[]` em todos os títulos que a referenciam
+4. Remove o `skill.name` de `classes.starting_skills[]` em todas as classes que a referenciam
+
+Antes da confirmação, o frontend (`MasterSkillsView`) chama `GET /api/skills/admin/catalogo/:id/referencias` e exibe no modal quais registros serão afetados.
+
+**Referências checadas:** `passados.skill_ids`, `titles.skill_ids`, `classes.starting_skills` (por nome, pois `starting_skills` é `string[]`).
+**Não checado:** `characters.data.skills` (skills já concedidas a personagens — são histórico pessoal e não são removidas).
+
 ## Padrões de Código
 
 - Código e comentários em **português brasileiro (pt-BR)**
@@ -424,9 +440,12 @@ Notas de lore — ver migrations 009–011. PK convertida para INTEGER IDENTITY 
 ### Modal — padrões
 
 - `Modal.vue` tem default `max-w-2xl` quando nenhum `panel-class` é passado
-- Modais de confirmação pequenos usam `panel-class="max-w-sm"` + `tema="escuro"` + `:close-on-backdrop="false"`
+- **Todos os modais de formulário e confirmação devem usar `:close-on-backdrop="false"`** — sem isso, clicar fora fecha o modal e o usuário perde o que estava preenchendo
+- Modais de confirmação pequenos: `panel-class="max-w-sm"` + `tema="escuro"` + `:close-on-backdrop="false"` + `:show-close-button="false"`
 - **Toda ação destrutiva ou irreversível nas telas master deve ter modal de confirmação** antes de executar
 - Modais de formulário simples (2-3 campos): `max-w-sm`; formulários maiores: `max-w-md` ou `max-w-xl`
+- **Nunca usar modais locais** (divs com `@click.self`) — sempre usar o componente `Modal.vue`. `MasterWeaponsView` foi o último a ser refatorado (3 modais: delete, add lookup, manage lookup)
+- **Bug interno resolvido (não fazer de novo):** `handleBackdropClick` usa `event.composedPath()` em vez de `panelRef.contains(target)` — sem isso, remover um elemento do DOM durante o click handler (ex: chip de skill) fazia o modal fechar indevidamente
 
 ## Papéis de Usuário
 
@@ -441,8 +460,10 @@ Ambos os tipos têm registro na tabela `usuarios`. Players são criados automati
 - Funções: listar todos, filtrar por tipo/status, editar username/tipo/nome do personagem, reset de senha, ativar/desativar conta, liberar/remover pré-registros, **deletar** (remove auth + personagem + avatar storage)
 - Username change atualiza: `usuarios.username` + `characters.username` + email Supabase Auth (`{novo}@rpg.internal`) + `user_metadata.display_name`
 - Desativar: aplica `ban_duration: "876600h"` via Supabase Admin API — bloqueia login
-- Reset Senha GM: modal manual com validação de regras (mín 8, maiúscula, número, especial)
-- Reset Senha Player: seta senha para `12345` + `user_metadata.requires_password_change = true`; no próximo login o DashboardView exibe modal obrigatório para troca de senha seguindo as regras; após confirmar grava `requires_password_change: false` via `supabase.auth.updateUser`
+- **Definir Senha GM** (botão violet): modal manual com input + validação de regras (mín 8, maiúscula, número, especial)
+- **Reset Padrão** (botão orange, disponível para GM e player): seta senha para `12345` + `user_metadata.requires_password_change = true`; no próximo login é exibido modal obrigatório para troca de senha seguindo as regras; após confirmar grava `requires_password_change: false` via `supabase.auth.updateUser`
+  - **Player**: modal de troca aparece no `DashboardView`
+  - **GM**: modal de troca aparece no `MasterPanelView` (verificado no `onMounted`)
 - **Supabase Auth display_name**: todo usuário criado recebe `user_metadata.display_name = username` para identificação no dashboard Supabase. Migration 031 preencheu os existentes.
 
 ## Fluxo de Auth
