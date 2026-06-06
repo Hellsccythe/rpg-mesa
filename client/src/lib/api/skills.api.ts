@@ -13,14 +13,14 @@ export interface SkillApi {
   id: string | number
   name: string
   description?: string | null
-  raca_vinculada?: string | null
+  raca_vinculada?: string[] | null
+  skill_natureza_item?: number | null
   skill_tipo_item?: number | null
-  skill_categoria_item?: number | null
-  skill_tipo_dano_item?: number | null
-  damage_display?: string | null
-  damage_base?: number | null
+  skill_categoria_item?: number[] | null
+  skill_tipo_dano_item?: number[] | null
+  multiplicador_atributo?: string[][] | null
+  damage_base?: string | null
   effect_description?: string | null
-  effect_value?: number | null
   custo?: number | null
   cooldown?: number | null
   range?: string | null
@@ -35,14 +35,14 @@ export interface SkillApi {
 export interface CriarSkillPayload {
   name: string
   description?: string
-  raca_vinculada?: string
+  raca_vinculada?: string[]
+  skill_natureza_item?: number | null
   skill_tipo_item?: number | null
-  skill_categoria_item?: number | null
-  skill_tipo_dano_item?: number | null
-  damage_display?: string
-  damage_base?: number | null
+  skill_categoria_item?: number[]
+  skill_tipo_dano_item?: number[]
+  multiplicador_atributo?: string[]
+  damage_base?: string
   effect_description?: string
-  effect_value?: number | null
   custo?: number | null
   cooldown?: number | null
   range?: string
@@ -50,6 +50,18 @@ export interface CriarSkillPayload {
 }
 
 export type EditarSkillPayload = Partial<CriarSkillPayload>
+
+export interface SkillOverrideApi {
+  id: number
+  skill_name: string
+  character_id: number
+  damage_base_override: string | null
+  multiplicador_override: string[] | null
+  created_at: string
+  created_by: string | null
+  updated_at: string
+  updated_by: string | null
+}
 
 export async function listarCatalogoSkills(): Promise<SkillApi[]> {
   const { data } = await api.get<SkillApi[]>('/skills/catalogo')
@@ -89,6 +101,27 @@ export async function addSkillToCharacter(characterId: string, skillName: string
   return data
 }
 
+// ── Overrides ─────────────────────────────────────────────────────────────────
+export async function listarOverridesPersonagem(characterId: number): Promise<SkillOverrideApi[]> {
+  const { data } = await api.get<SkillOverrideApi[]>('/skills/admin/overrides', { params: { character_id: characterId } })
+  return data
+}
+
+export async function criarOverride(payload: { skill_name: string; character_id: number; damage_base_override?: string | null; multiplicador_override?: string[] | null }): Promise<SkillOverrideApi> {
+  const { data } = await api.post<SkillOverrideApi>('/skills/admin/overrides', payload)
+  return data
+}
+
+export async function editarOverride(id: number, payload: { damage_base_override?: string | null; multiplicador_override?: string[] | null }): Promise<SkillOverrideApi> {
+  const { data } = await api.patch<SkillOverrideApi>(`/skills/admin/overrides/${id}`, payload)
+  return data
+}
+
+export async function deletarOverride(id: number): Promise<{ ok: boolean }> {
+  const { data } = await api.delete<{ ok: boolean }>(`/skills/admin/overrides/${id}`)
+  return data
+}
+
 // ── Lookups de skill ──────────────────────────────────────────────────────────
 function crudLookup(path: string) {
   return {
@@ -103,6 +136,57 @@ function crudLookup(path: string) {
   }
 }
 
+export const skillNaturezasApi = crudLookup('/skills/naturezas')
 export const skillTiposApi = crudLookup('/skills/tipos')
 export const skillCategoriasApi = crudLookup('/skills/categorias')
 export const skillTiposDanoApi = crudLookup('/skills/tipos-dano')
+
+// ── Níveis de skill ───────────────────────────────────────────────────────────
+export interface SkillNivelApi {
+  id: number
+  skill_id: number
+  skill_name?: string | null
+  nivel: 2 | 3
+  damage_multiplier_pct?: number | null
+  nome_override?: string | null
+  damage_base_override?: string | null
+  multiplicador_override?: string | null
+  effect_description_override?: string | null
+  created_at: string
+  updated_at: string
+  created_by?: string | null
+  updated_by?: string | null
+}
+
+export interface CriarSkillNivelPayload {
+  skill_id: number
+  nivel: 2 | 3
+  damage_multiplier_pct?: number | null
+  nome_override?: string | null
+  damage_base_override?: string | null
+  multiplicador_override?: string | null
+  effect_description_override?: string | null
+}
+
+export type EditarSkillNivelPayload = Omit<CriarSkillNivelPayload, 'skill_id' | 'nivel'>
+
+export async function listarSkillNiveis(skillId?: number): Promise<SkillNivelApi[]> {
+  const params = skillId ? { skill_id: skillId } : {}
+  const { data } = await api.get<SkillNivelApi[]>('/skills/niveis', { params })
+  return data
+}
+
+export async function criarSkillNivel(payload: CriarSkillNivelPayload): Promise<SkillNivelApi> {
+  const { data } = await api.post<SkillNivelApi>('/skills/admin/niveis', payload)
+  return data
+}
+
+export async function editarSkillNivel(id: number, payload: EditarSkillNivelPayload): Promise<SkillNivelApi> {
+  const { data } = await api.patch<SkillNivelApi>(`/skills/admin/niveis/${id}`, payload)
+  return data
+}
+
+export async function deletarSkillNivel(id: number): Promise<{ ok: boolean }> {
+  const { data } = await api.delete<{ ok: boolean }>(`/skills/admin/niveis/${id}`)
+  return data
+}

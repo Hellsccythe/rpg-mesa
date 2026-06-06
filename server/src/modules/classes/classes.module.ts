@@ -24,6 +24,61 @@ ClassesRouter.get("/", async (_req, res) => {
   }
 });
 
+// ── Progressão de XP por classe ──────────────────────────────────────────────
+ClassesRouter.get("/progressao", async (req, res) => {
+  try {
+    const classeId = req.query.classe_id ? parseInt(req.query.classe_id as string, 10) : undefined;
+    res.status(200).json(await classesService.listarProgressaoClasse(classeId));
+  } catch (e: any) {
+    res.status(500).json({ message: e?.message ?? "Erro ao listar progressão" });
+  }
+});
+
+ClassesRouter.post("/progressao/admin", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    res.status(201).json(await classesService.criarProgressaoClasse(req.body, token));
+  } catch (e: any) {
+    const s = e?.message?.includes("autenticado") || e?.message?.includes("restrito") ? 401 : 400;
+    res.status(s).json({ message: e?.message ?? "Erro ao criar progressão" });
+  }
+});
+
+ClassesRouter.patch("/progressao/admin/:id", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) { res.status(400).json({ message: "id inválido" }); return; }
+    res.status(200).json(await classesService.editarProgressaoClasse(id, req.body, token));
+  } catch (e: any) {
+    const s = e?.message?.includes("autenticado") || e?.message?.includes("restrito") ? 401 : 400;
+    res.status(s).json({ message: e?.message ?? "Erro ao editar progressão" });
+  }
+});
+
+ClassesRouter.delete("/progressao/admin/:id", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) { res.status(400).json({ message: "id inválido" }); return; }
+    res.status(200).json(await classesService.deletarProgressaoClasse(id, token));
+  } catch (e: any) {
+    const s = e?.message?.includes("autenticado") || e?.message?.includes("restrito") ? 401 : 400;
+    res.status(s).json({ message: e?.message ?? "Erro ao deletar progressão" });
+  }
+});
+
+ClassesRouter.post("/progressao/admin/bulk", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    const { entradas } = req.body as { entradas: any[] };
+    res.status(201).json(await classesService.criarProgressaoClasseBulk(entradas, token));
+  } catch (e: any) {
+    const s = e?.message?.includes("autenticado") || e?.message?.includes("restrito") ? 401 : 400;
+    res.status(s).json({ message: e?.message ?? "Erro ao criar progressão em lote" });
+  }
+});
+
 ClassesRouter.get("/level-progression", async (_req, res) => {
   try {
     const resultado = await classesService.listarProgressaoLevel();

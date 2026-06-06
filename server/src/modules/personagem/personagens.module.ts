@@ -346,6 +346,34 @@ PersonagensRouter.post("/admin/:characterId/class-points", async (req, res) => {
   }
 });
 
+PersonagensRouter.post("/admin/:characterId/skill-points-classe", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    const { classId, pontos } = req.body as { classId?: string; pontos?: number };
+    if (!classId?.trim()) { res.status(400).json({ message: "classId é obrigatório" }); return; }
+    if (!Number.isInteger(pontos) || (pontos as number) < 1) { res.status(400).json({ message: "pontos deve ser um inteiro positivo" }); return; }
+    const resultado = await personagensService.adicionarSkillPointsParaClasse(req.params.characterId, { classId, pontos: pontos as number }, token);
+    res.status(200).json(resultado);
+  } catch (error: any) {
+    const status = error?.message?.includes("autenticado") ? 401 : error?.message?.includes("mestre") ? 403 : 400;
+    res.status(status).json({ message: error?.message ?? "Erro ao adicionar skill points" });
+  }
+});
+
+PersonagensRouter.patch("/admin/:characterId/atribuir-xp", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    const { classId, xp } = req.body as { classId?: string; xp?: number };
+    if (!classId?.trim()) { res.status(400).json({ message: "classId é obrigatório" }); return; }
+    if (!Number.isInteger(xp) || (xp as number) < 1) { res.status(400).json({ message: "xp deve ser um inteiro positivo" }); return; }
+    const resultado = await personagensService.atribuirXpClasse(req.params.characterId, { classId, xp: xp as number }, token);
+    res.status(200).json(resultado);
+  } catch (error: any) {
+    const status = error?.message?.includes("autenticado") ? 401 : error?.message?.includes("mestre") ? 403 : 400;
+    res.status(status).json({ message: error?.message ?? "Erro ao atribuir XP" });
+  }
+});
+
 PersonagensRouter.get("/:characterId", async (req, res) => {
   try {
     const token = getBearerToken(req.headers.authorization);

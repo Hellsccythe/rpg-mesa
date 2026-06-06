@@ -379,6 +379,33 @@
             <span class="mt-3 inline-block text-xs text-emerald-400 group-hover:text-emerald-300">Abrir guia →</span>
           </button>
 
+          <button @click="router.push({ name: 'master-skill-overrides' })" class="gm-link-card group text-left">
+            <div class="gm-icon-wrap mb-3 bg-violet-500/10 text-violet-400">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            </div>
+            <p class="font-semibold text-zinc-100 group-hover:text-white">Overrides de Skill</p>
+            <p class="mt-0.5 text-xs text-zinc-500">Buff de dano ou multiplicador exclusivo por player</p>
+            <span class="mt-3 inline-block text-xs text-violet-400 group-hover:text-violet-300">Abrir guia →</span>
+          </button>
+
+          <button @click="router.push({ name: 'master-progressao' })" class="gm-link-card group text-left">
+            <div class="gm-icon-wrap mb-3 bg-emerald-500/10 text-emerald-400">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            </div>
+            <p class="font-semibold text-zinc-100 group-hover:text-white">Progressão de XP</p>
+            <p class="mt-0.5 text-xs text-zinc-500">Tabela de XP por nível de classe e atribuição de XP</p>
+            <span class="mt-3 inline-block text-xs text-emerald-400 group-hover:text-emerald-300">Abrir guia →</span>
+          </button>
+
+          <button @click="router.push({ name: 'master-skill-niveis' })" class="gm-link-card group text-left">
+            <div class="gm-icon-wrap mb-3 bg-sky-500/10 text-sky-400">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h.01"/><path d="M7 20v-4"/><path d="M12 20v-8"/><path d="M17 20V8"/><path d="M22 4v16"/></svg>
+            </div>
+            <p class="font-semibold text-zinc-100 group-hover:text-white">Níveis de Skill</p>
+            <p class="mt-0.5 text-xs text-zinc-500">Configure os efeitos e overrides das skills nos níveis 2 e 3</p>
+            <span class="mt-3 inline-block text-xs text-sky-400 group-hover:text-sky-300">Abrir guia →</span>
+          </button>
+
           <button @click="goMasterClasses" class="gm-link-card group text-left">
             <div class="gm-icon-wrap mb-3 bg-sky-500/10 text-sky-400">
               <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 1.1 2.24 2 5 2s5-.9 5-2v-5"/></svg>

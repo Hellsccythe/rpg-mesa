@@ -100,15 +100,15 @@
             <div v-if="passadoSelecionado.atributo_bonus && temBonusAtributo(passadoSelecionado)">
               <p class="text-[0.65rem] font-bold uppercase tracking-widest text-rose-400/70 mb-1.5">Bônus de Atributos</p>
               <div class="flex flex-wrap gap-1.5">
-                <span
-                  v-for="attr in ATRIBUTOS_BONUS_CONFIG"
-                  :key="attr.key"
-                  v-if="(passadoSelecionado!.atributo_bonus as any)[attr.key] !== 0"
-                  class="rounded-lg border px-2 py-0.5 text-xs font-semibold"
-                  :class="(passadoSelecionado!.atributo_bonus as any)[attr.key] > 0 ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300' : 'border-red-500/30 bg-red-500/10 text-red-300'"
-                >
-                  {{ (passadoSelecionado!.atributo_bonus as any)[attr.key] > 0 ? '+' : '' }}{{ (passadoSelecionado!.atributo_bonus as any)[attr.key] }} {{ attr.label }}
-                </span>
+                <template v-for="attr in ATRIBUTOS_BONUS_CONFIG" :key="attr.key">
+                  <span
+                    v-if="(passadoSelecionado!.atributo_bonus as any)[attr.key] !== 0"
+                    class="rounded-lg border px-2 py-0.5 text-xs font-semibold"
+                    :class="(passadoSelecionado!.atributo_bonus as any)[attr.key] > 0 ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300' : 'border-red-500/30 bg-red-500/10 text-red-300'"
+                  >
+                    {{ (passadoSelecionado!.atributo_bonus as any)[attr.key] > 0 ? '+' : '' }}{{ (passadoSelecionado!.atributo_bonus as any)[attr.key] }} {{ attr.label }}
+                  </span>
+                </template>
               </div>
             </div>
             <div v-if="passadoSelecionado.skills.length">
@@ -246,35 +246,80 @@
 
       <!-- ═══ Etapa 2: Classes ═══ -->
       <template v-else-if="etapa === 2">
-        <div v-if="!classes.length" class="rounded-2xl border border-white/[0.06] bg-white/[0.02] py-16 text-center">
-          <p class="text-zinc-500">Nenhuma classe cadastrada pelo mestre ainda.</p>
-        </div>
-        <div v-else class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          <button v-for="cls in classes" :key="cls.id" type="button"
-            class="onboarding-card group relative overflow-hidden rounded-3xl border text-left transition-all duration-300"
-            :class="hover === cls.id ? 'border-cyan-500/50 bg-cyan-500/10 shadow-[0_0_40px_rgb(6_182_212/0.12)]' : 'border-white/[0.06] bg-white/[0.02] hover:border-white/15'"
-            @mouseenter="hover = cls.id" @mouseleave="hover = null" @click="selecionarClasse(cls)">
-            <div class="relative h-32 overflow-hidden bg-gradient-to-br from-cyan-900/30 to-slate-900/60 flex items-center justify-center">
-              <svg class="h-16 w-16 text-cyan-700/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.8"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-              <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-              <div class="absolute bottom-3 left-3">
-                <span class="rounded-full border border-cyan-500/40 bg-cyan-950/60 px-2.5 py-0.5 text-[0.65rem] font-bold text-cyan-300">Tier {{ cls.tier }}</span>
+
+        <!-- Sub-etapa: seleção de habilidade inicial (após confirmar classe) -->
+        <div v-if="selecionandoSkillInicial" class="mx-auto max-w-xl space-y-5">
+          <div class="rounded-2xl border border-cyan-500/20 bg-cyan-950/10 px-5 py-4 space-y-1">
+            <p class="text-sm font-semibold text-cyan-300">{{ classeSelecionada?.name }}</p>
+            <p class="text-xs text-zinc-400">Você ganhou <strong class="text-white">1 ponto de habilidade</strong> ao atingir o nível 1. Escolha uma habilidade inicial para desbloqueá-la.</p>
+          </div>
+
+          <div class="grid gap-3 sm:grid-cols-2">
+            <button
+              v-for="sk in ((classeSelecionada as any)?.starting_skills ?? [])"
+              :key="sk"
+              type="button"
+              class="rounded-2xl border p-4 text-left transition-all"
+              :class="skillSelecionadaTemp === sk
+                ? 'border-cyan-500/60 bg-cyan-500/15 shadow-[0_0_20px_rgb(6_182_212/0.15)]'
+                : 'border-white/[0.08] bg-white/[0.02] hover:border-white/20'"
+              @click="skillSelecionadaTemp = sk"
+            >
+              <div class="flex items-start gap-3">
+                <div class="mt-0.5 h-4 w-4 shrink-0 rounded-full border-2 flex items-center justify-center"
+                  :class="skillSelecionadaTemp === sk ? 'border-cyan-400 bg-cyan-400' : 'border-white/20'">
+                  <div v-if="skillSelecionadaTemp === sk" class="h-1.5 w-1.5 rounded-full bg-white" />
+                </div>
+                <span class="text-sm font-medium text-zinc-200">{{ sk }}</span>
               </div>
-            </div>
-            <div class="p-5">
-              <h3 class="mb-1.5 text-lg font-bold text-zinc-100 group-hover:text-white">{{ cls.name }}</h3>
-              <p v-if="cls.description" class="mb-4 line-clamp-4 text-xs leading-relaxed text-zinc-500 group-hover:text-zinc-400">{{ cls.description }}</p>
-              <div v-if="(cls as any).requer_deus" class="mb-3 flex items-center gap-1.5 text-[0.65rem] text-amber-400/80">
-                <svg class="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
-                Exige escolha de deus
-              </div>
-              <div class="mt-2 flex items-center justify-between text-xs font-semibold" :class="hover === cls.id ? 'text-cyan-300' : 'text-zinc-600'">
-                <span>Escolher esta classe</span>
-                <svg class="h-4 w-4 group-hover:translate-x-1 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-              </div>
-            </div>
+            </button>
+          </div>
+
+          <div v-if="erroEscolha" class="rounded-xl border border-red-500/30 bg-red-950/20 px-4 py-3 text-sm text-red-400">{{ erroEscolha }}</div>
+
+          <button
+            type="button"
+            :disabled="!skillSelecionadaTemp || salvando"
+            class="w-full rounded-2xl bg-cyan-700 py-3 text-sm font-bold text-white transition-colors hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            @click="confirmarSkillInicial"
+          >
+            {{ salvando ? 'Confirmando...' : skillSelecionadaTemp ? `Confirmar: ${skillSelecionadaTemp}` : 'Selecione uma habilidade' }}
           </button>
         </div>
+
+        <!-- Lista de classes (quando skill ainda não selecionada) -->
+        <template v-else>
+          <div v-if="!classes.length" class="rounded-2xl border border-white/[0.06] bg-white/[0.02] py-16 text-center">
+            <p class="text-zinc-500">Nenhuma classe cadastrada pelo mestre ainda.</p>
+          </div>
+          <div v-else class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <button v-for="cls in classes" :key="cls.id" type="button"
+              class="onboarding-card group relative overflow-hidden rounded-3xl border text-left transition-all duration-300"
+              :class="hover === cls.id ? 'border-cyan-500/50 bg-cyan-500/10 shadow-[0_0_40px_rgb(6_182_212/0.12)]' : 'border-white/[0.06] bg-white/[0.02] hover:border-white/15'"
+              @mouseenter="hover = cls.id" @mouseleave="hover = null" @click="selecionarClasse(cls)">
+              <div class="relative h-32 overflow-hidden bg-gradient-to-br from-cyan-900/30 to-slate-900/60 flex items-center justify-center">
+                <svg class="h-16 w-16 text-cyan-700/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.8"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                <div class="absolute bottom-3 left-3">
+                  <span class="rounded-full border border-cyan-500/40 bg-cyan-950/60 px-2.5 py-0.5 text-[0.65rem] font-bold text-cyan-300">Tier {{ cls.tier }}</span>
+                </div>
+              </div>
+              <div class="p-5">
+                <h3 class="mb-1.5 text-lg font-bold text-zinc-100 group-hover:text-white">{{ cls.name }}</h3>
+                <p v-if="cls.description" class="mb-4 line-clamp-4 text-xs leading-relaxed text-zinc-500 group-hover:text-zinc-400">{{ cls.description }}</p>
+                <div v-if="(cls as any).requer_deus" class="mb-3 flex items-center gap-1.5 text-[0.65rem] text-amber-400/80">
+                  <svg class="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+                  Exige escolha de deus
+                </div>
+                <div class="mt-2 flex items-center justify-between text-xs font-semibold" :class="hover === cls.id ? 'text-cyan-300' : 'text-zinc-600'">
+                  <span>Escolher esta classe</span>
+                  <svg class="h-4 w-4 group-hover:translate-x-1 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </div>
+              </div>
+            </button>
+          </div>
+        </template>
+
       </template>
 
       <!-- ═══ Etapa 3: Passado ═══ -->
@@ -297,15 +342,15 @@
               <p v-if="passado.descricao" class="mb-4 line-clamp-3 text-xs leading-relaxed text-zinc-500 group-hover:text-zinc-400">{{ passado.descricao }}</p>
               <div v-if="passado.skills.length || passado.titulos.length || temBonusAtributo(passado)" class="space-y-1.5 mb-3">
                 <div v-if="temBonusAtributo(passado)" class="flex flex-wrap gap-1">
-                  <span
-                    v-for="attr in ATRIBUTOS_BONUS_CONFIG"
-                    :key="attr.key"
-                    v-if="(passado.atributo_bonus as any)?.[attr.key] !== 0 && (passado.atributo_bonus as any)?.[attr.key] != null"
-                    class="rounded-lg border px-2 py-0.5 text-[0.65rem] font-semibold"
-                    :class="(passado.atributo_bonus as any)[attr.key] > 0 ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300' : 'border-red-500/30 bg-red-500/10 text-red-300'"
-                  >
-                    {{ (passado.atributo_bonus as any)[attr.key] > 0 ? '+' : '' }}{{ (passado.atributo_bonus as any)[attr.key] }} {{ attr.label }}
-                  </span>
+                  <template v-for="attr in ATRIBUTOS_BONUS_CONFIG" :key="attr.key">
+                    <span
+                      v-if="(passado.atributo_bonus as any)?.[attr.key] !== 0 && (passado.atributo_bonus as any)?.[attr.key] != null"
+                      class="rounded-lg border px-2 py-0.5 text-[0.65rem] font-semibold"
+                      :class="(passado.atributo_bonus as any)[attr.key] > 0 ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300' : 'border-red-500/30 bg-red-500/10 text-red-300'"
+                    >
+                      {{ (passado.atributo_bonus as any)[attr.key] > 0 ? '+' : '' }}{{ (passado.atributo_bonus as any)[attr.key] }} {{ attr.label }}
+                    </span>
+                  </template>
                 </div>
                 <div v-if="passado.skills.length" class="flex flex-wrap gap-1">
                   <span v-for="sk in passado.skills.slice(0,3)" :key="sk.id" class="rounded-lg border border-violet-500/30 bg-violet-500/10 px-2 py-0.5 text-[0.65rem] text-violet-300">{{ sk.name }}</span>
@@ -459,7 +504,7 @@
                 :style="{ width: `${Math.min((pesoUsado / Math.max(pesoMaximo, 0.1)) * 100, 100)}%` }" />
             </div>
             <p class="text-xs text-zinc-600">
-              Força: {{ atributos.forca }} base{{ passadoBonusPorAtributo.forca !== 0 ? ` ${passadoBonusPorAtributo.forca > 0 ? '+' : ''}${passadoBonusPorAtributo.forca} passado = ${atributos.forca + passadoBonusPorAtributo.forca} total` : '' }} → capacidade = {{ atributos.forca + passadoBonusPorAtributo.forca }} × 2 = {{ pesoMaximo }} kg
+              Força: {{ atributos.forca }} base{{ passadoBonusPorAtributo.forca !== 0 ? ` ${passadoBonusPorAtributo.forca > 0 ? '+' : ''}${passadoBonusPorAtributo.forca} passado = ${atributos.forca + passadoBonusPorAtributo.forca} total` : '' }} → capacidade = 2 + {{ atributos.forca + passadoBonusPorAtributo.forca }} × 2 = {{ pesoMaximo }} kg
             </p>
           </div>
 
@@ -536,6 +581,7 @@ import {
   definirAtributos, escolherDeus, concluirOnboarding,
   getCharacterById,
 } from '@/lib/api/personagens.api'
+import { escolherSkillInicial } from '@/lib/api/classes.api'
 import { obterMetaAuthLocal, useAuthStore } from '@/stores/auth'
 import type { PersonagemApi, GodApi } from '@/types/supabase'
 
@@ -547,11 +593,13 @@ const authStore = useAuthStore()
 const etapa           = ref<1|2|3|4|5|6>(1)
 const etapaMaxima     = ref<1|2|3|4|5|6>(1)
 const carregando      = ref(true)
-const showGearMenu    = ref(false)
-const confirmando = ref(false)
-const salvando   = ref(false)
-const erroEscolha = ref('')
-const hover      = ref<string | number | null>(null)
+const showGearMenu             = ref(false)
+const confirmando              = ref(false)
+const selecionandoSkillInicial = ref(false)
+const skillSelecionadaTemp     = ref<string | null>(null)
+const salvando                 = ref(false)
+const erroEscolha              = ref('')
+const hover                    = ref<string | number | null>(null)
 
 // Dados
 const personagem  = ref<PersonagemApi | null>(null)
@@ -608,7 +656,7 @@ function temBonusAtributo(passado: PassadoApi): boolean {
 // Equipamentos
 const equipamentosSelecionados = ref<{id: string; nome: string; peso: number}[]>([])
 const buscaEquipamento = ref('')
-const pesoMaximo = computed(() => (atributos.forca + passadoBonusPorAtributo.value.forca) * 2)
+const pesoMaximo = computed(() => 2 + (atributos.forca + passadoBonusPorAtributo.value.forca) * 2)
 const pesoUsado  = computed(() => equipamentosSelecionados.value.reduce((s, e) => s + e.peso, 0))
 const equipamentosFiltrados = computed(() =>
   equipamentos.value.filter(e =>
@@ -633,6 +681,7 @@ const stepperSteps = [
 ]
 
 const subtituloEtapa = computed(() => {
+  if (etapa.value === 2 && selecionandoSkillInicial.value) return 'Escolha sua habilidade inicial'
   const map: Record<number, string> = {
     1: 'Escolha a raça que define sua história',
     2: 'Escolha a classe que define seu caminho',
@@ -687,10 +736,26 @@ async function carregar() {
 
     // Determinar etapa inicial
     const p = personagemData as any
-    if (p.racaId == null)         etapa.value = 1
-    else if (p.classeId == null)  etapa.value = 2
-    else if (p.passadoId == null) etapa.value = 3
-    else if (p.data?.atributos == null) {
+    if (p.racaId == null) {
+      etapa.value = 1
+    } else if (p.classeId == null) {
+      etapa.value = 2
+    } else if (p.passadoId == null) {
+      // Verifica se seleção de skill inicial está pendente
+      const classeEntry = (p.data?.classes as any[])?.[0]
+      const classeInfo = classesData.find((c: any) => Number(c.id) === Number(p.classeId))
+      const skillPendente =
+        classeEntry &&
+        (classeEntry.skillPoints ?? 0) > 0 &&
+        Array.isArray(classeInfo?.starting_skills) &&
+        (classeInfo?.starting_skills?.length ?? 0) > 0
+      if (skillPendente) {
+        etapa.value = 2
+        selecionandoSkillInicial.value = true
+      } else {
+        etapa.value = 3
+      }
+    } else if (p.data?.atributos == null) {
       etapa.value = 4
     } else {
       // Restaurar atributos salvos
@@ -751,6 +816,8 @@ function selecionarPassado(passado: PassadoApi) {
 function navegarParaEtapa(e: 1|2|3|4|5|6) {
   if (e > etapaMaxima.value) return
   confirmando.value = false
+  selecionandoSkillInicial.value = false
+  skillSelecionadaTemp.value = null
   erroEscolha.value = ''
   etapa.value = e
 }
@@ -780,10 +847,32 @@ async function confirmarClasse() {
   try {
     await escolherClasseInicial((personagem.value as any).characterId, Number(classeSelecionada.value.id))
     confirmando.value = false
+    const startingSkills = (classeSelecionada.value as any).starting_skills
+    if (Array.isArray(startingSkills) && startingSkills.length > 0) {
+      selecionandoSkillInicial.value = true
+    } else {
+      etapa.value = 3
+      if (etapaMaxima.value < 3) etapaMaxima.value = 3
+    }
+  } catch (err: any) {
+    erroEscolha.value = err?.response?.data?.message ?? err.message ?? 'Erro ao confirmar classe.'
+  } finally { salvando.value = false }
+}
+
+async function confirmarSkillInicial() {
+  if (!skillSelecionadaTemp.value || !classeSelecionada.value || !personagem.value) return
+  salvando.value = true; erroEscolha.value = ''
+  try {
+    await escolherSkillInicial((personagem.value as any).characterId, {
+      classId: String(classeSelecionada.value.id),
+      skillName: skillSelecionadaTemp.value,
+    })
+    selecionandoSkillInicial.value = false
+    skillSelecionadaTemp.value = null
     etapa.value = 3
     if (etapaMaxima.value < 3) etapaMaxima.value = 3
   } catch (err: any) {
-    erroEscolha.value = err?.response?.data?.message ?? err.message ?? 'Erro ao confirmar classe.'
+    erroEscolha.value = err?.response?.data?.message ?? err.message ?? 'Erro ao confirmar habilidade.'
   } finally { salvando.value = false }
 }
 

@@ -621,6 +621,7 @@ export const personagensService = {
     ) {
       skills.push({
         name: skillName,
+        source: "master",
         addedBy: user.email ?? "master",
         addedAt: new Date().toISOString(),
       });
@@ -1176,7 +1177,15 @@ export const personagensService = {
     const currentLevel: number = classes[classIdx].level ?? 1;
     if (currentLevel >= 20) throw new Error("Nível máximo já atingido (20)");
 
-    classes[classIdx] = { ...classes[classIdx], level: currentLevel + 1 };
+    const newLevel = currentLevel + 1;
+    const skillPointsGained = Math.ceil(newLevel / 2) - Math.ceil(currentLevel / 2);
+    const currentSkillPoints: number = typeof classes[classIdx].skillPoints === "number" ? classes[classIdx].skillPoints : 0;
+
+    classes[classIdx] = {
+      ...classes[classIdx],
+      level: newLevel,
+      skillPoints: currentSkillPoints + skillPointsGained,
+    };
     const nextData = { ...dataAtual, classes, classPoints: classPoints - 1 };
 
     const { data, error } = await admin
@@ -1229,6 +1238,113 @@ export const personagensService = {
       .is("deleted_at", null)
       .select(PERSONAGEM_SELECT_FIELDS)
       .single();
+    if (error) throw error;
+    return mapPersonagem(data);
+  },
+
+  async adicionarSkillPointsParaClasse(
+    characterId: string,
+    dto: { classId: string; pontos: number },
+    accessToken?: string,
+  ) {
+    await ensureMasterAccess(accessToken);
+
+    if (!Number.isInteger(dto.pontos) || dto.pontos < 1) {
+      throw new Error("Pontos deve ser um número inteiro positivo");
+    }
+
+    const admin = getAdminClient();
+    const { data: current, error: currentError } = await admin
+      .from(PERSONAGEM_TABLE)
+      .select(PERSONAGEM_SELECT_FIELDS)
+      .eq("id", characterId)
+      .is("deleted_at", null)
+      .single();
+    if (currentError || !current) throw new Error("Personagem não encontrado");
+
+    const personagem = mapPersonagem(current);
+    const dataAtual = normalizeData(personagem.data as Record<string, any>);
+    const classes: any[] = Array.isArray(dataAtual.classes) ? [...dataAtual.classes] : [];
+
+    const classIdx = classes.findIndex((c: any) => c.classId === dto.classId);
+    if (classIdx === -1) throw new Error("Classe não encontrada no personagem");
+
+    const currentSkillPoints: number = typeof classes[classIdx].skillPoints === "number" ? classes[classIdx].skillPoints : 0;
+    classes[classIdx] = { ...classes[classIdx], skillPoints: currentSkillPoints + dto.pontos };
+
+    const nextData = { ...dataAtual, classes };
+    const { data, error } = await admin
+      .from(PERSONAGEM_TABLE)
+      .update({ data: nextData })
+      .eq("id", characterId)
+      .is("deleted_at", null)
+      .select(PERSONAGEM_SELECT_FIELDS)
+      .single();
+    if (error) throw error;
+    return mapPersonagem(data);
+  },
+
+  async atribuirXpClasse(
+    characterId: string,
+    dto: { classId: string; xp: number },
+    accessToken?: string,
+  ) {
+    const user = await ensureMasterAccess(accessToken);
+    const admin = getAdminClient();
+
+    if (!Number.isInteger(dto.xp) || dto.xp < 1) throw new Error("XP deve ser inteiro >= 1.");
+
+    const { data: personagem, error: pErr } = await admin
+      .from(PERSONAGEM_TABLE)
+      .select("id, data")
+      .eq("id", parseInt(characterId, 10))
+      .is("deleted_at", null)
+      .single();
+    if (pErr || !personagem) throw new Error("Personagem não encontrado.");
+
+    const dataAtual = normalizeData((personagem as any).data);
+    const classes: any[] = Array.isArray(dataAtual.classes) ? [...dataAtual.classes] : [];
+
+    const classIdx = classes.findIndex((c: any) => String(c.classId) === String(dto.classId));
+    if (classIdx === -1) throw new Error("Classe não encontrada no personagem.");
+
+    let xpAtual: number = typeof classes[classIdx].xp === "number" ? classes[classIdx].xp : 0;
+    let nivel: number = typeof classes[classIdx].level === "number" ? classes[classIdx].level : 1;
+    let pontoDeSkill: number = typeof classes[classIdx].skillPoints === "number" ? classes[classIdx].skillPoints : 0;
+    xpAtual += dto.xp;
+
+    const classeIdNum = parseInt(dto.classId, 10);
+    if (!isNaN(classeIdNum)) {
+      const { data: progressoes } = await admin
+        .from("class_level_progression")
+        .select("nivel, xp_necessario")
+        .eq("classe_id", classeIdNum)
+        .order("nivel");
+
+      const progressaoMap: Record<number, number> = {};
+      for (const p of (progressoes ?? [])) progressaoMap[(p as any).nivel] = (p as any).xp_necessario;
+
+      while (nivel < 20) {
+        const nextNivel = nivel + 1;
+        const threshold = progressaoMap[nextNivel];
+        if (threshold === undefined || xpAtual < threshold) break;
+        xpAtual -= threshold;
+        const prevNivel = nivel;
+        nivel = nextNivel;
+        pontoDeSkill += Math.ceil(nivel / 2) - Math.ceil(prevNivel / 2);
+      }
+    }
+
+    classes[classIdx] = { ...classes[classIdx], xp: xpAtual, level: nivel, skillPoints: pontoDeSkill };
+    const nextData = { ...dataAtual, classes };
+
+    const { data, error } = await admin
+      .from(PERSONAGEM_TABLE)
+      .update({ data: nextData, updated_by: getUserDisplayEmail(user) })
+      .eq("id", parseInt(characterId, 10))
+      .select(PERSONAGEM_SELECT_FIELDS)
+      .single();
+
     if (error) throw error;
     return mapPersonagem(data);
   },
@@ -1311,12 +1427,15 @@ export const personagensService = {
       throw new Error("Skill já escolhida para esta classe");
     }
 
+    const skillPoints: number = typeof classes[classIdx].skillPoints === "number" ? classes[classIdx].skillPoints : 0;
+    if (skillPoints < 1) throw new Error("Sem pontos de skill disponíveis para esta classe");
+
     chosenSkills.push(skillName);
-    classes[classIdx] = { ...classes[classIdx], chosenSkills };
+    classes[classIdx] = { ...classes[classIdx], chosenSkills, skillPoints: skillPoints - 1 };
 
     const globalSkills: any[] = Array.isArray(dataAtual.skills) ? [...dataAtual.skills] : [];
     if (!globalSkills.some((s: any) => String(s?.name ?? "").toLowerCase() === skillName.toLowerCase())) {
-      globalSkills.push({ name: skillName, addedBy: user.email ?? "player", addedAt: new Date().toISOString() });
+      globalSkills.push({ name: skillName, source: "starting_skill", addedBy: user.email ?? "player", addedAt: new Date().toISOString() });
     }
 
     const nextData = { ...dataAtual, classes, skills: globalSkills };
@@ -1412,7 +1531,7 @@ export const personagensService = {
     const admin = getAdminClient();
     const { data: personagem, error: fetchErr } = await admin
       .from(PERSONAGEM_TABLE)
-      .select("id, user_id, classe_id")
+      .select("id, user_id, classe_id, data")
       .eq("id", characterId)
       .is("deleted_at", null)
       .single();
@@ -1426,15 +1545,33 @@ export const personagensService = {
 
     const { data: classe, error: classeErr } = await admin
       .from("classes")
-      .select("id")
+      .select("id, name, tier")
       .eq("id", classeId)
       .is("deleted_at", null)
       .single();
     if (classeErr || !classe) throw new Error("Classe não encontrada.");
 
+    // Inicializa data.classes[] com a classe inicial no nível 1 + 1 ponto de skill
+    const dataAtual = normalizeData((personagem as any).data);
+    const existingClasses: any[] = Array.isArray(dataAtual.classes) ? [...dataAtual.classes] : [];
+    if (!existingClasses.some((c: any) => String(c.classId) === String(classeId))) {
+      existingClasses.push({
+        classId: String(classeId),
+        name: (classe as any).name,
+        tier: (classe as any).tier,
+        level: 1,
+        chosenSkills: [],
+        skillPoints: 1,
+      });
+    }
+
     const { data, error } = await admin
       .from(PERSONAGEM_TABLE)
-      .update({ classe_id: classeId, updated_by: getUserDisplayEmail(user) })
+      .update({
+        classe_id: classeId,
+        data: { ...dataAtual, classes: existingClasses },
+        updated_by: getUserDisplayEmail(user),
+      })
       .eq("id", characterId)
       .is("deleted_at", null)
       .select(PERSONAGEM_SELECT_FIELDS)
@@ -1600,7 +1737,7 @@ export const personagensService = {
 
     const dataAtual = (personagem as any).data ?? {};
     const forca = (dataAtual.atributos?.forca ?? 0) as number;
-    const pesoMaximo = forca * 2;
+    const pesoMaximo = 2 + forca * 2;
     const pesoTotal = equipamentos.reduce((sum, e) => sum + (e.peso ?? 0), 0);
     if (pesoTotal > pesoMaximo) {
       throw new Error(`Peso total (${pesoTotal.toFixed(1)} kg) excede a capacidade de carga (${pesoMaximo} kg).`);

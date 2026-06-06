@@ -11,14 +11,6 @@ export type AtributoBonus = {
 
 export type TituloResumo = { id: number; name: string; skills: SkillResumo[]; bonuses?: AtributoBonus | null }
 
-export type AtributoBonus = {
-  aura?: number
-  forca?: number
-  destreza?: number
-  resistencia?: number
-  inteligencia?: number
-}
-
 export type PassadoApi = {
   id: number
   nome: string
