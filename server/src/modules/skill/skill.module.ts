@@ -118,6 +118,53 @@ SkillRouter.delete("/admin/catalogo/:id", async (req, res) => {
   }
 });
 
+// ── Overrides por personagem ────────────────────────────────────────────────
+SkillRouter.get("/admin/overrides", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    const characterId = parseInt(req.query.character_id as string, 10);
+    if (isNaN(characterId)) { res.status(400).json({ message: "character_id inválido" }); return; }
+    res.status(200).json(await skillService.listarOverrides(characterId, token));
+  } catch (e: any) {
+    const s = e?.message?.includes("autenticado") || e?.message?.includes("restrito") ? 401 : 500;
+    res.status(s).json({ message: e?.message ?? "Erro ao listar overrides" });
+  }
+});
+
+SkillRouter.post("/admin/overrides", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    res.status(201).json(await skillService.criarOverride(req.body, token));
+  } catch (e: any) {
+    const s = e?.message?.includes("autenticado") || e?.message?.includes("restrito") ? 401 : 400;
+    res.status(s).json({ message: e?.message ?? "Erro ao criar override" });
+  }
+});
+
+SkillRouter.patch("/admin/overrides/:id", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) { res.status(400).json({ message: "id inválido" }); return; }
+    res.status(200).json(await skillService.editarOverride(id, req.body, token));
+  } catch (e: any) {
+    const s = e?.message?.includes("autenticado") || e?.message?.includes("restrito") ? 401 : 400;
+    res.status(s).json({ message: e?.message ?? "Erro ao editar override" });
+  }
+});
+
+SkillRouter.delete("/admin/overrides/:id", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) { res.status(400).json({ message: "id inválido" }); return; }
+    res.status(200).json(await skillService.deletarOverride(id, token));
+  } catch (e: any) {
+    const s = e?.message?.includes("autenticado") || e?.message?.includes("restrito") ? 401 : 400;
+    res.status(s).json({ message: e?.message ?? "Erro ao deletar override" });
+  }
+});
+
 SkillRouter.post("/admin/personagens/:characterId", async (req, res) => {
   try {
     const token = getBearerToken(req.headers.authorization);
@@ -135,6 +182,13 @@ SkillRouter.post("/admin/personagens/:characterId", async (req, res) => {
 });
 
 // ── Lookups de skill ────────────────────────────────────────────────────────
+makeLookupRoutes(SkillRouter, "/naturezas",
+  skillService.listarNaturezas,
+  skillService.criarNatureza,
+  skillService.editarNatureza,
+  skillService.deletarNatureza,
+);
+
 makeLookupRoutes(SkillRouter, "/tipos",
   skillService.listarTipos,
   skillService.criarTipo,
@@ -155,5 +209,49 @@ makeLookupRoutes(SkillRouter, "/tipos-dano",
   skillService.editarTipoDano,
   skillService.deletarTipoDano,
 );
+
+// ── Níveis de skill ──────────────────────────────────────────────────────────
+SkillRouter.get("/niveis", async (req, res) => {
+  try {
+    const skillId = req.query.skill_id ? parseInt(req.query.skill_id as string, 10) : undefined;
+    res.status(200).json(await skillService.listarNiveis(skillId));
+  } catch (e: any) {
+    res.status(500).json({ message: e?.message ?? "Erro ao listar níveis" });
+  }
+});
+
+SkillRouter.post("/admin/niveis", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    res.status(201).json(await skillService.criarNivel(req.body, token));
+  } catch (e: any) {
+    const s = e?.message?.includes("autenticado") || e?.message?.includes("restrito") ? 401 : 400;
+    res.status(s).json({ message: e?.message ?? "Erro ao criar nível" });
+  }
+});
+
+SkillRouter.patch("/admin/niveis/:id", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) { res.status(400).json({ message: "id inválido" }); return; }
+    res.status(200).json(await skillService.editarNivel(id, req.body, token));
+  } catch (e: any) {
+    const s = e?.message?.includes("autenticado") || e?.message?.includes("restrito") ? 401 : 400;
+    res.status(s).json({ message: e?.message ?? "Erro ao editar nível" });
+  }
+});
+
+SkillRouter.delete("/admin/niveis/:id", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) { res.status(400).json({ message: "id inválido" }); return; }
+    res.status(200).json(await skillService.deletarNivel(id, token));
+  } catch (e: any) {
+    const s = e?.message?.includes("autenticado") || e?.message?.includes("restrito") ? 401 : 400;
+    res.status(s).json({ message: e?.message ?? "Erro ao deletar nível" });
+  }
+});
 
 export { skillController as SkillController } from "./skill.controller.js";

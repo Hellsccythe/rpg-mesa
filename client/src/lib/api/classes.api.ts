@@ -13,6 +13,9 @@ export interface ClasseApi {
   max_level: number
   stat_bonuses?: Record<string, unknown> | string | null
   starting_skills?: string[] | null
+  passive_skills?: string[] | null
+  signature_skill?: string | null
+  signature_skill_nivel?: number | null
   requirements?: ClassRequirements | null
   requer_deus?: boolean
   is_secret?: boolean
@@ -84,6 +87,9 @@ export interface SalvarClassePayload {
   statBonuses?: Record<string, unknown> | null
   requirements?: { min_level?: number; required_classes?: number[] } | null
   startingSkills?: string[] | null
+  passiveSkills?: string[] | null
+  signatureSkill?: string | null
+  signatureSkillNivel?: number | null
   requerDeus?: boolean
   isSecret?: boolean
 }
@@ -132,4 +138,59 @@ export async function revogarClasseSecreta(classeId: number): Promise<{ success:
 
 export async function alterarStatusPersonagem(characterId: number | string, status: 'vivo' | 'morto'): Promise<void> {
   await api.patch(`/personagens/admin/${characterId}/status`, { status })
+}
+
+// ── Progressão de XP por classe ───────────────────────────────────────────────
+export interface ProgressaoClasseApi {
+  id: number
+  classe_id: number
+  classe_nome?: string | null
+  nivel: number
+  xp_necessario: number
+  created_at: string
+  updated_at: string
+  created_by?: string | null
+  updated_by?: string | null
+}
+
+export interface CriarProgressaoPayload {
+  classe_id: number
+  nivel: number
+  xp_necessario: number
+}
+
+export interface EditarProgressaoPayload {
+  xp_necessario?: number
+}
+
+export async function listarProgressaoClasse(classeId?: number): Promise<ProgressaoClasseApi[]> {
+  const params = classeId ? { classe_id: classeId } : {}
+  const { data } = await api.get<ProgressaoClasseApi[]>('/classes/progressao', { params })
+  return data
+}
+
+export async function criarProgressaoClasse(payload: CriarProgressaoPayload): Promise<ProgressaoClasseApi> {
+  const { data } = await api.post<ProgressaoClasseApi>('/classes/progressao/admin', payload)
+  return data
+}
+
+export async function editarProgressaoClasse(id: number, payload: EditarProgressaoPayload): Promise<ProgressaoClasseApi> {
+  const { data } = await api.patch<ProgressaoClasseApi>(`/classes/progressao/admin/${id}`, payload)
+  return data
+}
+
+export async function deletarProgressaoClasse(id: number): Promise<{ ok: boolean }> {
+  const { data } = await api.delete<{ ok: boolean }>(`/classes/progressao/admin/${id}`)
+  return data
+}
+
+export interface BulkProgressaoItem {
+  classe_id: number
+  nivel: number
+  xp_necessario: number
+}
+
+export async function criarProgressaoClasseBulk(entradas: BulkProgressaoItem[]): Promise<ProgressaoClasseApi[]> {
+  const { data } = await api.post<ProgressaoClasseApi[]>('/classes/progressao/admin/bulk', { entradas })
+  return data
 }

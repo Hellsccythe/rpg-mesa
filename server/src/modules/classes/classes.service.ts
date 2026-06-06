@@ -1,6 +1,6 @@
 import { getAdminClient } from "../../config/database/supabase/client.js";
 import { ensureMasterAccess, getUserDisplayEmail } from "../../common/helpers/master-access.helper.js";
-import type { SalvarClasseDto, EditarClasseDto } from "./classes.dto.js";
+import type { SalvarClasseDto, EditarClasseDto, CriarProgressaoDto, EditarProgressaoDto } from "./classes.dto.js";
 
 export const classesService = {
   async listar() {
@@ -102,6 +102,128 @@ export const classesService = {
     });
   },
 
+  // ── Progressão de XP por classe ───────────────────────────────────────────
+  async listarProgressaoClasse(classeId?: number) {
+    const admin = getAdminClient();
+    let query = admin
+      .from("class_level_progression")
+      .select("*")
+      .order("classe_id")
+      .order("nivel");
+
+    if (classeId) query = query.eq("classe_id", classeId);
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    // Enriquece com nome da classe
+    const classeIds = [...new Set((data ?? []).map((r: any) => r.classe_id))];
+    let classeMap: Record<number, string> = {};
+    if (classeIds.length) {
+      const { data: classes } = await admin.from("classes").select("id, name").in("id", classeIds);
+      for (const c of (classes ?? [])) classeMap[c.id] = c.name;
+    }
+
+    return (data ?? []).map((r: any) => ({ ...r, classe_nome: classeMap[r.classe_id] ?? null }));
+  },
+
+  async criarProgressaoClasse(dto: CriarProgressaoDto, accessToken?: string) {
+    const user = await ensureMasterAccess(accessToken);
+    const admin = getAdminClient();
+
+    const { data: classe } = await admin.from("classes").select("id").eq("id", dto.classe_id).is("deleted_at", null).maybeSingle();
+    if (!classe) throw new Error("Classe não encontrada.");
+
+    if (dto.nivel < 1 || dto.nivel > 20 || !Number.isInteger(dto.nivel)) {
+      throw new Error("Nível deve ser inteiro entre 1 e 20.");
+    }
+
+    const { data, error } = await admin
+      .from("class_level_progression")
+      .insert({
+        classe_id:     dto.classe_id,
+        nivel:         dto.nivel,
+        xp_necessario: dto.xp_necessario,
+        created_by:    getUserDisplayEmail(user),
+        updated_by:    getUserDisplayEmail(user),
+      })
+      .select("*")
+      .single();
+
+    if (error) {
+      if (error.code === "23505") throw new Error("Já existe progressão para este nível nesta classe.");
+      throw error;
+    }
+    return data;
+  },
+
+  async editarProgressaoClasse(id: number, dto: EditarProgressaoDto, accessToken?: string) {
+    const user = await ensureMasterAccess(accessToken);
+    const admin = getAdminClient();
+
+    const campos: Record<string, any> = { updated_by: getUserDisplayEmail(user) };
+    if (dto.xp_necessario !== undefined) campos.xp_necessario = dto.xp_necessario;
+
+    const { data, error } = await admin
+      .from("class_level_progression")
+      .update(campos)
+      .eq("id", id)
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async deletarProgressaoClasse(id: number, accessToken?: string) {
+    await ensureMasterAccess(accessToken);
+    const admin = getAdminClient();
+    const { error } = await admin.from("class_level_progression").delete().eq("id", id);
+    if (error) throw error;
+    return { ok: true };
+  },
+
+  async criarProgressaoClasseBulk(
+    entradas: Array<{ classe_id: number; nivel: number; xp_necessario: number }>,
+    accessToken?: string,
+  ) {
+    const user = await ensureMasterAccess(accessToken);
+    const admin = getAdminClient();
+
+    if (!Array.isArray(entradas) || entradas.length === 0) {
+      throw new Error("Nenhuma entrada fornecida.");
+    }
+
+    for (const e of entradas) {
+      if (!Number.isInteger(e.classe_id) || e.classe_id < 1) throw new Error("classe_id inválido.");
+      if (!Number.isInteger(e.nivel) || e.nivel < 1 || e.nivel > 20) throw new Error(`Nível inválido: ${e.nivel}.`);
+      if (typeof e.xp_necessario !== "number" || e.xp_necessario < 0) throw new Error(`XP inválido no nível ${e.nivel}.`);
+    }
+
+    const email = getUserDisplayEmail(user);
+    const rows = entradas.map((e) => ({
+      classe_id:     e.classe_id,
+      nivel:         e.nivel,
+      xp_necessario: e.xp_necessario,
+      created_by:    email,
+      updated_by:    email,
+    }));
+
+    const { data, error } = await admin
+      .from("class_level_progression")
+      .upsert(rows, { onConflict: "classe_id,nivel", ignoreDuplicates: false })
+      .select("*");
+
+    if (error) throw error;
+
+    const classeIds = [...new Set(rows.map((r) => r.classe_id))];
+    const { data: classes } = await admin.from("classes").select("id, name").in("id", classeIds);
+    const classeMap: Record<number, string> = {};
+    for (const c of (classes ?? [])) classeMap[(c as any).id] = (c as any).name;
+
+    return (data ?? []).map((r: any) => ({ ...r, classe_nome: classeMap[r.classe_id] ?? null }));
+  },
+
   async listarProgressaoLevel() {
     const admin = getAdminClient();
     try {
@@ -132,6 +254,12 @@ export const classesService = {
         tier: dto.tier.trim(),
         description: dto.description.trim(),
         max_level: dto.maxLevel ?? 20,
+        stat_bonuses: dto.statBonuses ?? null,
+        requirements: dto.requirements ?? null,
+        starting_skills: (dto.startingSkills && dto.startingSkills.length > 0) ? dto.startingSkills : null,
+        passive_skills: (dto.passiveSkills && dto.passiveSkills.length > 0) ? dto.passiveSkills : null,
+        signature_skill: dto.signatureSkill?.trim() ?? null,
+        signature_skill_nivel: dto.signatureSkillNivel ?? null,
         requer_deus: dto.requerDeus ?? false,
         is_secret:   (dto as any).isSecret ?? false,
         created_by: getUserDisplayEmail(masterUser),
@@ -154,7 +282,10 @@ export const classesService = {
     if (dto.maxLevel !== undefined) campos.max_level = dto.maxLevel;
     if (dto.statBonuses !== undefined) campos.stat_bonuses = dto.statBonuses;
     if (dto.requirements !== undefined) campos.requirements = dto.requirements;
-    if (dto.startingSkills !== undefined) campos.starting_skills = dto.startingSkills;
+    if (dto.startingSkills !== undefined) campos.starting_skills = (dto.startingSkills && dto.startingSkills.length > 0) ? dto.startingSkills : null;
+    if (dto.passiveSkills !== undefined) campos.passive_skills = (dto.passiveSkills && dto.passiveSkills.length > 0) ? dto.passiveSkills : null;
+    if (dto.signatureSkill !== undefined) campos.signature_skill = dto.signatureSkill?.trim() ?? null;
+    if (dto.signatureSkillNivel !== undefined) campos.signature_skill_nivel = dto.signatureSkillNivel ?? null;
     if (dto.requerDeus !== undefined) campos.requer_deus = dto.requerDeus;
     if ((dto as any).isSecret !== undefined) campos.is_secret = (dto as any).isSecret;
     const { data, error } = await admin

@@ -4,7 +4,7 @@ Sistema de gestão de sessões de RPG de mesa. Monorepo com **Yarn 4 Workspaces*
 
 ---
 
-## Estado Atual (2026-06-04)
+## Estado Atual (2026-06-05)
 
 > **Leia esta seção primeiro se estiver retomando o projeto em um novo chat.**
 
@@ -21,6 +21,9 @@ Sistema de gestão de sessões de RPG de mesa. Monorepo com **Yarn 4 Workspaces*
 | **Status do personagem** | ✅ `vivo` / `morto` — alterável em `/master/usuarios` e grade de `/master`; badge no dashboard |
 | **Classes secretas** | ✅ `is_secret` em classes, revelação exclusiva (1 player vivo/vez), tela `/master/classes-secretas` |
 | **Títulos vinculados** | ✅ `classe_secreta_id` — título invisível para players sem a classe secreta revelada |
+| **Reset de senha GM** | ✅ "Reset Padrão" (→ 12345 + troca obrigatória) disponível para GMs; modal de troca aparece no `MasterPanelView` |
+| **Modais de formulário** | ✅ Todos usam `Modal.vue` global com `:close-on-backdrop="false"` — nunca fecham ao clicar fora |
+| **Cascade de skills** | ✅ Deletar skill do catálogo remove referências de passados, títulos e classes automaticamente |
 | **Backup de imagens** | ✅ `/master/imagens` com download individual e ZIP por seção/global |
 | **Passados (migration 032)** | ✅ CRUD master em `/master/passados`, integração completa no onboarding |
 
@@ -43,6 +46,8 @@ Sistema de gestão de sessões de RPG de mesa. Monorepo com **Yarn 4 Workspaces*
 - **Cards de catálogo**: padrão com imagem + gradient overlay + chips coloridos por tipo (emerald=skills, amber=títulos)
 - **Backend enrichment**: passados e raças retornam dados enriquecidos com nomes resolvidos (não só IDs)
 - **Classes secretas**: `is_secret = true` em `classes`; controle de posse em `classe_secreta_revelada`; morte libera automaticamente
+- **Modais**: sempre usar `Modal.vue` global com `:close-on-backdrop="false"` em formulários e confirmações; nunca usar `div` + `@click.self`
+- **Cascade de deleção**: deletar skill do catálogo remove automaticamente de `passados.skill_ids`, `titles.skill_ids` e `classes.starting_skills`
 
 ---
 

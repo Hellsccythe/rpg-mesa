@@ -149,9 +149,8 @@
             <div v-if="p.atributo_bonus && Object.values(p.atributo_bonus).some(v => v !== 0)" class="space-y-1.5">
               <p class="text-[0.6rem] font-bold uppercase tracking-widest text-rose-500/70">Bônus de Atributos</p>
               <div class="flex flex-wrap gap-1.5">
+                <template v-for="attr in ATRIBUTOS_BONUS_CONFIG" :key="attr.key">
                 <span
-                  v-for="attr in ATRIBUTOS_BONUS_CONFIG"
-                  :key="attr.key"
                   v-if="(p.atributo_bonus as any)[attr.key] !== 0"
                   class="rounded-full border px-2 py-0.5 text-[0.65rem] font-medium"
                   :class="(p.atributo_bonus as any)[attr.key] > 0
@@ -160,6 +159,7 @@
                 >
                   {{ (p.atributo_bonus as any)[attr.key] > 0 ? '+' : '' }}{{ (p.atributo_bonus as any)[attr.key] }} {{ attr.label }}
                 </span>
+              </template>
               </div>
             </div>
 

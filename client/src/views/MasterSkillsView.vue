@@ -40,20 +40,35 @@
             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <input v-model="form.name" type="text" placeholder="Nome *" class="gm-input sm:col-span-2" />
 
-              <VSelect v-model="form.skill_tipo_item" :options="tipoOptions" placeholder="Tipo — (selecionar)" />
-              <VSelect v-model="form.skill_categoria_item" :options="categoriaOptions" placeholder="Categoria — (selecionar)" />
-              <VSelect v-model="form.skill_tipo_dano_item" :options="tipoDanoOptions" placeholder="Tipo de Dano — (selecionar)" />
-              <VSelect v-model="form.raca_vinculada" :options="racaOptions" placeholder="Raça vinculada — (nenhuma)" />
+              <!-- Natureza (único) -->
+              <VSelect v-model="form.skill_natureza_item" :options="naturezaOptions" />
 
-              <input v-model="form.damage_display" type="text" placeholder="Dano (ex: 1d6+2)" class="gm-input" />
-              <input v-model.number="form.damage_base" type="number" min="0" placeholder="Dano base (número)" class="gm-input" />
+              <!-- Tipo (único) -->
+              <VSelect v-model="form.skill_tipo_item" :options="tipoOptions" />
+
+              <!-- Classe requerida -->
+              <VSelect v-model="form.required_class" :options="classOptions" />
+
+              <!-- Categorias (multi) -->
+              <VSelectMulti v-model="form.skill_categoria_item" :options="categoriaOptions" placeholder="Categorias — (nenhuma)" />
+
+              <!-- Tipos de Dano (multi) -->
+              <VSelectMulti v-model="form.skill_tipo_dano_item" :options="tipoDanoOptions" placeholder="Tipos de Dano — (nenhum)" />
+
+              <!-- Raças vinculadas (multi) -->
+              <VSelectMulti v-model="form.raca_vinculada" :options="racaOptions" placeholder="Raças Vinculadas — (nenhuma)" class="sm:col-span-2" />
+
+              <!-- Dano Base (notação de dado) -->
+              <input v-model="form.damage_base" type="text" placeholder="Dano Base (ex: 1d8, 2d6+3)" class="gm-input" />
+
+              <!-- Multiplicador (atributos do personagem, multi) -->
+              <VSelectMulti v-model="form.multiplicador_atributo" :options="ATRIBUTOS_MULTI_OPTIONS" placeholder="Multiplicador — (nenhum)" />
+
               <input v-model.number="form.custo" type="number" min="0" placeholder="Custo (mana/recurso)" class="gm-input" />
               <input v-model.number="form.cooldown" type="number" min="0" placeholder="Cooldown (turnos)" class="gm-input" />
               <input v-model="form.range" type="text" placeholder="Alcance (ex: Toque, 10m)" class="gm-input" />
-              <VSelect v-model="form.required_class" :options="classOptions" placeholder="Classe requerida — (nenhuma)" />
 
               <input v-model="form.effect_description" type="text" placeholder="Efeito (descrição curta)" class="gm-input sm:col-span-2" />
-              <input v-model.number="form.effect_value" type="number" placeholder="Valor do efeito (número)" class="gm-input" />
 
               <textarea v-model="form.description" rows="3" placeholder="Descrição completa" class="gm-textarea sm:col-span-2" />
             </div>
@@ -76,12 +91,18 @@
             <ul v-else class="space-y-1.5">
               <li
                 v-for="s in listaFiltrada" :key="s.id"
-                class="grid grid-cols-[2fr_1fr_1fr_1fr_auto] items-center gap-3 rounded-xl border border-white/[0.05] bg-black/20 px-4 py-2.5"
+                class="grid grid-cols-[2fr_1fr_1fr_auto] items-center gap-3 rounded-xl border border-white/[0.05] bg-black/20 px-4 py-2.5"
               >
-                <p class="truncate text-sm font-medium text-zinc-100">{{ s.name }}</p>
-                <span class="text-xs text-zinc-400 truncate">{{ nomeTipo(s.skill_tipo_item) }}</span>
-                <span class="hidden sm:block text-xs text-zinc-400 truncate">{{ nomeCategoria(s.skill_categoria_item) }}</span>
-                <span class="hidden md:block text-xs text-zinc-500 truncate">{{ nomeTipoDano(s.skill_tipo_dano_item) }}</span>
+                <div>
+                  <p class="truncate text-sm font-medium text-zinc-100">{{ s.name }}</p>
+                  <p v-if="s.damage_base || nomesMultiplicadores(s.multiplicador_atributo)" class="text-[0.65rem] text-zinc-600 mt-0.5">
+                    <span v-if="s.damage_base" class="text-rose-400/80">{{ s.damage_base }}</span>
+                    <span v-if="s.damage_base && nomesMultiplicadores(s.multiplicador_atributo)" class="text-zinc-600"> × </span>
+                    <span v-if="nomesMultiplicadores(s.multiplicador_atributo)" class="text-amber-400/80">{{ nomesMultiplicadores(s.multiplicador_atributo) }}</span>
+                  </p>
+                </div>
+                <span class="text-xs text-zinc-400 truncate">{{ nomeNatureza(s.skill_natureza_item) }} · {{ nomeTipo(s.skill_tipo_item) }}</span>
+                <span class="hidden sm:block text-xs text-zinc-400 truncate">{{ nomesCategorias(s.skill_categoria_item as number[]) }}</span>
                 <div class="flex gap-1">
                   <button @click="iniciarEdicao(s)" class="gm-btn-icon text-amber-400 hover:text-amber-300" title="Editar">
                     <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -92,8 +113,8 @@
                 </div>
               </li>
             </ul>
-            <div v-if="lista.length > 0" class="mt-2 grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-3 px-4 text-[0.62rem] font-semibold uppercase tracking-wider text-zinc-600">
-              <span>Nome</span><span>Tipo</span><span class="hidden sm:block">Categoria</span><span class="hidden md:block">Tipo Dano</span><span></span>
+            <div v-if="lista.length > 0" class="mt-2 grid grid-cols-[2fr_1fr_1fr_auto] gap-3 px-4 text-[0.62rem] font-semibold uppercase tracking-wider text-zinc-600">
+              <span>Nome / Dano</span><span>Tipo</span><span class="hidden sm:block">Categorias</span><span></span>
             </div>
           </section>
         </div>
@@ -137,6 +158,19 @@
           />
         </div>
 
+        <!-- ── ABA: Naturezas ─────────────────────────────────────────────── -->
+        <div v-if="abaAtiva === 'naturezas'" class="space-y-4">
+          <TabelaEditor
+            titulo="Naturezas de Skill"
+            subtitulo="Ex: Ativa, Passiva, Assinatura, Reação"
+            :itens="naturezasSkill"
+            :carregando="carregandoLookup.naturezas"
+            @criar="(d) => criarLookup('naturezas', d)"
+            @editar="(it, p) => editarLookup('naturezas', it, p)"
+            @deletar="(it) => deletarLookup('naturezas', it)"
+          />
+        </div>
+
       </main>
     </TemaDarkLight>
 
@@ -147,20 +181,27 @@
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <input v-model="editModal.form.name" type="text" placeholder="Nome *" class="gm-input sm:col-span-2" />
 
-          <VSelect v-model="editModal.form.skill_tipo_item" :options="tipoOptions" placeholder="Tipo — (selecionar)" />
-          <VSelect v-model="editModal.form.skill_categoria_item" :options="categoriaOptions" placeholder="Categoria — (selecionar)" />
-          <VSelect v-model="editModal.form.skill_tipo_dano_item" :options="tipoDanoOptions" placeholder="Tipo de Dano — (selecionar)" />
-          <VSelect v-model="editModal.form.raca_vinculada" :options="racaOptions" placeholder="Raça vinculada — (nenhuma)" />
+          <VSelect v-model="editModal.form.skill_natureza_item" :options="naturezaOptions" />
+          <VSelect v-model="editModal.form.skill_tipo_item" :options="tipoOptions" />
+          <VSelect v-model="editModal.form.required_class" :options="classOptions" />
 
-          <input v-model="editModal.form.damage_display" type="text" placeholder="Dano (ex: 1d6+2)" class="gm-input" />
-          <input v-model.number="editModal.form.damage_base" type="number" min="0" placeholder="Dano base (número)" class="gm-input" />
+          <!-- Categorias (multi) -->
+          <VSelectMulti v-model="editModal.form.skill_categoria_item" :options="categoriaOptions" placeholder="Categorias — (nenhuma)" />
+
+          <!-- Tipos de Dano (multi) -->
+          <VSelectMulti v-model="editModal.form.skill_tipo_dano_item" :options="tipoDanoOptions" placeholder="Tipos de Dano — (nenhum)" />
+
+          <!-- Raças vinculadas (multi) -->
+          <VSelectMulti v-model="editModal.form.raca_vinculada" :options="racaOptions" placeholder="Raças Vinculadas — (nenhuma)" class="sm:col-span-2" />
+
+          <input v-model="editModal.form.damage_base" type="text" placeholder="Dano Base (ex: 1d8, 2d6+3)" class="gm-input" />
+          <VSelectMulti v-model="editModal.form.multiplicador_atributo" :options="ATRIBUTOS_MULTI_OPTIONS" placeholder="Multiplicador — (nenhum)" />
+
           <input v-model.number="editModal.form.custo" type="number" min="0" placeholder="Custo (mana/recurso)" class="gm-input" />
           <input v-model.number="editModal.form.cooldown" type="number" min="0" placeholder="Cooldown (turnos)" class="gm-input" />
           <input v-model="editModal.form.range" type="text" placeholder="Alcance (ex: Toque, 10m)" class="gm-input" />
-          <VSelect v-model="editModal.form.required_class" :options="classOptions" placeholder="Classe requerida — (nenhuma)" />
 
           <input v-model="editModal.form.effect_description" type="text" placeholder="Efeito (descrição curta)" class="gm-input sm:col-span-2" />
-          <input v-model.number="editModal.form.effect_value" type="number" placeholder="Valor do efeito (número)" class="gm-input" />
 
           <textarea v-model="editModal.form.description" rows="3" placeholder="Descrição completa" class="gm-textarea sm:col-span-2" />
         </div>
@@ -183,10 +224,8 @@
           Deletar a skill <strong class="text-white">{{ deleteNome }}</strong>?
         </p>
 
-        <!-- Carregando referências -->
         <div v-if="carregandoRefs" class="text-xs text-zinc-500 italic">Verificando referências...</div>
 
-        <!-- Referências encontradas -->
         <template v-else-if="deleteRefs && (deleteRefs.passados.length || deleteRefs.titulos.length || deleteRefs.classes.length)">
           <div class="rounded-xl border border-amber-500/30 bg-amber-950/20 px-4 py-3 space-y-2">
             <p class="text-xs font-semibold text-amber-400">Esta skill está sendo usada em:</p>
@@ -217,10 +256,11 @@ import TemaDarkLight from '@/components/TemaDarkLight.vue'
 import TabelaEditor from '@/components/TabelaEditor.vue'
 import Modal from '@/components/Modal.vue'
 import VSelect from '@/components/VSelect.vue'
+import VSelectMulti from '@/components/VSelectMulti.vue'
 import {
   listarCatalogoSkills, criarSkillCatalogo, editarSkillCatalogo, deletarSkillCatalogo,
   buscarReferenciasSkill,
-  skillTiposApi, skillCategoriasApi, skillTiposDanoApi,
+  skillNaturezasApi, skillTiposApi, skillCategoriasApi, skillTiposDanoApi,
   type SkillApi, type SkillLookupApi, type SkillReferencias,
 } from '@/lib/api/skills.api'
 import { listarRacasPublicas, type RacaApi } from '@/lib/api/racas.api'
@@ -228,8 +268,22 @@ import { listarClasses, type ClasseApi } from '@/lib/api/classes.api'
 
 const router = useRouter()
 
+const ATRIBUTOS_MULTI_OPTIONS = [
+  { value: 'aura', label: 'Aura' },
+  { value: 'forca', label: 'Força' },
+  { value: 'destreza', label: 'Destreza' },
+  { value: 'resistencia', label: 'Resistência' },
+  { value: 'inteligencia', label: 'Inteligência' },
+]
+
+const ATRIBUTOS_LABELS: Record<string, string> = {
+  aura: 'Aura', forca: 'Força', destreza: 'Destreza',
+  resistencia: 'Resistência', inteligencia: 'Inteligência',
+}
+
 const abas = [
   { id: 'catalogo', label: 'Catálogo de Skills' },
+  { id: 'naturezas', label: 'Naturezas' },
   { id: 'tipos', label: 'Tipos' },
   { id: 'categorias', label: 'Categorias' },
   { id: 'tiposDano', label: 'Tipos de Dano' },
@@ -237,6 +291,7 @@ const abas = [
 const abaAtiva = ref('catalogo')
 
 const lista = ref<SkillApi[]>([])
+const naturezasSkill = ref<SkillLookupApi[]>([])
 const tiposSkill = ref<SkillLookupApi[]>([])
 const categoriasSkill = ref<SkillLookupApi[]>([])
 const tiposDanoSkill = ref<SkillLookupApi[]>([])
@@ -245,7 +300,7 @@ const classes = ref<ClasseApi[]>([])
 
 const carregandoLista = ref(false)
 const carregando = ref(false)
-const carregandoLookup = ref({ tipos: false, categorias: false, tiposDano: false })
+const carregandoLookup = ref({ naturezas: false, tipos: false, categorias: false, tiposDano: false })
 const filtro = ref('')
 const feedback = ref('')
 const feedbackErro = ref(false)
@@ -258,14 +313,14 @@ const carregandoRefs = ref(false)
 const emptyForm = () => ({
   name: '',
   description: '',
-  raca_vinculada: '' as string,
+  raca_vinculada: [] as string[],
+  skill_natureza_item: 0 as number,
   skill_tipo_item: 0 as number,
-  skill_categoria_item: 0 as number,
-  skill_tipo_dano_item: 0 as number,
-  damage_display: '',
-  damage_base: null as number | null,
+  skill_categoria_item: [] as number[],
+  skill_tipo_dano_item: [] as number[],
+  multiplicador_atributo: [] as string[],
+  damage_base: '' as string,
   effect_description: '',
-  effect_value: null as number | null,
   custo: null as number | null,
   cooldown: null as number | null,
   range: '',
@@ -282,33 +337,52 @@ const editModal = ref({
   form: emptyForm(),
 })
 
+const naturezaOptions = computed(() => [
+  { value: 0, label: 'Natureza — (selecionar)' },
+  ...naturezasSkill.value.map((n) => ({ value: n.item, label: n.descricao })),
+])
 const tipoOptions = computed(() => [
   { value: 0, label: 'Tipo — (selecionar)' },
   ...tiposSkill.value.map((t) => ({ value: t.item, label: t.descricao })),
 ])
-const categoriaOptions = computed(() => [
-  { value: 0, label: 'Categoria — (selecionar)' },
-  ...categoriasSkill.value.map((c) => ({ value: c.item, label: c.descricao })),
-])
-const tipoDanoOptions = computed(() => [
-  { value: 0, label: 'Tipo de Dano — (selecionar)' },
-  ...tiposDanoSkill.value.map((d) => ({ value: d.item, label: d.descricao })),
-])
-const racaOptions = computed(() => [
-  { value: '', label: 'Raça vinculada — (nenhuma)' },
-  ...racas.value.map((r) => ({ value: r.nome, label: r.nome })),
-])
+const categoriaOptions = computed(() =>
+  categoriasSkill.value.map((c) => ({ value: c.item, label: c.descricao })),
+)
+const tipoDanoOptions = computed(() =>
+  tiposDanoSkill.value.map((d) => ({ value: d.item, label: d.descricao })),
+)
+const racaOptions = computed(() =>
+  racas.value.map((r) => ({ value: r.nome, label: r.nome })),
+)
 const classOptions = computed(() => [
   { value: '', label: 'Classe requerida — (nenhuma)' },
   ...classes.value.map((c) => ({ value: String(c.id), label: c.name })),
 ])
 
+function toNumArr(val: unknown): number[] {
+  if (!val) return []
+  if (Array.isArray(val)) return val as number[]
+  return [Number(val)]
+}
+function toStrArr(val: unknown): string[] {
+  if (!val) return []
+  if (Array.isArray(val)) return val as string[]
+  return [String(val)]
+}
+
+const nomeNatureza = (item?: number | null) =>
+  item ? naturezasSkill.value.find((n) => n.item === item)?.descricao ?? String(item) : '—'
 const nomeTipo = (item?: number | null) =>
   item ? tiposSkill.value.find((t) => t.item === item)?.descricao ?? String(item) : '—'
-const nomeCategoria = (item?: number | null) =>
-  item ? categoriasSkill.value.find((c) => c.item === item)?.descricao ?? String(item) : '—'
-const nomeTipoDano = (item?: number | null) =>
-  item ? tiposDanoSkill.value.find((d) => d.item === item)?.descricao ?? String(item) : '—'
+const nomeCategoria = (item: number) =>
+  categoriasSkill.value.find((c) => c.item === item)?.descricao ?? String(item)
+const nomesCategorias = (items: unknown) =>
+  toNumArr(items).length ? toNumArr(items).map(nomeCategoria).join(', ') : '—'
+const nomeAtributo = (val: string) => ATRIBUTOS_LABELS[val] ?? val
+const nomesMultiplicadores = (val: unknown) => {
+  const arr = toStrArr(val)
+  return arr.length ? arr.map(nomeAtributo).join(' + ') : null
+}
 
 const listaFiltrada = computed(() => {
   const q = filtro.value.toLowerCase().trim()
@@ -316,8 +390,8 @@ const listaFiltrada = computed(() => {
   return lista.value.filter((s) =>
     s.name.toLowerCase().includes(q) ||
     nomeTipo(s.skill_tipo_item).toLowerCase().includes(q) ||
-    nomeCategoria(s.skill_categoria_item).toLowerCase().includes(q) ||
-    (s.raca_vinculada ?? '').toLowerCase().includes(q),
+    nomesCategorias(s.skill_categoria_item as number[]).toLowerCase().includes(q) ||
+    ((s.raca_vinculada as string[] | null) ?? []).join(' ').toLowerCase().includes(q),
   )
 })
 
@@ -325,14 +399,14 @@ function buildPayload(f: ReturnType<typeof emptyForm>) {
   return {
     name: f.name.trim(),
     description: f.description.trim() || undefined,
-    raca_vinculada: f.raca_vinculada || undefined,
+    raca_vinculada: f.raca_vinculada.length ? f.raca_vinculada : undefined,
+    skill_natureza_item: f.skill_natureza_item || null,
     skill_tipo_item: f.skill_tipo_item || null,
-    skill_categoria_item: f.skill_categoria_item || null,
-    skill_tipo_dano_item: f.skill_tipo_dano_item || null,
-    damage_display: f.damage_display.trim() || undefined,
-    damage_base: f.damage_base,
+    skill_categoria_item: f.skill_categoria_item.length ? f.skill_categoria_item : undefined,
+    skill_tipo_dano_item: f.skill_tipo_dano_item.length ? f.skill_tipo_dano_item : undefined,
+    multiplicador_atributo: f.multiplicador_atributo.length ? f.multiplicador_atributo : undefined,
+    damage_base: f.damage_base.trim() || undefined,
     effect_description: f.effect_description.trim() || undefined,
-    effect_value: f.effect_value,
     custo: f.custo,
     cooldown: f.cooldown,
     range: f.range.trim() || undefined,
@@ -346,20 +420,22 @@ async function carregar() {
 }
 
 async function carregarLookups() {
-  carregandoLookup.value = { tipos: true, categorias: true, tiposDano: true }
-  const [t, c, d, r, cl] = await Promise.allSettled([
+  carregandoLookup.value = { naturezas: true, tipos: true, categorias: true, tiposDano: true }
+  const [n, t, c, d, r, cl] = await Promise.allSettled([
+    skillNaturezasApi.listar(),
     skillTiposApi.listar(),
     skillCategoriasApi.listar(),
     skillTiposDanoApi.listar(),
     listarRacasPublicas(),
     listarClasses(),
   ])
+  if (n.status === 'fulfilled') naturezasSkill.value = n.value
   if (t.status === 'fulfilled') tiposSkill.value = t.value
   if (c.status === 'fulfilled') categoriasSkill.value = c.value
   if (d.status === 'fulfilled') tiposDanoSkill.value = d.value
   if (r.status === 'fulfilled') racas.value = r.value
   if (cl.status === 'fulfilled') classes.value = cl.value
-  carregandoLookup.value = { tipos: false, categorias: false, tiposDano: false }
+  carregandoLookup.value = { naturezas: false, tipos: false, categorias: false, tiposDano: false }
 }
 
 async function salvar() {
@@ -389,14 +465,14 @@ function iniciarEdicao(s: SkillApi) {
     form: {
       name: s.name ?? '',
       description: (s.description as string) ?? '',
-      raca_vinculada: (s.raca_vinculada as string) ?? '',
+      raca_vinculada: Array.isArray(s.raca_vinculada) ? [...s.raca_vinculada as string[]] : (s.raca_vinculada ? [s.raca_vinculada as string] : []),
+      skill_natureza_item: (s.skill_natureza_item as number | null) ?? 0,
       skill_tipo_item: (s.skill_tipo_item as number | null) ?? 0,
-      skill_categoria_item: (s.skill_categoria_item as number | null) ?? 0,
-      skill_tipo_dano_item: (s.skill_tipo_dano_item as number | null) ?? 0,
-      damage_display: (s.damage_display as string) ?? '',
-      damage_base: (s.damage_base as number | null) ?? null,
+      skill_categoria_item: Array.isArray(s.skill_categoria_item) ? [...s.skill_categoria_item as number[]] : (s.skill_categoria_item ? [s.skill_categoria_item as number] : []),
+      skill_tipo_dano_item: Array.isArray(s.skill_tipo_dano_item) ? [...s.skill_tipo_dano_item as number[]] : (s.skill_tipo_dano_item ? [s.skill_tipo_dano_item as number] : []),
+      multiplicador_atributo: Array.isArray(s.multiplicador_atributo) ? [...s.multiplicador_atributo as string[]] : (s.multiplicador_atributo ? [s.multiplicador_atributo as string] : []),
+      damage_base: (s.damage_base as string) ?? '',
       effect_description: (s.effect_description as string) ?? '',
-      effect_value: (s.effect_value as number | null) ?? null,
       custo: (s.custo as number | null) ?? null,
       cooldown: (s.cooldown as number | null) ?? null,
       range: (s.range as string) ?? '',
@@ -454,9 +530,9 @@ async function executarDelete() {
 }
 
 // ── Gestão de lookups ─────────────────────────────────────────────────────────
-type LookupKey = 'tipos' | 'categorias' | 'tiposDano'
-const lookupApiMap = { tipos: skillTiposApi, categorias: skillCategoriasApi, tiposDano: skillTiposDanoApi }
-const lookupDataMap = { tipos: tiposSkill, categorias: categoriasSkill, tiposDano: tiposDanoSkill }
+type LookupKey = 'naturezas' | 'tipos' | 'categorias' | 'tiposDano'
+const lookupApiMap = { naturezas: skillNaturezasApi, tipos: skillTiposApi, categorias: skillCategoriasApi, tiposDano: skillTiposDanoApi }
+const lookupDataMap = { naturezas: naturezasSkill, tipos: tiposSkill, categorias: categoriasSkill, tiposDano: tiposDanoSkill }
 
 async function recarregarLookup(chave: LookupKey) {
   carregandoLookup.value[chave] = true

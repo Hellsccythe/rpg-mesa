@@ -39,12 +39,13 @@
               <span class="text-xs text-zinc-500">Invisível para players; só aparece quando o mestre revelar para um personagem específico</span>
             </label>
 
-            <!-- Skills iniciais — chip multi-select -->
+            <!-- Skills iniciais — multi-select com checkbox -->
             <div class="sm:col-span-2 space-y-2">
-              <VSelect
-                :model-value="addSkillValue"
-                @update:model-value="adicionarSkill"
-                :options="skillOptionsCreate"
+              <p class="text-xs text-zinc-500">Skills iniciais <span class="text-zinc-600">(disponíveis desde o nível 1)</span></p>
+              <VSelectMulti
+                v-model="form.starting_skills"
+                :options="skillOptions"
+                placeholder="Skills iniciais..."
                 root-class="w-full"
               />
               <div v-if="form.starting_skills.length > 0" class="flex flex-wrap gap-1.5">
@@ -55,6 +56,47 @@
                   {{ sk }}
                   <button @click="removerSkill(sk)" class="text-sky-400/70 hover:text-red-400 transition-colors ml-0.5">✕</button>
                 </span>
+              </div>
+            </div>
+
+            <!-- Skills passivas — disponíveis a partir do nível 3 -->
+            <div class="sm:col-span-2 space-y-2">
+              <p class="text-xs text-zinc-500">Skills passivas <span class="text-zinc-600">(desbloqueadas no nível 3 da classe)</span></p>
+              <VSelectMulti
+                v-model="form.passive_skills"
+                :options="skillOptions"
+                placeholder="Skills passivas..."
+                root-class="w-full"
+              />
+              <div v-if="form.passive_skills.length > 0" class="flex flex-wrap gap-1.5">
+                <span
+                  v-for="sk in form.passive_skills" :key="sk"
+                  class="inline-flex items-center gap-1 rounded-lg bg-emerald-900/40 border border-emerald-500/25 px-2.5 py-1 text-xs text-emerald-300"
+                >
+                  {{ sk }}
+                  <button @click="removerSkillPassiva(sk)" class="text-emerald-400/70 hover:text-red-400 transition-colors ml-0.5">✕</button>
+                </span>
+              </div>
+            </div>
+
+            <!-- Skill assinatura -->
+            <div class="sm:col-span-2 space-y-1.5">
+              <p class="text-xs text-zinc-500">Skill assinatura <span class="text-zinc-600">(exclusiva da classe, desbloqueada em nível específico)</span></p>
+              <div class="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_10rem]">
+                <VSelect
+                  v-model="form.signature_skill"
+                  :options="[{ value: '', label: '— Sem skill assinatura —' }, ...skillOptions]"
+                  placeholder="Skill assinatura..."
+                  root-class="w-full"
+                />
+                <input
+                  v-model.number="form.signature_skill_nivel"
+                  type="number"
+                  min="1"
+                  placeholder="Nível desbloqueio"
+                  class="gm-input"
+                  :disabled="!form.signature_skill"
+                />
               </div>
             </div>
 
@@ -132,12 +174,13 @@
             <span class="text-sm font-semibold text-red-300">Classe Secreta</span>
           </label>
 
-          <!-- Skills iniciais — chip multi-select -->
+          <!-- Skills iniciais — multi-select com checkbox -->
           <div class="sm:col-span-2 space-y-2">
-            <VSelect
-              :model-value="addSkillEditValue"
-              @update:model-value="adicionarSkillEdit"
-              :options="skillOptionsEdit"
+            <p class="text-xs text-zinc-500">Skills iniciais <span class="text-zinc-600">(disponíveis desde o nível 1)</span></p>
+            <VSelectMulti
+              v-model="editModal.form.starting_skills"
+              :options="skillOptions"
+              placeholder="Skills iniciais..."
               root-class="w-full"
             />
             <div v-if="editModal.form.starting_skills.length > 0" class="flex flex-wrap gap-1.5">
@@ -148,6 +191,47 @@
                 {{ sk }}
                 <button @click="removerSkillEdit(sk)" class="text-sky-400/70 hover:text-red-400 transition-colors ml-0.5">✕</button>
               </span>
+            </div>
+          </div>
+
+          <!-- Skills passivas — disponíveis a partir do nível 3 -->
+          <div class="sm:col-span-2 space-y-2">
+            <p class="text-xs text-zinc-500">Skills passivas <span class="text-zinc-600">(desbloqueadas no nível 3 da classe)</span></p>
+            <VSelectMulti
+              v-model="editModal.form.passive_skills"
+              :options="skillOptions"
+              placeholder="Skills passivas..."
+              root-class="w-full"
+            />
+            <div v-if="editModal.form.passive_skills.length > 0" class="flex flex-wrap gap-1.5">
+              <span
+                v-for="sk in editModal.form.passive_skills" :key="sk"
+                class="inline-flex items-center gap-1 rounded-lg bg-emerald-900/40 border border-emerald-500/25 px-2.5 py-1 text-xs text-emerald-300"
+              >
+                {{ sk }}
+                <button @click="removerSkillPassivaEdit(sk)" class="text-emerald-400/70 hover:text-red-400 transition-colors ml-0.5">✕</button>
+              </span>
+            </div>
+          </div>
+
+          <!-- Skill assinatura -->
+          <div class="sm:col-span-2 space-y-1.5">
+            <p class="text-xs text-zinc-500">Skill assinatura <span class="text-zinc-600">(exclusiva da classe, desbloqueada em nível específico)</span></p>
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_10rem]">
+              <VSelect
+                v-model="editModal.form.signature_skill"
+                :options="[{ value: '', label: '— Sem skill assinatura —' }, ...skillOptions]"
+                placeholder="Skill assinatura..."
+                root-class="w-full"
+              />
+              <input
+                v-model.number="editModal.form.signature_skill_nivel"
+                type="number"
+                min="1"
+                placeholder="Nível desbloqueio"
+                class="gm-input"
+                :disabled="!editModal.form.signature_skill"
+              />
             </div>
           </div>
 
@@ -189,11 +273,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import TemaDarkLight from '@/components/TemaDarkLight.vue'
 import DataTable from '@/components/DataTable.vue'
 import Modal from '@/components/Modal.vue'
+import VSelectMulti from '@/components/VSelectMulti.vue'
 import VSelect from '@/components/VSelect.vue'
 import {
   listarClasses, createClass, editarClasse, deletarClasse,
@@ -222,13 +307,14 @@ const form = ref({
   max_level: null as number | null,
   req_min_level: null as number | null,
   starting_skills: [] as string[],
+  passive_skills: [] as string[],
+  signature_skill: '' as string,
+  signature_skill_nivel: null as number | null,
   stat_bonuses_json: '',
   requer_deus: false,
   is_secret: false,
 })
 
-const addSkillValue = ref<string | number>('')
-const addSkillEditValue = ref<string | number>('')
 
 const editModal = ref({
   show: false,
@@ -243,52 +329,33 @@ const editModal = ref({
     max_level: null as number | null,
     req_min_level: null as number | null,
     starting_skills: [] as string[],
+    passive_skills: [] as string[],
+    signature_skill: '' as string,
+    signature_skill_nivel: null as number | null,
     stat_bonuses_json: '',
     requer_deus: false,
     is_secret: false,
   },
 })
 
-const skillOptionsCreate = computed(() => {
-  const selected = new Set(form.value.starting_skills)
-  return [
-    { value: '', label: 'Adicionar skill inicial...' },
-    ...skills.value
-      .filter((s) => !selected.has(s.name))
-      .map((s) => ({ value: s.name, label: s.name })),
-  ]
-})
-
-const skillOptionsEdit = computed(() => {
-  const selected = new Set(editModal.value.form.starting_skills)
-  return [
-    { value: '', label: 'Adicionar skill inicial...' },
-    ...skills.value
-      .filter((s) => !selected.has(s.name))
-      .map((s) => ({ value: s.name, label: s.name })),
-  ]
-})
-
-function adicionarSkill(val: string | number) {
-  const v = String(val)
-  if (!v || form.value.starting_skills.includes(v)) return
-  form.value.starting_skills.push(v)
-  nextTick(() => { addSkillValue.value = '' })
-}
+const skillOptions = computed(() =>
+  skills.value.map((s) => ({ value: s.name, label: s.name }))
+)
 
 function removerSkill(sk: string) {
   form.value.starting_skills = form.value.starting_skills.filter((s) => s !== sk)
 }
 
-function adicionarSkillEdit(val: string | number) {
-  const v = String(val)
-  if (!v || editModal.value.form.starting_skills.includes(v)) return
-  editModal.value.form.starting_skills.push(v)
-  nextTick(() => { addSkillEditValue.value = '' })
-}
-
 function removerSkillEdit(sk: string) {
   editModal.value.form.starting_skills = editModal.value.form.starting_skills.filter((s) => s !== sk)
+}
+
+function removerSkillPassiva(sk: string) {
+  form.value.passive_skills = form.value.passive_skills.filter((s) => s !== sk)
+}
+
+function removerSkillPassivaEdit(sk: string) {
+  editModal.value.form.passive_skills = editModal.value.form.passive_skills.filter((s) => s !== sk)
 }
 
 const listaFiltrada = computed(() => {
@@ -326,6 +393,9 @@ async function salvar() {
         : null,
       statBonuses,
       startingSkills: form.value.starting_skills.length > 0 ? form.value.starting_skills : null,
+      passiveSkills: form.value.passive_skills.length > 0 ? form.value.passive_skills : null,
+      signatureSkill: form.value.signature_skill.trim() || null,
+      signatureSkillNivel: form.value.signature_skill_nivel || null,
       requerDeus: form.value.requer_deus,
       isSecret: form.value.is_secret,
     })
@@ -349,6 +419,7 @@ function iniciarEdicao(item: ClasseApi) {
       : JSON.stringify(item.stat_bonuses, null, 2)
     : ''
   const skillsIniciais = Array.isArray(item.starting_skills) ? [...(item.starting_skills as string[])] : []
+  const skillsPassivas = Array.isArray(item.passive_skills) ? [...(item.passive_skills as string[])] : []
   editModal.value = {
     show: true,
     id: item.id,
@@ -362,20 +433,21 @@ function iniciarEdicao(item: ClasseApi) {
       max_level: (item.max_level as number | null) ?? null,
       req_min_level: req?.min_level ?? null,
       starting_skills: skillsIniciais,
+      passive_skills: skillsPassivas,
+      signature_skill: (item as any).signature_skill ?? '',
+      signature_skill_nivel: (item as any).signature_skill_nivel ?? null,
       stat_bonuses_json: bonuses,
       requer_deus: !!(item as any).requer_deus,
       is_secret:   !!(item as any).is_secret,
     },
   }
-  addSkillEditValue.value = ''
 }
 
 function fecharEditModal() {
   editModal.value = {
     show: false, id: null, jsonErro: '', feedback: '', feedbackErro: false,
-    form: { name: '', tier: '', description: '', max_level: null, req_min_level: null, starting_skills: [], stat_bonuses_json: '' },
+    form: { name: '', tier: '', description: '', max_level: null, req_min_level: null, starting_skills: [], passive_skills: [], signature_skill: '', signature_skill_nivel: null, stat_bonuses_json: '', requer_deus: false, is_secret: false },
   }
-  addSkillEditValue.value = ''
 }
 
 async function salvarEdicao() {
@@ -395,6 +467,9 @@ async function salvarEdicao() {
         : null,
       statBonuses,
       startingSkills: editModal.value.form.starting_skills.length > 0 ? editModal.value.form.starting_skills : null,
+      passiveSkills: editModal.value.form.passive_skills.length > 0 ? editModal.value.form.passive_skills : null,
+      signatureSkill: editModal.value.form.signature_skill.trim() || null,
+      signatureSkillNivel: editModal.value.form.signature_skill_nivel || null,
       requerDeus: editModal.value.form.requer_deus,
       isSecret: editModal.value.form.is_secret,
     })
@@ -431,9 +506,8 @@ async function executarDelete() {
 }
 
 function resetForm() {
-  form.value = { name: '', tier: '', description: '', max_level: null, req_min_level: null, starting_skills: [], stat_bonuses_json: '' }
+  form.value = { name: '', tier: '', description: '', max_level: null, req_min_level: null, starting_skills: [], passive_skills: [], signature_skill: '', signature_skill_nivel: null, stat_bonuses_json: '', requer_deus: false, is_secret: false }
   jsonErro.value = ''
-  addSkillValue.value = ''
 }
 
 onMounted(async () => {

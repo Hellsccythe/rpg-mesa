@@ -1026,7 +1026,7 @@ const equipamentosIniciais = computed<Array<{id: number; nome: string; peso: num
 })
 const pesoMaximo = computed(() => {
   const forca = (character.value?.data?.atributos as any)?.forca ?? 0
-  return (forca as number) * 2
+  return 2 + (forca as number) * 2
 })
 const pesoAtual = computed(() =>
   equipamentosIniciais.value.reduce((s, e) => s + (e.peso ?? 0), 0)

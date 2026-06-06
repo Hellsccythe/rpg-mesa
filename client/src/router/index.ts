@@ -138,6 +138,24 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresMaster: true },
     },
     {
+      path: '/master/skill-overrides',
+      name: 'master-skill-overrides',
+      component: () => import('@/views/MasterSkillOverridesView.vue'),
+      meta: { requiresAuth: true, requiresMaster: true },
+    },
+    {
+      path: '/master/skill-niveis',
+      name: 'master-skill-niveis',
+      component: () => import('@/views/MasterSkillNiveisView.vue'),
+      meta: { requiresAuth: true, requiresMaster: true },
+    },
+    {
+      path: '/master/progressao',
+      name: 'master-progressao',
+      component: () => import('@/views/MasterProgressaoView.vue'),
+      meta: { requiresAuth: true, requiresMaster: true },
+    },
+    {
       path: '/master/titulos',
       name: 'master-titulos',
       component: () => import('@/views/MasterTitulosView.vue'),

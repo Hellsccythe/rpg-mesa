@@ -170,6 +170,24 @@ export async function escolherDeus(characterId: string | number, deus_id: number
   return data
 }
 
+export async function adicionarSkillPointsParaClasse(
+  characterId: string | number,
+  classId: string,
+  pontos: number,
+): Promise<PersonagemApi> {
+  const { data } = await api.post<PersonagemApi>(`/personagens/admin/${characterId}/skill-points-classe`, { classId, pontos })
+  return data
+}
+
+export async function atribuirXpClasse(
+  characterId: string | number,
+  classId: string,
+  xp: number,
+): Promise<PersonagemApi> {
+  const { data } = await api.patch<PersonagemApi>(`/personagens/admin/${characterId}/atribuir-xp`, { classId, xp })
+  return data
+}
+
 export async function concluirOnboarding(
   characterId: string | number,
   equipamentos: Array<{ id: number; nome: string; peso: number }>,

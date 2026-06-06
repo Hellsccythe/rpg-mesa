@@ -25,7 +25,40 @@ export class SalvarClasseDto {
   startingSkills?: string[] | null;
 
   @IsOptional()
+  passiveSkills?: string[] | null;
+
+  @IsOptional()
+  @IsString()
+  signatureSkill?: string | null;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  signatureSkillNivel?: number | null;
+
+  @IsOptional()
   requerDeus?: boolean;
+}
+
+export class CriarProgressaoDto {
+  @IsNumber()
+  @Min(1)
+  classe_id: number;
+
+  @IsNumber()
+  @Min(1)
+  nivel: number;
+
+  @IsNumber()
+  @Min(0)
+  xp_necessario: number;
+}
+
+export class EditarProgressaoDto {
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  xp_necessario?: number;
 }
 
 export class EditarClasseDto {
@@ -54,6 +87,18 @@ export class EditarClasseDto {
 
   @IsOptional()
   startingSkills?: string[] | null;
+
+  @IsOptional()
+  passiveSkills?: string[] | null;
+
+  @IsOptional()
+  @IsString()
+  signatureSkill?: string | null;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  signatureSkillNivel?: number | null;
 
   @IsOptional()
   requerDeus?: boolean;
