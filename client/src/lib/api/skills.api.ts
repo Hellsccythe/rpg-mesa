@@ -25,6 +25,7 @@ export interface SkillApi {
   cooldown?: number | null
   range?: string | null
   required_class?: string | null
+  nivel_minimo_classe?: number | null
   stat_bonuses?: Record<string, unknown> | string | null
   requirements?: Record<string, unknown> | string | null
   class_id?: string | number | null

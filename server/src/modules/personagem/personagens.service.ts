@@ -47,6 +47,7 @@ type PendingChangeRequest = {
   historyDocumentPath?: string;
   historyDocumentName?: string;
   historyDocumentMimeType?: string | null;
+  indoleId?: number;
 };
 
 const CHARACTER_CREATION_WHITELIST_TABLE = "character_creation_whitelist";
@@ -128,7 +129,7 @@ async function queryPublicCharacters(useAdmin: boolean) {
 
   const baseQuery = client
     .from(PERSONAGEM_TABLE)
-    .select("id, name, level, avatar_url, data")
+    .select("id, name, level, avatar_url, data, classe_id")
     .order("created_at", { ascending: false });
 
   const withSoftDeleteFilter = await baseQuery.is("deleted_at", null);
@@ -149,7 +150,7 @@ async function queryPublicCharacters(useAdmin: boolean) {
 
   return client
     .from(PERSONAGEM_TABLE)
-    .select("id, name, level, avatar_url, data")
+    .select("id, name, level, avatar_url, data, classe_id")
     .order("created_at", { ascending: false });
 }
 
@@ -182,6 +183,47 @@ async function findUserByEmail(admin: ReturnType<typeof getAdminClient>, email: 
   }
 }
 
+// Popula data.classes a partir de classe_id quando o array estiver vazio.
+// Self-healing: persiste a correção no banco para que não precise repetir.
+async function ensureDataClassesPopuladas(
+  row: Record<string, any>,
+  characterId: string
+): Promise<Record<string, any>> {
+  const dataAtual = normalizeData(row.data);
+  const classes = Array.isArray(dataAtual.classes) ? dataAtual.classes : [];
+  const classeId = row.classe_id ?? row.classeId;
+  if (classes.length > 0 || !classeId) return row;
+
+  const admin = getAdminClient();
+  const { data: classeData } = await admin
+    .from("classes")
+    .select("id, name, tier")
+    .eq("id", classeId)
+    .is("deleted_at", null)
+    .single();
+
+  if (!classeData) return row;
+
+  const novasClasses = [{
+    classId: String(classeId),
+    name: (classeData as any).name,
+    tier: (classeData as any).tier ?? "",
+    level: 1,
+    chosenSkills: [],
+    skillPoints: 2,
+    xp: 0,
+  }];
+
+  const novoData = { ...dataAtual, classes: novasClasses };
+  await admin
+    .from(PERSONAGEM_TABLE)
+    .update({ data: novoData })
+    .eq("id", characterId)
+    .is("deleted_at", null);
+
+  return { ...row, data: novoData };
+}
+
 export const personagensService = {
   /**
    * Lista todos os personagens publicamente (sem auth).
@@ -201,12 +243,34 @@ export const personagensService = {
       data = fallback.data;
     }
 
-    return (data || []).map((row) => ({
+    const rows = data || [];
+
+    // Fallback: personagens sem data.classes[0].name mas com classe_id definido
+    const classeIdsSemNome = [...new Set(
+      rows
+        .filter(r => !(r.data as any)?.classes?.[0]?.name && r.classe_id)
+        .map(r => r.classe_id as number)
+    )];
+
+    const classeNomesMap: Record<number, string> = {};
+    if (classeIdsSemNome.length > 0) {
+      const admin = getAdminClient();
+      const { data: classesData } = await admin
+        .from("classes")
+        .select("id, name")
+        .in("id", classeIdsSemNome)
+        .is("deleted_at", null);
+      if (classesData) {
+        for (const c of classesData) classeNomesMap[c.id] = c.name;
+      }
+    }
+
+    return rows.map((row) => ({
       characterId: row.id,
       name: row.name,
       level: row.level,
       avatarUrl: row.avatar_url ?? null,
-      classe: (row.data as any)?.classes?.[0]?.name ?? null,
+      classe: (row.data as any)?.classes?.[0]?.name ?? classeNomesMap[row.classe_id] ?? null,
       avatarFocalPoint: (row.data as any)?.avatarFocalPoint ?? null,
       modalHeroPosition: (row.data as any)?.modalHeroPosition ?? null,
     }));
@@ -352,7 +416,8 @@ export const personagensService = {
       .single();
 
     if (error) throw error;
-    return mapPersonagem(data);
+    const row = await ensureDataClassesPopuladas(data as Record<string, any>, characterId);
+    return mapPersonagem(row);
   },
 
   async obterPersonagemPorIdComoMestre(characterId: string, accessToken?: string) {
@@ -367,7 +432,8 @@ export const personagensService = {
       .single();
 
     if (error) throw error;
-    return mapPersonagem(data);
+    const row = await ensureDataClassesPopuladas(data as Record<string, any>, characterId);
+    return mapPersonagem(row);
   },
 
   async solicitarAlteracao(
@@ -397,8 +463,9 @@ export const personagensService = {
     const hasAvatarChange = typeof dto.avatarUrl === "string" && dto.avatarUrl.trim().length > 0;
     const hasHistoryChange = typeof dto.history === "string";
     const hasHistoryDocChange = typeof dto.historyDocumentPath === "string";
+    const hasIndoleChange = typeof dto.indoleId === "number";
 
-    if (!hasNameChange && !hasAvatarChange && !hasHistoryChange && !hasHistoryDocChange) {
+    if (!hasNameChange && !hasAvatarChange && !hasHistoryChange && !hasHistoryDocChange && !hasIndoleChange) {
       throw new Error("Informe ao menos um campo para solicitar alteração");
     }
 
@@ -417,6 +484,7 @@ export const personagensService = {
             historyDocumentMimeType: dto.historyDocumentMimeType ?? null,
           }
         : {}),
+      ...(hasIndoleChange ? { indoleId: dto.indoleId } : {}),
     } as PendingChangeRequest;
 
     const { data, error } = await supabase
@@ -468,6 +536,8 @@ export const personagensService = {
         requestedHistoryDocumentName: pending.historyDocumentName ?? null,
         requestedAt: pending.requestedAt,
         requestedByEmail: pending.requestedByEmail,
+        currentIndoleId: personagem.indoleId ?? null,
+        requestedIndoleId: pending.indoleId ?? null,
       };
     }).filter(Boolean);
   },
@@ -493,6 +563,11 @@ export const personagensService = {
 
     const nextData = { ...currentData };
     delete nextData.pendingChangeRequest;
+    nextData.changeRequestResponse = {
+      status: dto.approve ? "aprovado" : "rejeitado",
+      respondidoEm: new Date().toISOString(),
+      visto: false,
+    };
 
     const updates: Record<string, unknown> = { data: nextData };
 
@@ -505,6 +580,7 @@ export const personagensService = {
         nextData.historyDocumentName = pending.historyDocumentName ?? "";
         nextData.historyDocumentMimeType = pending.historyDocumentMimeType ?? null;
       }
+      if (pending.indoleId) updates.indole_id = pending.indoleId;
     }
 
     const { data, error } = await admin
@@ -1163,7 +1239,9 @@ export const personagensService = {
       .single();
     if (currentError || !current) throw new Error("Personagem não encontrado");
 
-    const personagem = mapPersonagem(current);
+    // Garante que data.classes está populado (fallback por classe_id)
+    const rowPopulado = await ensureDataClassesPopuladas(current as Record<string, any>, characterId);
+    const personagem = mapPersonagem(rowPopulado);
     if (!isMaster && personagem.userId !== user.id) throw new Error("Sem permissão");
 
     const dataAtual = normalizeData(personagem.data as Record<string, any>);
@@ -1171,20 +1249,16 @@ export const personagensService = {
     if (classPoints < 1) throw new Error("Pontos de classe insuficientes");
 
     const classes: any[] = Array.isArray(dataAtual.classes) ? [...dataAtual.classes] : [];
-    const classIdx = classes.findIndex((c: any) => c.classId === dto.classId);
+    const classIdx = classes.findIndex((c: any) => String(c.classId) === String(dto.classId));
     if (classIdx === -1) throw new Error("Classe não encontrada no personagem");
 
-    const currentLevel: number = classes[classIdx].level ?? 1;
-    if (currentLevel >= 20) throw new Error("Nível máximo já atingido (20)");
-
-    const newLevel = currentLevel + 1;
-    const skillPointsGained = Math.ceil(newLevel / 2) - Math.ceil(currentLevel / 2);
+    // Converte 1 classPoint em 1 skillPoint — nível da classe NÃO sobe aqui.
+    // O nível só sobe quando o skillPoint for gasto em uma skill (escolherSkillInicial).
     const currentSkillPoints: number = typeof classes[classIdx].skillPoints === "number" ? classes[classIdx].skillPoints : 0;
 
     classes[classIdx] = {
       ...classes[classIdx],
-      level: newLevel,
-      skillPoints: currentSkillPoints + skillPointsGained,
+      skillPoints: currentSkillPoints + 1,
     };
     const nextData = { ...dataAtual, classes, classPoints: classPoints - 1 };
 
@@ -1266,7 +1340,7 @@ export const personagensService = {
     const dataAtual = normalizeData(personagem.data as Record<string, any>);
     const classes: any[] = Array.isArray(dataAtual.classes) ? [...dataAtual.classes] : [];
 
-    const classIdx = classes.findIndex((c: any) => c.classId === dto.classId);
+    const classIdx = classes.findIndex((c: any) => String(c.classId) === String(dto.classId));
     if (classIdx === -1) throw new Error("Classe não encontrada no personagem");
 
     const currentSkillPoints: number = typeof classes[classIdx].skillPoints === "number" ? classes[classIdx].skillPoints : 0;
@@ -1414,7 +1488,7 @@ export const personagensService = {
 
     const dataAtual = normalizeData(personagem.data as Record<string, any>);
     const classes: any[] = Array.isArray(dataAtual.classes) ? [...dataAtual.classes] : [];
-    const classIdx = classes.findIndex((c: any) => c.classId === dto.classId);
+    const classIdx = classes.findIndex((c: any) => String(c.classId) === String(dto.classId));
     if (classIdx === -1) throw new Error("Classe não encontrada no personagem");
 
     const chosenSkills: string[] = Array.isArray(classes[classIdx].chosenSkills)
@@ -1430,8 +1504,9 @@ export const personagensService = {
     const skillPoints: number = typeof classes[classIdx].skillPoints === "number" ? classes[classIdx].skillPoints : 0;
     if (skillPoints < 1) throw new Error("Sem pontos de skill disponíveis para esta classe");
 
+    const nivelAtual: number = typeof classes[classIdx].level === "number" ? classes[classIdx].level : 1;
     chosenSkills.push(skillName);
-    classes[classIdx] = { ...classes[classIdx], chosenSkills, skillPoints: skillPoints - 1 };
+    classes[classIdx] = { ...classes[classIdx], chosenSkills, skillPoints: skillPoints - 1, level: nivelAtual + 1 };
 
     const globalSkills: any[] = Array.isArray(dataAtual.skills) ? [...dataAtual.skills] : [];
     if (!globalSkills.some((s: any) => String(s?.name ?? "").toLowerCase() === skillName.toLowerCase())) {
@@ -1561,7 +1636,7 @@ export const personagensService = {
         tier: (classe as any).tier,
         level: 1,
         chosenSkills: [],
-        skillPoints: 1,
+        skillPoints: 2,
       });
     }
 
@@ -1800,5 +1875,235 @@ export const personagensService = {
 
     if (error) throw error;
     return mapPersonagem(data);
+  },
+
+  // ─── Pontos de Atributo ────────────────────────────────────────────────────
+
+  async adicionarPontosAtributo(
+    characterId: string,
+    dto: { pontos: number },
+    accessToken?: string,
+  ) {
+    const masterUser = await ensureMasterAccess(accessToken);
+    const admin = getAdminClient();
+
+    if (!dto.pontos || dto.pontos < 1 || !Number.isInteger(dto.pontos))
+      throw new Error("pontos deve ser inteiro >= 1.");
+
+    const { data: personagem, error: fetchErr } = await admin
+      .from(PERSONAGEM_TABLE)
+      .select(PERSONAGEM_SELECT_FIELDS)
+      .eq("id", characterId)
+      .is("deleted_at", null)
+      .single();
+    if (fetchErr || !personagem) throw new Error("Personagem não encontrado.");
+
+    const dataAtual = normalizeData((personagem as any).data);
+    const atual = typeof dataAtual.pontosAtributo === "number" ? dataAtual.pontosAtributo : 0;
+
+    const { data, error } = await admin
+      .from(PERSONAGEM_TABLE)
+      .update({
+        data: { ...dataAtual, pontosAtributo: atual + dto.pontos },
+        updated_by: getUserDisplayEmail(masterUser),
+      })
+      .eq("id", characterId)
+      .is("deleted_at", null)
+      .select(PERSONAGEM_SELECT_FIELDS)
+      .single();
+    if (error) throw error;
+    return mapPersonagem(data);
+  },
+
+  async distribuirPontosAtributo(
+    characterId: string,
+    dto: { distribuicao: Record<string, number> },
+    accessToken?: string,
+  ) {
+    const supabase = getSupabaseClient(accessToken);
+    const { data: { user }, error: authErr } = await supabase.auth.getUser();
+    if (authErr || !user) throw new Error("Usuário não autenticado.");
+
+    const admin = getAdminClient();
+    const { data: personagem, error: fetchErr } = await admin
+      .from(PERSONAGEM_TABLE)
+      .select(PERSONAGEM_SELECT_FIELDS)
+      .eq("id", characterId)
+      .is("deleted_at", null)
+      .single();
+    if (fetchErr || !personagem) throw new Error("Personagem não encontrado.");
+
+    const masterEmails = getMasterEmails();
+    const isMaster = masterEmails.length > 0 && masterEmails.includes(user.email?.toLowerCase() ?? "");
+    if (!isMaster && (personagem as any).user_id !== user.id)
+      throw new Error("Sem permissão para alterar este personagem.");
+
+    const dataAtual = normalizeData((personagem as any).data);
+    const disponivel = typeof dataAtual.pontosAtributo === "number" ? dataAtual.pontosAtributo : 0;
+
+    const atributosValidos = ["aura", "forca", "destreza", "resistencia", "inteligencia"];
+    const gastos = Object.entries(dto.distribuicao).reduce((sum, [, v]) => sum + (Number(v) || 0), 0);
+
+    if (gastos < 1) throw new Error("Distribuição não pode ser zero.");
+    if (gastos > disponivel) throw new Error("Pontos insuficientes disponíveis.");
+    for (const [attr] of Object.entries(dto.distribuicao)) {
+      if (!atributosValidos.includes(attr)) throw new Error(`Atributo inválido: ${attr}`);
+    }
+
+    const atributosAtuais = { ...(dataAtual.atributos ?? {}) };
+    for (const [attr, val] of Object.entries(dto.distribuicao)) {
+      if ((val ?? 0) > 0) {
+        atributosAtuais[attr] = (atributosAtuais[attr] ?? 0) + val;
+      }
+    }
+
+    const { data, error } = await admin
+      .from(PERSONAGEM_TABLE)
+      .update({
+        data: { ...dataAtual, atributos: atributosAtuais, pontosAtributo: disponivel - gastos },
+        updated_by: getUserDisplayEmail(user),
+      })
+      .eq("id", characterId)
+      .is("deleted_at", null)
+      .select(PERSONAGEM_SELECT_FIELDS)
+      .single();
+    if (error) throw error;
+    return mapPersonagem(data);
+  },
+
+  async resetarPontosAtributo(
+    characterId: string,
+    accessToken?: string,
+  ) {
+    const masterUser = await ensureMasterAccess(accessToken);
+    const admin = getAdminClient();
+
+    const { data: personagem, error: fetchErr } = await admin
+      .from(PERSONAGEM_TABLE)
+      .select("id, data, passado_id")
+      .eq("id", characterId)
+      .is("deleted_at", null)
+      .single();
+    if (fetchErr || !personagem) throw new Error("Personagem não encontrado.");
+
+    const dataAtual = normalizeData((personagem as any).data);
+    const base = dataAtual.atributos_base ?? {};
+    const bonusPassado = dataAtual.atributos_bonus_passado ?? {};
+
+    const atributosReset: Record<string, number> = {};
+    for (const attr of ["aura", "forca", "destreza", "resistencia", "inteligencia"]) {
+      atributosReset[attr] = (base[attr] ?? 0) + (bonusPassado[attr] ?? 0);
+    }
+
+    const { data, error } = await admin
+      .from(PERSONAGEM_TABLE)
+      .update({
+        data: { ...dataAtual, atributos: atributosReset, pontosAtributo: 0 },
+        updated_by: getUserDisplayEmail(masterUser),
+      })
+      .eq("id", characterId)
+      .is("deleted_at", null)
+      .select(PERSONAGEM_SELECT_FIELDS)
+      .single();
+    if (error) throw error;
+    return mapPersonagem(data);
+  },
+
+  // ─── XP de Personagem ─────────────────────────────────────────────────────
+
+  async atribuirXpPersonagem(
+    characterId: string,
+    dto: { xp: number },
+    accessToken?: string,
+  ) {
+    const masterUser = await ensureMasterAccess(accessToken);
+    if (!dto.xp || dto.xp < 1 || !Number.isInteger(dto.xp))
+      throw new Error("xp deve ser inteiro >= 1.");
+
+    const admin = getAdminClient();
+    const { data: personagem, error: fetchErr } = await admin
+      .from(PERSONAGEM_TABLE)
+      .select(PERSONAGEM_SELECT_FIELDS)
+      .eq("id", characterId)
+      .is("deleted_at", null)
+      .single();
+    if (fetchErr || !personagem) throw new Error("Personagem não encontrado.");
+
+    const dataAtual = normalizeData((personagem as any).data);
+    let xpAtual = typeof dataAtual.xp === "number" ? dataAtual.xp : 0;
+    let nivel = (personagem as any).level ?? 1;
+    xpAtual += dto.xp;
+
+    // Busca tabela de progressão geral
+    const { data: progressoes } = await admin
+      .from("level_progression")
+      .select("nivel, xp_necessario")
+      .order("nivel");
+
+    const progressaoMap: Record<number, number> = {};
+    for (const p of progressoes ?? []) progressaoMap[p.nivel] = p.xp_necessario;
+
+    // Auto-levelup enquanto XP suficiente
+    while (nivel < 20) {
+      const threshold = progressaoMap[nivel + 1];
+      if (threshold === undefined || xpAtual < threshold) break;
+      xpAtual -= threshold;
+      nivel++;
+    }
+
+    const { data, error } = await admin
+      .from(PERSONAGEM_TABLE)
+      .update({
+        level: nivel,
+        data: { ...dataAtual, xp: xpAtual },
+        updated_by: getUserDisplayEmail(masterUser),
+      })
+      .eq("id", characterId)
+      .is("deleted_at", null)
+      .select(PERSONAGEM_SELECT_FIELDS)
+      .single();
+    if (error) throw error;
+    return mapPersonagem(data);
+  },
+
+  // ─── Progressão de nível geral (level_progression) ────────────────────────
+
+  async listarLevelProgression() {
+    const admin = getAdminClient();
+    const { data, error } = await admin
+      .from("level_progression")
+      .select("id, nivel, xp_necessario, created_at, updated_at")
+      .order("nivel");
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  async criarOuAtualizarLevelProgression(
+    entradas: { nivel: number; xp_necessario: number }[],
+    accessToken?: string,
+  ) {
+    const user = await ensureMasterAccess(accessToken);
+    const admin = getAdminClient();
+    const agora = new Date().toISOString();
+    const rows = entradas.map(e => ({
+      nivel: e.nivel,
+      xp_necessario: e.xp_necessario,
+      updated_at: agora,
+      updated_by: getUserDisplayEmail(user),
+    }));
+    const { data, error } = await admin
+      .from("level_progression")
+      .upsert(rows, { onConflict: "nivel" })
+      .select();
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  async deletarLevelProgression(id: number, accessToken?: string) {
+    await ensureMasterAccess(accessToken);
+    const admin = getAdminClient();
+    const { error } = await admin.from("level_progression").delete().eq("id", id);
+    if (error) throw error;
+    return { success: true };
   },
 };

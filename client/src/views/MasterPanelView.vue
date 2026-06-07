@@ -51,10 +51,10 @@
             </button>
 
             <button
-              @click="goLogin"
-              class="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-zinc-300 transition-all hover:border-white/20 hover:bg-white/[0.08] hover:text-white sm:px-4"
+              @click="logout"
+              class="rounded-xl border border-red-500/20 bg-red-500/[0.06] px-3 py-1.5 text-xs font-medium text-red-400 transition-all hover:border-red-500/40 hover:bg-red-500/[0.12] hover:text-red-300 sm:px-4"
             >
-              Sair do Painel
+              Logout
             </button>
           </div>
         </div>

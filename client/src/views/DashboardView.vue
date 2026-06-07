@@ -32,7 +32,7 @@
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                 <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
               </svg>
-              <span v-if="unreadCount > 0" class="notif-dot">{{ unreadCount > 9 ? '9+' : unreadCount }}</span>
+              <span v-if="showBellBadge" class="notif-dot" :class="bellBadgeClass">{{ unreadCount > 0 && !hasUnseenResponse && !hasPendingRequest ? (unreadCount > 9 ? '9+' : unreadCount) : '' }}</span>
             </button>
 
             <Transition name="dropdown">
@@ -41,8 +41,34 @@
                   <span class="text-sm font-semibold text-amber-400 font-cinzel">Notificações</span>
                   <button v-if="notifications.length > 0" @click="markAllRead" class="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">Marcar como lido</button>
                 </div>
+
+                <!-- Status de pedido de alteração (só player) -->
+                <div v-if="!authStore.eMestre && hasUnseenResponse" class="px-4 py-3 border-b border-red-500/20 bg-red-950/20">
+                  <div class="flex items-start gap-2.5">
+                    <div class="w-6 h-6 rounded-full bg-red-900/60 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm font-medium text-zinc-200">Solicitação processada</p>
+                      <p class="text-xs text-zinc-500 mt-0.5">O mestre respondeu sua solicitação de alteração.</p>
+                      <button @click.stop="markAsSeenResponse(); showNotifications = false" class="mt-1.5 text-xs text-red-400 hover:text-red-300 underline transition-colors">Marcar como visto</button>
+                    </div>
+                  </div>
+                </div>
+                <div v-else-if="!authStore.eMestre && hasPendingRequest" class="px-4 py-3 border-b border-orange-500/20 bg-orange-950/20">
+                  <div class="flex items-start gap-2.5">
+                    <div class="w-6 h-6 rounded-full bg-orange-900/60 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm font-medium text-zinc-200">Solicitação pendente</p>
+                      <p class="text-xs text-zinc-500 mt-0.5">Aguardando aprovação do mestre.</p>
+                    </div>
+                  </div>
+                </div>
+
                 <div class="max-h-72 overflow-y-auto">
-                  <div v-if="notifications.length === 0" class="px-4 py-8 text-center text-zinc-500 text-sm italic">Nenhuma novidade por enquanto.</div>
+                  <div v-if="notifications.length === 0 && !hasPendingRequest && !hasUnseenResponse" class="px-4 py-8 text-center text-zinc-500 text-sm italic">Nenhuma novidade por enquanto.</div>
                   <button
                     v-for="notif in notifications"
                     :key="notif.id"
@@ -120,12 +146,12 @@
 
               <!-- Portrait card -->
               <div class="dash-portrait-card overflow-hidden">
-                <div class="relative aspect-[3/4] overflow-hidden">
+                <div class="relative aspect-[3/4] overflow-hidden cursor-pointer group" @click="modalRetratoAberto = true" title="Clique para ampliar">
                   <img
                     v-if="character.avatarUrl"
                     :src="character.avatarUrl"
                     :alt="character.name"
-                    class="w-full h-full object-cover"
+                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     :style="{ objectPosition: character.data?.avatarFocalPoint ?? 'center 20%' }"
                   />
                   <div v-else class="w-full h-full dash-avatar-empty flex items-center justify-center">
@@ -215,17 +241,80 @@
                   </div>
 
                   <!-- Classes -->
-                  <div v-if="(character.data?.classes ?? []).length" class="mt-5 pt-4 border-t border-[#6B4E9E]/15">
-                    <p class="dash-section-label mb-2.5">Classes</p>
-                    <div class="flex flex-wrap gap-2">
+                  <div v-if="classesPersonagem.length" class="mt-5 pt-4 border-t border-[#6B4E9E]/15">
+                    <div class="flex items-center justify-between mb-3">
+                      <p class="dash-section-label">Classes</p>
+                      <span v-if="(character.data?.classPoints ?? 0) > 0" class="text-[0.65rem] font-bold text-amber-400 bg-amber-900/30 border border-amber-700/30 rounded-full px-2 py-0.5">
+                        {{ character.data.classPoints }} pts. classe
+                      </span>
+                    </div>
+
+                    <div class="space-y-3">
                       <div
-                        v-for="cls in character.data.classes"
+                        v-for="cls in classesPersonagem"
                         :key="cls.classId ?? cls.name"
-                        class="flex items-center gap-1.5 bg-amber-900/20 border border-amber-700/25 rounded-xl px-3 py-1.5 hover:border-amber-600/50 transition-colors"
+                        class="rounded-xl border border-amber-700/25 bg-amber-900/10 overflow-hidden"
                       >
-                        <span class="text-xs font-semibold text-amber-200">{{ cls.name }}</span>
-                        <span class="text-[0.6rem] font-bold text-amber-500/70 bg-amber-900/40 border border-amber-700/20 rounded-full px-1.5 py-0.5 font-cinzel">Lv {{ cls.level ?? 1 }}</span>
+                        <!-- Cabeçalho da classe -->
+                        <div class="flex items-center justify-between px-3 py-2.5 border-b border-amber-700/15">
+                          <div class="flex items-center gap-2 min-w-0">
+                            <span class="text-sm font-semibold text-amber-200 truncate">{{ cls.name }}</span>
+                            <span class="text-[0.6rem] font-bold text-amber-500/80 bg-amber-900/50 border border-amber-700/30 rounded-full px-1.5 py-0.5 font-cinzel shrink-0">Lv {{ cls.level ?? 1 }}</span>
+                          </div>
+                          <div class="flex items-center gap-1.5 shrink-0">
+                            <span v-if="(cls.skillPoints ?? 0) > 0" class="text-[0.6rem] font-bold text-emerald-400 bg-emerald-900/30 border border-emerald-700/30 rounded-full px-1.5 py-0.5">
+                              {{ cls.skillPoints }} pts. skill
+                            </span>
+                            <button
+                              v-if="!authStore.eMestre && (character.data?.classPoints ?? 0) > 0"
+                              type="button"
+                              :disabled="levelandoClasse === String(cls.classId ?? cls.name)"
+                              class="text-[0.6rem] font-semibold bg-amber-700/40 border border-amber-600/40 text-amber-300 rounded-lg px-2 py-1 hover:bg-amber-700/60 transition-colors disabled:opacity-50"
+                              title="Gasta 1 ponto de classe e concede pontos de skill"
+                              @click="levelarClasseHandler(cls)"
+                            >
+                              {{ levelandoClasse === String(cls.classId ?? cls.name) ? '...' : '↑ Ganhar pts. skill' }}
+                            </button>
+                          </div>
+                        </div>
+
+                        <!-- Skills da classe -->
+                        <div class="px-3 py-2.5">
+                          <p class="text-[0.6rem] font-bold uppercase tracking-widest text-zinc-600 mb-2">Skills</p>
+                          <div v-if="(cls.chosenSkills ?? []).length" class="flex flex-wrap gap-1.5 mb-2">
+                            <span
+                              v-for="skillName in cls.chosenSkills"
+                              :key="skillName"
+                              class="text-xs bg-violet-900/25 border border-violet-700/30 text-violet-300 px-2 py-0.5 rounded-full"
+                            >{{ skillName }}</span>
+                          </div>
+                          <p v-else class="text-xs text-zinc-600 italic mb-2">Nenhuma skill aprendida ainda.</p>
+
+                          <button
+                            v-if="!authStore.eMestre && (cls.skillPoints ?? 0) > 0"
+                            type="button"
+                            class="text-[0.65rem] font-semibold border border-violet-600/40 bg-violet-900/20 text-violet-300 rounded-lg px-2.5 py-1 hover:bg-violet-900/40 transition-colors"
+                            @click="abrirModalAprenderSkill(cls)"
+                          >
+                            + Aprender Skill (1 pt. skill)
+                          </button>
+                        </div>
                       </div>
+                    </div>
+
+                    <p v-if="erroLevelClasse" class="mt-2 text-xs text-red-400">{{ erroLevelClasse }}</p>
+                    <p v-if="feedbackLevelClasse" class="mt-2 text-xs text-emerald-400">{{ feedbackLevelClasse }}</p>
+
+                    <!-- Desbloquear nova classe -->
+                    <div v-if="!authStore.eMestre && podeDesbloquearClasse" class="mt-3">
+                      <button
+                        type="button"
+                        class="w-full rounded-xl border border-indigo-500/30 bg-indigo-900/20 py-2 text-xs font-semibold text-indigo-300 hover:bg-indigo-900/40 transition-colors"
+                        @click="abrirModalDesbloquearClasse"
+                      >
+                        + Desbloquear Nova Classe
+                      </button>
+                      <p class="mt-1 text-center text-[0.6rem] text-zinc-600">{{ msgPreReqClasse }}</p>
                     </div>
                   </div>
                 </div>
@@ -248,13 +337,74 @@
                   </div>
                 </div>
 
+                <!-- Distribuir Pontos de Atributo -->
+                <div v-if="!authStore.eMestre && (character.data?.pontosAtributo ?? 0) > 0" class="dash-card p-5">
+                  <div class="flex items-center justify-between mb-4">
+                    <h3 class="dash-section-label">Distribuir Atributos</h3>
+                    <span class="text-[0.65rem] font-bold text-emerald-400 bg-emerald-900/30 border border-emerald-700/30 rounded-full px-2 py-0.5">
+                      {{ pontosRestantes }} ponto{{ pontosRestantes !== 1 ? 's' : '' }} disponível{{ pontosRestantes !== 1 ? 'is' : '' }}
+                    </span>
+                  </div>
+                  <div class="space-y-3">
+                    <div v-for="attr in ATRIBUTOS_DASHBOARD" :key="attr.key" class="flex items-center gap-3">
+                      <span class="text-[0.7rem] font-semibold text-zinc-500 w-24 shrink-0">{{ attr.label }}</span>
+                      <span class="text-xs font-bold shrink-0 w-6 text-right" :class="attr.color">
+                        {{ (character.data.atributos as any)[attr.key] ?? 0 }}
+                      </span>
+                      <div class="flex items-center gap-1.5 flex-1 justify-end">
+                        <button
+                          type="button"
+                          :disabled="(distribuicaoStaged[attr.key] ?? 0) <= 0"
+                          class="w-6 h-6 rounded-full border border-white/15 bg-white/[0.04] text-zinc-400 hover:bg-white/[0.08] disabled:opacity-30 text-sm leading-none transition-colors"
+                          @click="ajustarStaged(attr.key, -1)"
+                        >−</button>
+                        <span class="text-xs font-bold w-6 text-center" :class="(distribuicaoStaged[attr.key] ?? 0) > 0 ? 'text-emerald-400' : 'text-zinc-600'">
+                          +{{ distribuicaoStaged[attr.key] ?? 0 }}
+                        </span>
+                        <button
+                          type="button"
+                          :disabled="pontosRestantes <= 0"
+                          class="w-6 h-6 rounded-full border border-white/15 bg-white/[0.04] text-zinc-400 hover:bg-white/[0.08] disabled:opacity-30 text-sm leading-none transition-colors"
+                          @click="ajustarStaged(attr.key, 1)"
+                        >+</button>
+                        <span class="text-xs font-bold w-6 text-right" :class="attr.color">
+                          → {{ ((character.data.atributos as any)[attr.key] ?? 0) + (distribuicaoStaged[attr.key] ?? 0) }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="mt-4 flex gap-3">
+                    <button
+                      type="button"
+                      :disabled="totalStagedAtributos <= 0"
+                      class="flex-1 rounded-xl border border-white/10 py-2 text-sm text-zinc-400 hover:text-white disabled:opacity-40 transition-colors"
+                      @click="limparStaged"
+                    >
+                      Limpar
+                    </button>
+                    <button
+                      type="button"
+                      :disabled="totalStagedAtributos <= 0 || distribuindoAtributos"
+                      class="flex-1 rounded-xl bg-emerald-700 py-2 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60 transition-colors"
+                      @click="modalConfirmarAtributos = true"
+                    >
+                      {{ distribuindoAtributos ? 'Salvando...' : `Distribuir ${totalStagedAtributos} ponto${totalStagedAtributos !== 1 ? 's' : ''}` }}
+                    </button>
+                  </div>
+                  <p v-if="erroDistribuicao" class="mt-2 text-xs text-red-400">{{ erroDistribuicao }}</p>
+                </div>
+
                 <!-- Origem: Raça, Passado, Deus -->
                 <div class="dash-card p-5">
                   <h3 class="dash-section-label mb-4">Origem</h3>
                   <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
 
                     <!-- Raça -->
-                    <div class="flex items-start gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+                    <div
+                      class="flex items-start gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 transition-colors"
+                      :class="racaPersonagem ? 'cursor-pointer hover:border-indigo-500/30 hover:bg-indigo-900/10' : ''"
+                      @click="racaPersonagem && (modalRacaAberto = true)"
+                    >
                       <div class="h-9 w-9 rounded-xl overflow-hidden border border-indigo-500/20 bg-indigo-900/20 shrink-0">
                         <img v-if="racaPersonagem?.foto_url" :src="racaPersonagem.foto_url" :alt="racaPersonagem.nome" class="h-full w-full object-cover" />
                         <div v-else class="flex h-full items-center justify-center text-sm text-indigo-400">⚔</div>
@@ -266,7 +416,11 @@
                     </div>
 
                     <!-- Passado -->
-                    <div class="flex items-start gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+                    <div
+                      class="flex items-start gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 transition-colors"
+                      :class="passadoPersonagem ? 'cursor-pointer hover:border-violet-500/30 hover:bg-violet-900/10' : ''"
+                      @click="passadoPersonagem && (modalPassadoAberto = true)"
+                    >
                       <div class="h-9 w-9 rounded-xl overflow-hidden border border-violet-500/20 bg-violet-900/20 shrink-0">
                         <img v-if="passadoPersonagem?.foto_url" :src="passadoPersonagem.foto_url" :alt="passadoPersonagem.nome" class="h-full w-full object-cover" />
                         <div v-else class="flex h-full items-center justify-center text-sm text-violet-400">📜</div>
@@ -278,7 +432,11 @@
                     </div>
 
                     <!-- Deus -->
-                    <div class="flex items-start gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+                    <div
+                      class="flex items-start gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 transition-colors"
+                      :class="deusPersonagem ? 'cursor-pointer hover:border-amber-500/30 hover:bg-amber-900/10' : ''"
+                      @click="deusPersonagem && (modalDeusAberto = true)"
+                    >
                       <div class="h-9 w-9 rounded-xl overflow-hidden border border-amber-500/20 bg-amber-900/20 shrink-0 flex items-center justify-center text-sm text-amber-400">✦</div>
                       <div class="min-w-0">
                         <p class="text-[0.6rem] font-bold uppercase tracking-widest text-amber-400/70 mb-0.5">Deus</p>
@@ -607,6 +765,31 @@
               />
             </div>
 
+            <!-- Índole -->
+            <div v-if="todasIndoles.length">
+              <label class="manage-field-label">Índole</label>
+              <p class="text-xs text-zinc-500 mb-2">Atual: <span :class="indoleColor" class="font-semibold">{{ indoleLabel }}</span></p>
+              <div class="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+                <button
+                  v-for="ind in todasIndoles"
+                  :key="ind.id"
+                  type="button"
+                  @click="requestedIndoleId = requestedIndoleId === ind.id ? null : ind.id"
+                  class="rounded-xl border px-3 py-2 text-xs font-medium transition-all text-left"
+                  :class="requestedIndoleId === ind.id
+                    ? 'border-violet-500 bg-violet-600/20 text-violet-200'
+                    : ind.id === character.indoleId
+                      ? 'border-white/10 bg-white/[0.04] text-zinc-400 opacity-60'
+                      : 'border-white/[0.06] bg-white/[0.02] text-zinc-400 hover:border-white/20 hover:text-zinc-300'"
+                >
+                  {{ ind.descricao }}
+                </button>
+              </div>
+              <p v-if="requestedIndoleId !== null && requestedIndoleId !== character.indoleId" class="mt-1.5 text-xs text-violet-400">
+                → {{ todasIndoles.find(i => i.id === requestedIndoleId)?.descricao }}
+              </p>
+            </div>
+
             <!-- Imagem -->
             <div>
               <label class="manage-field-label">Imagem do personagem</label>
@@ -715,6 +898,10 @@
               <div class="rounded-xl border border-zinc-800/60 p-3"><p class="text-xs uppercase tracking-wider text-zinc-600">Nome atual</p><p class="mt-1 text-zinc-300">{{ request.currentName }}</p></div>
               <div class="rounded-xl border border-zinc-800/60 p-3"><p class="text-xs uppercase tracking-wider text-zinc-600">Nome solicitado</p><p class="mt-1 text-zinc-300">{{ request.requestedName || 'Sem alteração' }}</p></div>
             </div>
+            <div v-if="request.requestedIndoleId" class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div class="rounded-xl border border-zinc-800/60 p-3"><p class="text-xs uppercase tracking-wider text-zinc-600">Índole atual</p><p class="mt-1 text-zinc-300">{{ todasIndoles.find(i => i.id === request.currentIndoleId)?.descricao ?? '—' }}</p></div>
+              <div class="rounded-xl border border-violet-600/30 bg-violet-950/20 p-3"><p class="text-xs uppercase tracking-wider text-violet-500">Índole solicitada</p><p class="mt-1 text-violet-300 font-semibold">{{ todasIndoles.find(i => i.id === request.requestedIndoleId)?.descricao ?? '—' }}</p></div>
+            </div>
             <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
               <img v-if="request.currentAvatarUrl" :src="request.currentAvatarUrl" alt="Avatar atual" class="h-36 w-full rounded-xl object-cover" />
               <div v-else class="flex h-36 items-center justify-center rounded-xl border border-zinc-800/60 text-zinc-600 text-sm">Sem avatar</div>
@@ -803,6 +990,385 @@
         </div>
       </template>
     </Modal>
+
+    <!-- ══ Modal Retrato ════════════════════════════════════════════════════ -->
+    <Modal
+      v-if="modalRetratoAberto && character"
+      panel-class="max-w-xl"
+      header-class="px-3 py-1.5 !border-b-0"
+      :close-on-backdrop="false"
+      @close="modalRetratoAberto = false"
+    >
+      <div class="px-3 pb-3">
+        <div class="relative rounded-2xl overflow-hidden">
+          <!-- Imagem -->
+          <img
+            v-if="character.avatarUrl"
+            :src="character.avatarUrl"
+            :alt="character.name"
+            class="w-full max-h-[80vh] object-cover block"
+            :style="{ objectPosition: character.data?.avatarFocalPoint ?? 'center 20%' }"
+          />
+          <div v-else class="h-80 bg-zinc-900 flex items-center justify-center text-zinc-600 text-sm">Sem imagem</div>
+
+          <!-- Gradiente topo -->
+          <div class="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/60 to-transparent pointer-events-none" />
+          <!-- Gradiente rodapé -->
+          <div class="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
+
+          <!-- Nome — topo esquerdo -->
+          <div class="absolute top-3 left-3">
+            <span class="font-cinzel text-xs font-bold text-white bg-black/65 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/30 tracking-wide drop-shadow-sm">
+              {{ character.name }}
+            </span>
+          </div>
+
+          <!-- Nível + Índole — rodapé esquerdo -->
+          <div class="absolute bottom-3 left-3 flex items-center gap-1.5">
+            <span class="font-cinzel text-[0.6rem] font-bold text-violet-200 bg-violet-800/60 backdrop-blur-sm border border-violet-400/25 px-2 py-0.5 rounded-full">
+              Nv. {{ character.level }}
+            </span>
+            <span class="text-[0.6rem] font-semibold backdrop-blur-sm border px-2 py-0.5 rounded-full" :class="indoleChipClass">
+              {{ indoleLabel }}
+            </span>
+          </div>
+
+          <!-- Baixar — rodapé direito -->
+          <button
+            v-if="character.avatarUrl"
+            @click="downloadRetrato"
+            class="absolute bottom-3 right-3 flex items-center gap-1.5 text-[0.65rem] font-semibold text-white bg-blue-600/80 hover:bg-blue-500 backdrop-blur-sm border border-blue-400/30 px-2.5 py-1 rounded-full transition-colors"
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Baixar
+          </button>
+        </div>
+      </div>
+    </Modal>
+
+    <!-- ══ Modal Raça ════════════════════════════════════════════════════════ -->
+    <Modal
+      v-if="modalRacaAberto && racaPersonagem"
+      panel-class="max-w-xl"
+      body-class="overflow-y-auto max-h-[68vh]"
+      :close-on-backdrop="false"
+      @close="modalRacaAberto = false"
+    >
+      <template #header>
+        <!-- Banner da raça -->
+        <div v-if="racaPersonagem.foto_url" class="relative w-full h-44 overflow-hidden">
+          <img
+            :src="racaPersonagem.foto_url"
+            :alt="racaPersonagem.nome"
+            class="w-full h-full object-cover"
+          />
+          <!-- Chip sobreposto na imagem -->
+          <div class="absolute bottom-4 left-5">
+            <div class="inline-flex flex-col bg-indigo-950/75 backdrop-blur-md rounded-2xl border border-indigo-400/25 px-4 py-2.5">
+              <p class="text-[0.6rem] font-bold uppercase tracking-widest text-indigo-300/80 mb-0.5">Raça</p>
+              <h2 class="font-cinzel font-bold text-white text-xl leading-tight">{{ racaPersonagem.nome }}</h2>
+            </div>
+          </div>
+        </div>
+        <!-- Sem imagem: chip simples sem fundo -->
+        <div v-else class="px-5 pt-4 pb-3">
+          <div class="inline-flex flex-col bg-indigo-950/75 backdrop-blur-md rounded-2xl border border-indigo-400/25 px-4 py-2.5">
+            <p class="text-[0.6rem] font-bold uppercase tracking-widest text-indigo-300/80 mb-0.5">Raça</p>
+            <h2 class="font-cinzel font-bold text-white text-xl leading-tight">{{ racaPersonagem.nome }}</h2>
+          </div>
+        </div>
+      </template>
+
+      <div class="px-6 py-5 space-y-5">
+
+        <!-- Bônus de Atributo (chips) -->
+        <div v-if="racaPersonagem.atributos_bonus?.length" class="flex flex-wrap gap-2">
+          <span
+            v-for="b in racaPersonagem.atributos_bonus"
+            :key="b.atributo"
+            class="text-xs font-semibold bg-indigo-900/40 border border-indigo-500/40 text-indigo-200 px-3 py-1 rounded-full"
+          >
+            {{ b.atributo }} <span class="text-indigo-300 font-bold">+{{ b.valor }}</span>
+          </span>
+        </div>
+
+        <!-- Descrição -->
+        <p v-if="racaPersonagem.descricao" class="text-sm text-zinc-300 leading-relaxed">{{ racaPersonagem.descricao }}</p>
+
+        <!-- Lore -->
+        <div v-if="racaPersonagem.lore" class="rounded-2xl border border-indigo-500/15 bg-indigo-950/20 p-4">
+          <p class="text-[0.6rem] font-bold uppercase tracking-widest text-indigo-400/60 mb-2">Lore</p>
+          <p class="text-sm text-zinc-400 leading-relaxed">{{ racaPersonagem.lore }}</p>
+        </div>
+
+        <!-- Habilidades Raciais -->
+        <div v-if="racaPersonagem.habilidades?.length" class="space-y-2.5">
+          <p class="text-[0.6rem] font-bold uppercase tracking-widest text-zinc-500">Habilidades Raciais</p>
+          <div
+            v-for="h in racaPersonagem.habilidades"
+            :key="h.nome"
+            class="rounded-2xl border border-indigo-500/15 bg-indigo-950/10 p-4"
+          >
+            <p class="text-sm font-semibold text-indigo-200 mb-1.5">{{ h.nome }}</p>
+            <p class="text-xs text-zinc-400 leading-relaxed">{{ h.descricao }}</p>
+          </div>
+        </div>
+
+      </div>
+    </Modal>
+
+    <!-- ══ Modal Passado ═════════════════════════════════════════════════════ -->
+    <Modal
+      v-if="modalPassadoAberto && passadoPersonagem"
+      panel-class="max-w-xl"
+      body-class="overflow-y-auto max-h-[68vh]"
+      header-class="px-4 py-3 !border-b-0"
+      :close-on-backdrop="false"
+      @close="modalPassadoAberto = false"
+    >
+      <!-- Chip sempre no header, centralizado -->
+      <template #header>
+        <div class="flex-1 flex justify-center items-center">
+          <div class="inline-flex flex-col items-center bg-violet-950/75 backdrop-blur-md rounded-2xl border border-violet-400/25 px-6 py-2.5">
+            <p class="text-[0.6rem] font-bold uppercase tracking-widest text-violet-300/80 mb-0.5">Passado</p>
+            <h2 class="font-cinzel font-bold text-white text-xl leading-tight">{{ passadoPersonagem.nome }}</h2>
+          </div>
+        </div>
+      </template>
+
+      <div class="px-6 pb-6 space-y-5">
+        <!-- Banner com imagem edge-to-edge quando existe -->
+        <div v-if="passadoPersonagem.foto_url" class="relative -mx-6 h-44 overflow-hidden">
+          <img :src="passadoPersonagem.foto_url" :alt="passadoPersonagem.nome" class="w-full h-full object-cover" />
+        </div>
+        <p v-if="passadoPersonagem.descricao" class="text-sm text-zinc-300 leading-relaxed">{{ passadoPersonagem.descricao }}</p>
+        <div v-if="passadoPersonagem.atributo_bonus && Object.keys(passadoPersonagem.atributo_bonus).length" class="space-y-2">
+          <p class="text-[0.6rem] font-bold uppercase tracking-widest text-zinc-500">Bônus de Atributo</p>
+          <div class="flex flex-wrap gap-2">
+            <span
+              v-for="[attr, val] in Object.entries(passadoPersonagem.atributo_bonus).filter(([, v]) => v)"
+              :key="attr"
+              class="text-xs bg-violet-900/30 border border-violet-700/30 text-violet-300 px-2.5 py-1 rounded-full"
+            >
+              {{ attr }} +{{ val }}
+            </span>
+          </div>
+        </div>
+        <div v-if="passadoPersonagem.skills?.length" class="space-y-2">
+          <p class="text-[0.6rem] font-bold uppercase tracking-widest text-zinc-500">Skills Concedidas</p>
+          <div class="flex flex-wrap gap-2">
+            <span v-for="s in passadoPersonagem.skills" :key="s.id" class="text-xs bg-violet-900/25 border border-violet-700/30 text-violet-300 px-2.5 py-1 rounded-full">{{ s.name }}</span>
+          </div>
+        </div>
+        <div v-if="passadoPersonagem.titulos?.length" class="space-y-2">
+          <p class="text-[0.6rem] font-bold uppercase tracking-widest text-zinc-500">Títulos Concedidos</p>
+          <div class="flex flex-wrap gap-2">
+            <span v-for="t in passadoPersonagem.titulos" :key="t.id" class="text-xs bg-amber-900/25 border border-amber-700/30 text-amber-300 px-2.5 py-1 rounded-full">{{ t.name }}</span>
+          </div>
+        </div>
+      </div>
+    </Modal>
+
+    <!-- ══ Modal Deus ════════════════════════════════════════════════════════ -->
+    <Modal
+      v-if="modalDeusAberto && deusPersonagem"
+      panel-class="max-w-2xl"
+      body-class="overflow-y-auto max-h-[82vh]"
+      header-class="px-3 py-1.5 !border-b-0"
+      :close-on-backdrop="false"
+      @close="modalDeusAberto = false"
+    >
+      <div class="px-6 pb-6 space-y-5">
+        <!-- Banner com imagem edge-to-edge -->
+        <div v-if="deusPersonagem.imageUrl" class="relative -mx-6 h-80 overflow-hidden">
+          <img :src="deusPersonagem.imageUrl" :alt="deusPersonagem.name" class="w-full h-full object-cover object-top" />
+          <div class="absolute bottom-4 left-5">
+            <div class="inline-flex flex-col bg-amber-950/80 backdrop-blur-md rounded-2xl border border-amber-400/25 px-4 py-2.5">
+              <p class="text-[0.6rem] font-bold uppercase tracking-widest text-amber-300/80 mb-0.5">Divindade</p>
+              <h2 class="font-cinzel font-bold text-white text-xl leading-tight">{{ deusPersonagem.name }}</h2>
+              <p v-if="deusPersonagem.title" class="text-xs text-amber-300/70 mt-0.5 italic">{{ deusPersonagem.title }}</p>
+            </div>
+          </div>
+        </div>
+        <!-- Sem imagem: chip centralizado -->
+        <div v-else class="flex justify-center pt-4">
+          <div class="inline-flex flex-col items-center bg-amber-950/75 backdrop-blur-md rounded-2xl border border-amber-400/25 px-6 py-3">
+            <p class="text-[0.6rem] font-bold uppercase tracking-widest text-amber-300/80 mb-0.5">Divindade</p>
+            <h2 class="font-cinzel font-bold text-white text-xl leading-tight">{{ deusPersonagem.name }}</h2>
+            <p v-if="deusPersonagem.title" class="text-xs text-amber-300/70 mt-0.5 italic">{{ deusPersonagem.title }}</p>
+          </div>
+        </div>
+        <p v-if="deusPersonagem.description || deusPersonagem.shortDescription" class="text-sm text-zinc-300 leading-relaxed">
+          {{ deusPersonagem.description ?? deusPersonagem.shortDescription }}
+        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div v-if="deusPersonagem.dogma" class="rounded-xl border border-emerald-700/20 bg-emerald-900/10 p-3">
+            <p class="text-[0.6rem] font-bold uppercase tracking-widest text-emerald-500/70 mb-1">Dogma</p>
+            <p class="text-xs text-zinc-400 leading-relaxed">{{ deusPersonagem.dogma }}</p>
+          </div>
+          <div v-if="deusPersonagem.anatema" class="rounded-xl border border-red-700/20 bg-red-900/10 p-3">
+            <p class="text-[0.6rem] font-bold uppercase tracking-widest text-red-500/70 mb-1">Anatema</p>
+            <p class="text-xs text-zinc-400 leading-relaxed">{{ deusPersonagem.anatema }}</p>
+          </div>
+        </div>
+        <div v-if="deusPersonagem.weapons" class="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+          <p class="text-[0.6rem] font-bold uppercase tracking-widest text-zinc-500 mb-1">Armas Sagradas</p>
+          <p class="text-xs text-zinc-400">{{ deusPersonagem.weapons }}</p>
+        </div>
+        <div v-if="deusPersonagem.indole" class="flex items-center gap-2">
+          <p class="text-[0.6rem] font-bold uppercase tracking-widest text-zinc-500">Índole:</p>
+          <span class="text-xs font-semibold text-zinc-300">{{ deusPersonagem.indole }}</span>
+        </div>
+      </div>
+    </Modal>
+
+  <!-- ══ Modal: Confirmar distribuição de atributos ══ -->
+  <Modal
+    v-if="modalConfirmarAtributos"
+    panel-class="max-w-sm"
+    body-class="space-y-4 p-6"
+    tema="escuro"
+    :close-on-backdrop="false"
+    :show-close-button="false"
+  >
+    <h3 class="text-base font-bold text-white">Confirmar Distribuição</h3>
+    <p class="text-sm text-zinc-400">Os pontos serão permanentemente adicionados aos atributos. Você não poderá desfazer.</p>
+    <div class="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 space-y-1.5">
+      <div v-for="attr in ATRIBUTOS_DASHBOARD" :key="attr.key">
+        <div v-if="(distribuicaoStaged[attr.key] ?? 0) > 0" class="flex items-center justify-between">
+          <span class="text-xs text-zinc-400">{{ attr.label }}</span>
+          <span class="text-xs font-bold" :class="attr.color">
+            {{ (character?.data?.atributos as any)?.[attr.key] ?? 0 }}
+            → {{ ((character?.data?.atributos as any)?.[attr.key] ?? 0) + (distribuicaoStaged[attr.key] ?? 0) }}
+            <span class="text-emerald-400">(+{{ distribuicaoStaged[attr.key] }})</span>
+          </span>
+        </div>
+      </div>
+    </div>
+    <div class="flex gap-3">
+      <button type="button" class="flex-1 rounded-xl border border-white/10 py-2 text-sm text-zinc-400 hover:text-white" @click="modalConfirmarAtributos = false">Cancelar</button>
+      <button type="button" :disabled="distribuindoAtributos" class="flex-1 rounded-xl bg-emerald-700 py-2 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60" @click="confirmarDistribuicao">
+        {{ distribuindoAtributos ? 'Salvando...' : 'Confirmar' }}
+      </button>
+    </div>
+  </Modal>
+
+  <!-- ══ Modal: Aprender Skill ══ -->
+  <Modal
+    v-if="modalAprenderSkill && classeSelecionadaParaSkill"
+    panel-class="max-w-md"
+    body-class="px-6 py-5"
+    :close-on-backdrop="false"
+    @close="modalAprenderSkill = false"
+  >
+    <template #header>
+      <div class="px-6 py-4">
+        <h2 class="text-base font-bold text-violet-300 font-cinzel">Aprender Skill</h2>
+        <p class="text-xs text-zinc-500 mt-0.5">{{ classeSelecionadaParaSkill.name }} · {{ classeSelecionadaParaSkill.skillPoints ?? 0 }} ponto{{ (classeSelecionadaParaSkill.skillPoints ?? 0) !== 1 ? 's' : '' }} de skill disponíve{{ (classeSelecionadaParaSkill.skillPoints ?? 0) !== 1 ? 'is' : 'l' }}</p>
+      </div>
+    </template>
+
+    <div class="space-y-4">
+      <div v-if="carregandoSkillsClasse" class="flex items-center justify-center py-6 gap-2 text-zinc-500 text-sm">
+        <div class="w-4 h-4 border-2 border-violet-500/30 border-t-violet-500 rounded-full animate-spin" />
+        Carregando skills...
+      </div>
+      <div v-else-if="!skillsParaEscolher.length" class="rounded-xl border border-zinc-800/50 p-5 text-center">
+        <p class="text-sm text-zinc-500">Nenhuma skill disponível para esta classe.</p>
+        <p class="text-xs text-zinc-600 mt-1.5">O mestre precisa cadastrar skills com a classe "{{ classeSelecionadaParaSkill.name }}" configurada no campo "Classe Requerida".</p>
+      </div>
+      <div v-else class="space-y-2 max-h-72 overflow-y-auto">
+        <label
+          v-for="sk in skillsParaEscolher"
+          :key="sk.id"
+          class="flex items-start gap-3 rounded-xl border px-3 py-2.5 transition-colors"
+          :class="[
+            sk._locked
+              ? 'opacity-40 cursor-not-allowed border-white/[0.04]'
+              : String(sk.id) === skillSelecionadaId
+                ? 'border-violet-500/60 bg-violet-900/20 cursor-pointer'
+                : 'border-white/10 hover:border-white/20 cursor-pointer',
+          ]"
+        >
+          <div class="mt-0.5 flex-shrink-0">
+            <span v-if="sk._locked" class="text-zinc-600 text-sm">🔒</span>
+            <input
+              v-else
+              type="radio"
+              :value="String(sk.id)"
+              v-model="skillSelecionadaId"
+              class="accent-violet-500 mt-0.5"
+            />
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-semibold leading-tight" :class="sk._locked ? 'text-zinc-600' : 'text-zinc-200'">{{ sk.name }}</p>
+            <p v-if="sk._locked" class="text-xs text-zinc-600 mt-0.5">Disponível no nível {{ sk.nivel_minimo_classe }}</p>
+            <p v-else-if="sk.effect_description" class="text-xs text-zinc-500 mt-0.5 line-clamp-2">{{ sk.effect_description }}</p>
+            <p v-else-if="sk.description" class="text-xs text-zinc-500 mt-0.5 line-clamp-2">{{ sk.description }}</p>
+          </div>
+        </label>
+      </div>
+
+      <p v-if="erroAprenderSkill" class="text-sm text-red-400">{{ erroAprenderSkill }}</p>
+
+      <div class="flex gap-3 pt-1">
+        <button type="button" class="flex-1 rounded-xl border border-white/10 py-2 text-sm text-zinc-400 hover:text-white transition-colors" @click="modalAprenderSkill = false">Cancelar</button>
+        <button
+          type="button"
+          :disabled="!skillSelecionadaId || aprendendoSkill || !skillsParaEscolher.length"
+          class="flex-1 rounded-xl bg-violet-600 py-2 text-sm font-semibold text-white hover:bg-violet-500 disabled:opacity-60 transition-colors"
+          @click="confirmarAprenderSkill"
+        >
+          {{ aprendendoSkill ? 'Aprendendo...' : 'Aprender' }}
+        </button>
+      </div>
+    </div>
+  </Modal>
+
+  <!-- ══ Modal: Desbloquear nova classe ══ -->
+  <Modal
+    v-if="modalDesbloquearClasse"
+    title="Desbloquear Nova Classe"
+    panel-class="max-w-md"
+    body-class="px-6 py-5"
+    :close-on-backdrop="false"
+    @close="modalDesbloquearClasse = false"
+  >
+    <div class="space-y-4">
+      <p class="text-sm text-zinc-400">Selecione a nova classe que deseja desbloquear.</p>
+      <div v-if="carregandoClassesDisponiveis" class="text-sm text-zinc-500">Carregando...</div>
+      <div v-else class="space-y-2 max-h-72 overflow-y-auto">
+        <label
+          v-for="cls in classesDisponiveis"
+          :key="Number(cls.id)"
+          class="flex cursor-pointer items-start gap-3 rounded-xl border px-4 py-3 transition-colors"
+          :class="classeSelecionadaId === Number(cls.id)
+            ? 'border-indigo-500/60 bg-indigo-900/20'
+            : 'border-white/10 hover:border-white/20'"
+        >
+          <input type="radio" :value="Number(cls.id)" v-model="classeSelecionadaId" class="mt-0.5 accent-indigo-500" />
+          <div>
+            <p class="text-sm font-semibold text-zinc-200">{{ cls.name }}</p>
+            <p v-if="cls.tier" class="text-xs text-zinc-500 mt-0.5">{{ cls.tier }}</p>
+            <p v-if="cls.description" class="text-xs text-zinc-600 mt-1 line-clamp-2">{{ cls.description }}</p>
+          </div>
+        </label>
+        <p v-if="!classesDisponiveis.length" class="text-sm text-zinc-600 text-center py-4">Nenhuma classe disponível para desbloquear.</p>
+      </div>
+      <p v-if="erroDesbloquear" class="text-sm text-red-400">{{ erroDesbloquear }}</p>
+      <div class="flex gap-3 pt-1">
+        <button type="button" class="flex-1 rounded-xl border border-white/10 py-2 text-sm text-zinc-400 hover:text-white" @click="modalDesbloquearClasse = false">Cancelar</button>
+        <button
+          type="button"
+          :disabled="!classeSelecionadaId || desbloqueandoClasse"
+          class="flex-1 rounded-xl bg-indigo-600 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-60"
+          @click="confirmarDesbloquearClasse"
+        >
+          {{ desbloqueandoClasse ? 'Desbloqueando...' : 'Desbloquear' }}
+        </button>
+      </div>
+    </div>
+  </Modal>
   </div>
 </template>
 
@@ -816,13 +1382,16 @@ import { getHistoryDocumentSignedUrl } from '@/lib/supabase/storage'
 import { limparMetaAuthLocal, useAuthStore } from '@/stores/auth'
 import { useCharactersStore } from '@/stores/characters'
 import { useMasterApprovalsStore } from '@/stores/masterApprovals'
-import { editCharacter } from '@/lib/api/personagens.api'
+import { editCharacter, levelarClasse, escolherClasse, distribuirPontosAtributo, escolherSkillDaClasse } from '@/lib/api/personagens.api'
+import { listarClassesParaPlayer, type ClasseApi } from '@/lib/api/classes.api'
+import { listarCatalogoSkills, type SkillApi } from '@/lib/api/skills.api'
 import { listLoreNotes } from '@/lib/api/lore-notes.api'
 import { listarMinhasTelas } from '@/lib/api/player-telas.api'
 import { listarRacasPublicas, type RacaApi } from '@/lib/api/racas.api'
 import { listarPassados, type PassadoApi } from '@/lib/api/passados.api'
 import { listPublicGods } from '@/lib/api/gods.api'
-import type { PersonagemApi, GodApi } from '@/types/supabase'
+import { listarIndole } from '@/lib/api/indole.api'
+import type { PersonagemApi, GodApi, IndoleApi } from '@/types/supabase'
 
 interface InventoryItem {
   id: string
@@ -878,12 +1447,19 @@ const selectedAvatarFile = ref<File | null>(null)
 const requestedHistory = ref('')
 const requestedHistoryDocumentPath = ref('')
 const requestedHistoryDocumentName = ref('')
+const requestedIndoleId = ref<number | null>(null)
 const avatarInput = ref<HTMLInputElement | null>(null)
 const historyDocInput = ref<HTMLInputElement | null>(null)
 const selectedHistoryDoc = ref<File | null>(null)
 const isDragging = ref(false)
 const feedback = ref('')
 const feedbackIsError = ref(false)
+
+// Modais de origem / retrato
+const modalRetratoAberto = ref(false)
+const modalRacaAberto = ref(false)
+const modalPassadoAberto = ref(false)
+const modalDeusAberto = ref(false)
 
 // Troca obrigatória de senha após reset
 const showPasswordChangeModal = ref(false)
@@ -973,17 +1549,47 @@ const historyPreview = computed(() => {
   return ''
 })
 
+const indoleAtual = computed(() => {
+  if (character.value?.indoleId && todasIndoles.value.length)
+    return todasIndoles.value.find(i => i.id === character.value!.indoleId) ?? null
+  return null
+})
+
 const indoleLabel = computed(() => {
+  if (indoleAtual.value) return indoleAtual.value.descricao
   const raw = (character.value?.data?.indole as string) ?? 'neutro'
   return raw.charAt(0).toUpperCase() + raw.slice(1)
 })
 
 const indoleColor = computed(() => {
-  const raw = (character.value?.data?.indole as string) ?? 'neutro'
-  if (raw.includes('bom')) return 'text-emerald-400'
-  if (raw.includes('ruim') || raw.includes('mau')) return 'text-red-400'
+  const codigo = indoleAtual.value?.codigo ?? (character.value?.data?.indole as string) ?? 'neutro'
+  if (codigo === 'bom') return 'text-blue-300'
+  if (codigo === 'neutro-bom') return 'text-sky-300'
+  if (codigo === 'neutro-ruim') return 'text-rose-300'
+  if (codigo === 'ruim') return 'text-red-300'
   return 'text-zinc-400'
 })
+
+const indoleChipClass = computed(() => {
+  const codigo = indoleAtual.value?.codigo ?? (character.value?.data?.indole as string) ?? 'neutro'
+  if (codigo === 'bom')        return 'text-blue-100 bg-blue-800/75 border-blue-300/60'
+  if (codigo === 'neutro-bom') return 'text-sky-100 bg-sky-800/75 border-sky-300/60'
+  if (codigo === 'neutro-ruim')return 'text-rose-100 bg-rose-800/75 border-rose-300/60'
+  if (codigo === 'ruim')       return 'text-red-100 bg-red-800/75 border-red-300/60'
+  return 'text-zinc-100 bg-zinc-700/75 border-zinc-400/60'
+})
+
+// ── Notificações de pedido de alteração ────────────────────────────────────────
+const hasPendingRequest = computed(() => !!(character.value?.data as any)?.pendingChangeRequest)
+const hasUnseenResponse = computed(() => (character.value?.data as any)?.changeRequestResponse?.visto === false)
+
+const bellBadgeClass = computed(() => {
+  if (hasUnseenResponse.value) return 'bg-red-500 text-white'
+  if (hasPendingRequest.value) return 'bg-orange-500 text-black'
+  if (unreadCount.value > 0) return 'bg-amber-500 text-black'
+  return null
+})
+const showBellBadge = computed(() => !!(hasUnseenResponse.value || hasPendingRequest.value || unreadCount.value > 0))
 
 const characterClass = computed(() => {
   const classes = character.value?.data?.classes
@@ -1005,6 +1611,7 @@ const quickInventory = computed<InventoryItem[]>(() => {
 const todasRacas    = ref<RacaApi[]>([])
 const todosPassados = ref<PassadoApi[]>([])
 const todosDeuses   = ref<GodApi[]>([])
+const todasIndoles  = ref<IndoleApi[]>([])
 
 const racaPersonagem = computed(() => {
   if (!character.value?.racaId) return null
@@ -1042,6 +1649,219 @@ const ATRIBUTOS_DASHBOARD = [
   { key: 'resistencia',  label: 'Resistência',  color: 'text-blue-400',   barColor: 'bg-blue-500/70' },
   { key: 'inteligencia', label: 'Inteligência', color: 'text-violet-400', barColor: 'bg-violet-500/70' },
 ] as const
+
+// ── Evolução de Classe ────────────────────────────────────────────────────────
+const levelandoClasse      = ref('')
+const erroLevelClasse      = ref('')
+const feedbackLevelClasse  = ref('')
+
+const classesPersonagem = computed<any[]>(() => {
+  const list = character.value?.data?.classes
+  return Array.isArray(list) ? list : []
+})
+
+const podeDesbloquearClasse = computed(() => {
+  const pts = character.value?.data?.classPoints ?? 0
+  if (pts <= 0) return false
+  const list = classesPersonagem.value
+  if (!list.length) return false
+  const normais = list.filter((c: any) => !c.isHybrid)
+  // Pode pegar 2ª classe se tiver exatamente 1 normal com level >= 10
+  if (normais.length === 1 && (normais[0].level ?? 1) >= 10) return true
+  // Pode pegar classe híbrida se tiver 2+ normais com level >= 10 cada
+  const normaisL10 = normais.filter((c: any) => (c.level ?? 1) >= 10)
+  if (normaisL10.length >= 2 && !list.some((c: any) => c.isHybrid)) return true
+  return false
+})
+
+const msgPreReqClasse = computed(() => {
+  const list = classesPersonagem.value
+  const normais = list.filter((c: any) => !c.isHybrid)
+  if (normais.length === 1) return `Nível 10 na classe principal libera a 2ª classe.`
+  return `Nível 10 em duas classes libera uma classe híbrida.`
+})
+
+async function levelarClasseHandler(cls: any) {
+  const id = String(cls.classId ?? cls.name)
+  if (levelandoClasse.value || !character.value) return
+  erroLevelClasse.value = ''
+  feedbackLevelClasse.value = ''
+  levelandoClasse.value = id
+  try {
+    const updated = await levelarClasse(character.value.characterId, String(cls.classId ?? ''))
+    character.value = updated
+    const clsAtualizada = (updated.data?.classes as any[])?.find((c: any) => String(c.classId) === String(cls.classId))
+    feedbackLevelClasse.value = clsAtualizada
+      ? `${cls.name} evoluiu para Lv.${clsAtualizada.level}. Pts. de classe: ${updated.data?.classPoints ?? 0}`
+      : 'Classe evoluída.'
+    setTimeout(() => { feedbackLevelClasse.value = '' }, 4000)
+  } catch (err: any) {
+    erroLevelClasse.value = err?.response?.data?.message ?? err.message ?? 'Erro ao evoluir classe.'
+  } finally {
+    levelandoClasse.value = ''
+  }
+}
+
+// ── Aprender Skill (gastar skillPoint) ───────────────────────────────────────
+type SkillComFlag = SkillApi & { _locked: boolean }
+
+const modalAprenderSkill          = ref(false)
+const classeSelecionadaParaSkill  = ref<any | null>(null)
+const carregandoSkillsClasse      = ref(false)
+const skillsParaEscolher          = ref<SkillComFlag[]>([])
+const skillSelecionadaId          = ref<string>('')
+const aprendendoSkill             = ref(false)
+const erroAprenderSkill           = ref('')
+
+async function abrirModalAprenderSkill(cls: any) {
+  if (!character.value) return
+  classeSelecionadaParaSkill.value = cls
+  skillSelecionadaId.value = ''
+  erroAprenderSkill.value = ''
+  modalAprenderSkill.value = true
+  carregandoSkillsClasse.value = true
+  try {
+    const catalogo = await listarCatalogoSkills()
+    const classId = String(cls.classId ?? '')
+    const jaAprendidas = new Set<string>(
+      (cls.chosenSkills ?? []).map((n: string) => n.toLowerCase())
+    )
+    const classLevel: number = cls.level ?? 1
+    skillsParaEscolher.value = catalogo
+      .filter(sk => String(sk.required_class ?? '') === classId && !jaAprendidas.has(sk.name.toLowerCase()))
+      .map(sk => ({
+        ...sk,
+        _locked: (sk.nivel_minimo_classe ?? 0) > classLevel,
+      }))
+      .sort((a, b) => {
+        if (a._locked && !b._locked) return 1
+        if (!a._locked && b._locked) return -1
+        return a.name.localeCompare(b.name)
+      })
+  } catch {
+    skillsParaEscolher.value = []
+  } finally {
+    carregandoSkillsClasse.value = false
+  }
+}
+
+async function confirmarAprenderSkill() {
+  if (!skillSelecionadaId.value || !classeSelecionadaParaSkill.value || !character.value) return
+  const sk = skillsParaEscolher.value.find(s => String(s.id) === skillSelecionadaId.value)
+  if (!sk) return
+  aprendendoSkill.value = true
+  erroAprenderSkill.value = ''
+  try {
+    const updated = await escolherSkillDaClasse(
+      character.value.characterId,
+      String(classeSelecionadaParaSkill.value.classId ?? ''),
+      sk.name,
+    )
+    character.value = updated
+    modalAprenderSkill.value = false
+    feedbackLevelClasse.value = `"${sk.name}" aprendida!`
+    setTimeout(() => { feedbackLevelClasse.value = '' }, 4000)
+  } catch (err: any) {
+    erroAprenderSkill.value = err?.response?.data?.message ?? err.message ?? 'Erro ao aprender skill.'
+  } finally {
+    aprendendoSkill.value = false
+  }
+}
+
+const modalDesbloquearClasse      = ref(false)
+const classeSelecionadaId         = ref<number | null>(null)
+const classesDisponiveis          = ref<ClasseApi[]>([])
+const carregandoClassesDisponiveis = ref(false)
+const desbloqueandoClasse         = ref(false)
+const erroDesbloquear             = ref('')
+
+async function abrirModalDesbloquearClasse() {
+  if (!character.value) return
+  modalDesbloquearClasse.value = true
+  classeSelecionadaId.value = null
+  erroDesbloquear.value = ''
+  carregandoClassesDisponiveis.value = true
+  try {
+    const todas = await listarClassesParaPlayer(character.value.characterId)
+    const idsAtual = new Set(classesPersonagem.value.map((c: any) => Number(c.classId)))
+    classesDisponiveis.value = todas.filter(c => !idsAtual.has(Number(c.id)))
+  } catch {
+    classesDisponiveis.value = []
+  } finally {
+    carregandoClassesDisponiveis.value = false
+  }
+}
+
+async function confirmarDesbloquearClasse() {
+  if (!classeSelecionadaId.value || !character.value) return
+  desbloqueandoClasse.value = true
+  erroDesbloquear.value = ''
+  try {
+    const cls = classesDisponiveis.value.find(c => Number(c.id) === classeSelecionadaId.value)
+    if (!cls) throw new Error('Classe não encontrada.')
+    const updated = await escolherClasse(character.value.characterId, {
+      classId: String(cls.id),
+      className: String(cls.name),
+      classTier: String(cls.tier ?? ''),
+    })
+    character.value = updated
+    modalDesbloquearClasse.value = false
+    feedbackLevelClasse.value = `${cls.name} desbloqueada com sucesso!`
+    setTimeout(() => { feedbackLevelClasse.value = '' }, 4000)
+  } catch (err: any) {
+    erroDesbloquear.value = err?.response?.data?.message ?? err.message ?? 'Erro ao desbloquear classe.'
+  } finally {
+    desbloqueandoClasse.value = false
+  }
+}
+
+// ── Distribuição de Pontos de Atributo ────────────────────────────────────────
+const distribuicaoStaged    = ref<Record<string, number>>({})
+const modalConfirmarAtributos = ref(false)
+const distribuindoAtributos = ref(false)
+const erroDistribuicao      = ref('')
+
+const pontosDisponiveis = computed(() => character.value?.data?.pontosAtributo ?? 0)
+const totalStagedAtributos = computed(() => Object.values(distribuicaoStaged.value).reduce((s, v) => s + (v || 0), 0))
+const pontosRestantes = computed(() => (pontosDisponiveis.value as number) - totalStagedAtributos.value)
+
+function ajustarStaged(attr: string, delta: number) {
+  const atual = distribuicaoStaged.value[attr] ?? 0
+  const novoValor = atual + delta
+  if (novoValor < 0) return
+  if (delta > 0 && pontosRestantes.value <= 0) return
+  distribuicaoStaged.value = { ...distribuicaoStaged.value, [attr]: novoValor }
+}
+
+function limparStaged() {
+  distribuicaoStaged.value = {}
+}
+
+watch(() => character.value?.characterId, () => {
+  limparStaged()
+  erroDistribuicao.value = ''
+})
+
+async function confirmarDistribuicao() {
+  if (!character.value || totalStagedAtributos.value <= 0) return
+  distribuindoAtributos.value = true
+  erroDistribuicao.value = ''
+  try {
+    const distribuicao: Record<string, number> = {}
+    for (const [k, v] of Object.entries(distribuicaoStaged.value)) {
+      if ((v ?? 0) > 0) distribuicao[k] = v
+    }
+    const updated = await distribuirPontosAtributo(character.value.characterId, distribuicao)
+    character.value = updated
+    limparStaged()
+    modalConfirmarAtributos.value = false
+  } catch (err: any) {
+    erroDistribuicao.value = err?.response?.data?.message ?? err.message ?? 'Erro ao distribuir pontos.'
+    modalConfirmarAtributos.value = false
+  } finally {
+    distribuindoAtributos.value = false
+  }
+}
 
 function notifKey(charId: string | number) { return `rpg-mesa.notif-seen-${charId}` }
 function getLastSeen(charId: string | number): Date {
@@ -1191,6 +2011,7 @@ function initializeSettingsForm() {
   requestedHistory.value = String(character.value?.data?.history ?? '')
   requestedHistoryDocumentPath.value = String(character.value?.data?.historyDocumentPath ?? character.value?.data?.historyDocumentUrl ?? '')
   requestedHistoryDocumentName.value = String(character.value?.data?.historyDocumentName ?? '')
+  requestedIndoleId.value = null
   selectedHistoryDoc.value = null
   feedback.value = ''
   feedbackIsError.value = false
@@ -1240,6 +2061,14 @@ async function reviewRequest(characterId: string | number, approve: boolean) {
   } finally { settingsLoading.value = false }
 }
 
+async function markAsSeenResponse() {
+  if (!character.value) return
+  const currentData = character.value.data ?? {}
+  const currentResponse = (currentData as any).changeRequestResponse
+  if (!currentResponse) return
+  await persistData({ ...(currentData as any), changeRequestResponse: { ...currentResponse, visto: true } })
+}
+
 async function submitRequest() {
   if (!character.value) return
   const nextName = requestedName.value.trim()
@@ -1250,8 +2079,9 @@ async function submitRequest() {
   const changedHistory = nextHistory !== currentHistory ? nextHistory : undefined
   const changedDoc = selectedHistoryDoc.value != null
   const changedDocName = requestedHistoryDocumentName.value.trim() !== String(character.value.data?.historyDocumentName ?? '').trim()
+  const changedIndole = requestedIndoleId.value !== null && requestedIndoleId.value !== character.value.indoleId
 
-  if (!changedName && !changedAvatarFile && changedHistory === undefined && !changedDoc && !changedDocName) {
+  if (!changedName && !changedAvatarFile && changedHistory === undefined && !changedDoc && !changedDocName && !changedIndole) {
     feedback.value = 'Informe ao menos um campo para solicitar alteração.'
     feedbackIsError.value = true
     return
@@ -1261,7 +2091,13 @@ async function submitRequest() {
   try {
     await charactersStore.requestCharacterChangeWithFiles(
       character.value.characterId,
-      { name: changedName, history: changedHistory, historyDocumentPath: !changedDoc && changedDocName ? requestedHistoryDocumentPath.value : undefined, historyDocumentName: !changedDoc && changedDocName ? requestedHistoryDocumentName.value : undefined },
+      {
+        name: changedName,
+        history: changedHistory,
+        historyDocumentPath: !changedDoc && changedDocName ? requestedHistoryDocumentPath.value : undefined,
+        historyDocumentName: !changedDoc && changedDocName ? requestedHistoryDocumentName.value : undefined,
+        indoleId: changedIndole ? (requestedIndoleId.value ?? undefined) : undefined,
+      },
       changedAvatarFile || undefined,
       selectedHistoryDoc.value || undefined,
     )
@@ -1271,6 +2107,20 @@ async function submitRequest() {
     feedback.value = 'Erro ao enviar solicitação. Tente novamente.'
     feedbackIsError.value = true
   } finally { settingsLoading.value = false }
+}
+
+async function downloadRetrato() {
+  if (!character.value?.avatarUrl) return
+  try {
+    const response = await fetch(character.value.avatarUrl)
+    const blob = await response.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${character.value.name}.jpg`
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch { /* silent */ }
 }
 
 function triggerAvatarInput() { avatarInput.value?.click() }
@@ -1374,6 +2224,7 @@ async function loadCharacter() {
       listarRacasPublicas().then(r => { todasRacas.value = r }),
       listarPassados().then(p => { todosPassados.value = p }),
       listPublicGods().then(g => { todosDeuses.value = g }),
+      listarIndole().then(i => { todasIndoles.value = i }),
     ]).catch(() => {})
 
     if (!authStore.eMestre) {
@@ -1462,7 +2313,6 @@ watch(() => route.query.characterId, async (next, prev) => {
   min-width: 1rem;
   height: 1rem;
   border-radius: 999px;
-  background: #f59e0b;
   color: #000;
   font-size: 0.55rem;
   font-weight: 800;

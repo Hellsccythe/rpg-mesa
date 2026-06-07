@@ -9,7 +9,8 @@
       "Bash(npx vue-tsc *)",
       "Bash(xargs cat *)",
       "Bash(yarn type-check:server)",
-      "Bash(claude mcp *)"
+      "Bash(claude mcp *)",
+      "Bash(npm run *)"
     ]
   }
 }

@@ -195,3 +195,92 @@ export async function concluirOnboarding(
   const { data } = await api.patch<PersonagemApi>(`/personagens/${characterId}/concluir-onboarding`, { equipamentos })
   return data
 }
+
+export async function adicionarPontosDeClasse(
+  characterId: string | number,
+  pontos: number,
+): Promise<PersonagemApi> {
+  const { data } = await api.post<PersonagemApi>(`/personagens/admin/${characterId}/class-points`, { pontos })
+  return data
+}
+
+export async function levelarClasse(
+  characterId: string | number,
+  classId: string,
+): Promise<PersonagemApi> {
+  const { data } = await api.post<PersonagemApi>(`/personagens/${characterId}/levar-classe`, { classId })
+  return data
+}
+
+export async function escolherClasse(
+  characterId: string | number,
+  dto: { classId: string; className: string; classTier: string },
+): Promise<PersonagemApi> {
+  const { data } = await api.post<PersonagemApi>(`/personagens/${characterId}/escolher-classe`, dto)
+  return data
+}
+
+export async function adicionarPontosAtributo(
+  characterId: string | number,
+  pontos: number,
+): Promise<PersonagemApi> {
+  const { data } = await api.post<PersonagemApi>(`/personagens/admin/${characterId}/atribuir-pontos-atributo`, { pontos })
+  return data
+}
+
+export async function distribuirPontosAtributo(
+  characterId: string | number,
+  distribuicao: Record<string, number>,
+): Promise<PersonagemApi> {
+  const { data } = await api.patch<PersonagemApi>(`/personagens/${characterId}/distribuir-pontos-atributo`, { distribuicao })
+  return data
+}
+
+export async function resetarPontosAtributo(
+  characterId: string | number,
+): Promise<PersonagemApi> {
+  const { data } = await api.post<PersonagemApi>(`/personagens/admin/${characterId}/resetar-pontos-atributo`, {})
+  return data
+}
+
+export async function atribuirXpPersonagem(
+  characterId: string | number,
+  xp: number,
+): Promise<PersonagemApi> {
+  const { data } = await api.patch<PersonagemApi>(`/personagens/admin/${characterId}/atribuir-xp-personagem`, { xp })
+  return data
+}
+
+export async function listarLevelProgression(): Promise<Array<{ id: number; nivel: number; xp_necessario: number }>> {
+  const { data } = await api.get('/personagens/admin/level-progression')
+  return data
+}
+
+export async function salvarLevelProgression(
+  entradas: Array<{ nivel: number; xp_necessario: number }>,
+): Promise<Array<{ id: number; nivel: number; xp_necessario: number }>> {
+  const { data } = await api.post('/personagens/admin/level-progression', { entradas })
+  return data
+}
+
+export async function deletarLevelProgression(id: number): Promise<{ success: boolean }> {
+  const { data } = await api.delete(`/personagens/admin/level-progression/${id}`)
+  return data
+}
+
+export async function escolherSkillDaClasse(
+  characterId: string | number,
+  classId: string,
+  skillName: string,
+): Promise<PersonagemApi> {
+  const { data } = await api.post<PersonagemApi>(`/personagens/${characterId}/escolher-skill-inicial`, { classId, skillName })
+  return data
+}
+
+export async function alterarStatusPersonagem(
+  characterId: string | number,
+  status: 'vivo' | 'morto',
+): Promise<PersonagemApi> {
+  const { data } = await api.patch<PersonagemApi>(`/personagens/admin/${characterId}/status`, { status })
+  return data
+}
