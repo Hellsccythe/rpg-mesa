@@ -139,6 +139,7 @@
       panel-class="max-w-md login-themed-modal"
       body-class="p-0"
       :show-close-button="false"
+      :close-on-backdrop="false"
       @close="fecharModalLoginPersonagem"
     >
       <div
@@ -232,6 +233,7 @@
       body-class="space-y-5 p-8"
       header-class="px-8 py-6 text-center"
       :show-close-button="false"
+      :close-on-backdrop="false"
       @close="fecharModalLoginMestre"
     >
       <template #header>

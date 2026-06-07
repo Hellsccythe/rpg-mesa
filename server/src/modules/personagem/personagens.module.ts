@@ -202,6 +202,44 @@ PersonagensRouter.patch("/admin/:characterId/avatar-focal-point", async (req, re
   }
 });
 
+PersonagensRouter.get("/admin/level-progression", async (req, res) => {
+  try {
+    const resultado = await personagensService.listarLevelProgression();
+    res.status(200).json(resultado);
+  } catch (error: any) {
+    res.status(500).json({ message: error?.message ?? "Erro ao listar progressão de nível" });
+  }
+});
+
+PersonagensRouter.post("/admin/level-progression", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    const { entradas } = req.body as { entradas?: Array<{ nivel: number; xp_necessario: number }> };
+    if (!Array.isArray(entradas) || entradas.length === 0) {
+      res.status(400).json({ message: "entradas é obrigatório e deve ser um array não vazio." });
+      return;
+    }
+    const resultado = await personagensService.criarOuAtualizarLevelProgression(entradas, token);
+    res.status(200).json(resultado);
+  } catch (error: any) {
+    const status = error?.message?.includes("mestre") ? 403 : 400;
+    res.status(status).json({ message: error?.message ?? "Erro ao salvar progressão de nível" });
+  }
+});
+
+PersonagensRouter.delete("/admin/level-progression/:id", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    const id = Number(req.params.id);
+    if (!id || isNaN(id)) { res.status(400).json({ message: "id inválido" }); return; }
+    const resultado = await personagensService.deletarLevelProgression(id, token);
+    res.status(200).json(resultado);
+  } catch (error: any) {
+    const status = error?.message?.includes("mestre") ? 403 : 400;
+    res.status(status).json({ message: error?.message ?? "Erro ao deletar entrada" });
+  }
+});
+
 PersonagensRouter.get("/admin/:characterId", async (req, res) => {
   try {
     const token = getBearerToken(req.headers.authorization);
@@ -371,6 +409,65 @@ PersonagensRouter.patch("/admin/:characterId/atribuir-xp", async (req, res) => {
   } catch (error: any) {
     const status = error?.message?.includes("autenticado") ? 401 : error?.message?.includes("mestre") ? 403 : 400;
     res.status(status).json({ message: error?.message ?? "Erro ao atribuir XP" });
+  }
+});
+
+PersonagensRouter.post("/admin/:characterId/atribuir-pontos-atributo", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    const { pontos } = req.body as { pontos?: number };
+    if (!Number.isInteger(pontos) || (pontos as number) < 1) {
+      res.status(400).json({ message: "pontos deve ser um inteiro positivo." });
+      return;
+    }
+    const resultado = await personagensService.adicionarPontosAtributo(req.params.characterId, { pontos: pontos as number }, token);
+    res.status(200).json(resultado);
+  } catch (error: any) {
+    const status = error?.message?.includes("autenticado") ? 401 : error?.message?.includes("mestre") ? 403 : 400;
+    res.status(status).json({ message: error?.message ?? "Erro ao adicionar pontos de atributo" });
+  }
+});
+
+PersonagensRouter.post("/admin/:characterId/resetar-pontos-atributo", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    const resultado = await personagensService.resetarPontosAtributo(req.params.characterId, token);
+    res.status(200).json(resultado);
+  } catch (error: any) {
+    const status = error?.message?.includes("autenticado") ? 401 : error?.message?.includes("mestre") ? 403 : 400;
+    res.status(status).json({ message: error?.message ?? "Erro ao resetar pontos de atributo" });
+  }
+});
+
+PersonagensRouter.patch("/admin/:characterId/atribuir-xp-personagem", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    const { xp } = req.body as { xp?: number };
+    if (!Number.isInteger(xp) || (xp as number) < 1) {
+      res.status(400).json({ message: "xp deve ser um inteiro positivo." });
+      return;
+    }
+    const resultado = await personagensService.atribuirXpPersonagem(req.params.characterId, { xp: xp as number }, token);
+    res.status(200).json(resultado);
+  } catch (error: any) {
+    const status = error?.message?.includes("autenticado") ? 401 : error?.message?.includes("mestre") ? 403 : 400;
+    res.status(status).json({ message: error?.message ?? "Erro ao atribuir XP de personagem" });
+  }
+});
+
+PersonagensRouter.patch("/:characterId/distribuir-pontos-atributo", async (req, res) => {
+  try {
+    const token = getBearerToken(req.headers.authorization);
+    const { distribuicao } = req.body as { distribuicao?: Record<string, number> };
+    if (!distribuicao || typeof distribuicao !== "object" || Array.isArray(distribuicao)) {
+      res.status(400).json({ message: "distribuicao deve ser um objeto." });
+      return;
+    }
+    const resultado = await personagensService.distribuirPontosAtributo(req.params.characterId, { distribuicao }, token);
+    res.status(200).json(resultado);
+  } catch (error: any) {
+    const status = error?.message?.includes("autenticado") ? 401 : error?.message?.includes("permissão") ? 403 : 400;
+    res.status(status).json({ message: error?.message ?? "Erro ao distribuir pontos de atributo" });
   }
 });
 

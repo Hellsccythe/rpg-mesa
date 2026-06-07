@@ -145,6 +145,10 @@ export class SolicitarAlteracaoPersonagemDto {
   @IsOptional()
   @IsString()
   historyDocumentMimeType?: string;
+
+  @IsOptional()
+  @IsNumber()
+  indoleId?: number;
 }
 
 export class RevisarSolicitacaoDto {
@@ -232,6 +236,38 @@ export class EscolherSkillInicialDto {
 
   @IsString()
   skillName: string;
+}
+
+export class AdicionarPontosAtributoDto {
+  @IsNumber()
+  @Min(1)
+  pontos: number;
+}
+
+export class DistribuirPontosAtributoDto {
+  @IsObject()
+  distribuicao: Record<string, number>;
+}
+
+export class AtribuirXpPersonagemDto {
+  @IsNumber()
+  @Min(1)
+  xp: number;
+}
+
+export class LevelProgressionEntradaDto {
+  @IsNumber()
+  @Min(1)
+  nivel: number;
+
+  @IsNumber()
+  @Min(0)
+  xp_necessario: number;
+}
+
+export class CriarOuAtualizarLevelProgressionDto {
+  @IsObject()
+  entradas: LevelProgressionEntradaDto[];
 }
 
 // ==================== DTO PARA LISTAR / FILTRAR ====================
