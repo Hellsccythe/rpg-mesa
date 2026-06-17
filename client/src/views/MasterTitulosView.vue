@@ -96,6 +96,7 @@
     <Modal
       v-if="modalAberto"
       panel-class="max-w-2xl max-h-[90vh] flex flex-col"
+      body-class="flex-1 min-h-0 flex flex-col"
       tema="escuro"
       :show-close-button="false"
       :close-on-backdrop="false"
