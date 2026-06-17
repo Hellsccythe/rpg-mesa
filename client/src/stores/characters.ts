@@ -34,11 +34,11 @@ export const useCharactersStore = defineStore('characters', {
     /**
      * Carregamento inicial da página: pública, sem autenticação necessária.
      */
-    async fetchPaginaInicial() {
+    async fetchPaginaInicial(campaignSlug?: string) {
       this.loading = true
       this.error = null
       try {
-        const data = await getPaginaInicial()
+        const data = await getPaginaInicial(campaignSlug)
         this.layout = data.layout
         this.publicCharacters = data.personagens
       } catch (err: any) {

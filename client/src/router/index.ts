@@ -8,6 +8,16 @@ const router = createRouter({
   routes: [
     {
       path: '/',
+      name: 'worlds',
+      component: () => import('@/views/WorldsView.vue'),
+    },
+    {
+      path: '/mundo/:slug',
+      name: 'campaign-login',
+      component: () => import('@/views/LoginView.vue'),
+    },
+    {
+      path: '/login',
       name: 'login',
       component: () => import('@/views/LoginView.vue'),
     },
@@ -162,6 +172,12 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresMaster: true },
     },
     {
+      path: '/master/campanhas',
+      name: 'master-campanhas',
+      component: () => import('@/views/MasterCampanhasView.vue'),
+      meta: { requiresAuth: true, requiresMaster: true },
+    },
+    {
       path: '/master/telas',
       name: 'master-telas',
       component: () => import('@/views/MasterTelasView.vue'),
@@ -241,21 +257,25 @@ router.beforeEach(async (to) => {
     const metaAuth = obterMetaAuthLocal()
     const requerAuth = to.matched.some((route) => route.meta.requiresAuth)
 
-    if (to.name === 'login' && sessaoAtualizada && metaAuth?.eMestre) {
+    const isLoginRoute = to.name === 'login' || to.name === 'campaign-login'
+
+    if (isLoginRoute && sessaoAtualizada && metaAuth?.eMestre) {
       return { name: 'master-panel' }
     }
 
-    if (to.name === 'login' && sessaoAtualizada && metaAuth?.idPersonagemAtivo) {
+    if (isLoginRoute && sessaoAtualizada && metaAuth?.idPersonagemAtivo) {
       return {
         name: 'dashboard',
         query: { characterId: metaAuth.idPersonagemAtivo },
       }
     }
 
+    // WorldsView e login não requerem auth — mas notifica sessão expirada no login
     if (!requerAuth) {
-      if (to.name === 'login' && sessaoExpirou) {
+      if (isLoginRoute && sessaoExpirou) {
         return {
-          name: 'login',
+          name: 'campaign-login',
+          params: to.params,
           query: { reason: 'session-expired' },
           replace: true,
         }
@@ -266,12 +286,8 @@ router.beforeEach(async (to) => {
 
     if (!sessaoAtualizada || !metaAuth) {
       return sessaoExpirou
-        ? {
-            name: 'login',
-            query: { reason: 'session-expired' },
-            replace: true,
-          }
-        : { name: 'login' }
+        ? { name: 'worlds', query: { reason: 'session-expired' }, replace: true }
+        : { name: 'worlds' }
     }
 
     const requerMestre = to.matched.some((route) => route.meta.requiresMaster)
@@ -281,7 +297,7 @@ router.beforeEach(async (to) => {
             name: 'dashboard',
             query: { characterId: metaAuth.idPersonagemAtivo },
           }
-        : { name: 'login' }
+        : { name: 'worlds' }
     }
 
     if (to.name === 'dashboard') {
@@ -289,7 +305,7 @@ router.beforeEach(async (to) => {
 
       if (metaAuth.eMestre) {
         if (!idSolicitado) {
-          return { name: 'login' }
+          return { name: 'worlds' }
         }
         return true
       }
@@ -302,7 +318,7 @@ router.beforeEach(async (to) => {
       }
 
       if (idSolicitado !== metaAuth.idPersonagemAtivo) {
-        return { name: 'login' }
+        return { name: 'worlds' }
       }
     }
 
@@ -312,7 +328,7 @@ router.beforeEach(async (to) => {
     limparMetaAuthLocal()
 
     return {
-      name: 'login',
+      name: 'worlds',
       query: { reason: 'auth-error' },
       replace: true,
     }

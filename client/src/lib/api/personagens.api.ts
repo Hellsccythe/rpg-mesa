@@ -9,8 +9,9 @@ import type {
   SolicitarAlteracaoPersonagemDto,
 } from '@/types/supabase'
 
-export async function getPaginaInicial() {
-  const { data } = await api.get<PaginaInicialApi>('/personagens/pagina')
+export async function getPaginaInicial(campaignSlug?: string) {
+  const params = campaignSlug ? { campaignSlug } : undefined
+  const { data } = await api.get<PaginaInicialApi>('/personagens/pagina', { params })
   return data
 }
 

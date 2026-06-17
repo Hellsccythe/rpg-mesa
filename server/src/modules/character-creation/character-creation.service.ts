@@ -59,6 +59,7 @@ export type SolicitacaoCriacaoDto = {
   aparencia_fisica: string;
   historia_texto?: string | null;
   historia_doc_url?: string | null;
+  campaign_id?: string | null;
 };
 
 export const characterCreationService = {
@@ -140,6 +141,7 @@ export const characterCreationService = {
         historia_texto: temTexto ? dto.historia_texto : null,
         historia_doc_url: temDoc ? (dto.historia_doc_url ?? "").trim() : null,
         status: "pendente",
+        campaign_id: dto.campaign_id ?? null,
       })
       .select("id")
       .single();
@@ -240,6 +242,7 @@ export const characterCreationService = {
       historia_texto: (req as any).historia_texto ?? null,
       historia_doc_url: (req as any).historia_doc_url ?? null,
       status: 'vivo',
+      campaign_id: (req as any).campaign_id ?? null,
       data: {},
     });
 

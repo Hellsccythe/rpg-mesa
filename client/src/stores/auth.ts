@@ -10,6 +10,7 @@ interface MetaAuth {
   autenticadoEm: number
   idPersonagemAtivo: string | null
   eMestre: boolean
+  campanhaSlug?: string | null
 }
 
 function lerMetaAuth(): MetaAuth | null {
@@ -193,7 +194,7 @@ export const useAuthStore = defineStore('auth', () => {
     email: string,
     senha: string,
     idPersonagem: string | number | null,
-    opcoes?: { comoMestre?: boolean },
+    opcoes?: { comoMestre?: boolean; campanhaSlug?: string | null },
   ) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password: senha })
     if (error) throw error
@@ -202,6 +203,7 @@ export const useAuthStore = defineStore('auth', () => {
       autenticadoEm: Date.now(),
       idPersonagemAtivo: comoMestre ? null : (idPersonagem != null ? String(idPersonagem) : null),
       eMestre: comoMestre,
+      campanhaSlug: opcoes?.campanhaSlug ?? null,
     })
     await garantirSessaoValida()
     return true

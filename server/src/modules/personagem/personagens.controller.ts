@@ -1,5 +1,6 @@
 // server/src/modules/personagem/personagens.controller.ts
 import { personagensService } from "./personagens.service.js";
+import { getAdminClient } from "../../config/database/supabase/client.js";
 import type {
   AdicionarNotaAventuraDto,
   AdicionarSkillPersonagemDto,
@@ -25,10 +26,33 @@ export const personagensController = {
   /**
    * Retorna a configuração de layout + lista pública de personagens.
    * Não requer autenticação — qualquer visitante pode carregar a página.
+   * campaignSlug opcional: filtra personagens da campanha e usa o nome dela como título.
    */
-  async paginaInicial() {
-    const personagens = await personagensService.listarTodosPublico();
-    return { layout: layoutPadrao, personagens };
+  async paginaInicial(campaignSlug?: string) {
+    let campaignId: string | undefined;
+    let layoutCampanha = layoutPadrao;
+
+    if (campaignSlug) {
+      try {
+        const { data } = await getAdminClient()
+          .from("campaigns")
+          .select("id, name, description")
+          .eq("slug", campaignSlug)
+          .is("deleted_at", null)
+          .single();
+        if (data) {
+          campaignId = data.id;
+          layoutCampanha = {
+            titulo: data.name,
+            subtitulo: data.description ?? layoutPadrao.subtitulo,
+            backgroundImage: layoutPadrao.backgroundImage,
+          };
+        }
+      } catch {}
+    }
+
+    const personagens = await personagensService.listarTodosPublico(campaignId);
+    return { layout: layoutCampanha, personagens };
   },
 
   /**
