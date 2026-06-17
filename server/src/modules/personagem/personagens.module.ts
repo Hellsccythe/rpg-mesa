@@ -18,7 +18,8 @@ export const PersonagensRouter = Router();
 
 PersonagensRouter.get("/pagina", async (req, res) => {
   try {
-    const resultado = await personagensController.paginaInicial();
+    const campaignSlug = typeof req.query.campaignSlug === "string" ? req.query.campaignSlug.trim() : undefined;
+    const resultado = await personagensController.paginaInicial(campaignSlug);
     res.status(200).json(resultado);
   } catch (error: any) {
     res.status(500).json({ message: error?.message ?? "Erro ao carregar página" });

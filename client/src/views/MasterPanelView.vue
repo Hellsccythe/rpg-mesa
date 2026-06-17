@@ -1301,6 +1301,7 @@ const panelMenuItems = [
   { id: 'skills', label: 'Skills' },
   { id: 'classes', label: 'Classes' },
   { id: 'tabelas-acessorias', label: 'Tab. Acessórias' },
+  { id: 'campanhas', label: 'Campanhas / Mundos' },
   { id: 'deletar-personagem', label: 'Deletar Personagem', danger: true },
   { id: 'logout', label: 'Logout', danger: true },
 ]
@@ -1398,6 +1399,11 @@ async function handlePanelMenuSelect(itemId: string) {
 
   if (itemId === 'tabelas-acessorias') {
     goTabelasAcessorias()
+    return
+  }
+
+  if (itemId === 'campanhas') {
+    router.push({ name: 'master-campanhas' })
     return
   }
 

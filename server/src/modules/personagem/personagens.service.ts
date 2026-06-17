@@ -124,13 +124,17 @@ function normalizeData(data: Record<string, any> | null | undefined) {
   return { ...data };
 }
 
-async function queryPublicCharacters(useAdmin: boolean) {
+async function queryPublicCharacters(useAdmin: boolean, campaignId?: string) {
   const client = useAdmin ? getAdminClient() : getSupabaseClient();
 
-  const baseQuery = client
+  let baseQuery = client
     .from(PERSONAGEM_TABLE)
     .select("id, name, level, avatar_url, data, classe_id")
     .order("created_at", { ascending: false });
+
+  if (campaignId) {
+    baseQuery = baseQuery.eq("campaign_id", campaignId) as any;
+  }
 
   const withSoftDeleteFilter = await baseQuery.is("deleted_at", null);
 
@@ -148,10 +152,16 @@ async function queryPublicCharacters(useAdmin: boolean) {
     return withSoftDeleteFilter;
   }
 
-  return client
+  let fallbackQuery = client
     .from(PERSONAGEM_TABLE)
     .select("id, name, level, avatar_url, data, classe_id")
     .order("created_at", { ascending: false });
+
+  if (campaignId) {
+    fallbackQuery = fallbackQuery.eq("campaign_id", campaignId) as any;
+  }
+
+  return fallbackQuery;
 }
 
 async function ensureMasterAccess(accessToken?: string) {
@@ -230,15 +240,15 @@ export const personagensService = {
    * Usa o admin client para bypassar RLS e retorna apenas campos seguros.
    * Requer SUPABASE_SERVICE_ROLE_KEY no .env do servidor.
    */
-  async listarTodosPublico(): Promise<PersonagemPublico[]> {
+  async listarTodosPublico(campaignId?: string): Promise<PersonagemPublico[]> {
     let data: any[] | null = null;
 
     try {
-      const response = await queryPublicCharacters(true);
+      const response = await queryPublicCharacters(true, campaignId);
       if (response.error) throw response.error;
       data = response.data;
     } catch {
-      const fallback = await queryPublicCharacters(false);
+      const fallback = await queryPublicCharacters(false, campaignId);
       if (fallback.error) throw fallback.error;
       data = fallback.data;
     }

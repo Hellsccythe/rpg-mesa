@@ -4,6 +4,17 @@
     <div class="absolute inset-0 bg-gradient-to-b from-black/20 via-black/65 to-black/95" />
 
     <div class="relative z-10 min-h-screen flex flex-col items-center justify-center px-6 py-12">
+      <!-- Botão voltar — só aparece quando em contexto de campanha -->
+      <button
+        v-if="campanhaSlug"
+        type="button"
+        class="absolute top-5 left-5 flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-200 transition-colors"
+        @click="router.push({ name: 'worlds' })"
+      >
+        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+        Mundos
+      </button>
+
       <div v-if="carregando" class="text-zinc-500 text-lg animate-pulse">Carregando...</div>
 
       <template v-else>
@@ -718,6 +729,13 @@ const authStore = useAuthStore()
 const route = useRoute()
 const router = useRouter()
 
+// Contexto de campanha — preenchido quando a rota é /mundo/:slug
+const campanhaSlug = computed(() => {
+  const s = route.params.slug
+  return typeof s === 'string' && s ? s : null
+})
+const campanhaId = ref<string | null>(null)
+
 const mostrarModalCriacao = ref(false)
 const personagemSelecionado = ref<PersonagemPublicoApi | null>(null)
 const mostrarModalLoginMestre = ref(false)
@@ -819,7 +837,17 @@ onMounted(async () => {
     sessaoExpirada.value = true
     router.replace({ path: route.path, query: {} })
   }
-  await storePersonagens.fetchPaginaInicial()
+
+  // Se é rota de campanha, resolve o campaign_id antes de carregar
+  if (campanhaSlug.value) {
+    try {
+      const { buscarCampanhaPorSlug } = await import('@/lib/api/campanhas.api')
+      const campanha = await buscarCampanhaPorSlug(campanhaSlug.value)
+      campanhaId.value = campanha.id
+    } catch {}
+  }
+
+  await storePersonagens.fetchPaginaInicial(campanhaSlug.value ?? undefined)
   listarIndole().then((data) => { opcoesIndole.value = data }).catch(() => {})
   listarGeneros().then((data) => { opcoesGenero.value = data }).catch(() => {})
 })
@@ -1204,6 +1232,7 @@ async function submeterCriacao() {
       aparenciaFisica: aparencia,
       historiaTexto: historiaHtml.value || historia || undefined,
       historiaDocUrl,
+      campaignId: campanhaId.value,
     })
     criacaoEnviada.value = true
   } catch (err: any) {
