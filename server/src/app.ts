@@ -19,6 +19,7 @@ import { PassadosRouter } from "./modules/passados/passados.module.js";
 import { NpcsRouter } from "./modules/npcs/npcs.module.js";
 import { PlayerTelasRouter } from "./modules/player-telas/player-telas.module.js";
 import { CampanhasRouter } from "./modules/campanhas/campanhas.module.js";
+import { AdminRouter } from "./modules/admin/admin.module.js";
 
 const app = express();
 
@@ -74,5 +75,6 @@ app.use("/api/passados", PassadosRouter);
 app.use("/api/npcs", NpcsRouter);
 app.use("/api/player-telas", PlayerTelasRouter);
 app.use("/api/campanhas", CampanhasRouter);
+app.use("/api/admin", AdminRouter);
 
 export default app;
