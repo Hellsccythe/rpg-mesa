@@ -13,7 +13,7 @@
         <button
           type="button"
           class="worlds-master-btn text-xs font-semibold tracking-widest uppercase px-4 py-2 rounded-xl border transition-all"
-          @click="router.push({ name: 'login' })"
+          @click="irParaPainelGM"
         >
           ⚔ Painel GM
         </button>
@@ -116,8 +116,10 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { listarCampanhas, type CampanhaApi } from '@/lib/api/campanhas.api'
+import { useAuthStore } from '@/stores/auth'
 
-const router  = useRouter()
+const router    = useRouter()
+const authStore = useAuthStore()
 const campanhas = ref<CampanhaApi[]>([])
 const carregando = ref(true)
 const erro = ref('')
@@ -136,6 +138,14 @@ async function carregar() {
 
 function entrar(campanha: CampanhaApi) {
   router.push({ name: 'campaign-login', params: { slug: campanha.slug } })
+}
+
+function irParaPainelGM() {
+  if (authStore.eMestre && authStore.temSessaoValida) {
+    window.location.href = '/master'
+  } else {
+    window.location.href = '/login?force=1'
+  }
 }
 
 onMounted(carregar)

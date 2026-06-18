@@ -479,7 +479,7 @@
         <p class="text-sm text-zinc-300">
           Deseja resetar a senha de
           <span class="font-semibold text-white">{{ usuarioResetPadrao?.personagem?.name ?? usuarioResetPadrao?.username ?? usuarioResetPadrao?.real_email }}</span>
-          para <span class="font-mono text-orange-300">12345</span>?
+          para <span class="font-mono text-orange-300">123456</span>?
         </p>
         <p class="mt-2 text-xs text-zinc-500">O usuário será obrigado a definir uma nova senha no próximo login.</p>
         <div v-if="erroResetPadrao" class="mt-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
