@@ -173,11 +173,15 @@ export const usuariosService = {
     const { error } = await admin.auth.admin.updateUserById(
       (usuario as any).auth_user_id as string,
       {
-        password: "12345",
+        password: "123456",
         user_metadata: { requires_password_change: true },
       },
     );
-    if (error) throw error;
+    if (error) {
+      const msg = (error as any).message ?? "";
+      if (msg.toLowerCase().includes("at least")) throw new Error("Senha padrão inválida. Verifique o requisito mínimo de caracteres no Supabase.");
+      throw new Error(msg || "Erro ao resetar senha.");
+    }
 
     return { success: true };
   },

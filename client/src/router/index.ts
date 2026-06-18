@@ -273,12 +273,11 @@ router.beforeEach(async (to) => {
     // WorldsView e login não requerem auth — mas notifica sessão expirada no login
     if (!requerAuth) {
       if (isLoginRoute && sessaoExpirou) {
-        return {
-          name: 'campaign-login',
-          params: to.params,
-          query: { reason: 'session-expired' },
-          replace: true,
-        }
+        // Se tem slug (campaign-login), mantém o contexto; senão vai para login simples
+        const temSlug = !!to.params.slug
+        return temSlug
+          ? { name: 'campaign-login', params: to.params, query: { reason: 'session-expired' }, replace: true }
+          : { name: 'login', query: { reason: 'session-expired', force: '1' }, replace: true }
       }
 
       return true
