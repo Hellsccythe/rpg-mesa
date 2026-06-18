@@ -433,15 +433,15 @@
 
                     <!-- Deus -->
                     <div
-                      class="flex items-start gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 transition-colors"
-                      :class="deusPersonagem ? 'cursor-pointer hover:border-amber-500/30 hover:bg-amber-900/10' : ''"
-                      @click="deusPersonagem && (modalDeusAberto = true)"
+                      class="relative flex items-start gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 transition-colors cursor-pointer hover:border-amber-500/30 hover:bg-amber-900/10"
+                      @click="abrirModalDeus"
                     >
                       <div class="h-9 w-9 rounded-xl overflow-hidden border border-amber-500/20 bg-amber-900/20 shrink-0 flex items-center justify-center text-sm text-amber-400">✦</div>
-                      <div class="min-w-0">
+                      <div class="min-w-0 flex-1">
                         <p class="text-[0.6rem] font-bold uppercase tracking-widest text-amber-400/70 mb-0.5">Deus</p>
                         <p class="text-sm font-semibold text-zinc-200 truncate">{{ deusPersonagem?.name ?? 'Nenhum' }}</p>
                       </div>
+                      <span v-if="pendingDeusChange" class="absolute top-2 right-2 h-2 w-2 rounded-full bg-orange-400" title="Troca de deus aguardando aprovação" />
                     </div>
 
                   </div>
@@ -902,6 +902,10 @@
               <div class="rounded-xl border border-zinc-800/60 p-3"><p class="text-xs uppercase tracking-wider text-zinc-600">Índole atual</p><p class="mt-1 text-zinc-300">{{ todasIndoles.find(i => i.id === request.currentIndoleId)?.descricao ?? '—' }}</p></div>
               <div class="rounded-xl border border-violet-600/30 bg-violet-950/20 p-3"><p class="text-xs uppercase tracking-wider text-violet-500">Índole solicitada</p><p class="mt-1 text-violet-300 font-semibold">{{ todasIndoles.find(i => i.id === request.requestedIndoleId)?.descricao ?? '—' }}</p></div>
             </div>
+            <div v-if="request.requestedDeusId !== undefined" class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div class="rounded-xl border border-zinc-800/60 p-3"><p class="text-xs uppercase tracking-wider text-zinc-600">Deus atual</p><p class="mt-1 text-zinc-300">{{ todosDeuses.find(d => Number(d.id) === request.currentDeusId)?.name ?? 'Nenhum' }}</p></div>
+              <div class="rounded-xl border border-amber-600/30 bg-amber-950/20 p-3"><p class="text-xs uppercase tracking-wider text-amber-500">Deus solicitado</p><p class="mt-1 text-amber-300 font-semibold">{{ request.requestedDeusId == null ? 'Nenhum' : (todosDeuses.find(d => Number(d.id) === request.requestedDeusId)?.name ?? `ID ${request.requestedDeusId}`) }}</p></div>
+            </div>
             <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
               <img v-if="request.currentAvatarUrl" :src="request.currentAvatarUrl" alt="Avatar atual" class="h-36 w-full rounded-xl object-cover" />
               <div v-else class="flex h-36 items-center justify-center rounded-xl border border-zinc-800/60 text-zinc-600 text-sm">Sem avatar</div>
@@ -1050,43 +1054,41 @@
     <Modal
       v-if="modalRacaAberto && racaPersonagem"
       panel-class="max-w-xl"
-      body-class="overflow-y-auto max-h-[68vh]"
+      body-class="overflow-y-auto max-h-[72vh]"
+      header-class="!p-0 !border-b-0"
+      :show-close-button="false"
       :close-on-backdrop="false"
       @close="modalRacaAberto = false"
     >
       <template #header>
-        <!-- Banner da raça -->
-        <div v-if="racaPersonagem.foto_url" class="relative w-full h-44 overflow-hidden">
-          <img
-            :src="racaPersonagem.foto_url"
-            :alt="racaPersonagem.nome"
-            class="w-full h-full object-cover"
-          />
-          <!-- Chip sobreposto na imagem -->
+        <!-- Com imagem: full-bleed -->
+        <div v-if="racaPersonagem.foto_url" class="relative w-full h-52 overflow-hidden">
+          <img :src="racaPersonagem.foto_url" :alt="racaPersonagem.nome" class="w-full h-full object-cover" />
+          <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
           <div class="absolute bottom-4 left-5">
-            <div class="inline-flex flex-col bg-indigo-950/75 backdrop-blur-md rounded-2xl border border-indigo-400/25 px-4 py-2.5">
-              <p class="text-[0.6rem] font-bold uppercase tracking-widest text-indigo-300/80 mb-0.5">Raça</p>
-              <h2 class="font-cinzel font-bold text-white text-xl leading-tight">{{ racaPersonagem.nome }}</h2>
-            </div>
-          </div>
-        </div>
-        <!-- Sem imagem: chip simples sem fundo -->
-        <div v-else class="px-5 pt-4 pb-3">
-          <div class="inline-flex flex-col bg-indigo-950/75 backdrop-blur-md rounded-2xl border border-indigo-400/25 px-4 py-2.5">
             <p class="text-[0.6rem] font-bold uppercase tracking-widest text-indigo-300/80 mb-0.5">Raça</p>
-            <h2 class="font-cinzel font-bold text-white text-xl leading-tight">{{ racaPersonagem.nome }}</h2>
+            <h2 class="font-cinzel font-bold text-white text-xl leading-tight drop-shadow">{{ racaPersonagem.nome }}</h2>
           </div>
+          <button type="button" class="absolute top-3 right-3 h-8 w-8 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white text-xl hover:bg-black/70 transition-colors" @click="modalRacaAberto = false">×</button>
+        </div>
+        <!-- Sem imagem: gradiente índigo -->
+        <div v-else class="relative w-full h-28 flex items-end overflow-hidden" style="background:linear-gradient(135deg,#1e1b4b 0%,#312e81 60%,#1e1b4b 100%)">
+          <div class="absolute top-0 right-0 h-28 w-28 rounded-full bg-indigo-400/10 blur-2xl" />
+          <div class="relative px-5 pb-4">
+            <p class="text-[0.6rem] font-bold uppercase tracking-widest text-indigo-300/70 mb-0.5">Raça</p>
+            <h2 class="font-cinzel font-bold text-white text-xl">{{ racaPersonagem.nome }}</h2>
+          </div>
+          <button type="button" class="absolute top-3 right-3 h-8 w-8 rounded-full bg-black/40 flex items-center justify-center text-white text-xl hover:bg-black/60 transition-colors" @click="modalRacaAberto = false">×</button>
         </div>
       </template>
 
-      <div class="px-6 py-5 space-y-5">
-
-        <!-- Bônus de Atributo (chips) -->
+      <div class="px-5 py-5 space-y-4">
+        <!-- Bônus de Atributo -->
         <div v-if="racaPersonagem.atributos_bonus?.length" class="flex flex-wrap gap-2">
           <span
             v-for="b in racaPersonagem.atributos_bonus"
             :key="b.atributo"
-            class="text-xs font-semibold bg-indigo-900/40 border border-indigo-500/40 text-indigo-200 px-3 py-1 rounded-full"
+            class="text-xs font-semibold bg-indigo-900/40 border border-indigo-500/40 text-indigo-200 px-3 py-1.5 rounded-full"
           >
             {{ b.atributo }} <span class="text-indigo-300 font-bold">+{{ b.valor }}</span>
           </span>
@@ -1096,24 +1098,23 @@
         <p v-if="racaPersonagem.descricao" class="text-sm text-zinc-300 leading-relaxed">{{ racaPersonagem.descricao }}</p>
 
         <!-- Lore -->
-        <div v-if="racaPersonagem.lore" class="rounded-2xl border border-indigo-500/15 bg-indigo-950/20 p-4">
-          <p class="text-[0.6rem] font-bold uppercase tracking-widest text-indigo-400/60 mb-2">Lore</p>
-          <p class="text-sm text-zinc-400 leading-relaxed">{{ racaPersonagem.lore }}</p>
+        <div v-if="racaPersonagem.lore" class="rounded-xl border-l-2 border-indigo-500/50 bg-indigo-950/20 pl-4 pr-4 py-3">
+          <p class="text-[0.6rem] font-bold uppercase tracking-widest text-indigo-400/60 mb-1.5">Lore</p>
+          <p class="text-xs text-zinc-400 leading-relaxed">{{ racaPersonagem.lore }}</p>
         </div>
 
         <!-- Habilidades Raciais -->
-        <div v-if="racaPersonagem.habilidades?.length" class="space-y-2.5">
-          <p class="text-[0.6rem] font-bold uppercase tracking-widest text-zinc-500">Habilidades Raciais</p>
+        <div v-if="racaPersonagem.habilidades?.length" class="space-y-2">
+          <p class="text-[0.6rem] font-bold uppercase tracking-widest text-zinc-500 mb-2">Habilidades Raciais</p>
           <div
             v-for="h in racaPersonagem.habilidades"
             :key="h.nome"
-            class="rounded-2xl border border-indigo-500/15 bg-indigo-950/10 p-4"
+            class="rounded-xl border border-indigo-500/15 bg-indigo-950/10 px-4 py-3"
           >
-            <p class="text-sm font-semibold text-indigo-200 mb-1.5">{{ h.nome }}</p>
+            <p class="text-sm font-semibold text-indigo-200 mb-1">{{ h.nome }}</p>
             <p class="text-xs text-zinc-400 leading-relaxed">{{ h.descricao }}</p>
           </div>
         </div>
-
       </div>
     </Modal>
 
@@ -1121,49 +1122,63 @@
     <Modal
       v-if="modalPassadoAberto && passadoPersonagem"
       panel-class="max-w-xl"
-      body-class="overflow-y-auto max-h-[68vh]"
-      header-class="px-4 py-3 !border-b-0"
+      body-class="overflow-y-auto max-h-[72vh]"
+      header-class="!p-0 !border-b-0"
+      :show-close-button="false"
       :close-on-backdrop="false"
       @close="modalPassadoAberto = false"
     >
-      <!-- Chip sempre no header, centralizado -->
       <template #header>
-        <div class="flex-1 flex justify-center items-center">
-          <div class="inline-flex flex-col items-center bg-violet-950/75 backdrop-blur-md rounded-2xl border border-violet-400/25 px-6 py-2.5">
+        <!-- Com imagem: full-bleed -->
+        <div v-if="passadoPersonagem.foto_url" class="relative w-full h-52 overflow-hidden">
+          <img :src="passadoPersonagem.foto_url" :alt="passadoPersonagem.nome" class="w-full h-full object-cover object-top" />
+          <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+          <div class="absolute bottom-4 left-5">
             <p class="text-[0.6rem] font-bold uppercase tracking-widest text-violet-300/80 mb-0.5">Passado</p>
-            <h2 class="font-cinzel font-bold text-white text-xl leading-tight">{{ passadoPersonagem.nome }}</h2>
+            <h2 class="font-cinzel font-bold text-white text-xl leading-tight drop-shadow">{{ passadoPersonagem.nome }}</h2>
           </div>
+          <button type="button" class="absolute top-3 right-3 h-8 w-8 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white text-xl hover:bg-black/70 transition-colors" @click="modalPassadoAberto = false">×</button>
+        </div>
+        <!-- Sem imagem: gradiente violeta -->
+        <div v-else class="relative w-full h-28 flex items-end overflow-hidden" style="background:linear-gradient(135deg,#2e1065 0%,#4c1d95 60%,#2e1065 100%)">
+          <div class="absolute top-0 right-0 h-28 w-28 rounded-full bg-violet-400/10 blur-2xl" />
+          <div class="relative px-5 pb-4">
+            <p class="text-[0.6rem] font-bold uppercase tracking-widest text-violet-300/70 mb-0.5">Passado</p>
+            <h2 class="font-cinzel font-bold text-white text-xl">{{ passadoPersonagem.nome }}</h2>
+          </div>
+          <button type="button" class="absolute top-3 right-3 h-8 w-8 rounded-full bg-black/40 flex items-center justify-center text-white text-xl hover:bg-black/60 transition-colors" @click="modalPassadoAberto = false">×</button>
         </div>
       </template>
 
-      <div class="px-6 pb-6 space-y-5">
-        <!-- Banner com imagem edge-to-edge quando existe -->
-        <div v-if="passadoPersonagem.foto_url" class="relative -mx-6 h-44 overflow-hidden">
-          <img :src="passadoPersonagem.foto_url" :alt="passadoPersonagem.nome" class="w-full h-full object-cover" />
-        </div>
+      <div class="px-5 py-5 space-y-4">
+        <!-- Descrição -->
         <p v-if="passadoPersonagem.descricao" class="text-sm text-zinc-300 leading-relaxed">{{ passadoPersonagem.descricao }}</p>
-        <div v-if="passadoPersonagem.atributo_bonus && Object.keys(passadoPersonagem.atributo_bonus).length" class="space-y-2">
+
+        <!-- Grants: bônus, skills, títulos numa linha visual clara -->
+        <div v-if="passadoPersonagem.atributo_bonus && Object.entries(passadoPersonagem.atributo_bonus).filter(([, v]) => v).length" class="space-y-2">
           <p class="text-[0.6rem] font-bold uppercase tracking-widest text-zinc-500">Bônus de Atributo</p>
           <div class="flex flex-wrap gap-2">
             <span
               v-for="[attr, val] in Object.entries(passadoPersonagem.atributo_bonus).filter(([, v]) => v)"
               :key="attr"
-              class="text-xs bg-violet-900/30 border border-violet-700/30 text-violet-300 px-2.5 py-1 rounded-full"
+              class="inline-flex items-center gap-1 text-xs font-semibold bg-violet-900/30 border border-violet-600/30 text-violet-200 px-3 py-1.5 rounded-full"
             >
-              {{ attr }} +{{ val }}
+              {{ attr }} <span class="text-violet-300 font-bold">+{{ val }}</span>
             </span>
           </div>
         </div>
+
         <div v-if="passadoPersonagem.skills?.length" class="space-y-2">
           <p class="text-[0.6rem] font-bold uppercase tracking-widest text-zinc-500">Skills Concedidas</p>
           <div class="flex flex-wrap gap-2">
-            <span v-for="s in passadoPersonagem.skills" :key="s.id" class="text-xs bg-violet-900/25 border border-violet-700/30 text-violet-300 px-2.5 py-1 rounded-full">{{ s.name }}</span>
+            <span v-for="s in passadoPersonagem.skills" :key="s.id" class="inline-flex items-center text-xs bg-violet-900/20 border border-violet-600/25 text-violet-300 px-3 py-1.5 rounded-full">{{ s.name }}</span>
           </div>
         </div>
+
         <div v-if="passadoPersonagem.titulos?.length" class="space-y-2">
           <p class="text-[0.6rem] font-bold uppercase tracking-widest text-zinc-500">Títulos Concedidos</p>
           <div class="flex flex-wrap gap-2">
-            <span v-for="t in passadoPersonagem.titulos" :key="t.id" class="text-xs bg-amber-900/25 border border-amber-700/30 text-amber-300 px-2.5 py-1 rounded-full">{{ t.name }}</span>
+            <span v-for="t in passadoPersonagem.titulos" :key="t.id" class="inline-flex items-center text-xs bg-amber-900/20 border border-amber-600/25 text-amber-300 px-3 py-1.5 rounded-full">{{ t.name }}</span>
           </div>
         </div>
       </div>
@@ -1171,53 +1186,170 @@
 
     <!-- ══ Modal Deus ════════════════════════════════════════════════════════ -->
     <Modal
-      v-if="modalDeusAberto && deusPersonagem"
-      panel-class="max-w-2xl"
-      body-class="overflow-y-auto max-h-[82vh]"
-      header-class="px-3 py-1.5 !border-b-0"
+      v-if="modalDeusAberto"
+      panel-class="max-w-xl"
+      body-class="overflow-y-auto max-h-[78vh]"
+      header-class="!p-0 !border-b-0"
+      :show-close-button="false"
       :close-on-backdrop="false"
       @close="modalDeusAberto = false"
     >
-      <div class="px-6 pb-6 space-y-5">
-        <!-- Banner com imagem edge-to-edge -->
-        <div v-if="deusPersonagem.imageUrl" class="relative -mx-6 h-80 overflow-hidden">
+      <template #header>
+        <!-- Hero com imagem cobrindo todo o topo -->
+        <div v-if="deusPersonagem?.imageUrl" class="relative w-full h-64 overflow-hidden">
           <img :src="deusPersonagem.imageUrl" :alt="deusPersonagem.name" class="w-full h-full object-cover object-top" />
+          <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+          <!-- Chip com nome sobreposto -->
           <div class="absolute bottom-4 left-5">
-            <div class="inline-flex flex-col bg-amber-950/80 backdrop-blur-md rounded-2xl border border-amber-400/25 px-4 py-2.5">
-              <p class="text-[0.6rem] font-bold uppercase tracking-widest text-amber-300/80 mb-0.5">Divindade</p>
-              <h2 class="font-cinzel font-bold text-white text-xl leading-tight">{{ deusPersonagem.name }}</h2>
-              <p v-if="deusPersonagem.title" class="text-xs text-amber-300/70 mt-0.5 italic">{{ deusPersonagem.title }}</p>
-            </div>
-          </div>
-        </div>
-        <!-- Sem imagem: chip centralizado -->
-        <div v-else class="flex justify-center pt-4">
-          <div class="inline-flex flex-col items-center bg-amber-950/75 backdrop-blur-md rounded-2xl border border-amber-400/25 px-6 py-3">
             <p class="text-[0.6rem] font-bold uppercase tracking-widest text-amber-300/80 mb-0.5">Divindade</p>
-            <h2 class="font-cinzel font-bold text-white text-xl leading-tight">{{ deusPersonagem.name }}</h2>
-            <p v-if="deusPersonagem.title" class="text-xs text-amber-300/70 mt-0.5 italic">{{ deusPersonagem.title }}</p>
+            <h2 class="font-cinzel font-bold text-white text-xl leading-tight drop-shadow">{{ deusPersonagem.name }}</h2>
+            <p v-if="deusPersonagem.title" class="text-xs text-amber-300/70 italic mt-0.5">{{ deusPersonagem.title }}</p>
+          </div>
+          <!-- X sobreposto -->
+          <button type="button" class="absolute top-3 right-3 h-8 w-8 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white text-xl hover:bg-black/70 transition-colors" @click="modalDeusAberto = false">×</button>
+        </div>
+        <!-- Sem imagem ou sem deus: header simples com X -->
+        <div v-else class="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
+          <div>
+            <p class="text-[0.6rem] font-bold uppercase tracking-widest text-amber-400/70 mb-0.5">Divindade</p>
+            <h2 class="font-cinzel font-bold text-white text-lg">{{ deusPersonagem?.name ?? 'Sem Divindade' }}</h2>
+          </div>
+          <button type="button" class="rounded-xl px-3 py-1 text-2xl text-zinc-500 hover:text-white transition-colors" @click="modalDeusAberto = false">×</button>
+        </div>
+      </template>
+
+      <!-- Sem deus -->
+      <div v-if="!deusPersonagem" class="px-5 pb-6 pt-4 space-y-4">
+        <div class="flex flex-col items-center gap-3 py-4 text-center">
+          <div class="h-14 w-14 rounded-2xl bg-amber-900/20 border border-amber-500/20 flex items-center justify-center text-2xl">✦</div>
+          <div>
+            <p class="text-base font-semibold text-zinc-200">Sem divindade</p>
+            <p class="text-sm text-zinc-500 mt-1">Você não escolheu uma divindade durante o onboarding, ou optou por nenhuma.</p>
           </div>
         </div>
+        <div v-if="pendingDeusChange" class="rounded-xl border border-orange-500/30 bg-orange-950/20 px-4 py-3 flex items-center gap-2">
+          <span class="h-2 w-2 rounded-full bg-orange-400 shrink-0" />
+          <p class="text-xs text-orange-300">Troca de divindade aguardando aprovação do mestre.</p>
+        </div>
+        <button
+          v-if="!authStore.eMestre && !pendingDeusChange"
+          type="button"
+          class="w-full rounded-xl border border-amber-700/40 bg-amber-900/10 py-2.5 text-sm font-semibold text-amber-300 hover:bg-amber-900/25 transition-colors"
+          @click="modalDeusAberto = false; modalTrocarDeusAberto = true"
+        >
+          Escolher Divindade
+        </button>
+      </div>
+
+      <!-- Com deus -->
+      <div v-else class="px-5 pb-6 pt-4 space-y-4">
+        <!-- Descrição -->
         <p v-if="deusPersonagem.description || deusPersonagem.shortDescription" class="text-sm text-zinc-300 leading-relaxed">
-          {{ deusPersonagem.description ?? deusPersonagem.shortDescription }}
+          {{ deusPersonagem.description || deusPersonagem.shortDescription }}
         </p>
+
+        <!-- Dogma + Anatema -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div v-if="deusPersonagem.dogma" class="rounded-xl border border-emerald-700/20 bg-emerald-900/10 p-3">
-            <p class="text-[0.6rem] font-bold uppercase tracking-widest text-emerald-500/70 mb-1">Dogma</p>
+            <p class="text-[0.6rem] font-bold uppercase tracking-widest text-emerald-500/60 mb-1.5">Dogma</p>
             <p class="text-xs text-zinc-400 leading-relaxed">{{ deusPersonagem.dogma }}</p>
           </div>
           <div v-if="deusPersonagem.anatema" class="rounded-xl border border-red-700/20 bg-red-900/10 p-3">
-            <p class="text-[0.6rem] font-bold uppercase tracking-widest text-red-500/70 mb-1">Anatema</p>
+            <p class="text-[0.6rem] font-bold uppercase tracking-widest text-red-500/60 mb-1.5">Anatema</p>
             <p class="text-xs text-zinc-400 leading-relaxed">{{ deusPersonagem.anatema }}</p>
           </div>
         </div>
-        <div v-if="deusPersonagem.weapons" class="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
-          <p class="text-[0.6rem] font-bold uppercase tracking-widest text-zinc-500 mb-1">Armas Sagradas</p>
-          <p class="text-xs text-zinc-400">{{ deusPersonagem.weapons }}</p>
+
+        <!-- Armas + Índole -->
+        <div class="flex flex-wrap gap-3">
+          <div v-if="deusPersonagem.weapons" class="flex-1 min-w-0 rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2.5">
+            <p class="text-[0.6rem] font-bold uppercase tracking-widest text-zinc-500 mb-1">Armas Sagradas</p>
+            <p class="text-xs text-zinc-400">{{ deusPersonagem.weapons }}</p>
+          </div>
+          <div v-if="deusPersonagem.indole_obj?.descricao || deusPersonagem.indole" class="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2.5">
+            <p class="text-[0.6rem] font-bold uppercase tracking-widest text-zinc-500 mb-1">Índole</p>
+            <p class="text-xs font-semibold text-zinc-300">{{ deusPersonagem.indole_obj?.descricao ?? deusPersonagem.indole }}</p>
+          </div>
         </div>
-        <div v-if="deusPersonagem.indole" class="flex items-center gap-2">
-          <p class="text-[0.6rem] font-bold uppercase tracking-widest text-zinc-500">Índole:</p>
-          <span class="text-xs font-semibold text-zinc-300">{{ deusPersonagem.indole }}</span>
+
+        <!-- Aviso pendente -->
+        <div v-if="pendingDeusChange" class="rounded-xl border border-orange-500/30 bg-orange-950/20 px-4 py-3 flex items-center gap-2">
+          <span class="h-2 w-2 rounded-full bg-orange-400 shrink-0" />
+          <p class="text-xs text-orange-300">Troca de divindade aguardando aprovação do mestre.</p>
+        </div>
+
+        <!-- Botão trocar -->
+        <button
+          v-if="!authStore.eMestre && !pendingDeusChange"
+          type="button"
+          class="w-full rounded-xl border border-amber-700/40 bg-amber-900/10 py-2.5 text-sm font-semibold text-amber-300 hover:bg-amber-900/25 transition-colors"
+          @click="modalDeusAberto = false; modalTrocarDeusAberto = true"
+        >
+          Trocar Divindade
+        </button>
+      </div>
+    </Modal>
+
+    <!-- ══ Modal Trocar Deus ══════════════════════════════════════════════════ -->
+    <Modal
+      v-if="modalTrocarDeusAberto"
+      panel-class="max-w-md"
+      body-class="px-5 py-5"
+      :close-on-backdrop="false"
+      @close="modalTrocarDeusAberto = false"
+    >
+      <template #header>
+        <div class="px-5 pt-5 pb-3">
+          <h2 class="text-base font-bold text-amber-300 font-cinzel">Trocar Divindade</h2>
+          <p class="text-xs text-zinc-500 mt-0.5">A troca ficará pendente até o mestre aprovar.</p>
+        </div>
+      </template>
+
+      <div class="space-y-3">
+        <!-- Opção "Nenhum" -->
+        <label
+          class="flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition-colors"
+          :class="deusEditId === null
+            ? 'border-amber-500/60 bg-amber-900/15'
+            : 'border-white/10 hover:border-white/20'"
+        >
+          <input type="radio" :value="null" v-model="deusEditId" class="accent-amber-500 shrink-0" />
+          <div>
+            <p class="text-sm font-semibold text-zinc-200">Nenhum</p>
+            <p class="text-xs text-zinc-500 mt-0.5">Sem divindade</p>
+          </div>
+        </label>
+
+        <!-- Lista de deuses -->
+        <div class="max-h-72 overflow-y-auto space-y-2">
+          <label
+            v-for="deus in todosDeuses"
+            :key="Number(deus.id)"
+            class="flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition-colors"
+            :class="deusEditId === Number(deus.id)
+              ? 'border-amber-500/60 bg-amber-900/15'
+              : 'border-white/10 hover:border-white/20'"
+          >
+            <input type="radio" :value="Number(deus.id)" v-model="deusEditId" class="accent-amber-500 shrink-0" />
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-semibold text-zinc-200 truncate">{{ deus.name }}</p>
+              <p v-if="deus.title" class="text-xs text-zinc-500 truncate italic">{{ deus.title }}</p>
+            </div>
+          </label>
+        </div>
+
+        <p v-if="erroTrocarDeus" class="text-sm text-red-400">{{ erroTrocarDeus }}</p>
+
+        <div class="flex gap-3 pt-1">
+          <button type="button" class="flex-1 rounded-xl border border-white/10 py-2.5 text-sm text-zinc-400 hover:text-white transition-colors" @click="modalTrocarDeusAberto = false">Cancelar</button>
+          <button
+            type="button"
+            :disabled="deusEditId === undefined || salvandoTrocaDeus"
+            class="flex-1 rounded-xl bg-amber-600 py-2.5 text-sm font-semibold text-white hover:bg-amber-500 disabled:opacity-60 transition-colors"
+            @click="confirmarTrocaDeus"
+          >
+            {{ salvandoTrocaDeus ? 'Enviando...' : 'Solicitar Troca' }}
+          </button>
         </div>
       </div>
     </Modal>
@@ -1460,6 +1592,36 @@ const modalRetratoAberto = ref(false)
 const modalRacaAberto = ref(false)
 const modalPassadoAberto = ref(false)
 const modalDeusAberto = ref(false)
+const modalTrocarDeusAberto = ref(false)
+const deusEditId = ref<number | null | undefined>(undefined)
+const salvandoTrocaDeus = ref(false)
+const erroTrocarDeus = ref('')
+
+const pendingDeusChange = computed(() =>
+  (character.value?.data as any)?.pendingChangeRequest?.deusId !== undefined
+)
+
+function abrirModalDeus() {
+  modalDeusAberto.value = true
+}
+
+async function confirmarTrocaDeus() {
+  if (!character.value || deusEditId.value === undefined) return
+  salvandoTrocaDeus.value = true
+  erroTrocarDeus.value = ''
+  try {
+    const resultado = await charactersStore.requestCharacterChange(character.value.characterId, {
+      deusId: deusEditId.value,
+    })
+    character.value = resultado
+    modalTrocarDeusAberto.value = false
+    deusEditId.value = undefined
+  } catch (e: any) {
+    erroTrocarDeus.value = e?.response?.data?.message ?? e.message ?? 'Erro ao solicitar troca.'
+  } finally {
+    salvandoTrocaDeus.value = false
+  }
+}
 
 // Troca obrigatória de senha após reset
 const showPasswordChangeModal = ref(false)

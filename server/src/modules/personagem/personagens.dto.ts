@@ -149,6 +149,10 @@ export class SolicitarAlteracaoPersonagemDto {
   @IsOptional()
   @IsNumber()
   indoleId?: number;
+
+  @IsOptional()
+  @IsNumber()
+  deusId?: number | null;
 }
 
 export class RevisarSolicitacaoDto {
