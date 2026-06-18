@@ -478,6 +478,15 @@
             <p class="mt-0.5 text-xs text-zinc-500">Baixe todas as imagens do projeto organizadas por seção</p>
             <span class="mt-3 inline-block text-xs text-fuchsia-400 group-hover:text-fuchsia-300">Abrir guia →</span>
           </button>
+
+          <button @click="router.push({ name: 'master-campanhas' })" class="gm-link-card group text-left">
+            <div class="gm-icon-wrap mb-3 bg-amber-500/10 text-amber-400">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            </div>
+            <p class="font-semibold text-zinc-100 group-hover:text-white">Campanhas / Mundos</p>
+            <p class="mt-0.5 text-xs text-zinc-500">Crie e gerencie campanhas, GMs por mundo e exportação de schema</p>
+            <span class="mt-3 inline-block text-xs text-amber-400 group-hover:text-amber-300">Abrir guia →</span>
+          </button>
         </div>
 
         <!-- ── Tabelas Acessórias ───────────────────────────────────────────── -->

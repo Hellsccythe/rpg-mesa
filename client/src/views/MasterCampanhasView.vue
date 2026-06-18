@@ -8,6 +8,24 @@
         <h1 class="text-base font-bold text-white flex-1">Campanhas / Mundos</h1>
         <button
           type="button"
+          class="flex items-center gap-1.5 rounded-xl border border-white/10 px-3 py-2 text-sm text-zinc-400 hover:text-white transition-colors"
+          title="Passo a passo para migrar de banco de dados"
+          @click="modalDicasAberto = true"
+        >
+          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Dicas de Migração
+        </button>
+        <button
+          type="button"
+          class="flex items-center gap-1.5 rounded-xl border border-white/10 px-3 py-2 text-sm text-zinc-400 hover:text-white transition-colors"
+          title="Baixar DDL completo das tabelas"
+          @click="modalExportarAberto = true"
+        >
+          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Exportar Schema
+        </button>
+        <button
+          type="button"
           class="flex items-center gap-1.5 rounded-xl bg-amber-700 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-600 transition-colors"
           @click="abrirModal()"
         >
@@ -199,6 +217,126 @@
       </template>
     </Modal>
 
+    <!-- Modal exportar schema (escolha de dialeto) -->
+    <Modal
+      v-if="modalExportarAberto"
+      panel-class="max-w-sm"
+      tema="escuro"
+      :show-close-button="false"
+      :close-on-backdrop="false"
+      @close="modalExportarAberto = false"
+    >
+      <template #header>
+        <h3 class="text-base font-bold text-white">Exportar Schema SQL</h3>
+        <button type="button" @click="modalExportarAberto = false" class="ml-auto text-zinc-500 hover:text-white transition-colors">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </template>
+
+      <div class="p-6 space-y-4">
+        <p class="text-xs text-zinc-400">Escolha o dialeto do banco de destino. Os tipos PostgreSQL serão convertidos automaticamente.</p>
+
+        <div class="space-y-2">
+          <label
+            v-for="op in opcoesDialeto"
+            :key="op.value"
+            class="flex cursor-pointer items-start gap-3 rounded-xl border p-3.5 transition-colors"
+            :class="dialetoSelecionado === op.value
+              ? 'border-amber-500/50 bg-amber-500/[0.06]'
+              : 'border-white/[0.07] hover:border-white/15'"
+          >
+            <input type="radio" :value="op.value" v-model="dialetoSelecionado" class="mt-0.5 accent-amber-500" />
+            <div>
+              <p class="text-sm font-semibold text-zinc-100">{{ op.label }}</p>
+              <p class="text-xs text-zinc-500 mt-0.5">{{ op.descricao }}</p>
+            </div>
+          </label>
+        </div>
+
+        <div class="rounded-xl border border-amber-600/20 bg-amber-950/10 px-4 py-3 text-xs text-amber-300/80 space-y-1">
+          <p class="font-semibold">Revisão recomendada após exportar:</p>
+          <p>• Arrays (INTEGER[], TEXT[]) podem não ter equivalente direto</p>
+          <p>• Funções como gen_random_uuid() são substituídas por aproximações</p>
+          <p>• Supabase Auth (auth.users) não é exportado — gerenciado pelo Supabase</p>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="flex justify-end gap-3 px-6 py-4 border-t border-white/[0.06]">
+          <button type="button" class="rounded-xl border border-white/10 px-5 py-2 text-sm text-zinc-400 hover:text-white" @click="modalExportarAberto = false">Cancelar</button>
+          <button
+            type="button"
+            :disabled="exportando"
+            class="flex items-center gap-2 rounded-xl bg-amber-700 px-5 py-2 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-50"
+            @click="exportarSchema"
+          >
+            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            {{ exportando ? 'Gerando...' : 'Baixar .sql' }}
+          </button>
+        </div>
+      </template>
+    </Modal>
+
+    <!-- Modal dicas de migração -->
+    <Modal
+      v-if="modalDicasAberto"
+      panel-class="max-w-lg"
+      tema="escuro"
+      :show-close-button="false"
+      :close-on-backdrop="false"
+      @close="modalDicasAberto = false"
+    >
+      <template #header>
+        <h3 class="text-base font-bold text-white">Dicas para Migração de Banco</h3>
+        <button type="button" @click="modalDicasAberto = false" class="ml-auto text-zinc-500 hover:text-white transition-colors">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </template>
+
+      <div class="p-6 space-y-5 text-sm">
+        <!-- O que o export cobre -->
+        <div class="space-y-2">
+          <p class="text-xs font-bold uppercase tracking-widest text-emerald-400">O que o Schema Export cobre</p>
+          <ul class="space-y-1 text-zinc-300">
+            <li class="flex gap-2"><span class="text-emerald-400 shrink-0">✓</span> Todas as tabelas com colunas, tipos e PKs</li>
+            <li class="flex gap-2"><span class="text-emerald-400 shrink-0">✓</span> Seeds básicos (indole, genero, tipos de equipamento)</li>
+            <li class="flex gap-2"><span class="text-emerald-400 shrink-0">✓</span> Indexes UNIQUE e regulares</li>
+            <li class="flex gap-2"><span class="text-emerald-400 shrink-0">✓</span> RLS policies (nas migrations concatenadas)</li>
+          </ul>
+        </div>
+
+        <!-- Passo a passo -->
+        <div class="space-y-3">
+          <p class="text-xs font-bold uppercase tracking-widest text-amber-400">Passo a Passo</p>
+          <div class="space-y-2.5">
+            <div v-for="(passo, i) in passosMigracao" :key="i" class="flex gap-3">
+              <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-[0.65rem] font-bold text-amber-400">{{ i + 1 }}</span>
+              <div>
+                <p class="font-semibold text-zinc-200">{{ passo.titulo }}</p>
+                <p class="text-xs text-zinc-500 mt-0.5">{{ passo.descricao }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- O que NÃO é migrado -->
+        <div class="rounded-xl border border-red-500/20 bg-red-950/10 p-4 space-y-1.5">
+          <p class="text-xs font-bold uppercase tracking-widest text-red-400">Não é exportado automaticamente</p>
+          <ul class="space-y-1 text-xs text-zinc-400">
+            <li class="flex gap-2"><span class="text-red-400 shrink-0">✗</span> <span><strong class="text-zinc-300">Dados</strong> (personagens, skills cadastradas, etc.) — use o backup do Supabase Dashboard em <em>Database → Backups</em></span></li>
+            <li class="flex gap-2"><span class="text-red-400 shrink-0">✗</span> <span><strong class="text-zinc-300">Usuários</strong> (auth.users) — o Supabase Auth não exporta usuários via SQL; players precisariam ser recriados</span></li>
+            <li class="flex gap-2"><span class="text-red-400 shrink-0">✗</span> <span><strong class="text-zinc-300">Arquivos de Storage</strong> (avatares, imagens) — baixe manualmente pelos buckets ou use o Exportar Schema de Imagens</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="flex justify-end px-6 py-4 border-t border-white/[0.06]">
+          <button type="button" class="rounded-xl border border-white/10 px-5 py-2 text-sm text-zinc-400 hover:text-white" @click="modalDicasAberto = false">Fechar</button>
+        </div>
+      </template>
+    </Modal>
+
     <!-- Modal confirmar delete -->
     <Modal
       v-if="modalDeleteAberto && campanhaParaDeletar"
@@ -245,11 +383,73 @@ import {
   type CampanhaApi,
   type CampanhaGmApi,
 } from '@/lib/api/campanhas.api'
+import { exportarSchemaSql, type DialetoSql } from '@/lib/api/admin.api'
 
 const router = useRouter()
 
 const campanhas  = ref<CampanhaApi[]>([])
 const carregando = ref(true)
+const exportando         = ref(false)
+const modalExportarAberto = ref(false)
+const modalDicasAberto    = ref(false)
+const dialetoSelecionado  = ref<DialetoSql>('postgresql')
+
+const opcoesDialeto = [
+  {
+    value: 'postgresql' as DialetoSql,
+    label: 'PostgreSQL (padrão)',
+    descricao: 'Sem conversão — DDL nativo do Supabase. Use para migrar entre projetos Supabase ou bancos PostgreSQL.',
+  },
+  {
+    value: 'mysql' as DialetoSql,
+    label: 'MySQL 8+ / MariaDB',
+    descricao: 'Tipos convertidos: TIMESTAMPTZ→DATETIME, JSONB→JSON, UUID→VARCHAR(36), BOOLEAN→TINYINT(1).',
+  },
+  {
+    value: 'sqlite' as DialetoSql,
+    label: 'SQLite 3',
+    descricao: 'Tipos simplificados: tudo vira TEXT, INTEGER ou REAL. Bom para desenvolvimento local ou protótipos.',
+  },
+]
+
+const passosMigracao = [
+  {
+    titulo: 'Exportar o schema',
+    descricao: 'Clique em "Exportar Schema" aqui nesta tela, escolha o dialeto do banco de destino e baixe o .sql.',
+  },
+  {
+    titulo: 'Colar no novo banco',
+    descricao: 'No Supabase: abra o SQL Editor e cole o conteúdo do arquivo. Em outros bancos: use o cliente SQL de sua preferência.',
+  },
+  {
+    titulo: 'Exportar os dados',
+    descricao: 'No Supabase Dashboard: Database → Backups → Download. Isso exporta todas as tabelas com dados (pg_dump).',
+  },
+  {
+    titulo: 'Criar os buckets de storage',
+    descricao: 'Crie manualmente os buckets: character-avatars, character-history e game-images (todos públicos).',
+  },
+  {
+    titulo: 'Migrar arquivos de storage',
+    descricao: 'Use o "Backup de Imagens" deste painel para baixar todas as imagens, então faça upload nos novos buckets.',
+  },
+  {
+    titulo: 'Atualizar variáveis de ambiente',
+    descricao: 'Atualize SUPABASE_URL, SUPABASE_ANON_KEY e SUPABASE_SERVICE_ROLE_KEY no .env do servidor e VITE_ no cliente.',
+  },
+]
+
+async function exportarSchema() {
+  exportando.value = true
+  try {
+    await exportarSchemaSql(dialetoSelecionado.value)
+    modalExportarAberto.value = false
+  } catch (err: any) {
+    alert(err?.response?.data?.error ?? err.message ?? 'Erro ao exportar schema.')
+  } finally {
+    exportando.value = false
+  }
+}
 
 // ── CRUD modal ────────────────────────────────────────────────────────────────
 const modalAberto = ref(false)
