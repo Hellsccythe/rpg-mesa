@@ -2,14 +2,13 @@
   <div class="worlds-shell min-h-screen relative overflow-hidden">
     <!-- Fundo -->
     <div class="absolute inset-0 worlds-bg" />
-    <div class="absolute inset-0 bg-gradient-to-b from-black/30 via-black/60 to-black/95" />
+
+    <!-- ══ Canvas de efeitos de luz ══════════════════════════════════════════ -->
+    <canvas ref="wlCanvas" aria-hidden="true" class="wl-canvas absolute inset-0 w-full h-full pointer-events-none" />
 
     <div class="relative z-10 min-h-screen flex flex-col">
       <!-- Header -->
-      <header class="flex items-center justify-between px-6 py-5 sm:px-10">
-        <h1 class="worlds-title text-2xl font-bold tracking-[0.25em] uppercase">
-          Caminho Sem Volta
-        </h1>
+      <header class="flex items-center justify-end px-6 py-5 sm:px-10">
         <button
           type="button"
           class="worlds-master-btn text-xs font-semibold tracking-widest uppercase px-4 py-2 rounded-xl border transition-all"
@@ -62,7 +61,7 @@
             v-for="campanha in campanhas"
             :key="campanha.id"
             class="worlds-card group relative rounded-3xl overflow-hidden cursor-pointer border transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl active:scale-[0.98]"
-            @click="entrar(campanha)"
+            @click="entrar(campanha, $event)"
           >
             <!-- Imagem de capa -->
             <div class="aspect-[16/9] relative overflow-hidden">
@@ -113,16 +112,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { listarCampanhas, type CampanhaApi } from '@/lib/api/campanhas.api'
 import { useAuthStore } from '@/stores/auth'
+import { usePortalTransition } from '@/composables/usePortalTransition'
 
 const router    = useRouter()
 const authStore = useAuthStore()
 const campanhas = ref<CampanhaApi[]>([])
 const carregando = ref(true)
 const erro = ref('')
+const { enterPortal } = usePortalTransition()
 
 async function carregar() {
   carregando.value = true
@@ -136,8 +137,14 @@ async function carregar() {
   }
 }
 
-function entrar(campanha: CampanhaApi) {
-  router.push({ name: 'campaign-login', params: { slug: campanha.slug } })
+function entrar(campanha: CampanhaApi, event: MouseEvent) {
+  const target = event.currentTarget as HTMLElement
+  const rect = target.getBoundingClientRect()
+  enterPortal(
+    rect.left + rect.width / 2,
+    rect.top + rect.height / 2,
+    () => router.push({ name: 'campaign-login', params: { slug: campanha.slug } }),
+  )
 }
 
 function irParaPainelGM() {
@@ -148,7 +155,100 @@ function irParaPainelGM() {
   }
 }
 
-onMounted(carregar)
+// ══ Canvas de partículas e raios de luz ══════════════════════════════════
+const wlCanvas = ref<HTMLCanvasElement | null>(null)
+let wlRaf = 0
+
+type RGB = [number, number, number]
+
+const PARTICLE_COLORS: RGB[] = [
+  [6, 182, 212],   // ciano
+  [34, 211, 238],  // ciano claro
+  [139, 92, 246],  // roxo
+  [192, 132, 252], // roxo claro
+  [220, 38, 38],   // vermelho
+  [248, 113, 113], // vermelho claro
+  [255, 255, 255], // branco
+  [200, 220, 255], // branco-azulado
+]
+
+interface Particle {
+  x: number; y: number; r: number
+  vx: number; vy: number
+  phase: number; phaseSpeed: number
+  maxOpacity: number; opacity: number
+  color: RGB
+}
+
+function mkParticle(w: number, h: number, startAnywhere = true): Particle {
+  const color = PARTICLE_COLORS[Math.floor(Math.random() * PARTICLE_COLORS.length)]
+  return {
+    x: Math.random() * w,
+    y: startAnywhere ? Math.random() * h : h + 4,
+    r: Math.random() * 1.6 + 0.2,
+    vx: (Math.random() - 0.5) * 0.12,
+    vy: -(Math.random() * 0.28 + 0.04),
+    phase: Math.random() * Math.PI * 2,
+    phaseSpeed: Math.random() * 0.018 + 0.004,
+    maxOpacity: Math.random() * 0.75 + 0.15,
+    opacity: 0,
+    color,
+  }
+}
+
+function startCanvas() {
+  const canvas = wlCanvas.value
+  if (!canvas) return
+  const ctx = canvas.getContext('2d')!
+
+  function resize() {
+    canvas.width  = canvas.offsetWidth  || window.innerWidth
+    canvas.height = canvas.offsetHeight || window.innerHeight
+  }
+  resize()
+  window.addEventListener('resize', resize)
+
+  const particles: Particle[] = Array.from({ length: 85 }, () =>
+    mkParticle(canvas.width, canvas.height, true),
+  )
+
+  function tick() {
+    const w = canvas.width; const h = canvas.height
+    ctx.clearRect(0, 0, w, h)
+
+    // Partículas
+    for (const p of particles) {
+      p.phase += p.phaseSpeed
+      p.opacity = p.maxOpacity * (0.35 + 0.65 * Math.abs(Math.sin(p.phase)))
+      p.x += p.vx
+      p.y += p.vy
+      if (p.y < -4) Object.assign(p, mkParticle(w, h, false))
+
+      const [r, g, b] = p.color
+      ctx.save()
+      ctx.globalAlpha = p.opacity
+      ctx.shadowBlur  = p.r * 5
+      ctx.shadowColor = `rgb(${r},${g},${b})`
+      ctx.fillStyle   = `rgb(${r},${g},${b})`
+      ctx.beginPath()
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.restore()
+    }
+
+    wlRaf = requestAnimationFrame(tick)
+  }
+  tick()
+}
+
+onMounted(() => {
+  carregar()
+  startCanvas()
+})
+
+onBeforeUnmount(() => {
+  cancelAnimationFrame(wlRaf)
+})
 </script>
 
 <style scoped>
@@ -156,7 +256,7 @@ onMounted(carregar)
   font-family: inherit;
 }
 .worlds-bg {
-  background: radial-gradient(ellipse at 50% 0%, #1a0a2e 0%, #070818 60%, #020408 100%);
+  background: #000;
 }
 
 .worlds-title {
@@ -228,6 +328,13 @@ onMounted(carregar)
 .worlds-card-enter {
   color: #c8a96e;
 }
+
+/* ══ Canvas de luz ══════════════════════════════════════════════════════ */
+.wl-canvas {
+  z-index: 1;
+  mix-blend-mode: screen;
+}
+:global(html.theme-light) .wl-canvas { display: none; }
 
 :global(html.theme-light) .worlds-bg {
   background: radial-gradient(ellipse at 50% 0%, #f5f0e8 0%, #e8dfc8 60%, #d4c8a8 100%);

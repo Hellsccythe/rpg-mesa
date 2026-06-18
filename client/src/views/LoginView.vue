@@ -4,9 +4,8 @@
     <div class="absolute inset-0 bg-gradient-to-b from-black/20 via-black/65 to-black/95" />
 
     <div class="relative z-10 min-h-screen flex flex-col items-center justify-center px-6 py-12">
-      <!-- Botão voltar — só aparece quando em contexto de campanha -->
+      <!-- Botão voltar para seleção de mundos -->
       <button
-        v-if="campanhaSlug"
         type="button"
         class="absolute top-5 left-5 flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-200 transition-colors"
         @click="router.push({ name: 'worlds' })"
