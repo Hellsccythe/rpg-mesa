@@ -13,7 +13,7 @@
         <button
           type="button"
           class="worlds-master-btn text-xs font-semibold tracking-widest uppercase px-4 py-2 rounded-xl border transition-all"
-          @click="router.push({ name: 'master-panel' })"
+          @click="router.push({ name: 'login' })"
         >
           ⚔ Painel GM
         </button>
