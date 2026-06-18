@@ -1,5 +1,5 @@
 import { getAdminClient } from "../../config/database/supabase/client.js";
-import { ensureMasterAccess } from "../../common/helpers/master-access.helper.js";
+import { ensureMasterAccess, getUserDisplayEmail } from "../../common/helpers/master-access.helper.js";
 import {
   PERSONAGEM_SELECT_FIELDS,
   PERSONAGEM_TABLE,
@@ -34,9 +34,10 @@ async function criarLookup(tabela: string, descricao: string, accessToken?: stri
   const user = await ensureMasterAccess(accessToken);
   const admin = getAdminClient();
   const item = await nextLookupItem(tabela);
+  const email = getUserDisplayEmail(user);
   const { data, error } = await admin
     .from(tabela)
-    .insert({ item, descricao: descricao.trim(), created_by: user.id, updated_by: user.id })
+    .insert({ item, descricao: descricao.trim(), created_by: email, updated_by: email })
     .select("*")
     .single();
   if (error) throw error;
@@ -48,7 +49,7 @@ async function editarLookup(tabela: string, item: number, descricao: string, acc
   const admin = getAdminClient();
   const { data, error } = await admin
     .from(tabela)
-    .update({ descricao: descricao.trim(), updated_by: user.id })
+    .update({ descricao: descricao.trim(), updated_by: getUserDisplayEmail(user) })
     .eq("item", item)
     .is("deleted_at", null)
     .select("*")
@@ -62,7 +63,7 @@ async function deletarLookup(tabela: string, item: number, accessToken?: string)
   const admin = getAdminClient();
   const { error } = await admin
     .from(tabela)
-    .update({ deleted_at: new Date().toISOString(), deleted_by: user.id })
+    .update({ deleted_at: new Date().toISOString(), deleted_by: getUserDisplayEmail(user) })
     .eq("item", item)
     .is("deleted_at", null);
   if (error) throw error;
@@ -108,8 +109,8 @@ export const skillService = {
         cooldown: dto.cooldown ?? null,
         range: dto.range?.trim() ?? null,
         required_class: dto.required_class?.trim() ?? null,
-        created_by: user.id,
-        updated_by: user.id,
+        created_by: getUserDisplayEmail(user),
+        updated_by: getUserDisplayEmail(user),
       })
       .select("*")
       .single();
@@ -120,7 +121,7 @@ export const skillService = {
   async editarNoCatalogo(id: string, dto: EditarSkillCatalogoDto, accessToken?: string) {
     const user = await ensureMasterAccess(accessToken);
     const admin = getAdminClient();
-    const campos: Record<string, any> = { updated_by: user.id };
+    const campos: Record<string, any> = { updated_by: getUserDisplayEmail(user) };
     if (dto.name !== undefined) campos.name = dto.name.trim();
     if (dto.description !== undefined) campos.description = dto.description?.trim() ?? null;
     if (dto.raca_vinculada !== undefined) campos.raca_vinculada = (dto.raca_vinculada && dto.raca_vinculada.length > 0) ? dto.raca_vinculada : null;
@@ -185,7 +186,7 @@ export const skillService = {
 
     const { error } = await admin
       .from("skills")
-      .update({ deleted_at: new Date().toISOString(), deleted_by: user.id })
+      .update({ deleted_at: new Date().toISOString(), deleted_by: getUserDisplayEmail(user) })
       .eq("id", id)
       .is("deleted_at", null);
     if (error) throw error;
@@ -262,8 +263,8 @@ export const skillService = {
         character_id: dto.character_id,
         damage_base_override: dto.damage_base_override?.trim() ?? null,
         multiplicador_override: (dto.multiplicador_override && dto.multiplicador_override.length > 0) ? dto.multiplicador_override : null,
-        created_by: user.email ?? user.id,
-        updated_by: user.email ?? user.id,
+        created_by: getUserDisplayEmail(user),
+        updated_by: getUserDisplayEmail(user),
       })
       .select("*")
       .single();
@@ -275,7 +276,7 @@ export const skillService = {
     const user = await ensureMasterAccess(accessToken);
     const admin = getAdminClient();
     const campos: Record<string, any> = {
-      updated_by: user.email ?? user.id,
+      updated_by: getUserDisplayEmail(user),
       updated_at: new Date().toISOString(),
     };
     if (dto.damage_base_override !== undefined) campos.damage_base_override = dto.damage_base_override?.trim() ?? null;
@@ -395,8 +396,8 @@ export const skillService = {
         damage_base_override:        dto.damage_base_override?.trim() ?? null,
         multiplicador_override:      dto.multiplicador_override?.trim() ?? null,
         effect_description_override: dto.effect_description_override?.trim() ?? null,
-        created_by:                  user.email ?? user.id,
-        updated_by:                  user.email ?? user.id,
+        created_by:                  getUserDisplayEmail(user),
+        updated_by:                  getUserDisplayEmail(user),
       })
       .select("*")
       .single();
@@ -408,7 +409,7 @@ export const skillService = {
     const user = await ensureMasterAccess(accessToken);
     const admin = getAdminClient();
 
-    const campos: Record<string, any> = { updated_by: user.email ?? user.id };
+    const campos: Record<string, any> = { updated_by: getUserDisplayEmail(user) };
     if (dto.damage_multiplier_pct !== undefined) campos.damage_multiplier_pct = dto.damage_multiplier_pct ?? null;
     if (dto.nome_override !== undefined) campos.nome_override = dto.nome_override?.trim() ?? null;
     if (dto.damage_base_override !== undefined) campos.damage_base_override = dto.damage_base_override?.trim() ?? null;
