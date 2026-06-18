@@ -226,6 +226,7 @@ export interface SolicitarAlteracaoPersonagemDto {
   historyDocumentName?: string
   historyDocumentMimeType?: string
   indoleId?: number
+  deusId?: number | null
 }
 
 export interface AprovacaoPendenteApi {
@@ -244,6 +245,8 @@ export interface AprovacaoPendenteApi {
   requestedByEmail: string | null
   currentIndoleId: number | null
   requestedIndoleId: number | null
+  currentDeusId?: number | null
+  requestedDeusId?: number | null
 }
 
 export interface PointOfInterestApi {

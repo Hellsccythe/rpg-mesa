@@ -48,6 +48,7 @@ type PendingChangeRequest = {
   historyDocumentName?: string;
   historyDocumentMimeType?: string | null;
   indoleId?: number;
+  deusId?: number | null;
 };
 
 const CHARACTER_CREATION_WHITELIST_TABLE = "character_creation_whitelist";
@@ -474,8 +475,9 @@ export const personagensService = {
     const hasHistoryChange = typeof dto.history === "string";
     const hasHistoryDocChange = typeof dto.historyDocumentPath === "string";
     const hasIndoleChange = typeof dto.indoleId === "number";
+    const hasDeusChange = dto.deusId !== undefined;
 
-    if (!hasNameChange && !hasAvatarChange && !hasHistoryChange && !hasHistoryDocChange && !hasIndoleChange) {
+    if (!hasNameChange && !hasAvatarChange && !hasHistoryChange && !hasHistoryDocChange && !hasIndoleChange && !hasDeusChange) {
       throw new Error("Informe ao menos um campo para solicitar alteração");
     }
 
@@ -495,6 +497,7 @@ export const personagensService = {
           }
         : {}),
       ...(hasIndoleChange ? { indoleId: dto.indoleId } : {}),
+      ...(hasDeusChange ? { deusId: dto.deusId ?? null } : {}),
     } as PendingChangeRequest;
 
     const { data, error } = await supabase
@@ -548,6 +551,8 @@ export const personagensService = {
         requestedByEmail: pending.requestedByEmail,
         currentIndoleId: personagem.indoleId ?? null,
         requestedIndoleId: pending.indoleId ?? null,
+        currentDeusId: personagem.deusId ?? null,
+        requestedDeusId: pending.deusId !== undefined ? (pending.deusId ?? null) : undefined,
       };
     }).filter(Boolean);
   },
@@ -591,6 +596,7 @@ export const personagensService = {
         nextData.historyDocumentMimeType = pending.historyDocumentMimeType ?? null;
       }
       if (pending.indoleId) updates.indole_id = pending.indoleId;
+      if (pending.deusId !== undefined) updates.deus_id = pending.deusId ?? null;
     }
 
     const { data, error } = await admin
