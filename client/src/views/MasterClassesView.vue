@@ -1,47 +1,100 @@
 <template>
   <div class="page-root min-h-screen text-white">
-    <div class="page-ambient fixed inset-0 -z-10 bg-gradient-to-br from-[#0C1829] via-[#0A0F1C] to-[#160B27]" />
+    <div
+      class="page-ambient fixed inset-0 -z-10 bg-gradient-to-br from-[#0C1829] via-[#0A0F1C] to-[#160B27]"
+    />
 
     <TemaDarkLight variante="contexto" class="relative z-0 flex min-h-screen flex-col">
       <!-- Header -->
-      <header class="sticky top-0 z-20 border-b backdrop-blur-xl" style="background:rgb(7 12 24/0.82);border-color:rgb(255 255 255/0.07)">
+      <header
+        class="sticky top-0 z-20 border-b backdrop-blur-xl"
+        style="background: rgb(7 12 24/0.82); border-color: rgb(255 255 255/0.07)"
+      >
         <div class="mx-auto flex h-16 w-full max-w-6xl items-center gap-3 px-4 sm:px-6">
-          <button @click="router.push({ name: 'master-panel' })" class="gm-btn-ghost">← Voltar</button>
-          <h1 class="flex-1 text-center text-xs font-bold tracking-[0.3em] uppercase text-sky-400">🎓 Classes — Catálogo</h1>
+          <button @click="router.push({ name: 'master-panel' })" class="gm-btn-ghost">
+            ← Voltar
+          </button>
+          <h1 class="flex-1 text-center text-xs font-bold tracking-[0.3em] uppercase text-sky-400">
+            🎓 Classes — Catálogo
+          </h1>
         </div>
       </header>
 
       <main class="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 space-y-6">
-
         <!-- ── Formulário (criar) ──────────────────────────────────────────────── -->
         <section class="gm-card border-sky-500/15">
           <div class="gm-card-header">
             <div class="gm-icon-wrap bg-sky-500/10 text-sky-400">
-              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+              <svg
+                class="h-4 w-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="16" />
+                <line x1="8" y1="12" x2="16" y2="12" />
+              </svg>
             </div>
             <h2 class="gm-title">Nova Classe</h2>
           </div>
 
           <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <input v-model="form.name" type="text" placeholder="Nome *" class="gm-input" />
-            <input v-model="form.tier" type="text" placeholder="Tier * (ex: Iniciante, Avançado)" class="gm-input" />
-            <input v-model.number="form.max_level" type="number" min="1" placeholder="Nível máximo (padrão: 20)" class="gm-input" />
-            <input v-model.number="form.req_min_level" type="number" min="0" placeholder="Nível mínimo requerido" class="gm-input" />
-            <textarea v-model="form.description" rows="3" placeholder="Descrição *" class="gm-textarea sm:col-span-2" />
+            <VSelect
+              v-model="form.tier"
+              :options="tierOptions"
+              placeholder="Tier *"
+              root-class="w-full"
+            />
+            <input
+              v-model.number="form.max_level"
+              type="number"
+              min="1"
+              placeholder="Nível máximo (padrão: 20)"
+              class="gm-input"
+            />
+            <input
+              v-model.number="form.req_min_level"
+              type="number"
+              min="0"
+              placeholder="Nível mínimo requerido"
+              class="gm-input"
+            />
+            <textarea
+              v-model="form.description"
+              rows="3"
+              placeholder="Descrição *"
+              class="gm-textarea sm:col-span-2"
+            />
             <label class="flex items-center gap-2.5 cursor-pointer sm:col-span-2">
-              <input type="checkbox" v-model="form.requer_deus" class="h-4 w-4 rounded accent-amber-500" />
+              <input
+                type="checkbox"
+                v-model="form.requer_deus"
+                class="h-4 w-4 rounded accent-amber-500"
+              />
               <span class="text-sm text-zinc-300">Exige escolha de deus no onboarding</span>
               <span class="text-xs text-amber-400/70">(Clérigos, Sacerdotes, Templários etc.)</span>
             </label>
             <label class="flex items-center gap-2.5 cursor-pointer sm:col-span-2">
-              <input type="checkbox" v-model="form.is_secret" class="h-4 w-4 rounded accent-red-500" />
+              <input
+                type="checkbox"
+                v-model="form.is_secret"
+                class="h-4 w-4 rounded accent-red-500"
+              />
               <span class="text-sm font-semibold text-red-300">Classe Secreta</span>
-              <span class="text-xs text-zinc-500">Invisível para players; só aparece quando o mestre revelar para um personagem específico</span>
+              <span class="text-xs text-zinc-500"
+                >Invisível para players; só aparece quando o mestre revelar para um personagem
+                específico</span
+              >
             </label>
 
             <!-- Skills iniciais — multi-select com checkbox -->
             <div class="sm:col-span-2 space-y-2">
-              <p class="text-xs text-zinc-500">Skills iniciais <span class="text-zinc-600">(disponíveis desde o nível 1)</span></p>
+              <p class="text-xs text-zinc-500">
+                Skills iniciais <span class="text-zinc-600">(disponíveis desde o nível 1)</span>
+              </p>
               <VSelectMulti
                 v-model="form.starting_skills"
                 :options="skillOptions"
@@ -50,18 +103,27 @@
               />
               <div v-if="form.starting_skills.length > 0" class="flex flex-wrap gap-1.5">
                 <span
-                  v-for="sk in form.starting_skills" :key="sk"
+                  v-for="sk in form.starting_skills"
+                  :key="sk"
                   class="inline-flex items-center gap-1 rounded-lg bg-sky-900/40 border border-sky-500/25 px-2.5 py-1 text-xs text-sky-300"
                 >
                   {{ sk }}
-                  <button @click="removerSkill(sk)" class="text-sky-400/70 hover:text-red-400 transition-colors ml-0.5">✕</button>
+                  <button
+                    @click="removerSkill(sk)"
+                    class="text-sky-400/70 hover:text-red-400 transition-colors ml-0.5"
+                  >
+                    ✕
+                  </button>
                 </span>
               </div>
             </div>
 
             <!-- Skills passivas — disponíveis a partir do nível 3 -->
             <div class="sm:col-span-2 space-y-2">
-              <p class="text-xs text-zinc-500">Skills passivas <span class="text-zinc-600">(desbloqueadas no nível 3 da classe)</span></p>
+              <p class="text-xs text-zinc-500">
+                Skills passivas
+                <span class="text-zinc-600">(desbloqueadas no nível 3 da classe)</span>
+              </p>
               <VSelectMulti
                 v-model="form.passive_skills"
                 :options="skillOptions"
@@ -70,18 +132,29 @@
               />
               <div v-if="form.passive_skills.length > 0" class="flex flex-wrap gap-1.5">
                 <span
-                  v-for="sk in form.passive_skills" :key="sk"
+                  v-for="sk in form.passive_skills"
+                  :key="sk"
                   class="inline-flex items-center gap-1 rounded-lg bg-emerald-900/40 border border-emerald-500/25 px-2.5 py-1 text-xs text-emerald-300"
                 >
                   {{ sk }}
-                  <button @click="removerSkillPassiva(sk)" class="text-emerald-400/70 hover:text-red-400 transition-colors ml-0.5">✕</button>
+                  <button
+                    @click="removerSkillPassiva(sk)"
+                    class="text-emerald-400/70 hover:text-red-400 transition-colors ml-0.5"
+                  >
+                    ✕
+                  </button>
                 </span>
               </div>
             </div>
 
             <!-- Skill assinatura -->
             <div class="sm:col-span-2 space-y-1.5">
-              <p class="text-xs text-zinc-500">Skill assinatura <span class="text-zinc-600">(exclusiva da classe, desbloqueada em nível específico)</span></p>
+              <p class="text-xs text-zinc-500">
+                Skill assinatura
+                <span class="text-zinc-600"
+                  >(exclusiva da classe, desbloqueada em nível específico)</span
+                >
+              </p>
               <div class="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_10rem]">
                 <VSelect
                   v-model="form.signature_skill"
@@ -114,17 +187,30 @@
           <div class="mt-4 flex flex-wrap gap-2">
             <button
               @click="salvar"
-              :disabled="carregando || !form.name.trim() || !form.tier.trim() || !form.description.trim()"
+              :disabled="
+                carregando || !form.name.trim() || !form.tier.trim() || !form.description.trim()
+              "
               class="gm-btn-sky disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {{ carregando ? 'Salvando...' : 'Criar Classe' }}
             </button>
           </div>
-          <p v-if="feedback" class="mt-3 text-sm" :class="feedbackErro ? 'text-red-400' : 'text-emerald-400'">{{ feedback }}</p>
+          <p
+            v-if="feedback"
+            class="mt-3 text-sm"
+            :class="feedbackErro ? 'text-red-400' : 'text-emerald-400'"
+          >
+            {{ feedback }}
+          </p>
         </section>
 
         <!-- ── Filtro ──────────────────────────────────────────────────────────── -->
-        <input v-model="filtro" type="text" placeholder="Filtrar por nome ou tier..." class="gm-input w-full" />
+        <input
+          v-model="filtro"
+          type="text"
+          placeholder="Filtrar por nome ou tier..."
+          class="gm-input w-full"
+        />
 
         <!-- ── Tabela ──────────────────────────────────────────────────────────── -->
         <DataTable
@@ -144,39 +230,81 @@
           <template #linha="{ item }">
             <p class="truncate text-sm font-medium text-zinc-100">{{ (item as ClasseApi).name }}</p>
             <span class="text-xs text-zinc-400 truncate">{{ (item as ClasseApi).tier }}</span>
-            <span class="hidden sm:block text-xs text-zinc-500 text-center">{{ (item as ClasseApi).max_level ?? 20 }}</span>
-            <span class="hidden md:block text-xs text-zinc-500 truncate">{{ (item as ClasseApi).description }}</span>
+            <span class="hidden sm:block text-xs text-zinc-500 text-center">{{
+              (item as ClasseApi).max_level ?? 20
+            }}</span>
+            <span class="hidden md:block text-xs text-zinc-500 truncate">{{
+              (item as ClasseApi).description
+            }}</span>
           </template>
           <template #vazia-cta>
-            <button @click="form.name = ''" class="gm-btn-ghost text-xs">Criar primeira classe</button>
+            <button @click="form.name = ''" class="gm-btn-ghost text-xs">
+              Criar primeira classe
+            </button>
           </template>
         </DataTable>
-
       </main>
     </TemaDarkLight>
 
     <!-- Modal edição -->
-    <Modal v-if="editModal.show" @close="fecharEditModal" panel-class="max-w-xl" :close-on-backdrop="false">
-      <div class="p-6 space-y-3 overflow-y-auto" style="max-height:80vh">
+    <Modal
+      v-if="editModal.show"
+      @close="fecharEditModal"
+      panel-class="max-w-xl"
+      :close-on-backdrop="false"
+    >
+      <div class="p-6 space-y-3 overflow-y-auto" style="max-height: 80vh">
         <p class="text-sm font-semibold text-zinc-100">Editar Classe</p>
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <input v-model="editModal.form.name" type="text" placeholder="Nome *" class="gm-input" />
-          <input v-model="editModal.form.tier" type="text" placeholder="Tier *" class="gm-input" />
-          <input v-model.number="editModal.form.max_level" type="number" min="1" placeholder="Nível máximo" class="gm-input" />
-          <input v-model.number="editModal.form.req_min_level" type="number" min="0" placeholder="Nível mínimo requerido" class="gm-input" />
-          <textarea v-model="editModal.form.description" rows="3" placeholder="Descrição *" class="gm-textarea sm:col-span-2" />
+          <VSelect
+            v-model="editModal.form.tier"
+            :options="tierOptions"
+            placeholder="Tier *"
+            root-class="w-full"
+          />
+          <input
+            v-model.number="editModal.form.max_level"
+            type="number"
+            min="1"
+            placeholder="Nível máximo"
+            class="gm-input"
+          />
+          <input
+            v-model.number="editModal.form.req_min_level"
+            type="number"
+            min="0"
+            placeholder="Nível mínimo requerido"
+            class="gm-input"
+          />
+          <textarea
+            v-model="editModal.form.description"
+            rows="3"
+            placeholder="Descrição *"
+            class="gm-textarea sm:col-span-2"
+          />
           <label class="flex items-center gap-2.5 cursor-pointer sm:col-span-2">
-            <input type="checkbox" v-model="editModal.form.requer_deus" class="h-4 w-4 rounded accent-amber-500" />
+            <input
+              type="checkbox"
+              v-model="editModal.form.requer_deus"
+              class="h-4 w-4 rounded accent-amber-500"
+            />
             <span class="text-sm text-zinc-300">Exige escolha de deus no onboarding</span>
           </label>
           <label class="flex items-center gap-2.5 cursor-pointer sm:col-span-2">
-            <input type="checkbox" v-model="editModal.form.is_secret" class="h-4 w-4 rounded accent-red-500" />
+            <input
+              type="checkbox"
+              v-model="editModal.form.is_secret"
+              class="h-4 w-4 rounded accent-red-500"
+            />
             <span class="text-sm font-semibold text-red-300">Classe Secreta</span>
           </label>
 
           <!-- Skills iniciais — multi-select com checkbox -->
           <div class="sm:col-span-2 space-y-2">
-            <p class="text-xs text-zinc-500">Skills iniciais <span class="text-zinc-600">(disponíveis desde o nível 1)</span></p>
+            <p class="text-xs text-zinc-500">
+              Skills iniciais <span class="text-zinc-600">(disponíveis desde o nível 1)</span>
+            </p>
             <VSelectMulti
               v-model="editModal.form.starting_skills"
               :options="skillOptions"
@@ -185,18 +313,27 @@
             />
             <div v-if="editModal.form.starting_skills.length > 0" class="flex flex-wrap gap-1.5">
               <span
-                v-for="sk in editModal.form.starting_skills" :key="sk"
+                v-for="sk in editModal.form.starting_skills"
+                :key="sk"
                 class="inline-flex items-center gap-1 rounded-lg bg-sky-900/40 border border-sky-500/25 px-2.5 py-1 text-xs text-sky-300"
               >
                 {{ sk }}
-                <button @click="removerSkillEdit(sk)" class="text-sky-400/70 hover:text-red-400 transition-colors ml-0.5">✕</button>
+                <button
+                  @click="removerSkillEdit(sk)"
+                  class="text-sky-400/70 hover:text-red-400 transition-colors ml-0.5"
+                >
+                  ✕
+                </button>
               </span>
             </div>
           </div>
 
           <!-- Skills passivas — disponíveis a partir do nível 3 -->
           <div class="sm:col-span-2 space-y-2">
-            <p class="text-xs text-zinc-500">Skills passivas <span class="text-zinc-600">(desbloqueadas no nível 3 da classe)</span></p>
+            <p class="text-xs text-zinc-500">
+              Skills passivas
+              <span class="text-zinc-600">(desbloqueadas no nível 3 da classe)</span>
+            </p>
             <VSelectMulti
               v-model="editModal.form.passive_skills"
               :options="skillOptions"
@@ -205,18 +342,29 @@
             />
             <div v-if="editModal.form.passive_skills.length > 0" class="flex flex-wrap gap-1.5">
               <span
-                v-for="sk in editModal.form.passive_skills" :key="sk"
+                v-for="sk in editModal.form.passive_skills"
+                :key="sk"
                 class="inline-flex items-center gap-1 rounded-lg bg-emerald-900/40 border border-emerald-500/25 px-2.5 py-1 text-xs text-emerald-300"
               >
                 {{ sk }}
-                <button @click="removerSkillPassivaEdit(sk)" class="text-emerald-400/70 hover:text-red-400 transition-colors ml-0.5">✕</button>
+                <button
+                  @click="removerSkillPassivaEdit(sk)"
+                  class="text-emerald-400/70 hover:text-red-400 transition-colors ml-0.5"
+                >
+                  ✕
+                </button>
               </span>
             </div>
           </div>
 
           <!-- Skill assinatura -->
           <div class="sm:col-span-2 space-y-1.5">
-            <p class="text-xs text-zinc-500">Skill assinatura <span class="text-zinc-600">(exclusiva da classe, desbloqueada em nível específico)</span></p>
+            <p class="text-xs text-zinc-500">
+              Skill assinatura
+              <span class="text-zinc-600"
+                >(exclusiva da classe, desbloqueada em nível específico)</span
+              >
+            </p>
             <div class="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_10rem]">
               <VSelect
                 v-model="editModal.form.signature_skill"
@@ -249,20 +397,46 @@
           <button @click="fecharEditModal" class="gm-btn-ghost">Cancelar</button>
           <button
             @click="salvarEdicao"
-            :disabled="carregando || !editModal.form.name.trim() || !editModal.form.tier.trim() || !editModal.form.description.trim()"
+            :disabled="
+              carregando ||
+              !editModal.form.name.trim() ||
+              !editModal.form.tier.trim() ||
+              !editModal.form.description.trim()
+            "
             class="gm-btn-sky disabled:opacity-40 disabled:cursor-not-allowed"
-          >{{ carregando ? 'Salvando...' : 'Salvar' }}</button>
+          >
+            {{ carregando ? 'Salvando...' : 'Salvar' }}
+          </button>
         </div>
-        <p v-if="editModal.feedback" class="text-sm" :class="editModal.feedbackErro ? 'text-red-400' : 'text-emerald-400'">{{ editModal.feedback }}</p>
+        <p
+          v-if="editModal.feedback"
+          class="text-sm"
+          :class="editModal.feedbackErro ? 'text-red-400' : 'text-emerald-400'"
+        >
+          {{ editModal.feedback }}
+        </p>
       </div>
     </Modal>
 
     <!-- Modal delete -->
-    <Modal v-if="deleteId !== null" @close="deleteId = null" panel-class="max-w-sm" :show-close-button="false" :close-on-backdrop="false">
+    <Modal
+      v-if="deleteId !== null"
+      @close="deleteId = null"
+      panel-class="max-w-sm"
+      :show-close-button="false"
+      :close-on-backdrop="false"
+    >
       <div class="p-6 text-center">
-        <p class="mb-4 text-zinc-200">Deletar a classe <strong class="text-white">{{ deleteNome }}</strong>?</p>
+        <p class="mb-4 text-zinc-200">
+          Deletar a classe <strong class="text-white">{{ deleteNome }}</strong
+          >?
+        </p>
         <div class="flex justify-center gap-3">
-          <button @click="executarDelete" :disabled="carregando" class="rounded-xl bg-red-800/80 px-6 py-2 text-sm font-semibold text-white hover:bg-red-700/80 disabled:opacity-40">
+          <button
+            @click="executarDelete"
+            :disabled="carregando"
+            class="rounded-xl bg-red-800/80 px-6 py-2 text-sm font-semibold text-white hover:bg-red-700/80 disabled:opacity-40"
+          >
             {{ carregando ? 'Deletando...' : 'Confirmar' }}
           </button>
           <button @click="deleteId = null" class="gm-btn-ghost">Cancelar</button>
@@ -281,7 +455,10 @@ import Modal from '@/components/Modal.vue'
 import VSelectMulti from '@/components/VSelectMulti.vue'
 import VSelect from '@/components/VSelect.vue'
 import {
-  listarClasses, createClass, editarClasse, deletarClasse,
+  listarClasses,
+  createClass,
+  editarClasse,
+  deletarClasse,
   type ClasseApi,
 } from '@/lib/api/classes.api'
 import { listarCatalogoSkills, type SkillApi } from '@/lib/api/skills.api'
@@ -315,7 +492,6 @@ const form = ref({
   is_secret: false,
 })
 
-
 const editModal = ref({
   show: false,
   id: null as string | number | null,
@@ -338,16 +514,16 @@ const editModal = ref({
   },
 })
 
-const skillOptions = computed(() =>
-  skills.value.map((s) => ({ value: s.name, label: s.name }))
-)
+const skillOptions = computed(() => skills.value.map((s) => ({ value: s.name, label: s.name })))
 
 function removerSkill(sk: string) {
   form.value.starting_skills = form.value.starting_skills.filter((s) => s !== sk)
 }
 
 function removerSkillEdit(sk: string) {
-  editModal.value.form.starting_skills = editModal.value.form.starting_skills.filter((s) => s !== sk)
+  editModal.value.form.starting_skills = editModal.value.form.starting_skills.filter(
+    (s) => s !== sk,
+  )
 }
 
 function removerSkillPassiva(sk: string) {
@@ -366,19 +542,33 @@ const listaFiltrada = computed(() => {
   )
 })
 
-function parseJson(raw: string, setErro: (msg: string) => void): Record<string, unknown> | null | undefined {
+function parseJson(
+  raw: string,
+  setErro: (msg: string) => void,
+): Record<string, unknown> | null | undefined {
   if (!raw.trim()) return null
-  try { setErro(''); return JSON.parse(raw) }
-  catch { setErro('JSON inválido — verifique a sintaxe.'); return undefined }
+  try {
+    setErro('')
+    return JSON.parse(raw)
+  } catch {
+    setErro('JSON inválido — verifique a sintaxe.')
+    return undefined
+  }
 }
 
 async function carregar() {
   carregandoLista.value = true
-  try { lista.value = await listarClasses() } finally { carregandoLista.value = false }
+  try {
+    lista.value = await listarClasses()
+  } finally {
+    carregandoLista.value = false
+  }
 }
 
 async function salvar() {
-  const statBonuses = parseJson(form.value.stat_bonuses_json, (m) => { jsonErro.value = m })
+  const statBonuses = parseJson(form.value.stat_bonuses_json, (m) => {
+    jsonErro.value = m
+  })
   if (statBonuses === undefined) return
   carregando.value = true
   feedback.value = ''
@@ -418,8 +608,12 @@ function iniciarEdicao(item: ClasseApi) {
       ? item.stat_bonuses
       : JSON.stringify(item.stat_bonuses, null, 2)
     : ''
-  const skillsIniciais = Array.isArray(item.starting_skills) ? [...(item.starting_skills as string[])] : []
-  const skillsPassivas = Array.isArray(item.passive_skills) ? [...(item.passive_skills as string[])] : []
+  const skillsIniciais = Array.isArray(item.starting_skills)
+    ? [...(item.starting_skills as string[])]
+    : []
+  const skillsPassivas = Array.isArray(item.passive_skills)
+    ? [...(item.passive_skills as string[])]
+    : []
   editModal.value = {
     show: true,
     id: item.id,
@@ -438,21 +632,40 @@ function iniciarEdicao(item: ClasseApi) {
       signature_skill_nivel: (item as any).signature_skill_nivel ?? null,
       stat_bonuses_json: bonuses,
       requer_deus: !!(item as any).requer_deus,
-      is_secret:   !!(item as any).is_secret,
+      is_secret: !!(item as any).is_secret,
     },
   }
 }
 
 function fecharEditModal() {
   editModal.value = {
-    show: false, id: null, jsonErro: '', feedback: '', feedbackErro: false,
-    form: { name: '', tier: '', description: '', max_level: null, req_min_level: null, starting_skills: [], passive_skills: [], signature_skill: '', signature_skill_nivel: null, stat_bonuses_json: '', requer_deus: false, is_secret: false },
+    show: false,
+    id: null,
+    jsonErro: '',
+    feedback: '',
+    feedbackErro: false,
+    form: {
+      name: '',
+      tier: '',
+      description: '',
+      max_level: null,
+      req_min_level: null,
+      starting_skills: [],
+      passive_skills: [],
+      signature_skill: '',
+      signature_skill_nivel: null,
+      stat_bonuses_json: '',
+      requer_deus: false,
+      is_secret: false,
+    },
   }
 }
 
 async function salvarEdicao() {
   if (editModal.value.id === null) return
-  const statBonuses = parseJson(editModal.value.form.stat_bonuses_json, (m) => { editModal.value.jsonErro = m })
+  const statBonuses = parseJson(editModal.value.form.stat_bonuses_json, (m) => {
+    editModal.value.jsonErro = m
+  })
   if (statBonuses === undefined) return
   carregando.value = true
   editModal.value.feedback = ''
@@ -466,8 +679,12 @@ async function salvarEdicao() {
         ? { min_level: editModal.value.form.req_min_level, required_classes: [] }
         : null,
       statBonuses,
-      startingSkills: editModal.value.form.starting_skills.length > 0 ? editModal.value.form.starting_skills : null,
-      passiveSkills: editModal.value.form.passive_skills.length > 0 ? editModal.value.form.passive_skills : null,
+      startingSkills:
+        editModal.value.form.starting_skills.length > 0
+          ? editModal.value.form.starting_skills
+          : null,
+      passiveSkills:
+        editModal.value.form.passive_skills.length > 0 ? editModal.value.form.passive_skills : null,
       signatureSkill: editModal.value.form.signature_skill.trim() || null,
       signatureSkillNivel: editModal.value.form.signature_skill_nivel || null,
       requerDeus: editModal.value.form.requer_deus,
@@ -504,57 +721,150 @@ async function executarDelete() {
     carregando.value = false
   }
 }
+const tierOptions = computed(() => [
+  { value: 'Base', label: 'Base' },
+  { value: 'Híbrida', label: 'Híbrida' },
+  { value: 'Hidden', label: 'Hidden' },
+])
 
 function resetForm() {
-  form.value = { name: '', tier: '', description: '', max_level: null, req_min_level: null, starting_skills: [], passive_skills: [], signature_skill: '', signature_skill_nivel: null, stat_bonuses_json: '', requer_deus: false, is_secret: false }
+  form.value = {
+    name: '',
+    tier: '',
+    description: '',
+    max_level: null,
+    req_min_level: null,
+    starting_skills: [],
+    passive_skills: [],
+    signature_skill: '',
+    signature_skill_nivel: null,
+    stat_bonuses_json: '',
+    requer_deus: false,
+    is_secret: false,
+  }
   jsonErro.value = ''
 }
 
 onMounted(async () => {
   await Promise.all([
     carregar(),
-    listarCatalogoSkills().then((s) => { skills.value = s }),
+    listarCatalogoSkills().then((s) => {
+      skills.value = s
+    }),
   ])
 })
 </script>
 
 <style scoped>
-.page-root { background: #070C18; }
+.page-root {
+  background: #070c18;
+}
 .gm-card {
-  background: rgb(255 255 255 / 0.025); border-width: 1px; border-style: solid;
-  border-radius: 1.25rem; padding: 1.25rem; backdrop-filter: blur(8px);
+  background: rgb(255 255 255 / 0.025);
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 1.25rem;
+  padding: 1.25rem;
+  backdrop-filter: blur(8px);
 }
-@media (min-width: 640px) { .gm-card { padding: 1.5rem; } }
-.gm-card-header { display: flex; align-items: flex-start; gap: 0.75rem; margin-bottom: 1.25rem; }
-.gm-icon-wrap { display: flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; border-radius: 0.6rem; flex-shrink: 0; }
-.gm-title { font-size: 1rem; font-weight: 700; color: #f1f5f9; }
+@media (min-width: 640px) {
+  .gm-card {
+    padding: 1.5rem;
+  }
+}
+.gm-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+.gm-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.6rem;
+  flex-shrink: 0;
+}
+.gm-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #f1f5f9;
+}
 
-.gm-input, .gm-textarea {
-  background: rgb(0 0 0 / 0.35); border: 1px solid rgb(255 255 255 / 0.09);
-  border-radius: 0.75rem; color: #e2e8f0; font-size: 0.875rem;
-  padding: 0.55rem 0.85rem; width: 100%; outline: none; transition: border-color 0.15s;
+.gm-input,
+.gm-textarea {
+  background: rgb(0 0 0 / 0.35);
+  border: 1px solid rgb(255 255 255 / 0.09);
+  border-radius: 0.75rem;
+  color: #e2e8f0;
+  font-size: 0.875rem;
+  padding: 0.55rem 0.85rem;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.15s;
 }
-.gm-input:focus, .gm-textarea:focus { border-color: rgb(14 165 233 / 0.55); box-shadow: 0 0 0 3px rgb(14 165 233 / 0.12); }
-.gm-input::placeholder, .gm-textarea::placeholder { color: #3f3f46; }
+.gm-input:focus,
+.gm-textarea:focus {
+  border-color: rgb(14 165 233 / 0.55);
+  box-shadow: 0 0 0 3px rgb(14 165 233 / 0.12);
+}
+.gm-input::placeholder,
+.gm-textarea::placeholder {
+  color: #3f3f46;
+}
 
 .gm-btn-sky {
-  display: inline-flex; align-items: center; gap: 0.35rem;
-  border-radius: 0.75rem; background: rgb(2 132 199 / 0.7);
-  padding: 0.5rem 1rem; font-size: 0.8125rem; font-weight: 600; color: #fff; transition: background 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 0.75rem;
+  background: rgb(2 132 199 / 0.7);
+  padding: 0.5rem 1rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #fff;
+  transition: background 0.15s;
 }
-.gm-btn-sky:hover { background: rgb(2 132 199 / 0.9); }
+.gm-btn-sky:hover {
+  background: rgb(2 132 199 / 0.9);
+}
 .gm-btn-ghost {
-  display: inline-flex; align-items: center; gap: 0.4rem;
-  border-radius: 0.75rem; border: 1px solid rgb(255 255 255 / 0.1);
-  background: rgb(255 255 255 / 0.04); padding: 0.45rem 0.9rem;
-  font-size: 0.75rem; font-weight: 500; color: #a1a1aa; transition: background 0.15s, color 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  background: rgb(255 255 255 / 0.04);
+  padding: 0.45rem 0.9rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #a1a1aa;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
-.gm-btn-ghost:hover { background: rgb(255 255 255 / 0.07); color: #e4e4e7; }
+.gm-btn-ghost:hover {
+  background: rgb(255 255 255 / 0.07);
+  color: #e4e4e7;
+}
 
-:global(html.theme-light) .page-root { background: var(--bg-page); color: var(--text-main); }
-:global(html.theme-light) .gm-card { background: var(--bg-card); border-color: var(--border-soft); }
-:global(html.theme-light) .gm-title { color: var(--text-main); }
-:global(html.theme-light) .gm-input, :global(html.theme-light) .gm-textarea {
-  background: #fff; border-color: var(--border-soft); color: var(--text-main);
+:global(html.theme-light) .page-root {
+  background: var(--bg-page);
+  color: var(--text-main);
+}
+:global(html.theme-light) .gm-card {
+  background: var(--bg-card);
+  border-color: var(--border-soft);
+}
+:global(html.theme-light) .gm-title {
+  color: var(--text-main);
+}
+:global(html.theme-light) .gm-input,
+:global(html.theme-light) .gm-textarea {
+  background: #fff;
+  border-color: var(--border-soft);
+  color: var(--text-main);
 }
 </style>
