@@ -1,318 +1,194 @@
-import { getAdminClient, getSupabaseClient } from "../../config/database/supabase/client.js";
-import { ensureMasterAccess, getUserDisplayEmail } from "../../common/helpers/master-access.helper.js";
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { InjectModel } from "@nestjs/sequelize";
+import { QueryTypes } from "sequelize";
+import { Sequelize } from "sequelize-typescript";
+import { ArmazenamentoArquivosService } from "../../common/storage/armazenamento-arquivos.service.js";
+import { GodModel } from "./models/god.model.js";
 import type { EditarGodDto, SalvarGodDto } from "./god.dto.js";
-import sharp from "sharp";
 
-const GODS_BUCKET = "gods";
+type IndoleResumo = { id: number; codigo: string; descricao: string } | null;
 
-type IndoleRef = { id: number; codigo: string; descricao: string } | null;
-
-type GodRecord = {
+/** Formato de resposta da API — mantido idêntico ao da versão Supabase. */
+export type GodApi = {
   id: string;
   name: string;
   description: string;
   title: string;
   indole: string;
   indole_id: number | null;
-  indole_obj: IndoleRef;
+  indole_obj: IndoleResumo;
   dogma: string;
   anatema: string;
   weapons: string;
   shortDescription: string;
   imageUrl: string;
-  createdAt?: string;
-  updatedAt?: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
-type GodDetails = {
-  title: string;
-  indole: string;
+type LinhaGod = {
+  id: number;
+  name: string;
+  description: string;
+  title: string | null;
+  indole_legado: string;
+  indole_id: number | null;
   dogma: string;
   anatema: string;
   weapons: string;
-  shortDescription: string;
-  imageUrl: string;
+  short_description: string;
+  image_url: string | null;
+  created_at: string;
+  updated_at: string;
+  indole_codigo: string | null;
+  indole_descricao: string | null;
 };
 
-function normalizeText(value: unknown) {
-  return typeof value === "string" ? value.trim() : "";
+/**
+ * O JOIN com indole substitui o fetchIndoleMap da versão anterior, que
+ * carregava a tabela inteira em memória e montava um Map a cada listagem.
+ */
+const SQL_LISTAR_DEUSES = `
+  SELECT
+    gods.id,
+    gods.name,
+    gods.description,
+    gods.title,
+    gods.indole AS indole_legado,
+    gods.indole_id,
+    gods.dogma,
+    gods.anatema,
+    gods.weapons,
+    gods.short_description,
+    gods.image_url,
+    gods.created_at,
+    gods.updated_at,
+    indole.codigo AS indole_codigo,
+    indole.descricao AS indole_descricao
+  FROM gods
+  LEFT JOIN indole ON indole.id = gods.indole_id
+  WHERE gods.deleted_at IS NULL
+`;
+
+function normalizarTexto(valor: unknown): string {
+  return typeof valor === "string" ? valor.trim() : "";
 }
 
-function normalizeGodTitle(value: unknown) {
-  const title = normalizeText(value);
-  const normalized = title
+/**
+ * Registros antigos usam o texto "Sem título" como sinônimo de "sem título
+ * nenhum"; a API sempre devolveu string vazia nesse caso.
+ */
+function normalizarTituloDeus(valor: unknown): string {
+  const titulo = normalizarTexto(valor);
+  const semAcentoMinusculo = titulo
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[̀-ͯ]/g, "")
     .toLowerCase();
-  return normalized === "sem titulo" ? "" : title;
+  return semAcentoMinusculo === "sem titulo" ? "" : titulo;
 }
 
-function sanitizeFileName(fileName: string) {
-  return normalizeText(fileName)
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9._-]/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
+@Injectable()
+export class GodService {
+  constructor(
+    @InjectModel(GodModel)
+    private readonly modeloDeus: typeof GodModel,
+    private readonly sequelize: Sequelize,
+    private readonly armazenamentoArquivos: ArmazenamentoArquivosService,
+  ) {}
 
-function removeFileExtension(fileName: string) {
-  const lastDotIndex = fileName.lastIndexOf(".");
-  if (lastDotIndex <= 0) return fileName;
-  return fileName.slice(0, lastDotIndex);
-}
+  // ── Leitura (SQL cru com JOIN) ────────────────────────────────────────────
 
-function normalizeStoragePath(pathValue: string) {
-  const normalized = normalizeText(pathValue).replace(/^\/+/, "");
-  if (!normalized) return "";
-  const bucketPrefix = `${GODS_BUCKET}/`;
-  return normalized.startsWith(bucketPrefix) ? normalized.slice(bucketPrefix.length) : normalized;
-}
-
-// Lê campo de god suportando tanto JSONB (data.field) quanto coluna direta (snake e camel)
-function readGodField(row: any, data: any, camel: string, snake?: string) {
-  const snakeKey = snake ?? camel.replace(/[A-Z]/g, (m) => `_${m.toLowerCase()}`);
-  return normalizeText(row?.[camel] ?? row?.[snakeKey] ?? data?.[camel] ?? data?.[snakeKey]);
-}
-
-function toGodDetails(dto: Partial<SalvarGodDto & EditarGodDto>): GodDetails {
-  return {
-    title: normalizeGodTitle(dto.title),
-    indole: normalizeText(dto.indole),
-    dogma: normalizeText(dto.dogma),
-    anatema: normalizeText(dto.anatema),
-    weapons: normalizeText(dto.weapons),
-    shortDescription: normalizeText(dto.shortDescription),
-    imageUrl: normalizeText(dto.imageUrl),
-  };
-}
-
-function currentGodDetails(row: any, data: any): GodDetails {
-  return {
-    title: normalizeGodTitle(readGodField(row, data, "title")),
-    indole: readGodField(row, data, "indole"),
-    dogma: readGodField(row, data, "dogma"),
-    anatema: readGodField(row, data, "anatema"),
-    weapons: readGodField(row, data, "weapons"),
-    shortDescription: readGodField(row, data, "shortDescription", "short_description"),
-    imageUrl: data?.imageUrl || data?.imagePath || row?.image_url || row?.image_path || "",
-  };
-}
-
-function mapGod(row: any, indoleMap?: Map<number, IndoleRef>): GodRecord {
-  const data = row?.data && typeof row.data === "object" ? row.data : {};
-  const details = currentGodDetails(row, data);
-  const rawImage = details.imageUrl;
-
-  const imageUrl = rawImage
-    ? rawImage.startsWith("http")
-      ? rawImage
-      : getAdminClient().storage.from(GODS_BUCKET).getPublicUrl(normalizeStoragePath(rawImage)).data.publicUrl
-    : "";
-
-  const indoleId: number | null = typeof row?.indole_id === "number" ? row.indole_id : null;
-  const indoleObj: IndoleRef = indoleId !== null && indoleMap ? (indoleMap.get(indoleId) ?? null) : null;
-  // usa codigo como chave de filtro no frontend; fallback para string legada do data.indole
-  const indoleStr = indoleObj ? indoleObj.codigo : details.indole;
-
-  return {
-    id: String(row?.id ?? ""),
-    name: normalizeText(row?.name),
-    description: normalizeText(row?.description),
-    title: details.title,
-    indole: indoleStr,
-    indole_id: indoleId,
-    indole_obj: indoleObj,
-    dogma: details.dogma,
-    anatema: details.anatema,
-    weapons: details.weapons,
-    shortDescription: details.shortDescription,
-    imageUrl,
-    createdAt: row?.created_at,
-    updatedAt: row?.updated_at,
-  };
-}
-
-async function fetchIndoleMap(): Promise<Map<number, IndoleRef>> {
-  const { data } = await getAdminClient()
-    .from("indole")
-    .select("id, codigo, descricao");
-  const map = new Map<number, IndoleRef>();
-  for (const row of data ?? []) {
-    map.set(row.id as number, { id: row.id as number, codigo: row.codigo as string, descricao: row.descricao as string });
+  async listar(): Promise<GodApi[]> {
+    const linhas = await this.sequelize.query<LinhaGod>(
+      `${SQL_LISTAR_DEUSES} ORDER BY gods.created_at DESC`,
+      { type: QueryTypes.SELECT },
+    );
+    return linhas.map((linha) => this.converterParaApi(linha));
   }
-  return map;
-}
 
-async function removeImageFromStorage(imageUrl: string) {
-  if (!imageUrl || imageUrl.startsWith("http")) return;
-  try {
-    const path = normalizeStoragePath(imageUrl);
-    if (path) await getAdminClient().storage.from(GODS_BUCKET).remove([path]);
-  } catch {
-    // falha no storage não bloqueia a operação principal
+  private async buscarOuFalhar(id: number): Promise<GodApi> {
+    const linhas = await this.sequelize.query<LinhaGod>(
+      `${SQL_LISTAR_DEUSES} AND gods.id = :id`,
+      { replacements: { id }, type: QueryTypes.SELECT },
+    );
+
+    if (linhas.length === 0) {
+      throw new NotFoundException("Deus não encontrado");
+    }
+    return this.converterParaApi(linhas[0]);
+  }
+
+  private converterParaApi(linha: LinhaGod): GodApi {
+    const indoleResumo: IndoleResumo =
+      linha.indole_id !== null && linha.indole_codigo !== null
+        ? {
+            id: linha.indole_id,
+            codigo: linha.indole_codigo,
+            descricao: linha.indole_descricao ?? "",
+          }
+        : null;
+
+    return {
+      id: String(linha.id),
+      name: normalizarTexto(linha.name),
+      description: normalizarTexto(linha.description),
+      title: normalizarTituloDeus(linha.title),
+      // O frontend filtra pelo código da índole; o texto legado é o fallback
+      // para registros que nunca receberam indole_id.
+      indole: indoleResumo ? indoleResumo.codigo : normalizarTexto(linha.indole_legado),
+      indole_id: linha.indole_id,
+      indole_obj: indoleResumo,
+      dogma: normalizarTexto(linha.dogma),
+      anatema: normalizarTexto(linha.anatema),
+      weapons: normalizarTexto(linha.weapons),
+      shortDescription: normalizarTexto(linha.short_description),
+      imageUrl: this.armazenamentoArquivos.montarUrlPublica(linha.image_url),
+      createdAt: linha.created_at,
+      updatedAt: linha.updated_at,
+    };
+  }
+
+  // ── Escrita (ORM, pra os hooks de auditoria dispararem) ───────────────────
+
+  async salvar(dados: SalvarGodDto): Promise<GodApi> {
+    const criado = await this.modeloDeus.create({
+      name: dados.name.trim(),
+      description: normalizarTexto(dados.description),
+      title: normalizarTituloDeus(dados.title),
+      indole: normalizarTexto(dados.indole),
+      indoleId: dados.indole_id ?? null,
+      dogma: normalizarTexto(dados.dogma),
+      anatema: normalizarTexto(dados.anatema),
+      weapons: normalizarTexto(dados.weapons),
+      shortDescription: normalizarTexto(dados.shortDescription),
+      imageUrl: this.armazenamentoArquivos.normalizarParaArmazenamento(dados.imageUrl),
+    });
+
+    return this.buscarOuFalhar(criado.id);
+  }
+
+  async editar(id: number, dados: EditarGodDto): Promise<GodApi> {
+    const registro = await this.modeloDeus.findByPk(id);
+    if (!registro) {
+      throw new NotFoundException("Deus não encontrado");
+    }
+
+    if (dados.name !== undefined) registro.name = normalizarTexto(dados.name);
+    if (dados.description !== undefined) registro.description = normalizarTexto(dados.description);
+    if (dados.title !== undefined) registro.title = normalizarTituloDeus(dados.title);
+    if (dados.indole !== undefined) registro.indole = normalizarTexto(dados.indole);
+    if (dados.indole_id !== undefined) registro.indoleId = dados.indole_id ?? null;
+    if (dados.dogma !== undefined) registro.dogma = normalizarTexto(dados.dogma);
+    if (dados.anatema !== undefined) registro.anatema = normalizarTexto(dados.anatema);
+    if (dados.weapons !== undefined) registro.weapons = normalizarTexto(dados.weapons);
+    if (dados.shortDescription !== undefined) {
+      registro.shortDescription = normalizarTexto(dados.shortDescription);
+    }
+    if (dados.imageUrl !== undefined) {
+      registro.imageUrl = this.armazenamentoArquivos.normalizarParaArmazenamento(dados.imageUrl);
+    }
+
+    await registro.save();
+    return this.buscarOuFalhar(id);
   }
 }
-
-export const godService = {
-  async uploadImagem(
-    file: { buffer: Buffer; originalname: string; mimetype: string; size: number },
-    accessToken?: string,
-  ) {
-    await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
-
-    if (!file?.buffer?.length) throw new Error("Arquivo de imagem invalido");
-    if (!file.mimetype?.startsWith("image/")) throw new Error("Formato invalido. Envie uma imagem");
-
-    const maxSize = 30 * 1024 * 1024;
-    if (file.size > maxSize) throw new Error("Imagem excede o limite de 30MB");
-
-    const compressedBuffer = await sharp(file.buffer, { failOn: "none" })
-      .rotate()
-      .resize({ width: 1600, height: 1600, fit: "inside", withoutEnlargement: true })
-      .webp({ quality: 74, effort: 5 })
-      .toBuffer();
-
-    const safeName = sanitizeFileName(removeFileExtension(file.originalname || "deus"));
-    const objectPath = `${Date.now()}-${safeName || "deus"}.webp`;
-
-    const { error: uploadError } = await admin.storage
-      .from(GODS_BUCKET)
-      .upload(objectPath, compressedBuffer, {
-        contentType: "image/webp",
-        upsert: true,
-        cacheControl: "31536000",
-      });
-
-    if (uploadError) throw uploadError;
-
-    const { data } = admin.storage.from(GODS_BUCKET).getPublicUrl(objectPath);
-    return { path: objectPath, publicUrl: data.publicUrl };
-  },
-
-  async listarPublico() {
-    // Usa client anon — RLS policy "gods_select_public" permite leitura sem auth
-    const client = getSupabaseClient();
-    const { data, error } = await client
-      .from("gods")
-      .select("id, name, description, data, image_url, indole_id, created_at, updated_at")
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false });
-
-    if (error) throw error;
-    const indoleMap = await fetchIndoleMap();
-    return (data ?? []).map((r) => mapGod(r, indoleMap));
-  },
-
-  async listar(accessToken?: string) {
-    await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
-
-    const { data, error } = await admin
-      .from("gods")
-      .select("id, name, description, data, image_url, indole_id, created_at, updated_at")
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false });
-
-    if (error) throw error;
-    const indoleMap = await fetchIndoleMap();
-    return (data ?? []).map((r) => mapGod(r, indoleMap));
-  },
-
-  async salvar(dto: SalvarGodDto, accessToken?: string) {
-    const masterUser = await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
-
-    const insertPayload: Record<string, unknown> = {
-      name: dto.name.trim(),
-      description: dto.description?.trim() ?? "",
-      data: toGodDetails(dto),
-      created_by: getUserDisplayEmail(masterUser),
-      updated_by: getUserDisplayEmail(masterUser),
-    };
-    if (dto.indole_id !== undefined) insertPayload.indole_id = dto.indole_id ?? null;
-
-    const { data, error } = await admin
-      .from("gods")
-      .insert(insertPayload)
-      .select("id, name, description, data, image_url, indole_id, created_at, updated_at")
-      .single();
-
-    if (error) throw error;
-    const indoleMap = await fetchIndoleMap();
-    return mapGod(data, indoleMap);
-  },
-
-  async editar(godId: string, dto: EditarGodDto, accessToken?: string) {
-    const masterUser = await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
-
-    const { data: current, error: currentError } = await admin
-      .from("gods")
-      .select("id, name, description, data, indole_id")
-      .eq("id", godId)
-      .is("deleted_at", null)
-      .single();
-
-    if (currentError || !current) throw new Error("Deus não encontrado");
-
-    const currentData = current.data && typeof current.data === "object" ? current.data : {};
-    const existing = currentGodDetails(current, currentData);
-
-    const nextDetails: GodDetails = {
-      title: dto.title !== undefined ? normalizeGodTitle(dto.title) : existing.title,
-      indole: dto.indole !== undefined ? normalizeText(dto.indole) : existing.indole,
-      dogma: dto.dogma !== undefined ? normalizeText(dto.dogma) : existing.dogma,
-      anatema: dto.anatema !== undefined ? normalizeText(dto.anatema) : existing.anatema,
-      weapons: dto.weapons !== undefined ? normalizeText(dto.weapons) : existing.weapons,
-      shortDescription: dto.shortDescription !== undefined ? normalizeText(dto.shortDescription) : existing.shortDescription,
-      imageUrl: dto.imageUrl !== undefined ? normalizeText(dto.imageUrl) : existing.imageUrl,
-    };
-
-    const updates: Record<string, unknown> = { data: nextDetails, updated_by: getUserDisplayEmail(masterUser) };
-    if (dto.name !== undefined) updates.name = normalizeText(dto.name);
-    if (dto.description !== undefined) updates.description = normalizeText(dto.description);
-    if (dto.indole_id !== undefined) updates.indole_id = dto.indole_id ?? null;
-
-    const { data, error } = await admin
-      .from("gods")
-      .update(updates)
-      .eq("id", godId)
-      .is("deleted_at", null)
-      .select("id, name, description, data, image_url, indole_id, created_at, updated_at")
-      .single();
-
-    if (error) throw error;
-    const indoleMap = await fetchIndoleMap();
-    return mapGod(data, indoleMap);
-  },
-
-  async deletar(godId: string, accessToken?: string) {
-    const masterUser = await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
-
-    const { data: god, error: fetchError } = await admin
-      .from("gods")
-      .select("id, data")
-      .eq("id", godId)
-      .is("deleted_at", null)
-      .single();
-
-    if (fetchError || !god) throw new Error("Deus não encontrado");
-
-    const { error } = await admin
-      .from("gods")
-      .update({ deleted_at: new Date().toISOString(), deleted_by: getUserDisplayEmail(masterUser) })
-      .eq("id", godId)
-      .is("deleted_at", null);
-
-    if (error) throw error;
-
-    const data = god.data && typeof god.data === "object" ? god.data : {};
-    const imageUrl = currentGodDetails(god, data).imageUrl;
-    await removeImageFromStorage(imageUrl);
-
-    return { success: true };
-  },
-};

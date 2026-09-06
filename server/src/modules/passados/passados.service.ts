@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/sequelize";
 import { QueryTypes } from "sequelize";
 import { Sequelize } from "sequelize-typescript";
+import { ArmazenamentoArquivosService } from "../../common/storage/armazenamento-arquivos.service.js";
 import { PassadoModel, type AtributoBonus } from "./models/passado.model.js";
 import type { CriarPassadoDto, EditarPassadoDto } from "./passados.dto.js";
 
@@ -94,14 +95,17 @@ export class PassadosService {
     @InjectModel(PassadoModel)
     private readonly modeloPassado: typeof PassadoModel,
     private readonly sequelize: Sequelize,
+    private readonly armazenamentoArquivos: ArmazenamentoArquivosService,
   ) {}
 
   // ── Leitura (SQL cru com JOIN) ────────────────────────────────────────────
 
   async listar(): Promise<PassadoApi[]> {
-    return this.sequelize.query<PassadoApi>(`${SQL_LISTAR_PASSADOS} ORDER BY passados.nome`, {
-      type: QueryTypes.SELECT,
-    });
+    const encontrados = await this.sequelize.query<PassadoApi>(
+      `${SQL_LISTAR_PASSADOS} ORDER BY passados.nome`,
+      { type: QueryTypes.SELECT },
+    );
+    return encontrados.map((passado) => this.comUrlDeImagem(passado));
   }
 
   private async buscarEnriquecidoOuFalhar(id: number): Promise<PassadoApi> {
@@ -113,7 +117,15 @@ export class PassadosService {
     if (encontrados.length === 0) {
       throw new NotFoundException("Passado não encontrado.");
     }
-    return encontrados[0];
+    return this.comUrlDeImagem(encontrados[0]);
+  }
+
+  /** O banco guarda o caminho relativo; a API responde com a URL completa. */
+  private comUrlDeImagem(passado: PassadoApi): PassadoApi {
+    return {
+      ...passado,
+      foto_url: this.armazenamentoArquivos.montarUrlPublica(passado.foto_url) || null,
+    };
   }
 
   // ── Escrita (ORM, pra os hooks de auditoria dispararem) ───────────────────
@@ -122,7 +134,7 @@ export class PassadosService {
     const criado = await this.modeloPassado.create({
       nome: dados.nome.trim(),
       descricao: dados.descricao?.trim() ?? null,
-      fotoUrl: dados.foto_url?.trim() || null,
+      fotoUrl: this.armazenamentoArquivos.normalizarParaArmazenamento(dados.foto_url),
       skillIds: dados.skill_ids ?? [],
       tituloIds: dados.titulo_ids ?? [],
       atributoBonus: dados.atributo_bonus ?? null,
@@ -139,7 +151,9 @@ export class PassadosService {
 
     if (dados.nome !== undefined) registro.nome = dados.nome.trim();
     if (dados.descricao !== undefined) registro.descricao = dados.descricao?.trim() ?? null;
-    if (dados.foto_url !== undefined) registro.fotoUrl = dados.foto_url?.trim() || null;
+    if (dados.foto_url !== undefined) {
+      registro.fotoUrl = this.armazenamentoArquivos.normalizarParaArmazenamento(dados.foto_url);
+    }
     if (dados.skill_ids !== undefined) registro.skillIds = dados.skill_ids;
     if (dados.titulo_ids !== undefined) registro.tituloIds = dados.titulo_ids;
     if (dados.atributo_bonus !== undefined) registro.atributoBonus = dados.atributo_bonus ?? null;

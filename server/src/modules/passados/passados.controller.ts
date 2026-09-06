@@ -80,12 +80,17 @@ export class PassadosController {
       .jpeg({ quality: 85 })
       .toBuffer();
 
-    const publicUrl = await this.armazenamentoArquivos.salvar(
+    const caminhoRelativo = await this.armazenamentoArquivos.salvar(
       SUBPASTA_IMAGENS,
       arquivo.originalname,
       imagemComprimida,
     );
 
-    return { publicUrl };
+    // path é o que deve ser gravado no banco; publicUrl serve para o preview
+    // imediato no frontend. O backend aceita qualquer um dos dois de volta.
+    return {
+      path: caminhoRelativo,
+      publicUrl: this.armazenamentoArquivos.montarUrlPublica(caminhoRelativo),
+    };
   }
 }

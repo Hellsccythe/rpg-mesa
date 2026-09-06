@@ -5,6 +5,7 @@ import { ArmazenamentoArquivosModule } from "./common/storage/armazenamento-arqu
 import { AuthModule } from "./modules/auth/auth.module.js";
 import { TabelasAcessoriasModule } from "./modules/tabelas-acessorias/tabelas-acessorias.module.js";
 import { PassadosModule } from "./modules/passados/passados.module.js";
+import { GodsModule } from "./modules/god/god.module.js";
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { PassadosModule } from "./modules/passados/passados.module.js";
     // migraram continuam servidos pelos routers antigos, montados em main.ts.
     TabelasAcessoriasModule,
     PassadosModule,
+    GodsModule,
   ],
 })
 export class AppModule {}
