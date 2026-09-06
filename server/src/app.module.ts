@@ -10,6 +10,7 @@ import { CityMapsModule } from "./modules/city_maps/city-maps.module.js";
 import { IndoleModule } from "./modules/indole/indole.module.js";
 import { GeneroModule } from "./modules/genero/genero.module.js";
 import { UsuariosModule } from "./modules/usuarios/usuarios.module.js";
+import { PersonagensConsultaModule } from "./modules/personagem/personagens-consulta.module.js";
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { UsuariosModule } from "./modules/usuarios/usuarios.module.js";
     IndoleModule,
     GeneroModule,
     UsuariosModule,
+    PersonagensConsultaModule,
   ],
 })
 export class AppModule {}

@@ -62,6 +62,13 @@ async function iniciarAplicacao(): Promise<void> {
   // Ponte para os módulos Express que ainda precisam criar contas.
   registrarServicoUsuarios(aplicacao.get(UsuariosService));
 
+  // Registra as rotas do Nest ANTES de montar os routers Express abaixo.
+  // Sem isto, um módulo migrado pela metade perderia para o router antigo:
+  // o Express atende na ordem em que as rotas entram, e o listen() só
+  // registraria as do Nest depois. Importa enquanto /api/personagens tiver
+  // rotas nos dois lados.
+  await aplicacao.init();
+
   // Módulos ainda não migrados pro Nest continuam servidos pelos routers
   // Express antigos (que ainda falam com o Supabase). Cada um sai daqui
   // conforme for migrado — tabelas-acessorias já saiu, por exemplo.
