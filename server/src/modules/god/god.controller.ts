@@ -75,14 +75,14 @@ export class GodController {
     const imagemComprimida = await sharp(arquivo.buffer, { failOn: "none" })
       .rotate()
       .resize({ width: 1600, height: 1600, fit: "inside", withoutEnlargement: true })
-      .webp({ quality: 74, effort: 5 })
+      .png({ compressionLevel: 9 })
       .toBuffer();
 
     const caminhoRelativo = await this.armazenamentoArquivos.salvar(
       SUBPASTA_IMAGENS,
       arquivo.originalname || "deus",
       imagemComprimida,
-      "webp",
+      "png",
     );
 
     // path é o que deve ser gravado no banco; publicUrl serve para o preview

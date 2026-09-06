@@ -77,14 +77,14 @@ export class PassadosController {
     const imagemComprimida = await sharp(arquivo.buffer, { failOn: "none" })
       .rotate()
       .resize({ width: 1200, height: 1200, fit: "inside", withoutEnlargement: true })
-      .jpeg({ quality: 85 })
+      .png({ compressionLevel: 9 })
       .toBuffer();
 
     const caminhoRelativo = await this.armazenamentoArquivos.salvar(
       SUBPASTA_IMAGENS,
       arquivo.originalname,
       imagemComprimida,
-      "jpg",
+      "png",
     );
 
     // path é o que deve ser gravado no banco; publicUrl serve para o preview
