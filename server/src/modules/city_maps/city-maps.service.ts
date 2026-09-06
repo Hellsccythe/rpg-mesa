@@ -1,15 +1,11 @@
-import { getAdminClient } from "../../config/database/supabase/client.js";
-import {
-  ensureAuthenticatedAccess,
-  ensureMasterAccess,
-  getUserDisplayEmail,
-} from "../../common/helpers/master-access.helper.js";
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { InjectModel } from "@nestjs/sequelize";
+import { ArmazenamentoArquivosService } from "../../common/storage/armazenamento-arquivos.service.js";
+import { CityMapModel, type DadosCityMap } from "./models/city-map.model.js";
 import type { EditarCityMapDto, PointOfInterestDto, SalvarCityMapDto } from "./city-maps.dto.js";
-import sharp from "sharp";
 
-const MAPS_BUCKET = "maps";
-
-type CityMapRecord = {
+/** Formato de resposta da API — mantido idêntico ao da versão Supabase. */
+export type CityMapApi = {
   id: string;
   name: string;
   mapReference: string;
@@ -22,269 +18,148 @@ type CityMapRecord = {
   mapType: "city" | "localized";
   parentCityMapId: string;
   pointsOfInterest: PointOfInterestDto[];
-  createdAt?: string;
-  updatedAt?: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
-function normalizeText(value: unknown) {
-  return typeof value === "string" ? value.trim() : "";
+const CIDADE_PADRAO_SLUG = "hamlet";
+const CIDADE_PADRAO_NOME = "Hamlet";
+
+function normalizarTexto(valor: unknown): string {
+  return typeof valor === "string" ? valor.trim() : "";
 }
 
-function sanitizeFileName(fileName: string) {
-  return normalizeText(fileName)
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9._-]/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
+/**
+ * Os pontos vêm do frontend com coordenadas em porcentagem da imagem.
+ * Descarta os inválidos (sem nome ou sem coordenada numérica) e prende
+ * x e y na faixa 0–100, para um ponto não cair fora do mapa.
+ */
+function sanitizarPontosDeInteresse(pontos: unknown): PointOfInterestDto[] {
+  if (!Array.isArray(pontos)) return [];
 
-function removeFileExtension(fileName: string) {
-  const lastDotIndex = fileName.lastIndexOf(".");
-  if (lastDotIndex <= 0) return fileName;
-  return fileName.slice(0, lastDotIndex);
-}
-
-function sanitizePoints(points: unknown): PointOfInterestDto[] {
-  if (!Array.isArray(points)) return [];
-
-  return points
-    .map((item: any, index) => ({
-      id: normalizeText(item?.id) || `poi-${index + 1}`,
-      name: normalizeText(item?.name),
-      x: Number(item?.x),
-      y: Number(item?.y),
-      description: normalizeText(item?.description),
-      targetCityMapId: normalizeText(item?.targetCityMapId),
-      targetLabel: normalizeText(item?.targetLabel),
+  return pontos
+    .map((ponto: any, indice: number) => ({
+      id: normalizarTexto(ponto?.id) || `poi-${indice + 1}`,
+      name: normalizarTexto(ponto?.name),
+      x: Number(ponto?.x),
+      y: Number(ponto?.y),
+      description: normalizarTexto(ponto?.description),
+      targetCityMapId: normalizarTexto(ponto?.targetCityMapId),
+      targetLabel: normalizarTexto(ponto?.targetLabel),
     }))
-    .filter((item) => item.name && Number.isFinite(item.x) && Number.isFinite(item.y))
-    .map((item) => ({
-      ...item,
-      x: Math.min(100, Math.max(0, item.x)),
-      y: Math.min(100, Math.max(0, item.y)),
+    .filter((ponto) => ponto.name && Number.isFinite(ponto.x) && Number.isFinite(ponto.y))
+    .map((ponto) => ({
+      ...ponto,
+      x: Math.min(100, Math.max(0, ponto.x)),
+      y: Math.min(100, Math.max(0, ponto.y)),
     }));
 }
 
-function mapCityMap(row: any): CityMapRecord {
-  const data = row?.data && typeof row.data === "object" ? row.data : {};
-  const parentCityMapId = normalizeText(data?.parentCityMapId);
-  const mapType =
-    normalizeText(data?.mapType) === "localized" || parentCityMapId ? "localized" : "city";
+@Injectable()
+export class CityMapsService {
+  constructor(
+    @InjectModel(CityMapModel)
+    private readonly modeloCityMap: typeof CityMapModel,
+    private readonly armazenamentoArquivos: ArmazenamentoArquivosService,
+  ) {}
 
-  return {
-    id: String(row?.id ?? ""),
-    name: normalizeText(row?.name),
-    mapReference: normalizeText(row?.map_reference),
-    description: normalizeText(row?.description),
-    imageUrl: normalizeText(data?.imageUrl),
-    citySlug: normalizeText(data?.citySlug) || "hamlet",
-    cityName: normalizeText(data?.cityName) || "Hamlet",
-    cityDescription: normalizeText(data?.cityDescription),
-    cityCulture: normalizeText(data?.cityCulture),
-    mapType,
-    parentCityMapId,
-    pointsOfInterest: sanitizePoints(data?.pointsOfInterest),
-    createdAt: row?.created_at,
-    updatedAt: row?.updated_at,
-  };
-}
+  // ── Leitura ───────────────────────────────────────────────────────────────
+  // Sem JOIN aqui: a tabela não referencia nenhuma outra, então o ORM resolve
+  // sozinho e não há motivo para SQL cru.
 
-export const cityMapsService = {
-  async uploadImagem(
-    file: { buffer: Buffer; originalname: string; mimetype: string; size: number },
-    accessToken?: string,
-  ) {
-    await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
+  async listar(): Promise<CityMapApi[]> {
+    const registros = await this.modeloCityMap.findAll({ order: [["createdAt", "DESC"]] });
+    return registros.map((registro) => this.converterParaApi(registro));
+  }
 
-    if (!file?.buffer?.length) throw new Error("Arquivo de imagem invalido");
-    if (!file.mimetype?.startsWith("image/")) {
-      throw new Error("Formato invalido. Envie uma imagem");
-    }
-
-    const maxSize = 30 * 1024 * 1024;
-    if (file.size > maxSize) {
-      throw new Error("Imagem excede o limite de 30MB");
-    }
-
-    // Converte para WebP e limita dimensao para reduzir consumo no bucket e no egress.
-    const compressedBuffer = await sharp(file.buffer, { failOn: "none" })
-      .rotate()
-      .resize({
-        width: 2200,
-        height: 2200,
-        fit: "inside",
-        withoutEnlargement: true,
-      })
-      .webp({ quality: 76, effort: 5 })
-      .toBuffer();
-
-    const safeName = sanitizeFileName(removeFileExtension(file.originalname || "mapa"));
-    const objectPath = `${Date.now()}-${safeName || "mapa"}.webp`;
-
-    const { error: uploadError } = await admin.storage
-      .from(MAPS_BUCKET)
-      .upload(objectPath, compressedBuffer, {
-        contentType: "image/webp",
-        upsert: true,
-        cacheControl: "31536000",
-      });
-
-    if (uploadError) throw uploadError;
-
-    const { data } = admin.storage.from(MAPS_BUCKET).getPublicUrl(objectPath);
+  private converterParaApi(registro: CityMapModel): CityMapApi {
+    const dados: DadosCityMap = registro.data ?? {};
+    const idMapaPai = normalizarTexto(dados.parentCityMapId);
 
     return {
-      path: objectPath,
-      publicUrl: data.publicUrl,
+      id: String(registro.id),
+      name: normalizarTexto(registro.name),
+      mapReference: normalizarTexto(registro.mapReference),
+      description: normalizarTexto(registro.description),
+      imageUrl: this.armazenamentoArquivos.montarUrlPublica(dados.imageUrl),
+      citySlug: normalizarTexto(dados.citySlug) || CIDADE_PADRAO_SLUG,
+      cityName: normalizarTexto(dados.cityName) || CIDADE_PADRAO_NOME,
+      cityDescription: normalizarTexto(dados.cityDescription),
+      cityCulture: normalizarTexto(dados.cityCulture),
+      // Ter mapa pai implica ser localizado, mesmo que mapType venha em branco.
+      mapType: normalizarTexto(dados.mapType) === "localized" || idMapaPai ? "localized" : "city",
+      parentCityMapId: idMapaPai,
+      pointsOfInterest: sanitizarPontosDeInteresse(dados.pointsOfInterest),
+      createdAt: registro.createdAt,
+      updatedAt: registro.updatedAt,
     };
-  },
+  }
 
-  async listar(accessToken?: string) {
-    await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
+  // ── Escrita (ORM, pra os hooks de auditoria dispararem) ───────────────────
 
-    const { data, error } = await admin
-      .from("city_maps")
-      .select("id, name, map_reference, description, data, created_at, updated_at")
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false });
+  async salvar(dados: SalvarCityMapDto): Promise<CityMapApi> {
+    const criado = await this.modeloCityMap.create({
+      name: dados.name.trim(),
+      mapReference: dados.mapReference.trim(),
+      description: normalizarTexto(dados.description),
+      data: {
+        imageUrl: this.armazenamentoArquivos.normalizarParaArmazenamento(dados.imageUrl) ?? "",
+        pointsOfInterest: sanitizarPontosDeInteresse(dados.pointsOfInterest),
+        citySlug: normalizarTexto(dados.citySlug) || CIDADE_PADRAO_SLUG,
+        cityName: normalizarTexto(dados.cityName) || CIDADE_PADRAO_NOME,
+        cityDescription: normalizarTexto(dados.cityDescription),
+        cityCulture: normalizarTexto(dados.cityCulture),
+        mapType: normalizarTexto(dados.mapType) === "localized" ? "localized" : "city",
+        parentCityMapId: normalizarTexto(dados.parentCityMapId),
+      },
+    });
 
-    if (error) throw error;
-    return (data ?? []).map(mapCityMap);
-  },
+    return this.converterParaApi(criado);
+  }
 
-  async listarAutenticado(accessToken?: string) {
-    await ensureAuthenticatedAccess(accessToken);
-    const admin = getAdminClient();
-
-    const { data, error } = await admin
-      .from("city_maps")
-      .select("id, name, map_reference, description, data, created_at, updated_at")
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false });
-
-    if (error) throw error;
-    return (data ?? []).map(mapCityMap);
-  },
-
-  async salvar(dto: SalvarCityMapDto, accessToken?: string) {
-    const masterUser = await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
-
-    const dataPayload = {
-      imageUrl: normalizeText(dto.imageUrl),
-      pointsOfInterest: sanitizePoints(dto.pointsOfInterest),
-      citySlug: normalizeText(dto.citySlug) || "hamlet",
-      cityName: normalizeText(dto.cityName) || "Hamlet",
-      cityDescription: normalizeText(dto.cityDescription),
-      cityCulture: normalizeText(dto.cityCulture),
-      mapType: normalizeText(dto.mapType) === "localized" ? "localized" : "city",
-      parentCityMapId: normalizeText(dto.parentCityMapId),
-    };
-
-    const { data, error } = await admin
-      .from("city_maps")
-      .insert({
-        name: dto.name.trim(),
-        map_reference: dto.mapReference.trim(),
-        description: dto.description?.trim() ?? "",
-        data: dataPayload,
-        created_by: getUserDisplayEmail(masterUser),
-        updated_by: getUserDisplayEmail(masterUser),
-      })
-      .select("id, name, map_reference, description, data, created_at, updated_at")
-      .single();
-
-    if (error) throw error;
-    return mapCityMap(data);
-  },
-
-  async deletar(cityMapId: string, accessToken?: string) {
-    const masterUser = await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
-
-    const { data: map, error: fetchError } = await admin
-      .from("city_maps")
-      .select("id, data")
-      .eq("id", cityMapId)
-      .is("deleted_at", null)
-      .single();
-
-    if (fetchError || !map) throw new Error("Mapa não encontrado");
-
-    const { error } = await admin
-      .from("city_maps")
-      .update({ deleted_at: new Date().toISOString(), deleted_by: getUserDisplayEmail(masterUser) })
-      .eq("id", cityMapId)
-      .is("deleted_at", null);
-
-    if (error) throw error;
-
-    const mapData = map.data && typeof map.data === "object" ? map.data : {};
-    const imageUrl = typeof (mapData as any).imageUrl === "string" ? (mapData as any).imageUrl : "";
-    if (imageUrl) {
-      try {
-        const path = imageUrl.replace(/^\/+/, "");
-        if (path) await admin.storage.from(MAPS_BUCKET).remove([path]);
-      } catch {
-        // falha no storage não bloqueia o delete
-      }
+  async editar(id: number, dados: EditarCityMapDto): Promise<CityMapApi> {
+    const registro = await this.modeloCityMap.findByPk(id);
+    if (!registro) {
+      throw new NotFoundException("Mapa não encontrado");
     }
 
-    return { success: true };
-  },
+    if (dados.name !== undefined) registro.name = normalizarTexto(dados.name);
+    if (dados.mapReference !== undefined) registro.mapReference = normalizarTexto(dados.mapReference);
+    if (dados.description !== undefined) registro.description = normalizarTexto(dados.description);
 
-  async editar(cityMapId: string, dto: EditarCityMapDto, accessToken?: string) {
-    const masterUser = await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
+    const dadosAtuais: DadosCityMap = registro.data ?? {};
+    const dadosNovos: DadosCityMap = { ...dadosAtuais };
 
-    const { data: current, error: currentError } = await admin
-      .from("city_maps")
-      .select("id, name, map_reference, description, data")
-      .eq("id", cityMapId)
-      .single();
+    if (dados.imageUrl !== undefined) {
+      dadosNovos.imageUrl = this.armazenamentoArquivos.normalizarParaArmazenamento(dados.imageUrl) ?? "";
+    }
+    if (dados.pointsOfInterest !== undefined) {
+      dadosNovos.pointsOfInterest = sanitizarPontosDeInteresse(dados.pointsOfInterest);
+    }
+    if (dados.citySlug !== undefined) {
+      dadosNovos.citySlug = normalizarTexto(dados.citySlug) || CIDADE_PADRAO_SLUG;
+    }
+    if (dados.cityName !== undefined) {
+      dadosNovos.cityName = normalizarTexto(dados.cityName) || CIDADE_PADRAO_NOME;
+    }
+    if (dados.cityDescription !== undefined) {
+      dadosNovos.cityDescription = normalizarTexto(dados.cityDescription);
+    }
+    if (dados.cityCulture !== undefined) {
+      dadosNovos.cityCulture = normalizarTexto(dados.cityCulture);
+    }
+    if (dados.mapType !== undefined) {
+      dadosNovos.mapType = normalizarTexto(dados.mapType) === "localized" ? "localized" : "city";
+    }
+    if (dados.parentCityMapId !== undefined) {
+      dadosNovos.parentCityMapId = normalizarTexto(dados.parentCityMapId);
+    }
 
-    if (currentError || !current) throw new Error("Mapa não encontrado");
+    // Atribuir um objeto novo (em vez de mutar) é o que faz o Sequelize
+    // perceber a mudança num campo JSONB e realmente gravá-la.
+    registro.data = dadosNovos;
+    await registro.save();
 
-    const currentData = current.data && typeof current.data === "object" ? current.data : {};
-    const nextData = {
-      ...currentData,
-      ...(dto.imageUrl !== undefined ? { imageUrl: normalizeText(dto.imageUrl) } : {}),
-      ...(dto.pointsOfInterest !== undefined
-        ? { pointsOfInterest: sanitizePoints(dto.pointsOfInterest) }
-        : {}),
-      ...(dto.citySlug !== undefined ? { citySlug: normalizeText(dto.citySlug) || "hamlet" } : {}),
-      ...(dto.cityName !== undefined ? { cityName: normalizeText(dto.cityName) || "Hamlet" } : {}),
-      ...(dto.cityDescription !== undefined
-        ? { cityDescription: normalizeText(dto.cityDescription) }
-        : {}),
-      ...(dto.cityCulture !== undefined ? { cityCulture: normalizeText(dto.cityCulture) } : {}),
-      ...(dto.mapType !== undefined
-        ? { mapType: normalizeText(dto.mapType) === "localized" ? "localized" : "city" }
-        : {}),
-      ...(dto.parentCityMapId !== undefined
-        ? { parentCityMapId: normalizeText(dto.parentCityMapId) }
-        : {}),
-    };
-
-    const updates: Record<string, unknown> = {
-      data: nextData,
-      updated_by: getUserDisplayEmail(masterUser),
-      ...(dto.name !== undefined ? { name: normalizeText(dto.name) } : {}),
-      ...(dto.mapReference !== undefined ? { map_reference: normalizeText(dto.mapReference) } : {}),
-      ...(dto.description !== undefined ? { description: normalizeText(dto.description) } : {}),
-    };
-
-    const { data, error } = await admin
-      .from("city_maps")
-      .update(updates)
-      .eq("id", cityMapId)
-      .select("id, name, map_reference, description, data, created_at, updated_at")
-      .single();
-
-    if (error) throw error;
-    return mapCityMap(data);
-  },
-};
+    return this.converterParaApi(registro);
+  }
+}

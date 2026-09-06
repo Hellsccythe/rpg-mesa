@@ -6,6 +6,7 @@ import { AuthModule } from "./modules/auth/auth.module.js";
 import { TabelasAcessoriasModule } from "./modules/tabelas-acessorias/tabelas-acessorias.module.js";
 import { PassadosModule } from "./modules/passados/passados.module.js";
 import { GodsModule } from "./modules/god/god.module.js";
+import { CityMapsModule } from "./modules/city_maps/city-maps.module.js";
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { GodsModule } from "./modules/god/god.module.js";
     TabelasAcessoriasModule,
     PassadosModule,
     GodsModule,
+    CityMapsModule,
   ],
 })
 export class AppModule {}

@@ -12,7 +12,6 @@ import type { Sequelize } from "sequelize-typescript";
 import { AppModule } from "./app.module.js";
 import { contextoRequisicaoMiddleware } from "./common/cls/contexto-requisicao.middleware.js";
 import { PersonagensRouter } from "./modules/personagem/personagens.module.js";
-import { CityMapsRouter } from "./modules/city_maps/city-maps.module.js";
 import { ClassesRouter } from "./modules/classes/classes.module.js";
 import { SkillRouter } from "./modules/skill/skill.module.js";
 import { TitulosRouter } from "./modules/titulos/titulos.module.js";
@@ -65,7 +64,6 @@ async function iniciarAplicacao(): Promise<void> {
   // Express antigos (que ainda falam com o Supabase). Cada um sai daqui
   // conforme for migrado — tabelas-acessorias já saiu, por exemplo.
   aplicacao.use("/api/personagens", PersonagensRouter);
-  aplicacao.use("/api/city-maps", CityMapsRouter);
   aplicacao.use("/api/classes", ClassesRouter);
   aplicacao.use("/api/skills", SkillRouter);
   aplicacao.use("/api/titulos", TitulosRouter);
