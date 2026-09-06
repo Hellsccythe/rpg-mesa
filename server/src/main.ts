@@ -11,6 +11,8 @@ import { resolve } from "node:path";
 import type { Sequelize } from "sequelize-typescript";
 import { AppModule } from "./app.module.js";
 import { contextoRequisicaoMiddleware } from "./common/cls/contexto-requisicao.middleware.js";
+import { UsuariosService } from "./modules/usuarios/usuarios.service.js";
+import { registrarServicoUsuarios } from "./modules/usuarios/usuarios.ponte.js";
 import { PersonagensRouter } from "./modules/personagem/personagens.module.js";
 import { ClassesRouter } from "./modules/classes/classes.module.js";
 import { SkillRouter } from "./modules/skill/skill.module.js";
@@ -19,7 +21,6 @@ import { LoreNotesRouter } from "./modules/lore-notes/lore-notes.module.js";
 import { ArmasRouter } from "./modules/armas/arma.module.js";
 import { RacasRouter } from "./modules/racas/raca.module.js";
 import { CharacterCreationRouter } from "./modules/character-creation/character-creation.module.js";
-import { UsuariosRouter } from "./modules/usuarios/usuarios.module.js";
 import { NpcsRouter } from "./modules/npcs/npcs.module.js";
 import { PlayerTelasRouter } from "./modules/player-telas/player-telas.module.js";
 import { CampanhasRouter } from "./modules/campanhas/campanhas.module.js";
@@ -58,6 +59,9 @@ async function iniciarAplicacao(): Promise<void> {
     }
   });
 
+  // Ponte para os módulos Express que ainda precisam criar contas.
+  registrarServicoUsuarios(aplicacao.get(UsuariosService));
+
   // Módulos ainda não migrados pro Nest continuam servidos pelos routers
   // Express antigos (que ainda falam com o Supabase). Cada um sai daqui
   // conforme for migrado — tabelas-acessorias já saiu, por exemplo.
@@ -69,7 +73,6 @@ async function iniciarAplicacao(): Promise<void> {
   aplicacao.use("/api/armas", ArmasRouter);
   aplicacao.use("/api/racas", RacasRouter);
   aplicacao.use("/api/character-creation-requests", CharacterCreationRouter);
-  aplicacao.use("/api/usuarios", UsuariosRouter);
   aplicacao.use("/api/npcs", NpcsRouter);
   aplicacao.use("/api/player-telas", PlayerTelasRouter);
   aplicacao.use("/api/campanhas", CampanhasRouter);

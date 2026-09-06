@@ -19,8 +19,9 @@ export class UsuarioModel extends Model {
   @Column({ type: DataType.BOOLEAN, defaultValue: true })
   declare ativo: boolean;
 
-  @Column(DataType.TEXT)
-  declare passwordHash: string;
+  /** Nulo significa pré-registro: email liberado, conta ainda não criada. */
+  @Column({ type: DataType.TEXT, allowNull: true })
+  declare passwordHash: string | null;
 
   @Column({ type: DataType.BOOLEAN, defaultValue: false })
   declare requiresPasswordChange: boolean;

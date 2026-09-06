@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { getAdminClient } from "../../config/database/supabase/client.js";
 import { ensureMasterAccess, getUserDisplayEmail } from "../../common/helpers/master-access.helper.js";
-import { usuariosService } from "../usuarios/usuarios.service.js";
+import { obterServicoUsuarios } from "../usuarios/usuarios.ponte.js";
 
 const REQUESTS_TABLE = "character_creation_requests";
 const PERSONAGEM_TABLE = "characters";
@@ -208,27 +208,15 @@ export const characterCreationService = {
       throw new Error("Não foi possível recuperar as credenciais do jogador.");
     }
 
-    const authEmail = `${(req as any).username}@rpg.internal`;
-    const { data: createData, error: createError } = await admin.auth.admin.createUser({
-      email: authEmail,
-      password: rawPassword,
-      email_confirm: true,
-      user_metadata: {
-        real_email: (req as any).email,
-        username: (req as any).username,
-        display_name: (req as any).username,
-      },
+    // A conta nasce na nossa própria tabela usuarios (hash bcrypt), não mais
+    // no Supabase Auth. O id devolvido é o inteiro que characters.user_id
+    // referencia desde a migration 061.
+    const userId = await obterServicoUsuarios().criarConta({
+      email: (req as any).email,
+      username: (req as any).username,
+      senha: rawPassword,
+      tipo: "player",
     });
-
-    if (createError) {
-      const msg = createError.message?.toLowerCase() ?? "";
-      if (msg.includes("already") || (createError as any).status === 422) {
-        throw new Error("Este nome de usuário já está em uso. Escolha outro.");
-      }
-      throw createError;
-    }
-
-    const userId = createData.user.id;
 
     const { error: charError } = await admin.from(PERSONAGEM_TABLE).insert({
       user_id: userId,
@@ -247,16 +235,10 @@ export const characterCreationService = {
     });
 
     if (charError) {
-      await admin.auth.admin.deleteUser(userId).catch(() => null);
+      // Rollback: desfaz a conta recém-criada para não deixar órfã.
+      await obterServicoUsuarios().deletar(userId).catch(() => null);
       throw charError;
     }
-
-    await usuariosService.criar({
-      auth_user_id: userId,
-      real_email: (req as any).email,
-      username: (req as any).username,
-      tipo: "player",
-    }).catch(() => null);
 
     await admin
       .from(REQUESTS_TABLE)

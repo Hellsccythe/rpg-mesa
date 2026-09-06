@@ -32,7 +32,9 @@ export class AuthService {
       },
     });
 
-    if (!usuario || !usuario.ativo) {
+    // passwordHash nulo significa pré-registro: o mestre liberou o email, mas
+    // a conta só passa a existir quando o jogador cria o personagem.
+    if (!usuario || !usuario.ativo || !usuario.passwordHash) {
       throw new UnauthorizedException("Usuário ou senha inválidos");
     }
 
