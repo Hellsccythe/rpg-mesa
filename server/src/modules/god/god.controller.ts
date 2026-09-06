@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -56,6 +57,13 @@ export class GodController {
   @Patch("admin/:godId")
   editar(@Param("godId", ParseIntPipe) godId: number, @Body() dadosEdicao: EditarGodDto) {
     return this.servicoDeuses.editar(godId, dadosEdicao);
+  }
+
+  @UseGuards(JwtAuthGuard, MasterGuard)
+  @Delete("admin/:godId")
+  async deletar(@Param("godId", ParseIntPipe) godId: number) {
+    await this.servicoDeuses.deletar(godId);
+    return { success: true };
   }
 
   @UseGuards(JwtAuthGuard, MasterGuard)

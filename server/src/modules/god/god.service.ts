@@ -191,4 +191,14 @@ export class GodService {
     await registro.save();
     return this.buscarOuFalhar(id);
   }
+
+  async deletar(id: number): Promise<void> {
+    const registro = await this.modeloDeus.findByPk(id);
+    if (!registro) {
+      throw new NotFoundException("Deus não encontrado");
+    }
+    // Soft delete (paranoid). A imagem em disco é preservada de propósito:
+    // o registro pode ser restaurado, e o arquivo não voltaria.
+    await registro.destroy();
+  }
 }

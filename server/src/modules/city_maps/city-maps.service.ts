@@ -162,4 +162,14 @@ export class CityMapsService {
 
     return this.converterParaApi(registro);
   }
+
+  async deletar(id: number): Promise<void> {
+    const registro = await this.modeloCityMap.findByPk(id);
+    if (!registro) {
+      throw new NotFoundException("Mapa não encontrado");
+    }
+    // Soft delete (paranoid). A imagem em disco é preservada de propósito:
+    // o registro pode ser restaurado, e o arquivo não voltaria.
+    await registro.destroy();
+  }
 }

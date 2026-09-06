@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -60,6 +61,13 @@ export class CityMapsController {
     @Body() dadosEdicao: EditarCityMapDto,
   ) {
     return this.servicoCityMaps.editar(cityMapId, dadosEdicao);
+  }
+
+  @UseGuards(JwtAuthGuard, MasterGuard)
+  @Delete("admin/:cityMapId")
+  async deletar(@Param("cityMapId", ParseIntPipe) cityMapId: number) {
+    await this.servicoCityMaps.deletar(cityMapId);
+    return { success: true };
   }
 
   @UseGuards(JwtAuthGuard, MasterGuard)
