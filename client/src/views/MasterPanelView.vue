@@ -1012,7 +1012,6 @@ import {
 } from '@/lib/api/lore-notes.api'
 import type { LoreNoteApi } from '@/lib/api/lore-notes.api'
 import { uploadLorePdf } from '@/lib/supabase/storage'
-import { supabase } from '@/lib/supabase/client'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -1708,11 +1707,7 @@ async function salvarNovaSenhaObrigatoria() {
   salvandoNovaSenha.value = true
   erroNovaSenha.value = ''
   try {
-    const { error } = await supabase.auth.updateUser({
-      password: novaSenhaObrigatoria.value,
-      data: { requires_password_change: false },
-    })
-    if (error) throw error
+    await authStore.trocarSenha(novaSenhaObrigatoria.value)
     showPasswordChangeModal.value = false
   } catch (err: any) {
     erroNovaSenha.value = err?.message ?? 'Erro ao salvar nova senha.'
@@ -1724,8 +1719,7 @@ async function salvarNovaSenhaObrigatoria() {
 onMounted(async () => {
   await loadAll()
   try {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user?.user_metadata?.requires_password_change) {
+    if (authStore.precisaTrocarSenha) {
       novaSenhaObrigatoria.value = ''
       novaSenhaObrigatoriaConfirmacao.value = ''
       erroNovaSenha.value = ''

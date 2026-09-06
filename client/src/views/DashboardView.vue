@@ -1509,7 +1509,6 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Modal from '@/components/Modal.vue'
 import HamburgerDrawerMenu from '@/components/HamburgerDrawerMenu.vue'
-import { supabase } from '@/lib/supabase/client'
 import { getHistoryDocumentSignedUrl } from '@/lib/supabase/storage'
 import { limparMetaAuthLocal, useAuthStore } from '@/stores/auth'
 import { useCharactersStore } from '@/stores/characters'
@@ -1645,11 +1644,7 @@ async function salvarNovaSenhaObrigatoria() {
   salvandoNovaSenha.value = true
   erroNovaSenha.value = ''
   try {
-    const { error } = await supabase.auth.updateUser({
-      password: novaSenhaObrigatoria.value,
-      data: { requires_password_change: false },
-    })
-    if (error) throw error
+    await authStore.trocarSenha(novaSenhaObrigatoria.value)
     showPasswordChangeModal.value = false
   } catch (err: any) {
     erroNovaSenha.value = err?.message ?? 'Erro ao salvar nova senha.'
@@ -2398,8 +2393,7 @@ async function loadCharacter() {
     }
 
     if (!authStore.eMestre) {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user?.user_metadata?.requires_password_change) {
+      if (authStore.precisaTrocarSenha) {
         novaSenhaObrigatoria.value = ''
         novaSenhaObrigatoriaConfirmacao.value = ''
         erroNovaSenha.value = ''

@@ -99,11 +99,11 @@ export const useCharactersStore = defineStore('characters', {
 
         let avatarUrl = payload.avatarUrl
         if (avatarFile) {
-          avatarUrl = await uploadAvatar(avatarFile, userId)
+          avatarUrl = await uploadAvatar(avatarFile, String(userId))
         }
 
         if (historyDocFile) {
-          const uploadedDoc = await uploadHistoryDocument(historyDocFile, userId)
+          const uploadedDoc = await uploadHistoryDocument(historyDocFile, String(userId))
           dataPayload.historyDocumentPath = uploadedDoc.path
           dataPayload.historyDocumentName = uploadedDoc.name
           dataPayload.historyDocumentMimeType = uploadedDoc.mimeType
@@ -176,11 +176,11 @@ export const useCharactersStore = defineStore('characters', {
         const finalPayload: SolicitarAlteracaoPersonagemDto = { ...payload }
 
         if (avatarFile) {
-          finalPayload.avatarUrl = await uploadAvatar(avatarFile, userId)
+          finalPayload.avatarUrl = await uploadAvatar(avatarFile, String(userId))
         }
 
         if (historyDocFile) {
-          const uploadedDoc = await uploadHistoryDocument(historyDocFile, userId)
+          const uploadedDoc = await uploadHistoryDocument(historyDocFile, String(userId))
           finalPayload.historyDocumentPath = uploadedDoc.path
           finalPayload.historyDocumentName = uploadedDoc.name
           finalPayload.historyDocumentMimeType = uploadedDoc.mimeType ?? undefined

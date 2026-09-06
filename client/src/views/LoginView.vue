@@ -910,7 +910,9 @@ async function logarPersonagem() {
   const idPersonagem = personagemSelecionado.value.characterId
 
   try {
-    await authStore.entrar(`${username}@rpg.internal`, senhaLoginPersonagem.value, idPersonagem)
+    // O backend aceita o username direto; o sufixo @rpg.internal era
+    // exigência do Supabase Auth e deixou de existir.
+    await authStore.entrar(username, senhaLoginPersonagem.value, idPersonagem)
     fecharModalLoginPersonagem()
     router.push({ name: 'dashboard', query: { characterId: idPersonagem } })
   } catch (err: any) {

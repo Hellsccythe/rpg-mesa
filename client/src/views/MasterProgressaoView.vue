@@ -1176,19 +1176,22 @@ async function executarDelete() {
 // ── Carregar ──────────────────────────────────────────────────────────────────
 onMounted(async () => {
   carregandoLP.value = true
-  try {
-    const [progressData, classesData, lpData] = await Promise.all([
-      listarProgressaoClasse(),
-      listarClassesAdmin(),
-      listarLevelProgression(),
-      charactersStore.fetchPaginaInicial().catch(() => {}),
-    ])
-    progressoes.value      = progressData
-    classes.value          = classesData
-    levelProgression.value = lpData
-  } finally {
-    carregando.value  = false
-    carregandoLP.value = false
-  }
+
+  // Cada seção carrega por conta própria: com Promise.all, uma única chamada
+  // com falha derrubava a atribuição de todas as outras, e a tela inteira
+  // aparecia vazia mesmo com os dados já respondidos.
+  const [progressData, classesData, lpData] = await Promise.allSettled([
+    listarProgressaoClasse(),
+    listarClassesAdmin(),
+    listarLevelProgression(),
+  ])
+  await charactersStore.fetchPaginaInicial().catch(() => {})
+
+  if (progressData.status === 'fulfilled') progressoes.value = progressData.value
+  if (classesData.status === 'fulfilled') classes.value = classesData.value
+  if (lpData.status === 'fulfilled') levelProgression.value = lpData.value
+
+  carregando.value = false
+  carregandoLP.value = false
 })
 </script>

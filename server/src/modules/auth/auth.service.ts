@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/sequelize";
 import { JwtService } from "@nestjs/jwt";
 import { Op } from "sequelize";
@@ -10,6 +10,12 @@ export interface RespostaLogin {
   tokenAcesso: string;
   tipo: "gm" | "player";
   precisaTrocarSenha: boolean;
+  /** Devolvido explicitamente para o frontend não precisar decodificar o JWT. */
+  usuario: {
+    id: number;
+    email: string;
+    username: string | null;
+  };
 }
 
 @Injectable()
@@ -53,6 +59,27 @@ export class AuthService {
       tokenAcesso: this.servicoJwt.sign(usuarioAutenticado),
       tipo: usuario.tipo,
       precisaTrocarSenha: usuario.requiresPasswordChange,
+      usuario: {
+        id: usuario.id,
+        email: usuario.realEmail,
+        username: usuario.username,
+      },
     };
+  }
+
+  /**
+   * Troca da própria senha pelo usuário logado. Substitui o
+   * supabase.auth.updateUser({ password }) que as telas usavam, e é o que
+   * encerra a obrigação criada pelo "Reset Padrão" do mestre.
+   */
+  async trocarPropriaSenha(usuarioId: number, novaSenha: string): Promise<void> {
+    const usuario = await this.modeloUsuario.findByPk(usuarioId);
+    if (!usuario) {
+      throw new NotFoundException("Usuário não encontrado");
+    }
+
+    usuario.passwordHash = await bcrypt.hash(novaSenha, 10);
+    usuario.requiresPasswordChange = false;
+    await usuario.save();
   }
 }

@@ -1,7 +1,11 @@
 // src/router/index.ts
 import { createRouter, createWebHistory } from 'vue-router'
-import { supabase } from '@/lib/supabase/client'
-import { limparMetaAuthLocal, obterMetaAuthLocal, sessaoLocalExpirada } from '@/stores/auth'
+import {
+  limparMetaAuthLocal,
+  obterMetaAuthLocal,
+  obterTokenLocal,
+  sessaoLocalExpirada,
+} from '@/stores/auth'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -240,20 +244,16 @@ router.beforeEach(async (to) => {
       return true
     }
 
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
+    // A sessão vive no token guardado localmente; não há servidor a consultar.
+    const tinhaToken = obterTokenLocal() !== null
     let sessaoExpirou = false
 
-    if (session && sessaoLocalExpirada()) {
-      await supabase.auth.signOut()
+    if (tinhaToken && sessaoLocalExpirada()) {
       limparMetaAuthLocal()
       sessaoExpirou = true
     }
 
-    const {
-      data: { session: sessaoAtualizada },
-    } = await supabase.auth.getSession()
+    const sessaoAtualizada = obterTokenLocal() !== null
     const metaAuth = obterMetaAuthLocal()
     const requerAuth = to.matched.some((route) => route.meta.requiresAuth)
 
