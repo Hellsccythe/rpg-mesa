@@ -7,6 +7,8 @@ import { TabelasAcessoriasModule } from "./modules/tabelas-acessorias/tabelas-ac
 import { PassadosModule } from "./modules/passados/passados.module.js";
 import { GodsModule } from "./modules/god/god.module.js";
 import { CityMapsModule } from "./modules/city_maps/city-maps.module.js";
+import { IndoleModule } from "./modules/indole/indole.module.js";
+import { GeneroModule } from "./modules/genero/genero.module.js";
 
 @Module({
   imports: [
@@ -20,6 +22,8 @@ import { CityMapsModule } from "./modules/city_maps/city-maps.module.js";
     PassadosModule,
     GodsModule,
     CityMapsModule,
+    IndoleModule,
+    GeneroModule,
   ],
 })
 export class AppModule {}

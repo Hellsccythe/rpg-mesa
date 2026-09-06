@@ -1,69 +1,46 @@
-import { getAdminClient, getSupabaseClient } from "../../config/database/supabase/client.js";
-import { ensureMasterAccess } from "../../common/helpers/master-access.helper.js";
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { InjectModel } from "@nestjs/sequelize";
+import { GeneroModel } from "./models/genero.model.js";
+import type { CriarGeneroDto, EditarGeneroDto } from "./genero.dto.js";
 
-export type GeneroRecord = {
-  id: number;
-  codigo: string;
-  descricao: string;
-  pronome: string;
-  created_at?: string;
-};
+@Injectable()
+export class GeneroService {
+  constructor(
+    @InjectModel(GeneroModel)
+    private readonly modeloGenero: typeof GeneroModel,
+  ) {}
 
-export const generoService = {
-  async listar(): Promise<GeneroRecord[]> {
-    const { data, error } = await getSupabaseClient()
-      .from("genero")
-      .select("id, codigo, descricao, pronome, created_at")
-      .order("id", { ascending: true });
-    if (error) throw error;
-    return (data ?? []) as GeneroRecord[];
-  },
+  async listar(): Promise<GeneroModel[]> {
+    return this.modeloGenero.findAll({ order: [["id", "ASC"]] });
+  }
 
-  async criar(
-    dto: { codigo: string; descricao: string; pronome?: string },
-    accessToken?: string,
-  ): Promise<GeneroRecord> {
-    await ensureMasterAccess(accessToken);
-    const { data, error } = await getAdminClient()
-      .from("genero")
-      .insert({
-        codigo: dto.codigo.trim(),
-        descricao: dto.descricao.trim(),
-        pronome: dto.pronome?.trim() ?? "",
-      })
-      .select("id, codigo, descricao, pronome, created_at")
-      .single();
-    if (error) throw error;
-    return data as GeneroRecord;
-  },
+  async criar(dados: CriarGeneroDto): Promise<GeneroModel> {
+    return this.modeloGenero.create({
+      codigo: dados.codigo.trim(),
+      descricao: dados.descricao.trim(),
+      pronome: dados.pronome?.trim() ?? "",
+    });
+  }
 
-  async editar(
-    id: number,
-    dto: { codigo?: string; descricao?: string; pronome?: string },
-    accessToken?: string,
-  ): Promise<GeneroRecord> {
-    await ensureMasterAccess(accessToken);
-    const updates: Record<string, unknown> = {};
-    if (dto.codigo !== undefined) updates.codigo = dto.codigo.trim();
-    if (dto.descricao !== undefined) updates.descricao = dto.descricao.trim();
-    if (dto.pronome !== undefined) updates.pronome = dto.pronome.trim();
-    const { data, error } = await getAdminClient()
-      .from("genero")
-      .update(updates)
-      .eq("id", id)
-      .select("id, codigo, descricao, pronome, created_at")
-      .single();
-    if (error) throw error;
-    return data as GeneroRecord;
-  },
+  async editar(id: number, dados: EditarGeneroDto): Promise<GeneroModel> {
+    const registro = await this.buscarOuFalhar(id);
+    if (dados.codigo !== undefined) registro.codigo = dados.codigo.trim();
+    if (dados.descricao !== undefined) registro.descricao = dados.descricao.trim();
+    if (dados.pronome !== undefined) registro.pronome = dados.pronome.trim();
+    await registro.save();
+    return registro;
+  }
 
-  async deletar(id: number, accessToken?: string): Promise<{ success: boolean }> {
-    await ensureMasterAccess(accessToken);
-    const { error } = await getAdminClient()
-      .from("genero")
-      .delete()
-      .eq("id", id);
-    if (error) throw error;
-    return { success: true };
-  },
-};
+  async deletar(id: number): Promise<void> {
+    const registro = await this.buscarOuFalhar(id);
+    // Soft delete: a versão anterior apagava de verdade, o que deixaria
+    // characters.genero_id apontando para o vazio.
+    await registro.destroy();
+  }
+
+  private async buscarOuFalhar(id: number): Promise<GeneroModel> {
+    const registro = await this.modeloGenero.findByPk(id);
+    if (!registro) throw new NotFoundException("Gênero não encontrado");
+    return registro;
+  }
+}

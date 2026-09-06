@@ -18,8 +18,6 @@ import { TitulosRouter } from "./modules/titulos/titulos.module.js";
 import { LoreNotesRouter } from "./modules/lore-notes/lore-notes.module.js";
 import { ArmasRouter } from "./modules/armas/arma.module.js";
 import { RacasRouter } from "./modules/racas/raca.module.js";
-import { IndoleRouter } from "./modules/indole/indole.module.js";
-import { GeneroRouter } from "./modules/genero/genero.module.js";
 import { CharacterCreationRouter } from "./modules/character-creation/character-creation.module.js";
 import { UsuariosRouter } from "./modules/usuarios/usuarios.module.js";
 import { NpcsRouter } from "./modules/npcs/npcs.module.js";
@@ -70,8 +68,6 @@ async function iniciarAplicacao(): Promise<void> {
   aplicacao.use("/api/lore-notes", LoreNotesRouter);
   aplicacao.use("/api/armas", ArmasRouter);
   aplicacao.use("/api/racas", RacasRouter);
-  aplicacao.use("/api/indole", IndoleRouter);
-  aplicacao.use("/api/genero", GeneroRouter);
   aplicacao.use("/api/character-creation-requests", CharacterCreationRouter);
   aplicacao.use("/api/usuarios", UsuariosRouter);
   aplicacao.use("/api/npcs", NpcsRouter);
