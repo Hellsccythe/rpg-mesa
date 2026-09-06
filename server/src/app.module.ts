@@ -11,6 +11,7 @@ import { IndoleModule } from "./modules/indole/indole.module.js";
 import { GeneroModule } from "./modules/genero/genero.module.js";
 import { UsuariosModule } from "./modules/usuarios/usuarios.module.js";
 import { PersonagensConsultaModule } from "./modules/personagem/personagens-consulta.module.js";
+import { LevelProgressionModule } from "./modules/level-progression/level-progression.module.js";
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { PersonagensConsultaModule } from "./modules/personagem/personagens-cons
     GeneroModule,
     UsuariosModule,
     PersonagensConsultaModule,
+    LevelProgressionModule,
   ],
 })
 export class AppModule {}
