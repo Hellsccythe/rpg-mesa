@@ -51,6 +51,12 @@ Sistema de gestão de sessões de RPG de mesa. Monorepo com Yarn 4 Workspaces.
 |---|---|---|
 | GET | `/api/personagens` | auth |
 | GET | `/api/personagens/:id` | auth (mestre abre qualquer um; jogador só o seu) |
+| GET | `/api/racas` | público (sem `lore`) |
+| GET | `/api/racas/admin` | isMaster (com `lore`) |
+| POST | `/api/racas/admin` | isMaster |
+| PATCH | `/api/racas/admin/:id` | isMaster |
+| DELETE | `/api/racas/admin/:id` | isMaster (soft delete) |
+| POST | `/api/racas/admin/upload-image` | isMaster (multipart `file`) |
 | GET | `/api/gods` | público |
 | GET | `/api/city-maps` | auth |
 | GET | `/api/classes` | público |
@@ -371,6 +377,8 @@ Tabelas de catálogo gerenciadas pelo mestre. PKs convertidas para INTEGER IDENT
 
 `gods` tem `indole_id INTEGER` referenciando `indole.id`.
 
+**`racas`** tem `habilidades JSONB` e `atributos_bonus JSONB` (listas de `{nome, descricao}` e `{atributo, valor}`) e `lore TEXT`. O `lore` é o único campo que a listagem pública omite — `GET /api/racas` devolve `lore: null`, e só `GET /api/racas/admin` traz o conteúdo. `foto_url` guarda **caminho relativo** (`racas/elfo.png`); a URL completa é montada na resposta.
+
 **`classes`** tem `is_secret BOOLEAN DEFAULT FALSE` (migration 042). Classes secretas não aparecem no onboarding nem para outros players — só são reveladas pelo mestre através de `/master/classes-secretas`. São exclusivas: apenas um personagem vivo por sessão pode deter cada classe secreta.
 
 **`titles`** tem `is_hidden BOOLEAN DEFAULT FALSE` (oculta requisitos) e `classe_secreta_id INTEGER DEFAULT NULL` (migration 045). Quando `classe_secreta_id` é preenchido, o título só é visível para players que tiverem essa classe secreta revelada.
@@ -455,6 +463,7 @@ Antes da confirmação, o frontend (`MasterSkillsView`) chama `GET /api/skills/a
 - Backend usa **admin client** (ignora RLS) para escritas; **anon client** para leituras públicas
 - Soft delete padrão: `deleted_at IS NULL` para registros ativos
 - DTOs com `class-validator` no backend; tipos TypeScript no frontend
+- **A validação só roda nos módulos já migrados para o Nest**, via `ValidationPipe` global. Nos módulos Express que restam os decorators são decorativos — nada chama `validate()`, o router passa `req.body` direto para o service. Ao migrar um módulo, reveja as regras herdadas: elas nunca foram executadas e podem estar erradas (foi o caso do `@IsUrl` em `racas.foto_url`, que passaria a recusar os caminhos relativos que hoje se gravam)
 - Componentes compartilhados: `Modal.vue`, `DataTable.vue`, `HamburgerDrawerMenu.vue`, `TemaDarkLight.vue`, `SuperficieTema.vue`, `VSelect.vue`
 - **`DataTable.vue` é o padrão de tabela do projeto** — toda listagem CRUD admin deve usar este componente (ver `docs/COMPONENTS.md`)
 - **Nunca usar FOREIGN KEY constraints no banco** — referências entre tabelas são por convenção de inteiro apenas

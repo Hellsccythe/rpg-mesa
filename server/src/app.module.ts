@@ -12,6 +12,7 @@ import { GeneroModule } from "./modules/genero/genero.module.js";
 import { UsuariosModule } from "./modules/usuarios/usuarios.module.js";
 import { PersonagensConsultaModule } from "./modules/personagem/personagens-consulta.module.js";
 import { PersonagensOnboardingModule } from "./modules/personagem/personagens-onboarding.module.js";
+import { RacasModule } from "./modules/racas/raca.module.js";
 import { LevelProgressionModule } from "./modules/level-progression/level-progression.module.js";
 
 @Module({
@@ -32,6 +33,7 @@ import { LevelProgressionModule } from "./modules/level-progression/level-progre
     PersonagensConsultaModule,
     PersonagensOnboardingModule,
     LevelProgressionModule,
+    RacasModule,
   ],
 })
 export class AppModule {}
