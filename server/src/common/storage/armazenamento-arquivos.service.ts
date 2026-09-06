@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { mkdir, writeFile, unlink } from "node:fs/promises";
+import { mkdir, readFile, writeFile, unlink } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
 /**
@@ -22,12 +22,49 @@ export class ArmazenamentoArquivosService {
     process.env.PUBLIC_BASE_URL ?? `http://localhost:${process.env.PORT ?? 3000}`
   ).replace(/\/+$/, "");
 
-  /** Grava o arquivo e devolve o caminho relativo para guardar no banco. */
-  async salvar(subpasta: string, nomeOriginal: string, conteudo: Buffer, extensao = "jpg"): Promise<string> {
-    const nomeArquivo = this.montarNomeUnico(nomeOriginal, extensao);
-    await mkdir(join(this.pastaRaiz, subpasta), { recursive: true });
-    await writeFile(join(this.pastaRaiz, subpasta, nomeArquivo), conteudo);
+  /**
+   * Grava o arquivo e devolve o caminho relativo para guardar no banco.
+   *
+   * O nome é o original higienizado, sem prefixo de data: "Inari.png" vira
+   * "gods/inari.png". Número só entra quando é necessário para não destruir
+   * nada: se o nome já estiver ocupado por um arquivo DIFERENTE, vira
+   * "inari-2.png". Reenviar exatamente o mesmo conteúdo reaproveita o
+   * arquivo que já está lá, em vez de criar uma cópia.
+   *
+   * Sobrescrever silenciosamente seria pior: dois registros com imagens de
+   * mesmo nome fariam um apagar a foto do outro sem aviso.
+   */
+  async salvar(subpasta: string, nomeOriginal: string, conteudo: Buffer, extensao = "png"): Promise<string> {
+    const pastaDestino = join(this.pastaRaiz, subpasta);
+    await mkdir(pastaDestino, { recursive: true });
+
+    const nomeBase = this.higienizarNome(nomeOriginal);
+    const nomeArquivo = await this.escolherNomeLivre(pastaDestino, nomeBase, extensao, conteudo);
+
+    await writeFile(join(pastaDestino, nomeArquivo), conteudo);
     return `${subpasta}/${nomeArquivo}`;
+  }
+
+  private async escolherNomeLivre(
+    pastaDestino: string,
+    nomeBase: string,
+    extensao: string,
+    conteudo: Buffer,
+  ): Promise<string> {
+    for (let sufixo = 1; ; sufixo += 1) {
+      const nomeArquivo = sufixo === 1 ? `${nomeBase}.${extensao}` : `${nomeBase}-${sufixo}.${extensao}`;
+      const caminhoCompleto = join(pastaDestino, nomeArquivo);
+
+      let existente: Buffer;
+      try {
+        existente = await readFile(caminhoCompleto);
+      } catch {
+        return nomeArquivo; // nome livre
+      }
+
+      // Mesmo conteúdo: reaproveita em vez de duplicar.
+      if (existente.equals(conteudo)) return nomeArquivo;
+    }
   }
 
   /**
@@ -76,18 +113,20 @@ export class ArmazenamentoArquivosService {
     }
   }
 
-  private montarNomeUnico(nomeOriginal: string, extensao: string): string {
+  private higienizarNome(nomeOriginal: string): string {
     // ̀-ͯ é a faixa de acentos que o normalize("NFD") separa das
     // letras ("ção" vira "c" + til + "a" + "o"): removê-los deixa "cao".
     const ACENTOS_SEPARADOS = /[̀-ͯ]/g;
 
     const semExtensao = nomeOriginal.replace(/\.[^.]+$/, "");
-    const sanitizado = semExtensao
-      .normalize("NFD")
-      .replace(ACENTOS_SEPARADOS, "")
-      .replace(/[^a-zA-Z0-9._-]/g, "-")
-      .replace(/-+/g, "-")
-      .replace(/^-+|-+$/g, "");
-    return `${Date.now()}-${sanitizado || "arquivo"}.${extensao}`;
+    return (
+      semExtensao
+        .normalize("NFD")
+        .replace(ACENTOS_SEPARADOS, "")
+        .replace(/[^a-zA-Z0-9._-]/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .toLowerCase() || "arquivo"
+    );
   }
 }

@@ -84,6 +84,7 @@ export class PassadosController {
       SUBPASTA_IMAGENS,
       arquivo.originalname,
       imagemComprimida,
+      "jpg",
     );
 
     // path é o que deve ser gravado no banco; publicUrl serve para o preview
