@@ -29,12 +29,26 @@ export type ClasseSecretaAdmin = ClasseApi & {
   revealed_at: string | null
 }
 
+/**
+ * `xp_required_next` é quanto falta para sair deste nível e ir ao próximo;
+ * `xp_total_accumulated` é o XP total acumulado ao atingir este nível. São
+ * grandezas diferentes e não podem ser trocadas uma pela outra.
+ *
+ * O backend antigo entregava um campo `xp_required` que era só um apelido de
+ * `xp_required_next`, escolhido por uma lista de tentativas
+ * (`xp_required_next ?? xp_required ?? xp ?? xp_needed`) de quando ninguém
+ * sabia os nomes reais das colunas. O apelido induziu ao erro de tratar um
+ * delta como acumulado.
+ */
 export interface LevelProgressionApi {
+  id: number
   level: number
-  xp_required: number
-  xp_total_accumulated?: number | null
-  multiplier?: number
-  [key: string]: unknown
+  tier: string
+  multiplier: number
+  xp_required_next: number
+  xp_total_accumulated: number
+  created_at: string
+  updated_at: string
 }
 
 export async function listarClasses(): Promise<ClasseApi[]> {

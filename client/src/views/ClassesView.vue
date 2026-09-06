@@ -253,7 +253,7 @@
                       {{ row.level }}
                       <span v-if="character && row.level === character.level" class="ml-1 text-xs text-amber-500">← atual</span>
                     </td>
-                    <td class="px-4 py-2.5 text-zinc-300">{{ row.xp_required?.toLocaleString('pt-BR') }}</td>
+                    <td class="px-4 py-2.5 text-zinc-300">{{ row.xp_required_next.toLocaleString('pt-BR') }}</td>
                     <td class="px-4 py-2.5 text-zinc-500">
                       {{ row.xp_total_accumulated != null ? Number(row.xp_total_accumulated).toLocaleString('pt-BR') : '—' }}
                     </td>
@@ -562,7 +562,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useCharactersStore } from '@/stores/characters'
 import { useClassesStore } from '@/stores/classes'
 import { useSkillsStore } from '@/stores/skills'
-import type { ClasseApi } from '@/lib/api/classes.api'
+import type { ClasseApi, LevelProgressionApi } from '@/lib/api/classes.api'
 import type { SkillApi } from '@/lib/api/skills.api'
 
 const route = useRoute()
@@ -639,7 +639,7 @@ function handleNavSelect(itemId: string) {
 // ── Character ─────────────────────────────────────────────────────────────
 const character = computed(() => {
   const id = String(route.query.characterId ?? authStore.idPersonagemAtivo ?? '')
-  return charactersStore.myCharacters.find((c) => c.characterId === id) ?? null
+  return charactersStore.myCharacters.find((c) => String(c.characterId) === id) ?? null
 })
 
 const xpAtual = computed<number>(() => (character.value?.data?.xp as number) ?? 0)
@@ -796,19 +796,38 @@ function defaultSkills(cls: ClasseApi): string[] {
 // ── Level Progression ─────────────────────────────────────────────────────
 const xpAtualFormatado = computed(() => xpAtual.value.toLocaleString('pt-BR'))
 
+/**
+ * A tabela é esparsa (tem os níveis 1 a 5, depois 10, 15, 20, 25...), então
+ * procurar exatamente `nivel + 1` não acha nada na maior parte dos níveis e a
+ * barra ficava zerada. Aqui pega o marco anterior e o próximo marco existente.
+ */
+function marcoAtual(classLevel: number): LevelProgressionApi | undefined {
+  return [...levelProgression.value]
+    .filter((linha) => linha.level <= classLevel)
+    .sort((a, b) => b.level - a.level)[0]
+}
+
+function proximoMarco(classLevel: number): LevelProgressionApi | undefined {
+  return [...levelProgression.value]
+    .filter((linha) => linha.level > classLevel)
+    .sort((a, b) => a.level - b.level)[0]
+}
+
+// XP acumulado necessário para chegar ao próximo marco — não o delta daquele
+// nível, que é o que esta função mostrava por engano.
 function xpProximoNivel(classLevel: number): string {
-  const next = levelProgression.value.find((r) => r.level === classLevel + 1)
-  return next ? next.xp_required.toLocaleString('pt-BR') : '—'
+  const proximo = proximoMarco(classLevel)
+  return proximo ? proximo.xp_total_accumulated.toLocaleString('pt-BR') : '—'
 }
 
 function xpPercent(classLevel: number): number {
-  const curr = levelProgression.value.find((r) => r.level === classLevel)
-  const next = levelProgression.value.find((r) => r.level === classLevel + 1)
-  if (!curr || !next) return 0
-  const progress = xpAtual.value - curr.xp_required
-  const range = next.xp_required - curr.xp_required
-  if (range <= 0) return 100
-  return Math.min(100, Math.max(0, Math.round((progress / range) * 100)))
+  const atual = marcoAtual(classLevel)
+  const proximo = proximoMarco(classLevel)
+  if (!atual || !proximo) return 0
+  const percorrido = xpAtual.value - atual.xp_total_accumulated
+  const faixa = proximo.xp_total_accumulated - atual.xp_total_accumulated
+  if (faixa <= 0) return 100
+  return Math.min(100, Math.max(0, Math.round((percorrido / faixa) * 100)))
 }
 
 // ── Skill helpers ─────────────────────────────────────────────────────────
@@ -1014,7 +1033,10 @@ async function init() {
   error.value = null
   try {
     const characterId = String(route.query.characterId ?? authStore.idPersonagemAtivo ?? '')
-    await Promise.all([
+    // allSettled, não all: cada seção da tela é independente, e com Promise.all
+    // uma única fonte fora do ar (hoje o catálogo de skills, que ainda não
+    // migrou) deixava a página inteira presa em "Carregando classes...".
+    await Promise.allSettled([
       classesStore.fetchClasses(characterId || undefined),
       classesStore.fetchLevelProgression(),
       skillsStore.catalogo.length === 0 ? skillsStore.fetchCatalogo() : Promise.resolve(),

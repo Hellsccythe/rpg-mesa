@@ -117,7 +117,13 @@ Sistema de gestão de sessões de RPG de mesa. Monorepo com Yarn 4 Workspaces.
 | PATCH | `/api/skills/admin/overrides/:id` | isMaster |
 | DELETE | `/api/skills/admin/overrides/:id` | isMaster |
 | GET | `/api/classes/admin` | isMaster |
-| GET | `/api/classes/para-player` | auth (retorna normais + secretas reveladas ao character) |
+| GET | `/api/classes/para-player?characterId=X` | auth — só o dono do personagem ou o mestre (retorna normais + secretas reveladas) |
+| GET | `/api/classes/level-progression` | auth (mesma tabela de `/personagens/admin/level-progression`, que é isMaster) |
+| GET | `/api/classes/progressao?classe_id=X` | isMaster (XP por nível dentro de uma classe) |
+| POST | `/api/classes/progressao/admin` | isMaster |
+| POST | `/api/classes/progressao/admin/bulk` | isMaster |
+| PATCH | `/api/classes/progressao/admin/:id` | isMaster |
+| DELETE | `/api/classes/progressao/admin/:id` | isMaster (**hard delete** — ver nota abaixo) |
 | GET | `/api/classes/secretas/admin` | isMaster (lista classes secretas com titular atual) |
 | POST | `/api/classes/secretas/admin/revelar` | isMaster (revela classe secreta a um personagem) |
 | DELETE | `/api/classes/secretas/admin/revogar/:classeId` | isMaster (revoga acesso) |
@@ -381,6 +387,8 @@ Tabelas de catálogo gerenciadas pelo mestre. PKs convertidas para INTEGER IDENT
 
 **`classes`** tem `is_secret BOOLEAN DEFAULT FALSE` (migration 042). Classes secretas não aparecem no onboarding nem para outros players — só são reveladas pelo mestre através de `/master/classes-secretas`. São exclusivas: apenas um personagem vivo por sessão pode deter cada classe secreta.
 
+`classes.starting_skills` é `text[]` **NOT NULL** com default `'{}'` — gravar `null` viola a constraint (o default só vale quando a coluna é omitida do INSERT). Já `passive_skills` é nullable. `tier` tem CHECK: só `'Base'`, `'Híbrida'` ou `'Hidden'`.
+
 **`titles`** tem `is_hidden BOOLEAN DEFAULT FALSE` (oculta requisitos) e `classe_secreta_id INTEGER DEFAULT NULL` (migration 045). Quando `classe_secreta_id` é preenchido, o título só é visível para players que tiverem essa classe secreta revelada.
 
 ### `classe_secreta_revelada` (migration 044)
@@ -398,6 +406,8 @@ Controla qual personagem detém cada classe secreta. Constraint `UNIQUE(classe_i
 - Ao revelar: mestre acessa `/master/classes-secretas`, seleciona classe e personagem → POST `/api/classes/secretas/admin/revelar`
 - Ao revogar: mestre clica em "Revogar" → DELETE `/api/classes/secretas/admin/revogar/:classeId`
 - Ao marcar personagem como morto: `alterarStatus` remove automaticamente todos os registros de `classe_secreta_revelada` do personagem, liberando as classes para outros
+
+**Soft delete não se aplica a `classe_secreta_revelada` nem a `class_level_progression`.** As duas tabelas têm as colunas `deleted_at`/`deleted_by`, mas os índices únicos (`UNIQUE(classe_id)` e `UNIQUE(classe_id, nivel)`) são totais, não parciais: uma linha soft-deletada continuaria ocupando a chave e impediria recriar aquele registro — com o agravante de o culpado estar invisível na listagem. Revogar uma classe secreta ou apagar um nível de progressão apaga de verdade. Para mudar isso seria preciso antes tornar os índices parciais (`WHERE deleted_at IS NULL`).
 
 ### Tabelas acessórias de equipamento (migrations 019)
 

@@ -1077,7 +1077,7 @@ async function carregarLoreNotes() {
 
 function nomePersonagemDaNota(characterId: string | null): string {
   if (!characterId) return 'Global'
-  return characters.value.find((c) => c.characterId === characterId)?.name ?? characterId
+  return characters.value.find((c) => String(c.characterId) === characterId)?.name ?? characterId
 }
 
 async function criarLoreNote() {
@@ -1267,7 +1267,7 @@ const deleteCharacterId = ref('')
 const deleteConfirmName = ref('')
 const loadingDelete = ref(false)
 const deleteCharacterName = computed(
-  () => characters.value.find((c) => c.characterId === deleteCharacterId.value)?.name ?? '',
+  () => characters.value.find((c) => String(c.characterId) === deleteCharacterId.value)?.name ?? '',
 )
 
 const pendingApprovals = computed(() => masterApprovalsStore.pendingApprovals)

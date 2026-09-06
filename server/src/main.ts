@@ -14,7 +14,6 @@ import { contextoRequisicaoMiddleware } from "./common/cls/contexto-requisicao.m
 import { UsuariosService } from "./modules/usuarios/usuarios.service.js";
 import { registrarServicoUsuarios } from "./modules/usuarios/usuarios.ponte.js";
 import { PersonagensRouter } from "./modules/personagem/personagens.module.js";
-import { ClassesRouter } from "./modules/classes/classes.module.js";
 import { SkillRouter } from "./modules/skill/skill.module.js";
 import { TitulosRouter } from "./modules/titulos/titulos.module.js";
 import { LoreNotesRouter } from "./modules/lore-notes/lore-notes.module.js";
@@ -72,7 +71,6 @@ async function iniciarAplicacao(): Promise<void> {
   // Express antigos (que ainda falam com o Supabase). Cada um sai daqui
   // conforme for migrado — tabelas-acessorias já saiu, por exemplo.
   aplicacao.use("/api/personagens", PersonagensRouter);
-  aplicacao.use("/api/classes", ClassesRouter);
   aplicacao.use("/api/skills", SkillRouter);
   aplicacao.use("/api/titulos", TitulosRouter);
   aplicacao.use("/api/lore-notes", LoreNotesRouter);

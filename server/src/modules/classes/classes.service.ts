@@ -1,313 +1,476 @@
-import { getAdminClient } from "../../config/database/supabase/client.js";
-import { ensureMasterAccess, getUserDisplayEmail } from "../../common/helpers/master-access.helper.js";
-import type { SalvarClasseDto, EditarClasseDto, CriarProgressaoDto, EditarProgressaoDto } from "./classes.dto.js";
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { InjectModel } from "@nestjs/sequelize";
+import { Op, QueryTypes } from "sequelize";
+import { Sequelize } from "sequelize-typescript";
+import type { UsuarioAutenticado } from "../../common/cls/usuario-autenticado.interface.js";
+import { PersonagemModel } from "../personagem/models/personagem.model.js";
+import { garantirAcessoAoPersonagem } from "../personagem/personagem-acesso.js";
+import { ClasseModel, type RequisitosDeClasse } from "./models/classe.model.js";
+import { ClasseSecretaReveladaModel } from "./models/classe-secreta-revelada.model.js";
+import { ProgressaoClasseModel } from "./models/progressao-classe.model.js";
+import type {
+  EditarClasseDto,
+  EditarProgressaoClasseDto,
+  EntradaProgressaoClasseDto,
+  SalvarClasseDto,
+} from "./classes.dto.js";
 
-export const classesService = {
-  async listar() {
-    const admin = getAdminClient();
-    const { data, error } = await admin
-      .from("classes")
-      .select("*")
-      .is("deleted_at", null)
-      .eq("is_secret", false)
-      .order("tier")
-      .order("name");
+/** snake_case porque é o formato que as telas já leem. */
+export type ClasseApi = {
+  id: number;
+  name: string;
+  tier: string;
+  description: string;
+  max_level: number;
+  requirements: RequisitosDeClasse;
+  stat_bonuses: Record<string, unknown>;
+  starting_skills: string[];
+  passive_skills: string[] | null;
+  signature_skill: string | null;
+  signature_skill_nivel: number | null;
+  requer_deus: boolean;
+  is_secret: boolean;
+  created_at: string | null;
+  updated_at: string | null;
+};
 
-    if (error) throw error;
-    return data ?? [];
-  },
+export type TitularDeClasseSecreta = {
+  id: number;
+  name: string;
+  username: string | null;
+  avatar_url: string | null;
+  status: string;
+};
 
-  async listarAdmin() {
-    const admin = getAdminClient();
-    const { data, error } = await admin
-      .from("classes")
-      .select("*")
-      .is("deleted_at", null)
-      .order("tier")
-      .order("name");
+export type ClasseSecretaAdminApi = ClasseApi & {
+  revelada: boolean;
+  titular: TitularDeClasseSecreta | null;
+  revealed_at: string | null;
+};
 
-    if (error) throw error;
-    return data ?? [];
-  },
+export type ProgressaoClasseApi = {
+  id: number;
+  classe_id: number;
+  classe_nome: string | null;
+  nivel: number;
+  xp_necessario: number;
+  created_at: string | null;
+  updated_at: string | null;
+};
 
-  async listarParaPlayer(characterId: number) {
-    const admin = getAdminClient();
+function formatarData(valor: unknown): string | null {
+  return valor instanceof Date ? valor.toISOString() : null;
+}
 
-    const [normalRes, reveladasRes] = await Promise.all([
-      admin.from("classes").select("*").is("deleted_at", null).eq("is_secret", false).order("tier").order("name"),
-      admin.from("classe_secreta_revelada").select("classe_id").eq("character_id", characterId),
-    ]);
+/**
+ * Cada classe secreta com o personagem que a detém hoje. A versão anterior
+ * fazia três consultas (classes, revelações, todos os personagens) e cruzava
+ * tudo com mapas em memória; dois LEFT JOIN resolvem no banco.
+ */
+const SQL_CLASSES_SECRETAS_COM_TITULAR = `
+  SELECT
+    classes.id,
+    classes.name,
+    classes.tier,
+    classes.description,
+    classes.max_level,
+    classes.requirements,
+    classes.stat_bonuses,
+    classes.starting_skills,
+    classes.passive_skills,
+    classes.signature_skill,
+    classes.signature_skill_nivel,
+    classes.requer_deus,
+    classes.is_secret,
+    classes.created_at,
+    classes.updated_at,
+    classe_secreta_revelada.revealed_at,
+    characters.id       AS titular_id,
+    characters.name     AS titular_name,
+    characters.username AS titular_username,
+    characters.avatar_url AS titular_avatar_url,
+    characters.status   AS titular_status
+  FROM classes
+  LEFT JOIN classe_secreta_revelada
+    ON classe_secreta_revelada.classe_id = classes.id
+  LEFT JOIN characters
+    ON characters.id = classe_secreta_revelada.character_id
+   AND characters.deleted_at IS NULL
+  WHERE classes.deleted_at IS NULL
+    AND classes.is_secret = TRUE
+  ORDER BY classes.name
+`;
 
-    const classeIdsReveladas = (reveladasRes.data ?? []).map((r: any) => r.classe_id);
-    let secretasReveladas: any[] = [];
-    if (classeIdsReveladas.length) {
-      const { data } = await admin.from("classes").select("*").in("id", classeIdsReveladas).is("deleted_at", null);
-      secretasReveladas = data ?? [];
-    }
+/** Progressão por classe já com o nome da classe, que antes vinha de uma segunda consulta. */
+const SQL_PROGRESSAO_COM_NOME_DA_CLASSE = `
+  SELECT
+    class_level_progression.id,
+    class_level_progression.classe_id,
+    class_level_progression.nivel,
+    class_level_progression.xp_necessario,
+    class_level_progression.created_at,
+    class_level_progression.updated_at,
+    classes.name AS classe_nome
+  FROM class_level_progression
+  LEFT JOIN classes
+    ON classes.id = class_level_progression.classe_id
+   AND classes.deleted_at IS NULL
+`;
 
-    return [...(normalRes.data ?? []), ...secretasReveladas];
-  },
+@Injectable()
+export class ClassesService {
+  constructor(
+    @InjectModel(ClasseModel)
+    private readonly modeloClasse: typeof ClasseModel,
+    @InjectModel(ProgressaoClasseModel)
+    private readonly modeloProgressao: typeof ProgressaoClasseModel,
+    @InjectModel(ClasseSecretaReveladaModel)
+    private readonly modeloClasseSecretaRevelada: typeof ClasseSecretaReveladaModel,
+    @InjectModel(PersonagemModel)
+    private readonly modeloPersonagem: typeof PersonagemModel,
+    private readonly sequelize: Sequelize,
+  ) {}
 
-  async revelarClasseSecreta(classeId: number, characterId: number, accessToken?: string) {
-    const user = await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
+  // ── Catálogo de classes ───────────────────────────────────────────────────
 
-    const { data: classe } = await admin.from("classes").select("id, is_secret").eq("id", classeId).single();
-    if (!classe) throw new Error("Classe não encontrada.");
-    if (!(classe as any).is_secret) throw new Error("Esta classe não é secreta.");
-
-    const { data: personagem } = await admin.from("characters").select("id, status").eq("id", characterId).is("deleted_at", null).single();
-    if (!personagem) throw new Error("Personagem não encontrado.");
-    if ((personagem as any).status === 'morto') throw new Error("Não é possível revelar uma classe para um personagem morto.");
-
-    const { data: atual } = await admin.from("classe_secreta_revelada").select("character_id").eq("classe_id", classeId).maybeSingle();
-    if (atual && (atual as any).character_id !== characterId) {
-      throw new Error("Esta classe secreta já foi revelada para outro personagem ativo.");
-    }
-
-    const { error } = await admin.from("classe_secreta_revelada").upsert(
-      { classe_id: classeId, character_id: characterId, revealed_by: getUserDisplayEmail(user) },
-      { onConflict: "classe_id" }
-    );
-    if (error) throw error;
-    return { success: true };
-  },
-
-  async revogarClasseSecreta(classeId: number, accessToken?: string) {
-    await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
-    const { error } = await admin.from("classe_secreta_revelada").delete().eq("classe_id", classeId);
-    if (error) throw error;
-    return { success: true };
-  },
-
-  async listarClassesSecretasAdmin(accessToken?: string) {
-    await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
-
-    const { data: classes } = await admin.from("classes").select("*").is("deleted_at", null).eq("is_secret", true).order("name");
-    const { data: reveladas } = await admin.from("classe_secreta_revelada").select("classe_id, character_id, revealed_at, revealed_by");
-    const { data: personagens } = await admin.from("characters").select("id, name, username, avatar_url, status").is("deleted_at", null);
-
-    const reveladaMap: Record<number, any> = {};
-    for (const r of (reveladas ?? [])) reveladaMap[r.classe_id] = r;
-
-    const personagemMap: Record<number, any> = {};
-    for (const p of (personagens ?? [])) personagemMap[p.id] = p;
-
-    return (classes ?? []).map((c: any) => {
-      const revelada = reveladaMap[c.id];
-      const titular = revelada ? personagemMap[revelada.character_id] : null;
-      return { ...c, revelada: !!revelada, titular: titular ?? null, revealed_at: revelada?.revealed_at ?? null };
+  /** Listagem pública: só as classes normais. */
+  async listarPublico(): Promise<ClasseApi[]> {
+    const encontradas = await this.modeloClasse.findAll({
+      where: { isSecret: false },
+      order: [
+        ["tier", "ASC"],
+        ["name", "ASC"],
+      ],
     });
-  },
+    return encontradas.map((classe) => this.mapear(classe));
+  }
+
+  /** Listagem do mestre: inclui as secretas. */
+  async listarParaMestre(): Promise<ClasseApi[]> {
+    const encontradas = await this.modeloClasse.findAll({
+      order: [
+        ["tier", "ASC"],
+        ["name", "ASC"],
+      ],
+    });
+    return encontradas.map((classe) => this.mapear(classe));
+  }
+
+  /**
+   * O que um personagem específico enxerga: as classes normais mais as
+   * secretas que o mestre revelou para ele.
+   */
+  async listarParaPersonagem(
+    personagemId: number,
+    usuario: UsuarioAutenticado,
+  ): Promise<ClasseApi[]> {
+    const personagem = await this.modeloPersonagem.findByPk(personagemId);
+    if (!personagem) {
+      throw new NotFoundException("Personagem não encontrado.");
+    }
+    garantirAcessoAoPersonagem(personagem, usuario);
+
+    const reveladas = await this.modeloClasseSecretaRevelada.findAll({
+      where: { characterId: personagemId },
+    });
+    const idsReveladas = reveladas.map((revelacao) => revelacao.classeId);
+
+    const encontradas = await this.modeloClasse.findAll({
+      where: idsReveladas.length
+        ? { [Op.or]: [{ isSecret: false }, { id: { [Op.in]: idsReveladas } }] }
+        : { isSecret: false },
+      order: [
+        ["tier", "ASC"],
+        ["name", "ASC"],
+      ],
+    });
+
+    return encontradas.map((classe) => this.mapear(classe));
+  }
+
+  async criar(dados: SalvarClasseDto): Promise<ClasseApi> {
+    const criada = await this.modeloClasse.create({
+      name: dados.name.trim(),
+      tier: dados.tier.trim(),
+      description: dados.description.trim(),
+      maxLevel: dados.maxLevel ?? 20,
+      statBonuses: dados.statBonuses ?? {},
+      requirements: dados.requirements ?? {},
+      // starting_skills é NOT NULL no banco. A versão anterior gravava null
+      // quando a lista vinha vazia, e o insert quebrava com violação de
+      // not-null — nunca apareceu porque todas as 29 classes existentes têm
+      // skill inicial.
+      startingSkills: dados.startingSkills ?? [],
+      passiveSkills: dados.passiveSkills?.length ? dados.passiveSkills : null,
+      signatureSkill: dados.signatureSkill?.trim() || null,
+      signatureSkillNivel: dados.signatureSkillNivel ?? null,
+      requerDeus: dados.requerDeus ?? false,
+      isSecret: dados.isSecret ?? false,
+    });
+
+    return this.mapear(criada);
+  }
+
+  async editar(id: number, dados: EditarClasseDto): Promise<ClasseApi> {
+    const classe = await this.buscarClasseOuFalhar(id);
+
+    if (dados.name !== undefined) classe.name = dados.name.trim();
+    if (dados.tier !== undefined) classe.tier = dados.tier.trim();
+    if (dados.description !== undefined) classe.description = dados.description.trim();
+    if (dados.maxLevel !== undefined) classe.maxLevel = dados.maxLevel;
+    if (dados.statBonuses !== undefined) classe.statBonuses = dados.statBonuses ?? {};
+    if (dados.requirements !== undefined) classe.requirements = dados.requirements ?? {};
+    if (dados.startingSkills !== undefined) classe.startingSkills = dados.startingSkills ?? [];
+    if (dados.passiveSkills !== undefined) {
+      classe.passiveSkills = dados.passiveSkills?.length ? dados.passiveSkills : null;
+    }
+    if (dados.signatureSkill !== undefined) {
+      classe.signatureSkill = dados.signatureSkill?.trim() || null;
+    }
+    if (dados.signatureSkillNivel !== undefined) {
+      classe.signatureSkillNivel = dados.signatureSkillNivel ?? null;
+    }
+    if (dados.requerDeus !== undefined) classe.requerDeus = dados.requerDeus;
+    if (dados.isSecret !== undefined) classe.isSecret = dados.isSecret;
+
+    await classe.save();
+    return this.mapear(classe);
+  }
+
+  async deletar(id: number): Promise<void> {
+    const classe = await this.buscarClasseOuFalhar(id);
+    await classe.destroy();
+  }
+
+  // ── Classes secretas ──────────────────────────────────────────────────────
+
+  async listarSecretasParaMestre(): Promise<ClasseSecretaAdminApi[]> {
+    type Linha = Record<string, any>;
+    const linhas = await this.sequelize.query<Linha>(SQL_CLASSES_SECRETAS_COM_TITULAR, {
+      type: QueryTypes.SELECT,
+    });
+
+    return linhas.map((linha) => ({
+      id: linha.id,
+      name: linha.name,
+      tier: linha.tier,
+      description: linha.description,
+      max_level: linha.max_level,
+      requirements: linha.requirements ?? {},
+      stat_bonuses: linha.stat_bonuses ?? {},
+      starting_skills: linha.starting_skills ?? [],
+      passive_skills: linha.passive_skills,
+      signature_skill: linha.signature_skill,
+      signature_skill_nivel: linha.signature_skill_nivel,
+      requer_deus: linha.requer_deus,
+      is_secret: linha.is_secret,
+      created_at: formatarData(linha.created_at),
+      updated_at: formatarData(linha.updated_at),
+      revelada: linha.titular_id !== null,
+      titular:
+        linha.titular_id === null
+          ? null
+          : {
+              id: linha.titular_id,
+              name: linha.titular_name,
+              username: linha.titular_username,
+              avatar_url: linha.titular_avatar_url,
+              status: linha.titular_status,
+            },
+      revealed_at: formatarData(linha.revealed_at),
+    }));
+  }
+
+  async revelarClasseSecreta(classeId: number, personagemId: number): Promise<void> {
+    const classe = await this.buscarClasseOuFalhar(classeId);
+    if (!classe.isSecret) {
+      throw new BadRequestException("Esta classe não é secreta.");
+    }
+
+    const personagem = await this.modeloPersonagem.findByPk(personagemId);
+    if (!personagem) {
+      throw new NotFoundException("Personagem não encontrado.");
+    }
+    if (personagem.status === "morto") {
+      throw new BadRequestException(
+        "Não é possível revelar uma classe para um personagem morto.",
+      );
+    }
+
+    const revelacaoAtual = await this.modeloClasseSecretaRevelada.findOne({
+      where: { classeId },
+    });
+
+    if (revelacaoAtual && revelacaoAtual.characterId !== personagemId) {
+      throw new ConflictException(
+        "Esta classe secreta já foi revelada para outro personagem ativo.",
+      );
+    }
+    // Já é do mesmo personagem: nada a fazer, e refazer só trocaria a data.
+    if (revelacaoAtual) return;
+
+    await this.modeloClasseSecretaRevelada.create({
+      classeId,
+      characterId: personagemId,
+      revealedAt: new Date(),
+    });
+  }
+
+  async revogarClasseSecreta(classeId: number): Promise<void> {
+    const revelacao = await this.modeloClasseSecretaRevelada.findOne({ where: { classeId } });
+    if (!revelacao) {
+      throw new NotFoundException("Esta classe secreta não está revelada para ninguém.");
+    }
+    await revelacao.destroy();
+  }
 
   // ── Progressão de XP por classe ───────────────────────────────────────────
-  async listarProgressaoClasse(classeId?: number) {
-    const admin = getAdminClient();
-    let query = admin
-      .from("class_level_progression")
-      .select("*")
-      .order("classe_id")
-      .order("nivel");
 
-    if (classeId) query = query.eq("classe_id", classeId);
+  async listarProgressao(classeId?: number): Promise<ProgressaoClasseApi[]> {
+    const filtro = classeId === undefined ? "" : " WHERE class_level_progression.classe_id = :classeId";
 
-    const { data, error } = await query;
-    if (error) throw error;
+    const linhas = await this.sequelize.query<{
+      id: number;
+      classe_id: number;
+      nivel: number;
+      xp_necessario: number;
+      created_at: Date | null;
+      updated_at: Date | null;
+      classe_nome: string | null;
+    }>(
+      `${SQL_PROGRESSAO_COM_NOME_DA_CLASSE}${filtro}
+       ORDER BY class_level_progression.classe_id, class_level_progression.nivel`,
+      { replacements: { classeId }, type: QueryTypes.SELECT },
+    );
 
-    // Enriquece com nome da classe
-    const classeIds = [...new Set((data ?? []).map((r: any) => r.classe_id))];
-    let classeMap: Record<number, string> = {};
-    if (classeIds.length) {
-      const { data: classes } = await admin.from("classes").select("id, name").in("id", classeIds);
-      for (const c of (classes ?? [])) classeMap[c.id] = c.name;
-    }
-
-    return (data ?? []).map((r: any) => ({ ...r, classe_nome: classeMap[r.classe_id] ?? null }));
-  },
-
-  async criarProgressaoClasse(dto: CriarProgressaoDto, accessToken?: string) {
-    const user = await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
-
-    const { data: classe } = await admin.from("classes").select("id").eq("id", dto.classe_id).is("deleted_at", null).maybeSingle();
-    if (!classe) throw new Error("Classe não encontrada.");
-
-    if (dto.nivel < 1 || dto.nivel > 20 || !Number.isInteger(dto.nivel)) {
-      throw new Error("Nível deve ser inteiro entre 1 e 20.");
-    }
-
-    const { data, error } = await admin
-      .from("class_level_progression")
-      .insert({
-        classe_id:     dto.classe_id,
-        nivel:         dto.nivel,
-        xp_necessario: dto.xp_necessario,
-        created_by:    getUserDisplayEmail(user),
-        updated_by:    getUserDisplayEmail(user),
-      })
-      .select("*")
-      .single();
-
-    if (error) {
-      if (error.code === "23505") throw new Error("Já existe progressão para este nível nesta classe.");
-      throw error;
-    }
-    return data;
-  },
-
-  async editarProgressaoClasse(id: number, dto: EditarProgressaoDto, accessToken?: string) {
-    const user = await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
-
-    const campos: Record<string, any> = { updated_by: getUserDisplayEmail(user) };
-    if (dto.xp_necessario !== undefined) campos.xp_necessario = dto.xp_necessario;
-
-    const { data, error } = await admin
-      .from("class_level_progression")
-      .update(campos)
-      .eq("id", id)
-      .select("*")
-      .single();
-
-    if (error) throw error;
-    return data;
-  },
-
-  async deletarProgressaoClasse(id: number, accessToken?: string) {
-    await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
-    const { error } = await admin.from("class_level_progression").delete().eq("id", id);
-    if (error) throw error;
-    return { ok: true };
-  },
-
-  async criarProgressaoClasseBulk(
-    entradas: Array<{ classe_id: number; nivel: number; xp_necessario: number }>,
-    accessToken?: string,
-  ) {
-    const user = await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
-
-    if (!Array.isArray(entradas) || entradas.length === 0) {
-      throw new Error("Nenhuma entrada fornecida.");
-    }
-
-    for (const e of entradas) {
-      if (!Number.isInteger(e.classe_id) || e.classe_id < 1) throw new Error("classe_id inválido.");
-      if (!Number.isInteger(e.nivel) || e.nivel < 1 || e.nivel > 20) throw new Error(`Nível inválido: ${e.nivel}.`);
-      if (typeof e.xp_necessario !== "number" || e.xp_necessario < 0) throw new Error(`XP inválido no nível ${e.nivel}.`);
-    }
-
-    const email = getUserDisplayEmail(user);
-    const rows = entradas.map((e) => ({
-      classe_id:     e.classe_id,
-      nivel:         e.nivel,
-      xp_necessario: e.xp_necessario,
-      created_by:    email,
-      updated_by:    email,
+    return linhas.map((linha) => ({
+      id: linha.id,
+      classe_id: linha.classe_id,
+      classe_nome: linha.classe_nome,
+      nivel: linha.nivel,
+      xp_necessario: linha.xp_necessario,
+      created_at: formatarData(linha.created_at),
+      updated_at: formatarData(linha.updated_at),
     }));
+  }
 
-    const { data, error } = await admin
-      .from("class_level_progression")
-      .upsert(rows, { onConflict: "classe_id,nivel", ignoreDuplicates: false })
-      .select("*");
+  async criarProgressao(dados: EntradaProgressaoClasseDto): Promise<ProgressaoClasseApi> {
+    await this.buscarClasseOuFalhar(dados.classe_id);
 
-    if (error) throw error;
-
-    const classeIds = [...new Set(rows.map((r) => r.classe_id))];
-    const { data: classes } = await admin.from("classes").select("id, name").in("id", classeIds);
-    const classeMap: Record<number, string> = {};
-    for (const c of (classes ?? [])) classeMap[(c as any).id] = (c as any).name;
-
-    return (data ?? []).map((r: any) => ({ ...r, classe_nome: classeMap[r.classe_id] ?? null }));
-  },
-
-  async listarProgressaoLevel() {
-    const admin = getAdminClient();
-    try {
-      const { data, error } = await admin
-        .from("level_progression")
-        .select("*")
-        .order("level");
-      if (error) throw error;
-      // Normaliza o campo XP para xp_required independente do nome da coluna no banco
-      return (data ?? []).map((row: any) => ({
-        ...row,
-        xp_required: row.xp_required_next ?? row.xp_required ?? row.xp ?? row.xp_needed ?? 0,
-        xp_total_accumulated: row.xp_total_accumulated ?? null,
-      }));
-    } catch {
-      return [];
+    const jaExiste = await this.modeloProgressao.findOne({
+      where: { classeId: dados.classe_id, nivel: dados.nivel },
+    });
+    if (jaExiste) {
+      throw new ConflictException("Já existe progressão para este nível nesta classe.");
     }
-  },
 
-  async salvar(dto: SalvarClasseDto, accessToken?: string) {
-    const masterUser = await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
+    const criada = await this.modeloProgressao.create({
+      classeId: dados.classe_id,
+      nivel: dados.nivel,
+      xpNecessario: dados.xp_necessario,
+    });
 
-    const { data, error } = await admin
-      .from("classes")
-      .insert({
-        name: dto.name.trim(),
-        tier: dto.tier.trim(),
-        description: dto.description.trim(),
-        max_level: dto.maxLevel ?? 20,
-        stat_bonuses: dto.statBonuses ?? null,
-        requirements: dto.requirements ?? null,
-        starting_skills: (dto.startingSkills && dto.startingSkills.length > 0) ? dto.startingSkills : null,
-        passive_skills: (dto.passiveSkills && dto.passiveSkills.length > 0) ? dto.passiveSkills : null,
-        signature_skill: dto.signatureSkill?.trim() ?? null,
-        signature_skill_nivel: dto.signatureSkillNivel ?? null,
-        requer_deus: dto.requerDeus ?? false,
-        is_secret:   (dto as any).isSecret ?? false,
-        created_by: getUserDisplayEmail(masterUser),
-        updated_by: getUserDisplayEmail(masterUser),
-      })
-      .select("*")
-      .single();
+    return (await this.listarProgressao(criada.classeId)).find(
+      (entrada) => entrada.id === criada.id,
+    )!;
+  }
 
-    if (error) throw error;
-    return data;
-  },
+  async editarProgressao(
+    id: number,
+    dados: EditarProgressaoClasseDto,
+  ): Promise<ProgressaoClasseApi> {
+    const registro = await this.modeloProgressao.findByPk(id);
+    if (!registro) {
+      throw new NotFoundException("Progressão não encontrada.");
+    }
 
-  async editar(id: string, dto: EditarClasseDto, accessToken?: string) {
-    const masterUser = await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
-    const campos: Record<string, any> = { updated_by: getUserDisplayEmail(masterUser) };
-    if (dto.name !== undefined) campos.name = dto.name.trim();
-    if (dto.tier !== undefined) campos.tier = dto.tier.trim();
-    if (dto.description !== undefined) campos.description = dto.description.trim();
-    if (dto.maxLevel !== undefined) campos.max_level = dto.maxLevel;
-    if (dto.statBonuses !== undefined) campos.stat_bonuses = dto.statBonuses;
-    if (dto.requirements !== undefined) campos.requirements = dto.requirements;
-    if (dto.startingSkills !== undefined) campos.starting_skills = (dto.startingSkills && dto.startingSkills.length > 0) ? dto.startingSkills : null;
-    if (dto.passiveSkills !== undefined) campos.passive_skills = (dto.passiveSkills && dto.passiveSkills.length > 0) ? dto.passiveSkills : null;
-    if (dto.signatureSkill !== undefined) campos.signature_skill = dto.signatureSkill?.trim() ?? null;
-    if (dto.signatureSkillNivel !== undefined) campos.signature_skill_nivel = dto.signatureSkillNivel ?? null;
-    if (dto.requerDeus !== undefined) campos.requer_deus = dto.requerDeus;
-    if ((dto as any).isSecret !== undefined) campos.is_secret = (dto as any).isSecret;
-    const { data, error } = await admin
-      .from("classes")
-      .update(campos)
-      .eq("id", id)
-      .is("deleted_at", null)
-      .select("*")
-      .single();
-    if (error) throw error;
-    return data;
-  },
+    if (dados.xp_necessario !== undefined) registro.xpNecessario = dados.xp_necessario;
+    await registro.save();
 
-  async deletar(id: string, accessToken?: string) {
-    const masterUser = await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
-    const { error } = await admin
-      .from("classes")
-      .update({ deleted_at: new Date().toISOString(), deleted_by: getUserDisplayEmail(masterUser) })
-      .eq("id", id)
-      .is("deleted_at", null);
-    if (error) throw error;
-    return { ok: true };
-  },
-};
+    return (await this.listarProgressao(registro.classeId)).find(
+      (entrada) => entrada.id === id,
+    )!;
+  }
+
+  /**
+   * Apaga de verdade — ver a nota em ProgressaoClasseModel sobre o UNIQUE
+   * total impedir o soft delete nesta tabela.
+   */
+  async deletarProgressao(id: number): Promise<void> {
+    const registro = await this.modeloProgressao.findByPk(id);
+    if (!registro) {
+      throw new NotFoundException("Progressão não encontrada.");
+    }
+    await registro.destroy();
+  }
+
+  /**
+   * Grava a tabela inteira de uma classe de uma vez (é assim que a tela de
+   * progressão salva). Percorre uma a uma de propósito: um bulkCreate com
+   * updateOnDuplicate não dispararia os hooks que preenchem a auditoria —
+   * mesma decisão tomada em LevelProgressionService.
+   */
+  async salvarProgressaoEmLote(
+    entradas: EntradaProgressaoClasseDto[],
+  ): Promise<ProgressaoClasseApi[]> {
+    if (entradas.length === 0) {
+      throw new BadRequestException("Nenhuma entrada fornecida.");
+    }
+
+    const classeIds = [...new Set(entradas.map((entrada) => entrada.classe_id))];
+    for (const classeId of classeIds) {
+      await this.buscarClasseOuFalhar(classeId);
+    }
+
+    for (const entrada of entradas) {
+      const existente = await this.modeloProgressao.findOne({
+        where: { classeId: entrada.classe_id, nivel: entrada.nivel },
+      });
+
+      if (existente) {
+        existente.xpNecessario = entrada.xp_necessario;
+        await existente.save();
+        continue;
+      }
+
+      await this.modeloProgressao.create({
+        classeId: entrada.classe_id,
+        nivel: entrada.nivel,
+        xpNecessario: entrada.xp_necessario,
+      });
+    }
+
+    const salvas = await Promise.all(classeIds.map((classeId) => this.listarProgressao(classeId)));
+    return salvas.flat();
+  }
+
+  // ── Apoio ─────────────────────────────────────────────────────────────────
+
+  private async buscarClasseOuFalhar(id: number): Promise<ClasseModel> {
+    const classe = await this.modeloClasse.findByPk(id);
+    if (!classe) {
+      throw new NotFoundException("Classe não encontrada.");
+    }
+    return classe;
+  }
+
+  private mapear(classe: ClasseModel): ClasseApi {
+    return {
+      id: classe.id,
+      name: classe.name,
+      tier: classe.tier,
+      description: classe.description,
+      max_level: classe.maxLevel,
+      requirements: classe.requirements ?? {},
+      stat_bonuses: classe.statBonuses ?? {},
+      starting_skills: classe.startingSkills ?? [],
+      passive_skills: classe.passiveSkills,
+      signature_skill: classe.signatureSkill,
+      signature_skill_nivel: classe.signatureSkillNivel,
+      requer_deus: classe.requerDeus,
+      is_secret: classe.isSecret,
+      created_at: formatarData(classe.get("createdAt")),
+      updated_at: formatarData(classe.get("updatedAt")),
+    };
+  }
+}
