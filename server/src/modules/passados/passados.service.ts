@@ -35,51 +35,57 @@ export type PassadoApi = {
  */
 const SQL_LISTAR_PASSADOS = `
   SELECT
-    p.id,
-    p.nome,
-    p.descricao,
-    p.foto_url,
-    p.skill_ids,
-    p.titulo_ids,
-    p.atributo_bonus,
-    p.created_at,
-    p.updated_at,
+    passados.id,
+    passados.nome,
+    passados.descricao,
+    passados.foto_url,
+    passados.skill_ids,
+    passados.titulo_ids,
+    passados.atributo_bonus,
+    passados.created_at,
+    passados.updated_at,
     COALESCE(skills_do_passado.lista, '[]'::json) AS skills,
     COALESCE(titulos_do_passado.lista, '[]'::json) AS titulos
-  FROM passados p
+  FROM passados
   LEFT JOIN LATERAL (
     SELECT json_agg(
              json_build_object(
-               'id', entrada.skill_id,
-               'name', COALESCE(s.name, 'Skill #' || entrada.skill_id)
-             ) ORDER BY entrada.posicao
+               'id', skill_referenciada.skill_id,
+               'name', COALESCE(skills.name, 'Skill #' || skill_referenciada.skill_id)
+             ) ORDER BY skill_referenciada.posicao
            ) AS lista
-    FROM unnest(p.skill_ids) WITH ORDINALITY AS entrada(skill_id, posicao)
-    LEFT JOIN skills s ON s.id = entrada.skill_id AND s.deleted_at IS NULL
+    FROM unnest(passados.skill_ids) WITH ORDINALITY AS skill_referenciada(skill_id, posicao)
+    LEFT JOIN skills
+      ON skills.id = skill_referenciada.skill_id
+     AND skills.deleted_at IS NULL
   ) AS skills_do_passado ON TRUE
   LEFT JOIN LATERAL (
     SELECT json_agg(
              json_build_object(
-               'id', entrada.titulo_id,
-               'name', COALESCE(t.name, 'Título #' || entrada.titulo_id),
-               'bonuses', t.bonuses,
+               'id', titulo_referenciado.titulo_id,
+               'name', COALESCE(titles.name, 'Título #' || titulo_referenciado.titulo_id),
+               'bonuses', titles.bonuses,
                'skills', COALESCE(skills_do_titulo.lista, '[]'::json)
-             ) ORDER BY entrada.posicao
+             ) ORDER BY titulo_referenciado.posicao
            ) AS lista
-    FROM unnest(p.titulo_ids) WITH ORDINALITY AS entrada(titulo_id, posicao)
-    LEFT JOIN titles t ON t.id = entrada.titulo_id AND t.deleted_at IS NULL
+    FROM unnest(passados.titulo_ids) WITH ORDINALITY AS titulo_referenciado(titulo_id, posicao)
+    LEFT JOIN titles
+      ON titles.id = titulo_referenciado.titulo_id
+     AND titles.deleted_at IS NULL
     LEFT JOIN LATERAL (
       SELECT json_agg(
                json_build_object(
-                 'id', entrada_skill.skill_id,
-                 'name', COALESCE(s2.name, 'Skill #' || entrada_skill.skill_id)
-               ) ORDER BY entrada_skill.posicao
+                 'id', skill_do_titulo.skill_id,
+                 'name', COALESCE(skills.name, 'Skill #' || skill_do_titulo.skill_id)
+               ) ORDER BY skill_do_titulo.posicao
              ) AS lista
-      FROM unnest(COALESCE(t.skill_ids, '{}'::integer[])) WITH ORDINALITY AS entrada_skill(skill_id, posicao)
-      LEFT JOIN skills s2 ON s2.id = entrada_skill.skill_id AND s2.deleted_at IS NULL
+      FROM unnest(COALESCE(titles.skill_ids, '{}'::integer[])) WITH ORDINALITY AS skill_do_titulo(skill_id, posicao)
+      LEFT JOIN skills
+        ON skills.id = skill_do_titulo.skill_id
+       AND skills.deleted_at IS NULL
     ) AS skills_do_titulo ON TRUE
   ) AS titulos_do_passado ON TRUE
-  WHERE p.deleted_at IS NULL
+  WHERE passados.deleted_at IS NULL
 `;
 
 @Injectable()
@@ -93,14 +99,14 @@ export class PassadosService {
   // ── Leitura (SQL cru com JOIN) ────────────────────────────────────────────
 
   async listar(): Promise<PassadoApi[]> {
-    return this.sequelize.query<PassadoApi>(`${SQL_LISTAR_PASSADOS} ORDER BY p.nome`, {
+    return this.sequelize.query<PassadoApi>(`${SQL_LISTAR_PASSADOS} ORDER BY passados.nome`, {
       type: QueryTypes.SELECT,
     });
   }
 
   private async buscarEnriquecidoOuFalhar(id: number): Promise<PassadoApi> {
     const encontrados = await this.sequelize.query<PassadoApi>(
-      `${SQL_LISTAR_PASSADOS} AND p.id = :id`,
+      `${SQL_LISTAR_PASSADOS} AND passados.id = :id`,
       { replacements: { id }, type: QueryTypes.SELECT },
     );
 
