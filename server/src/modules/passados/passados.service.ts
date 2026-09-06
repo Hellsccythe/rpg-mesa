@@ -1,18 +1,12 @@
-import { getAdminClient } from "../../config/database/supabase/client.js";
-import { ensureMasterAccess, getUserDisplayEmail } from "../../common/helpers/master-access.helper.js";
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { InjectModel } from "@nestjs/sequelize";
+import { QueryTypes } from "sequelize";
+import { Sequelize } from "sequelize-typescript";
+import { PassadoModel, type AtributoBonus } from "./models/passado.model.js";
+import type { CriarPassadoDto, EditarPassadoDto } from "./passados.dto.js";
 
-const TABLE = "passados";
-
-export type SkillResumo   = { id: number; name: string };
-export type TituloResumo  = { id: number; name: string; skills: SkillResumo[] };
-
-export type AtributoBonus = {
-  aura?: number;
-  forca?: number;
-  destreza?: number;
-  resistencia?: number;
-  inteligencia?: number;
-};
+export type SkillResumo = { id: number; name: string };
+export type TituloResumo = { id: number; name: string; bonuses: unknown | null; skills: SkillResumo[] };
 
 export type PassadoApi = {
   id: number;
@@ -28,145 +22,133 @@ export type PassadoApi = {
   updated_at: string;
 };
 
-type TituloComSkills = { name: string; skills: SkillResumo[]; bonuses: any | null };
+/**
+ * Leitura em SQL cru: resolve num único SELECT o que a versão anterior fazia
+ * em 3 consultas + montagem de mapas em JavaScript (buscar passados, buscar
+ * títulos referenciados, buscar skills dos passados e dos títulos).
+ *
+ * Cada LEFT JOIN LATERAL expande um array de IDs em linhas (unnest ... WITH
+ * ORDINALITY preserva a ordem original do array) e reagrupa como JSON. Os
+ * JOINs são LEFT de propósito: se uma skill/título referenciado tiver sido
+ * deletado, o registro continua aparecendo com o rótulo "Skill #12" —
+ * exatamente o comportamento que o código antigo tinha.
+ */
+const SQL_LISTAR_PASSADOS = `
+  SELECT
+    p.id,
+    p.nome,
+    p.descricao,
+    p.foto_url,
+    p.skill_ids,
+    p.titulo_ids,
+    p.atributo_bonus,
+    p.created_at,
+    p.updated_at,
+    COALESCE(skills_do_passado.lista, '[]'::json) AS skills,
+    COALESCE(titulos_do_passado.lista, '[]'::json) AS titulos
+  FROM passados p
+  LEFT JOIN LATERAL (
+    SELECT json_agg(
+             json_build_object(
+               'id', entrada.skill_id,
+               'name', COALESCE(s.name, 'Skill #' || entrada.skill_id)
+             ) ORDER BY entrada.posicao
+           ) AS lista
+    FROM unnest(p.skill_ids) WITH ORDINALITY AS entrada(skill_id, posicao)
+    LEFT JOIN skills s ON s.id = entrada.skill_id AND s.deleted_at IS NULL
+  ) AS skills_do_passado ON TRUE
+  LEFT JOIN LATERAL (
+    SELECT json_agg(
+             json_build_object(
+               'id', entrada.titulo_id,
+               'name', COALESCE(t.name, 'Título #' || entrada.titulo_id),
+               'bonuses', t.bonuses,
+               'skills', COALESCE(skills_do_titulo.lista, '[]'::json)
+             ) ORDER BY entrada.posicao
+           ) AS lista
+    FROM unnest(p.titulo_ids) WITH ORDINALITY AS entrada(titulo_id, posicao)
+    LEFT JOIN titles t ON t.id = entrada.titulo_id AND t.deleted_at IS NULL
+    LEFT JOIN LATERAL (
+      SELECT json_agg(
+               json_build_object(
+                 'id', entrada_skill.skill_id,
+                 'name', COALESCE(s2.name, 'Skill #' || entrada_skill.skill_id)
+               ) ORDER BY entrada_skill.posicao
+             ) AS lista
+      FROM unnest(COALESCE(t.skill_ids, '{}'::integer[])) WITH ORDINALITY AS entrada_skill(skill_id, posicao)
+      LEFT JOIN skills s2 ON s2.id = entrada_skill.skill_id AND s2.deleted_at IS NULL
+    ) AS skills_do_titulo ON TRUE
+  ) AS titulos_do_passado ON TRUE
+  WHERE p.deleted_at IS NULL
+`;
 
-function mapRow(
-  row: any,
-  skillMap: Record<number, string>,
-  tituloMap: Record<number, TituloComSkills>,
-): PassadoApi {
-  const skillIds:  number[] = Array.isArray(row.skill_ids)  ? row.skill_ids  : [];
-  const tituloIds: number[] = Array.isArray(row.titulo_ids) ? row.titulo_ids : [];
-  return {
-    id:             row.id,
-    nome:           row.nome ?? "",
-    descricao:      row.descricao ?? null,
-    foto_url:       row.foto_url ?? null,
-    skill_ids:      skillIds,
-    titulo_ids:     tituloIds,
-    skills:         skillIds.map(id => ({ id, name: skillMap[id] ?? `Skill #${id}` })),
-    titulos:        tituloIds.map(id => ({
-      id,
-      name:    tituloMap[id]?.name    ?? `Título #${id}`,
-      skills:  tituloMap[id]?.skills  ?? [],
-      bonuses: tituloMap[id]?.bonuses ?? null,
-    })),
-    atributo_bonus: row.atributo_bonus ?? null,
-    created_at:     row.created_at,
-    updated_at:     row.updated_at,
-  };
-}
+@Injectable()
+export class PassadosService {
+  constructor(
+    @InjectModel(PassadoModel)
+    private readonly modeloPassado: typeof PassadoModel,
+    private readonly sequelize: Sequelize,
+  ) {}
 
-async function buildMaps(rows: any[], admin: ReturnType<typeof getAdminClient>) {
-  const allPassadoSkillIds = [...new Set<number>(rows.flatMap(r => r.skill_ids ?? []))];
-  const allTituloIds       = [...new Set<number>(rows.flatMap(r => r.titulo_ids ?? []))];
+  // ── Leitura (SQL cru com JOIN) ────────────────────────────────────────────
 
-  const [titulosRes] = await Promise.all([
-    allTituloIds.length
-      ? admin.from("titles").select("id, name, skill_ids, bonuses").in("id", allTituloIds).is("deleted_at", null)
-      : Promise.resolve({ data: [] as any[] }),
-  ]);
-
-  const tituloRows = titulosRes.data ?? [];
-  const allTituloSkillIds = [...new Set<number>(tituloRows.flatMap((t: any) => t.skill_ids ?? []))];
-  const allSkillIds = [...new Set<number>([...allPassadoSkillIds, ...allTituloSkillIds])];
-
-  const skillsRes = allSkillIds.length
-    ? await admin.from("skills").select("id, name").in("id", allSkillIds).is("deleted_at", null)
-    : { data: [] as any[] };
-
-  const skillMap: Record<number, string> = {};
-  for (const s of (skillsRes.data ?? [])) skillMap[s.id] = s.name;
-
-  const tituloMap: Record<number, TituloComSkills> = {};
-  for (const t of tituloRows) {
-    const tSkillIds: number[] = Array.isArray(t.skill_ids) ? t.skill_ids : [];
-    tituloMap[t.id] = {
-      name:    t.name,
-      skills:  tSkillIds.map(id => ({ id, name: skillMap[id] ?? `Skill #${id}` })),
-      bonuses: t.bonuses ?? null,
-    };
+  async listar(): Promise<PassadoApi[]> {
+    return this.sequelize.query<PassadoApi>(`${SQL_LISTAR_PASSADOS} ORDER BY p.nome`, {
+      type: QueryTypes.SELECT,
+    });
   }
 
-  return { skillMap, tituloMap };
+  private async buscarEnriquecidoOuFalhar(id: number): Promise<PassadoApi> {
+    const encontrados = await this.sequelize.query<PassadoApi>(
+      `${SQL_LISTAR_PASSADOS} AND p.id = :id`,
+      { replacements: { id }, type: QueryTypes.SELECT },
+    );
+
+    if (encontrados.length === 0) {
+      throw new NotFoundException("Passado não encontrado.");
+    }
+    return encontrados[0];
+  }
+
+  // ── Escrita (ORM, pra os hooks de auditoria dispararem) ───────────────────
+
+  async criar(dados: CriarPassadoDto): Promise<PassadoApi> {
+    const criado = await this.modeloPassado.create({
+      nome: dados.nome.trim(),
+      descricao: dados.descricao?.trim() ?? null,
+      fotoUrl: dados.foto_url?.trim() || null,
+      skillIds: dados.skill_ids ?? [],
+      tituloIds: dados.titulo_ids ?? [],
+      atributoBonus: dados.atributo_bonus ?? null,
+    });
+
+    return this.buscarEnriquecidoOuFalhar(criado.id);
+  }
+
+  async editar(id: number, dados: EditarPassadoDto): Promise<PassadoApi> {
+    const registro = await this.modeloPassado.findByPk(id);
+    if (!registro) {
+      throw new NotFoundException("Passado não encontrado.");
+    }
+
+    if (dados.nome !== undefined) registro.nome = dados.nome.trim();
+    if (dados.descricao !== undefined) registro.descricao = dados.descricao?.trim() ?? null;
+    if (dados.foto_url !== undefined) registro.fotoUrl = dados.foto_url?.trim() || null;
+    if (dados.skill_ids !== undefined) registro.skillIds = dados.skill_ids;
+    if (dados.titulo_ids !== undefined) registro.tituloIds = dados.titulo_ids;
+    if (dados.atributo_bonus !== undefined) registro.atributoBonus = dados.atributo_bonus ?? null;
+
+    await registro.save();
+    return this.buscarEnriquecidoOuFalhar(id);
+  }
+
+  async deletar(id: number): Promise<void> {
+    const registro = await this.modeloPassado.findByPk(id);
+    if (!registro) {
+      throw new NotFoundException("Passado não encontrado.");
+    }
+    // Soft delete (paranoid). A imagem em disco é preservada de propósito:
+    // o registro pode ser restaurado, e o arquivo não voltaria.
+    await registro.destroy();
+  }
 }
-
-export const passadosService = {
-  async listar(): Promise<PassadoApi[]> {
-    const admin = getAdminClient();
-    const { data, error } = await admin
-      .from(TABLE)
-      .select("*")
-      .is("deleted_at", null)
-      .order("nome");
-    if (error) throw error;
-    const rows = data ?? [];
-    const { skillMap, tituloMap } = await buildMaps(rows, admin);
-    return rows.map(r => mapRow(r, skillMap, tituloMap));
-  },
-
-  async criar(
-    payload: { nome: string; descricao?: string; foto_url?: string; skill_ids?: number[]; titulo_ids?: number[]; atributo_bonus?: AtributoBonus | null },
-    accessToken?: string,
-  ): Promise<PassadoApi> {
-    const user = await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
-    const { data, error } = await admin
-      .from(TABLE)
-      .insert({
-        nome:           payload.nome.trim(),
-        descricao:      payload.descricao?.trim() ?? null,
-        foto_url:       payload.foto_url?.trim() || null,
-        skill_ids:      payload.skill_ids  ?? [],
-        titulo_ids:     payload.titulo_ids ?? [],
-        atributo_bonus: payload.atributo_bonus ?? null,
-        created_by:     getUserDisplayEmail(user),
-        updated_by:     getUserDisplayEmail(user),
-      })
-      .select("*")
-      .single();
-    if (error) throw error;
-    const { skillMap, tituloMap } = await buildMaps([data], admin);
-    return mapRow(data, skillMap, tituloMap);
-  },
-
-  async editar(
-    id: number,
-    payload: { nome?: string; descricao?: string; foto_url?: string; skill_ids?: number[]; titulo_ids?: number[]; atributo_bonus?: AtributoBonus | null },
-    accessToken?: string,
-  ): Promise<PassadoApi> {
-    const user = await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
-
-    const updates: Record<string, any> = { updated_by: getUserDisplayEmail(user), updated_at: new Date().toISOString() };
-    if (payload.nome           !== undefined) updates.nome           = payload.nome.trim();
-    if (payload.descricao      !== undefined) updates.descricao      = payload.descricao?.trim() ?? null;
-    if (payload.foto_url       !== undefined) updates.foto_url       = payload.foto_url?.trim() || null;
-    if (payload.skill_ids      !== undefined) updates.skill_ids      = payload.skill_ids;
-    if (payload.titulo_ids     !== undefined) updates.titulo_ids     = payload.titulo_ids;
-    if (payload.atributo_bonus !== undefined) updates.atributo_bonus = payload.atributo_bonus;
-
-    const { data, error } = await admin
-      .from(TABLE)
-      .update(updates)
-      .eq("id", id)
-      .is("deleted_at", null)
-      .select("*")
-      .single();
-    if (error) throw error;
-    if (!data) throw new Error("Passado não encontrado.");
-    const { skillMap, tituloMap } = await buildMaps([data], admin);
-    return mapRow(data, skillMap, tituloMap);
-  },
-
-  async deletar(id: number, accessToken?: string): Promise<void> {
-    const user = await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
-    const { error } = await admin
-      .from(TABLE)
-      .update({ deleted_at: new Date().toISOString(), deleted_by: getUserDisplayEmail(user) })
-      .eq("id", id)
-      .is("deleted_at", null);
-    if (error) throw error;
-  },
-};
