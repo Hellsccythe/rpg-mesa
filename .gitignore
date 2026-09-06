@@ -44,3 +44,6 @@ __screenshots__/
 .env.*.local
 
 .vercel
+
+# Arquivos enviados pelos usuarios (substitui o Supabase Storage)
+server/uploads/
