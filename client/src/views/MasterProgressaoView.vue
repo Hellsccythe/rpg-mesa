@@ -187,7 +187,10 @@
                 <thead class="bg-white/[0.03] border-b border-white/10">
                   <tr>
                     <th class="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-400">Nível</th>
-                    <th class="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-zinc-400">XP Necessário</th>
+                    <th class="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-400">Tier</th>
+                    <th class="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-zinc-400">Mult.</th>
+                    <th class="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-zinc-400">XP p/ Próximo</th>
+                    <th class="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-zinc-400">XP Acumulado</th>
                     <th class="px-4 py-2.5 w-8" />
                   </tr>
                 </thead>
@@ -198,9 +201,14 @@
                     class="border-t border-white/[0.05] hover:bg-white/[0.02]"
                   >
                     <td class="px-4 py-2.5">
-                      <span class="inline-flex items-center justify-center rounded-full bg-indigo-900/50 text-indigo-300 px-2 py-0.5 text-xs font-bold">Nv.{{ lp.nivel }}</span>
+                      <span class="inline-flex items-center justify-center rounded-full bg-indigo-900/50 text-indigo-300 px-2 py-0.5 text-xs font-bold">Nv.{{ lp.level }}</span>
                     </td>
-                    <td class="px-4 py-2.5 text-right font-mono text-zinc-300">{{ lp.xp_necessario.toLocaleString('pt-BR') }}</td>
+                    <td class="px-4 py-2.5">
+                      <span class="text-xs font-semibold uppercase tracking-wider" :class="tierClasse(lp.tier)">{{ lp.tier }}</span>
+                    </td>
+                    <td class="px-4 py-2.5 text-right font-mono text-zinc-400">×{{ lp.multiplier }}</td>
+                    <td class="px-4 py-2.5 text-right font-mono text-zinc-300">{{ lp.xp_required_next.toLocaleString('pt-BR') }}</td>
+                    <td class="px-4 py-2.5 text-right font-mono text-zinc-500">{{ lp.xp_total_accumulated.toLocaleString('pt-BR') }}</td>
                     <td class="px-4 py-2.5 text-right">
                       <button
                         type="button"
@@ -548,12 +556,24 @@
     <form class="space-y-4" @submit.prevent="salvarLP">
       <div class="grid grid-cols-2 gap-3">
         <div>
-          <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-zinc-400">Nível (1–20)</label>
-          <input v-model.number="lpModal.nivel" type="number" min="1" max="20" class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white placeholder-zinc-600 outline-none focus:border-indigo-500/50" placeholder="Ex: 5" />
+          <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-zinc-400">Nível (1–100)</label>
+          <input v-model.number="lpModal.level" type="number" min="1" :max="NIVEL_MAXIMO" class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white placeholder-zinc-600 outline-none focus:border-indigo-500/50" placeholder="Ex: 5" />
         </div>
         <div>
-          <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-zinc-400">XP necessário</label>
-          <input v-model.number="lpModal.xp_necessario" type="number" min="0" class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white placeholder-zinc-600 outline-none focus:border-indigo-500/50" placeholder="Ex: 1000" />
+          <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-zinc-400">Tier</label>
+          <VSelect v-model="lpModal.tier" :options="TIERS_DISPONIVEIS.map(t => ({ value: t, label: t }))" />
+        </div>
+        <div>
+          <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-zinc-400">Multiplicador</label>
+          <input v-model.number="lpModal.multiplier" type="number" min="0" step="0.01" class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white placeholder-zinc-600 outline-none focus:border-indigo-500/50" placeholder="Ex: 1.80" />
+        </div>
+        <div>
+          <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-zinc-400">XP p/ próximo</label>
+          <input v-model.number="lpModal.xp_required_next" type="number" min="0" class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white placeholder-zinc-600 outline-none focus:border-indigo-500/50" placeholder="Ex: 1200" />
+        </div>
+        <div class="col-span-2">
+          <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-zinc-400">XP acumulado até este nível</label>
+          <input v-model.number="lpModal.xp_total_accumulated" type="number" min="0" class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white placeholder-zinc-600 outline-none focus:border-indigo-500/50" placeholder="Ex: 6600" />
         </div>
       </div>
       <p class="text-xs text-zinc-600">Se o nível já existir, o valor será atualizado.</p>
@@ -577,7 +597,7 @@
     :show-close-button="false"
   >
     <h3 class="text-base font-bold text-white">Remover Nível</h3>
-    <p class="text-sm text-zinc-400">Remover o nível <strong class="text-white">{{ deleteLpModal.nivel }}</strong> da tabela de progressão?</p>
+    <p class="text-sm text-zinc-400">Remover o nível <strong class="text-white">{{ deleteLpModal.level }}</strong> da tabela de progressão?</p>
     <div class="flex gap-3">
       <button type="button" class="flex-1 rounded-xl border border-white/10 py-2 text-sm text-zinc-400 hover:text-white" @click="deleteLpModal.aberto = false">Cancelar</button>
       <button type="button" :disabled="salvandoLP" class="flex-1 rounded-xl bg-red-700 py-2 text-sm font-semibold text-white hover:bg-red-600 disabled:opacity-60" @click="executarDeleteLP">
@@ -628,6 +648,7 @@ import {
   listarLevelProgression,
   salvarLevelProgression,
   deletarLevelProgression,
+  type LevelProgressionApi,
 } from '@/lib/api/personagens.api'
 import { useCharactersStore } from '@/stores/characters'
 
@@ -780,32 +801,71 @@ async function concederXpPersonagem() {
 }
 
 // level_progression CRUD
-const levelProgression = ref<{ id: number; nivel: number; xp_necessario: number }[]>([])
+const NIVEL_MAXIMO = 100
+const TIERS_DISPONIVEIS = ['Rápido', 'Médio', 'Épico']
+
+const CORES_POR_TIER: Record<string, string> = {
+  'Rápido': 'text-emerald-400',
+  'Médio': 'text-amber-400',
+  'Épico': 'text-fuchsia-400',
+}
+
+function tierClasse(tier: string): string {
+  return CORES_POR_TIER[tier] ?? 'text-zinc-400'
+}
+
+const levelProgression = ref<LevelProgressionApi[]>([])
 const carregandoLP = ref(false)
 const salvandoLP   = ref(false)
 const erroLP       = ref('')
-const lpModal      = ref({ aberto: false, nivel: null as number | null, xp_necessario: 0 })
-const deleteLpModal = ref({ aberto: false, id: null as number | null, nivel: 0 })
+const lpModal      = ref({
+  aberto: false,
+  level: null as number | null,
+  tier: TIERS_DISPONIVEIS[0],
+  multiplier: 1,
+  xp_required_next: 0,
+  xp_total_accumulated: 0,
+})
+const deleteLpModal = ref({ aberto: false, id: null as number | null, level: 0 })
 
 const levelProgressionOrdenada = computed(() =>
-  [...levelProgression.value].sort((a, b) => a.nivel - b.nivel)
+  [...levelProgression.value].sort((a, b) => a.level - b.level)
 )
 
 function abrirModalLevelProgression() {
-  lpModal.value = { aberto: true, nivel: null, xp_necessario: 0 }
+  lpModal.value = {
+    aberto: true,
+    level: null,
+    tier: TIERS_DISPONIVEIS[0],
+    multiplier: 1,
+    xp_required_next: 0,
+    xp_total_accumulated: 0,
+  }
   erroLP.value = ''
 }
 
 async function salvarLP() {
   erroLP.value = ''
-  const { nivel, xp_necessario } = lpModal.value
-  if (!nivel || nivel < 1 || nivel > 20) { erroLP.value = 'Nível deve ser entre 1 e 20.'; return }
-  if (xp_necessario < 0) { erroLP.value = 'XP não pode ser negativo.'; return }
+  const { level, tier, multiplier, xp_required_next, xp_total_accumulated } = lpModal.value
+
+  if (!level || level < 1 || level > NIVEL_MAXIMO) {
+    erroLP.value = `Nível deve ser entre 1 e ${NIVEL_MAXIMO}.`
+    return
+  }
+  if (!tier.trim()) { erroLP.value = 'Informe o tier.'; return }
+  if (multiplier < 0) { erroLP.value = 'Multiplicador não pode ser negativo.'; return }
+  if (xp_required_next < 0 || xp_total_accumulated < 0) {
+    erroLP.value = 'XP não pode ser negativo.'
+    return
+  }
+
   salvandoLP.value = true
   try {
-    const result = await salvarLevelProgression([{ nivel, xp_necessario }])
+    const result = await salvarLevelProgression([
+      { level, tier: tier.trim(), multiplier, xp_required_next, xp_total_accumulated },
+    ])
     const item = result[0]
-    const idx = levelProgression.value.findIndex(lp => lp.nivel === item.nivel)
+    const idx = levelProgression.value.findIndex(lp => lp.level === item.level)
     if (idx !== -1) levelProgression.value[idx] = item
     else levelProgression.value.push(item)
     lpModal.value.aberto = false
@@ -816,8 +876,8 @@ async function salvarLP() {
   }
 }
 
-function confirmarDeleteLP(lp: { id: number; nivel: number }) {
-  deleteLpModal.value = { aberto: true, id: lp.id, nivel: lp.nivel }
+function confirmarDeleteLP(lp: LevelProgressionApi) {
+  deleteLpModal.value = { aberto: true, id: lp.id, level: lp.level }
 }
 
 async function executarDeleteLP() {

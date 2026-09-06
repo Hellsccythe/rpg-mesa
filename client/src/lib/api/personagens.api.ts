@@ -252,15 +252,38 @@ export async function atribuirXpPersonagem(
   return data
 }
 
-export async function listarLevelProgression(): Promise<Array<{ id: number; nivel: number; xp_necessario: number }>> {
-  const { data } = await api.get('/personagens/admin/level-progression')
+/**
+ * Progressão de XP por nível de personagem, em faixas: cada nível pertence a
+ * um tier (Rápido, Médio, Épico) com seu multiplicador, e guarda tanto o XP
+ * para o próximo nível quanto o acumulado até ali.
+ */
+export interface LevelProgressionApi {
+  id: number
+  level: number
+  tier: string
+  multiplier: number
+  xp_required_next: number
+  xp_total_accumulated: number
+  created_at: string
+  updated_at: string
+}
+
+export type EntradaLevelProgressionPayload = Omit<
+  LevelProgressionApi,
+  'id' | 'created_at' | 'updated_at'
+>
+
+export async function listarLevelProgression(tier?: string): Promise<LevelProgressionApi[]> {
+  const { data } = await api.get<LevelProgressionApi[]>('/personagens/admin/level-progression', {
+    params: tier ? { tier } : {},
+  })
   return data
 }
 
 export async function salvarLevelProgression(
-  entradas: Array<{ nivel: number; xp_necessario: number }>,
-): Promise<Array<{ id: number; nivel: number; xp_necessario: number }>> {
-  const { data } = await api.post('/personagens/admin/level-progression', { entradas })
+  entradas: EntradaLevelProgressionPayload[],
+): Promise<LevelProgressionApi[]> {
+  const { data } = await api.post<LevelProgressionApi[]>('/personagens/admin/level-progression', { entradas })
   return data
 }
 
