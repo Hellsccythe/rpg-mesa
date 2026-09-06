@@ -1,0 +1,36 @@
+import { Column, DataType, Model, Table } from "sequelize-typescript";
+
+/**
+ * Mapeia a tabela usuarios já existente no banco (migrations 027 e 062).
+ * Não representa o módulo /api/usuarios inteiro (que ainda roda em
+ * Express/Supabase) — só o suficiente pra login e auditoria funcionarem.
+ */
+@Table({ tableName: "usuarios", timestamps: true, paranoid: true })
+export class UsuarioModel extends Model {
+  @Column(DataType.TEXT)
+  declare realEmail: string;
+
+  @Column({ type: DataType.TEXT, allowNull: true })
+  declare username: string | null;
+
+  @Column(DataType.TEXT)
+  declare tipo: "gm" | "player";
+
+  @Column({ type: DataType.BOOLEAN, defaultValue: true })
+  declare ativo: boolean;
+
+  @Column(DataType.TEXT)
+  declare passwordHash: string;
+
+  @Column({ type: DataType.BOOLEAN, defaultValue: false })
+  declare requiresPasswordChange: boolean;
+
+  @Column({ type: DataType.TEXT, allowNull: true })
+  declare createdBy: string | null;
+
+  @Column({ type: DataType.TEXT, allowNull: true })
+  declare updatedBy: string | null;
+
+  @Column({ type: DataType.TEXT, allowNull: true })
+  declare deletedBy: string | null;
+}

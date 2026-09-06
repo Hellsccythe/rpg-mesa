@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: rpg_mesa_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:-changeme}
+    ports:
+      - "5433:5432"
+    volumes:
+      - rpg_mesa_pgdata:/var/lib/postgresql
+
+volumes:
+  rpg_mesa_pgdata:

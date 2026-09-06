@@ -1,0 +1,21 @@
+import { Module } from "@nestjs/common";
+import { SequelizeConfigModule } from "./config/database/sequelize/sequelize.config.js";
+import { AuthGuardsModule } from "./common/auth/auth-guards.module.js";
+import { ArmazenamentoArquivosModule } from "./common/storage/armazenamento-arquivos.module.js";
+import { AuthModule } from "./modules/auth/auth.module.js";
+import { TabelasAcessoriasModule } from "./modules/tabelas-acessorias/tabelas-acessorias.module.js";
+import { PassadosModule } from "./modules/passados/passados.module.js";
+
+@Module({
+  imports: [
+    SequelizeConfigModule,
+    AuthGuardsModule,
+    ArmazenamentoArquivosModule,
+    AuthModule,
+    // Cada módulo migrado do Express/Supabase entra aqui. Os que ainda não
+    // migraram continuam servidos pelos routers antigos, montados em main.ts.
+    TabelasAcessoriasModule,
+    PassadosModule,
+  ],
+})
+export class AppModule {}
