@@ -69,8 +69,7 @@ export const useCharactersStore = defineStore('characters', {
       this.loading = true
       this.error = null
       try {
-        const authStore = useAuthStore()
-        const data = await getCharacterById(characterId, authStore.eMestre)
+        const data = await getCharacterById(characterId)
         const idx = this.myCharacters.findIndex((char) => char.characterId === characterId)
         if (idx !== -1) this.myCharacters[idx] = data
         else this.myCharacters.unshift(data)

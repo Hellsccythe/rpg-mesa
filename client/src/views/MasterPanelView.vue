@@ -1176,7 +1176,7 @@ const focalPresets = [
 async function carregarFocalChar() {
   if (!focalCharId.value) { focalCharAvatar.value = null; return }
   try {
-    const char = await getCharacterById(focalCharId.value, true)
+    const char = await getCharacterById(focalCharId.value)
     focalCharAvatar.value = char.avatarUrl
     const saved: string = char.data?.avatarFocalPoint ?? 'center 20%'
     aplicarPreset(saved)

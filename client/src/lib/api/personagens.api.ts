@@ -20,9 +20,14 @@ export async function listMyCharacters(params: ListarPersonagemDto = {}) {
   return data
 }
 
-export async function getCharacterById(characterId: string | number, isMaster: boolean) {
-  const endpoint = isMaster ? `/personagens/admin/${characterId}` : `/personagens/${characterId}`
-  const { data } = await api.get<PersonagemApi>(endpoint)
+/**
+ * Rota única para jogador e mestre. Antes o frontend escolhia entre
+ * /personagens/:id e /personagens/admin/:id porque o backend precisava de
+ * clientes Supabase diferentes; agora o tipo do usuário vem no token e quem
+ * decide o que pode ser aberto é o backend.
+ */
+export async function getCharacterById(characterId: string | number) {
+  const { data } = await api.get<PersonagemApi>(`/personagens/${characterId}`)
   return data
 }
 

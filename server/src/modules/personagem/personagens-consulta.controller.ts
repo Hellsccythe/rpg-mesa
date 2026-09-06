@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from "@nestjs/common";
+import { Controller, Get, Param, ParseIntPipe, Query, UseGuards } from "@nestjs/common";
 import { JwtAuthGuard } from "../../common/auth/jwt-auth.guard.js";
 import { UsuarioLogado } from "../../common/auth/usuario-logado.decorator.js";
 import type { UsuarioAutenticado } from "../../common/cls/usuario-autenticado.interface.js";
@@ -32,5 +32,23 @@ export class PersonagensConsultaController {
       maxLevel: filtro.maxLevel,
       campaignId: filtro.campaignId,
     });
+  }
+
+  /**
+   * Precisa ficar por último: uma rota com parâmetro casa com qualquer
+   * caminho de um segmento, então declarada antes engoliria "pagina".
+   *
+   * Substitui o par /personagens/:id + /personagens/admin/:id que existia
+   * antes. Os dois só eram separados porque a versão Supabase precisava de
+   * clientes diferentes (anon x service_role); aqui o tipo do usuário vem no
+   * token e o service resolve a permissão sozinho.
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get(":characterId")
+  obterPorId(
+    @Param("characterId", ParseIntPipe) personagemId: number,
+    @UsuarioLogado() usuario: UsuarioAutenticado,
+  ) {
+    return this.servicoConsulta.obterPorId(personagemId, usuario);
   }
 }

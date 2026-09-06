@@ -707,7 +707,7 @@ async function carregar() {
       listarPassados(),
       listPublicGods(),
       listarArmasPublicas(),
-      getCharacterById(characterId, false),
+      getCharacterById(characterId),
     ])
 
     if ((personagemData as any).onboardingCompleto) {

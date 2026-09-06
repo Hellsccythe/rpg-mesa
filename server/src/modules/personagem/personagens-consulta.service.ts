@@ -1,8 +1,11 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/sequelize";
 import { Op, QueryTypes, type WhereOptions } from "sequelize";
 import { Sequelize } from "sequelize-typescript";
+import type { UsuarioAutenticado } from "../../common/cls/usuario-autenticado.interface.js";
 import { PersonagemModel } from "./models/personagem.model.js";
+import { garantirAcessoAoPersonagem } from "./personagem-acesso.js";
+import { mapearPersonagemParaApi, type PersonagemApi } from "./personagem-api.mapper.js";
 
 export type PersonagemPublico = {
   characterId: number;
@@ -121,7 +124,7 @@ export class PersonagensConsultaService {
   async listarDoUsuario(
     usuarioId: number,
     filtro: FiltroMeusPersonagens = {},
-  ): Promise<PersonagemModel[]> {
+  ): Promise<PersonagemApi[]> {
     const condicoes: WhereOptions<PersonagemModel> = { userId: usuarioId };
 
     if (filtro.nome?.trim()) {
@@ -140,10 +143,65 @@ export class PersonagensConsultaService {
       Object.assign(condicoes, { campaignId: filtro.campaignId });
     }
 
-    return this.modeloPersonagem.findAll({
+    const encontrados = await this.modeloPersonagem.findAll({
       where: condicoes,
       order: [["createdAt", "DESC"]],
     });
+
+    return encontrados.map(mapearPersonagemParaApi);
+  }
+
+  /**
+   * Um personagem específico. Não há rota separada para o mestre: o tipo do
+   * usuário já vem no JWT, então a mesma rota serve os dois — o mestre abre
+   * qualquer personagem, o jogador só o seu.
+   */
+  async obterPorId(personagemId: number, usuario: UsuarioAutenticado): Promise<PersonagemApi> {
+    const personagem = await this.modeloPersonagem.findByPk(personagemId);
+    if (!personagem) {
+      throw new NotFoundException("Personagem não encontrado.");
+    }
+
+    garantirAcessoAoPersonagem(personagem, usuario);
+    await this.garantirClassesEmData(personagem);
+    return mapearPersonagemParaApi(personagem);
+  }
+
+  /**
+   * Personagens antigos têm classe_id preenchido mas data.classes vazio — a
+   * coluna passou a existir depois que o JSONB já estava em uso. Sem esta
+   * reconstrução, as telas de classe não acham nível nem pontos de skill.
+   */
+  private async garantirClassesEmData(personagem: PersonagemModel): Promise<void> {
+    const dados = (personagem.data ?? {}) as Record<string, unknown>;
+    const classes = Array.isArray(dados.classes) ? dados.classes : [];
+    if (classes.length > 0 || personagem.classeId === null) return;
+
+    const encontradas = await this.sequelize.query<{ name: string; tier: string | null }>(
+      `SELECT name, tier FROM classes
+        WHERE id = :classeId AND deleted_at IS NULL
+        LIMIT 1`,
+      { replacements: { classeId: personagem.classeId }, type: QueryTypes.SELECT },
+    );
+
+    const classe = encontradas[0];
+    if (!classe) return;
+
+    personagem.data = {
+      ...dados,
+      classes: [
+        {
+          classId: String(personagem.classeId),
+          name: classe.name,
+          tier: classe.tier ?? "",
+          level: 1,
+          chosenSkills: [],
+          skillPoints: 2,
+          xp: 0,
+        },
+      ],
+    };
+    await personagem.save();
   }
 
   private async buscarCampanhaPorSlug(

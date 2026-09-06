@@ -691,7 +691,7 @@ const opcoesPersonagem = computed(() =>
 type ClasseData = { classId: string; name: string; level: number; xp: number; skillPoints?: number }
 
 async function buscarClassesPersonagem(id: string): Promise<ClasseData[]> {
-  const char = await getCharacterById(id, true)
+  const char = await getCharacterById(id)
   const list: any[] = Array.isArray((char as any).data?.classes) ? (char as any).data.classes : []
   return list.map((c: any) => ({
     classId: String(c.classId),
@@ -772,7 +772,7 @@ watch(xpPCharacterId, async (id) => {
   erroXpP.value = ''
   if (!id) return
   try {
-    const char = await getCharacterById(id, true)
+    const char = await getCharacterById(id)
     xpPCharData.value = {
       level: Number((char as any).level ?? 1),
       xp: Number((char as any).data?.xp ?? 0),
@@ -911,7 +911,7 @@ watch(ptcCharacterId, async (id) => {
   erroPtc.value = ''
   if (!id) return
   try {
-    const char = await getCharacterById(id, true)
+    const char = await getCharacterById(id)
     ptcCharData.value = { classPoints: Number((char as any).data?.classPoints ?? 0) }
   } catch {}
 })
@@ -1005,7 +1005,7 @@ watch(ptaCharacterId, async (id) => {
   erroPta.value = ''
   if (!id) return
   try {
-    const char = await getCharacterById(id, true)
+    const char = await getCharacterById(id)
     ptaCharData.value = { pontosAtributo: Number((char as any).data?.pontosAtributo ?? 0) }
   } catch {}
 })

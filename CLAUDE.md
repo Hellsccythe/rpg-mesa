@@ -50,6 +50,7 @@ Sistema de gestão de sessões de RPG de mesa. Monorepo com Yarn 4 Workspaces.
 | Método | Rota | Acesso |
 |---|---|---|
 | GET | `/api/personagens` | auth |
+| GET | `/api/personagens/:id` | auth (mestre abre qualquer um; jogador só o seu) |
 | GET | `/api/gods` | público |
 | GET | `/api/city-maps` | auth |
 | GET | `/api/classes` | público |
@@ -471,8 +472,10 @@ Antes da confirmação, o frontend (`MasterSkillsView`) chama `GET /api/skills/a
 
 ## Papéis de Usuário
 
-- **Jogador (tipo `player`):** autenticado, acessa apenas seu personagem no dashboard. Login com `{username}@rpg.internal`.
-- **Mestre (tipo `gm` / `isMaster=true`):** acessa `/master`, pode abrir qualquer personagem, gerencia catálogos. Login com email real. Definido via `MASTER_EMAILS` env var.
+- **Jogador (tipo `player`):** autenticado, acessa apenas seu personagem no dashboard. Login pelo username.
+- **Mestre (tipo `gm`):** acessa `/master`, pode abrir qualquer personagem, gerencia catálogos. Login pelo email real.
+
+Quem é mestre vem de `usuarios.tipo = 'gm'`, que viaja dentro do JWT e é checado pelo `MasterGuard`. A env var `MASTER_EMAILS` só sobrevive nos módulos Express ainda não migrados e sai junto com eles.
 
 Ambos os tipos têm registro na tabela `usuarios`. Players são criados automaticamente na aprovação.
 
@@ -490,11 +493,16 @@ Ambos os tipos têm registro na tabela `usuarios`. Players são criados automati
 
 ## Fluxo de Auth
 
-1. Supabase Auth no frontend
-2. `AuthMeta` no localStorage: `activeCharacterId`, `isMaster`, `authenticatedAt`
-3. Sessão expira em 24h (verificado no router guard e no store)
-4. Axios interceptor envia `Authorization: Bearer <token>` para o backend
-5. Backend valida token no Supabase
+JWT próprio, emitido pelo backend. Supabase Auth saiu de cena.
+
+1. `POST /api/auth/login` recebe `{ identificador, senha }` — o identificador é o username (jogador) ou o email real (mestre). Senha em bcrypt na coluna `usuarios.password_hash`
+2. Resposta: `{ tokenAcesso, tipo, precisaTrocarSenha, usuario }`
+3. `localStorage`: `rpg-mesa.token` (o JWT) e `rpg-mesa.auth-meta` (`autenticadoEm`, `idPersonagemAtivo`, `eMestre`, `usuario`)
+4. Sessão expira em 24h (verificado no router guard e no store). Não há sessão no servidor: sair é apagar o que está guardado
+5. Axios interceptor envia `Authorization: Bearer <token>`; `JwtAuthGuard` valida e publica o usuário no contexto da requisição (AsyncLocalStorage), de onde os hooks do Sequelize tiram `created_by`/`updated_by`/`deleted_by`
+6. `GET /api/auth/eu` confirma o token; `PATCH /api/auth/trocar-senha` é a troca da própria senha
+
+`usuarios.password_hash` nulo significa **pré-registro**: o mestre liberou o email, mas a conta ainda não existe — o login recusa.
 
 ## Fluxo de Criação de Personagem
 
@@ -519,15 +527,18 @@ Todas as 6 etapas estão implementadas em `OnboardingView.vue`.
 | Etapa | Endpoint | Permanente? | Notas |
 |---|---|---|---|
 | 1 — Raça | `PATCH /api/personagens/:id/escolher-raca` | Sim | Atualiza `characters.raca_id` |
-| 2 — Classe | `PATCH /api/personagens/:id/escolher-classe-inicial` | Sim | Salva em `data.classes` |
-| 3 — Passado | `PATCH /api/personagens/:id/escolher-passado` | Sim | Atualiza `characters.passado_id`; concede skills/títulos do passado |
+| 2 — Classe | `PATCH /api/personagens/:id/escolher-classe` | Sim | Atualiza `characters.classe_id` e cria a entrada em `data.classes` com 2 pontos de skill |
+| 2b — Skill inicial | `POST /api/personagens/:id/escolher-skill-inicial` | Sim | Só aparece se a classe tiver `starting_skills`. Gasta 1 ponto de skill e sobe o nível da classe |
+| 3 — Passado | `PATCH /api/personagens/:id/escolher-passado` | Sim | Atualiza `characters.passado_id`. As skills e títulos do passado **não** são copiados para o personagem — o dashboard os lê do catálogo de passados na hora de exibir |
 | 4 — Atributos | `PATCH /api/personagens/:id/definir-atributos` | Sim | Salva em `data.atributos` |
 | 5 — Deus | `PATCH /api/personagens/:id/escolher-deus` | Sim | Atualiza `characters.deus_id`; pode ser pulado |
 | 6 — Equipamentos | `PATCH /api/personagens/:id/concluir-onboarding` | — | Salva `data.equipamentos_iniciais`; seta `onboarding_completo = true` |
 
 **Navegação entre etapas:** o player pode transitar livremente entre as etapas já concluídas usando o stepper no topo. `etapaMaxima` controla quais etapas são clicáveis. Ao concluir a etapa 6, é redirecionado para `/dashboard`.
 
-**Capacidade de carga (etapa 6):** `pesoMaximo = atributos.forca * 2`. Backend valida na conclusão do onboarding.
+**Capacidade de carga (etapa 6):** `pesoMaximo = 2 + atributos.forca * 2`, onde `forca` já inclui o bônus do passado. Backend valida na conclusão do onboarding.
+
+**Atributos (etapa 4):** 10 pontos distribuíveis. O `data` guarda as três parcelas separadas — `atributos_base` (o que o jogador distribuiu), `atributos_bonus_passado` e `atributos` (a soma, que é o valor usado em jogo).
 
 **Gear menu:** botão de engrenagem fixo no topo direito do onboarding permite sair/fazer logout.
 
