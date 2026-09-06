@@ -278,57 +278,60 @@ Ao aprovar: cria usuário no Supabase Auth com email `{username}@rpg.internal` +
 | peso | NUMERIC(8,2) | nullable, em kg |
 | valor | NUMERIC(12,2) | nullable, em moedas |
 | propriedades | VARCHAR(500) | nullable |
-| classe_equipamento_item | INTEGER | referência a `classe_equipamento.item` |
-| categoria_equipamento_item | INTEGER[] | array de referências a `categoria_equipamento.item` |
+| categoria_equipamento_item | INTEGER | referência **única** a `categoria_equipamento.item` (nullable) |
+| classe_equipamento_item | INTEGER[] | array de referências a `classe_equipamento.item` (NOT NULL, default `'{}'`) |
 | tipo_equipamento_item | INTEGER[] | array de referências a `tipo_equipamento.item` |
 | propriedade_equipamento_item | INTEGER[] | array de referências a `propriedade_equipamento.item` |
 | deleted_at / deleted_by | timestamptz / UUID | soft delete |
 | created_at / updated_at | timestamptz | |
 | created_by / updated_by | UUID | auditoria |
 
-RLS: SELECT público (anon + authenticated); escrita via service_role (admin client).
-
-### `classe_equipamento` (migration 015)
-
-Pai de tipo, propriedade e categoria. Ex: "Arma", "Armadura", "Ferramenta".
-
-| Coluna | Tipo | Notas |
-|---|---|---|
-| item | INTEGER PK | auto via MAX(item)+1 |
-| descricao | VARCHAR(100) | |
-| created_at / updated_at | timestamptz | |
-| deleted_at / deleted_by | timestamptz / UUID | soft delete |
-| created_by / updated_by | UUID | auditoria |
-
-### `tipo_equipamento` (migration 015)
-
-Filho de `classe_equipamento`. Ex: "Longa distância", "Corpo a corpo".
-
-| Coluna | Tipo | Notas |
-|---|---|---|
-| item | INTEGER PK | |
-| descricao | VARCHAR(100) | |
-| classe_item | INTEGER | referência a `classe_equipamento.item` (NOT NULL) |
-| soft delete / auditoria | — | padrão |
-
-### `propriedade_equipamento` (migration 015)
-
-Filho de `classe_equipamento`. Ex: "Perfurante", "Pesada". Estrutura idêntica a `tipo_equipamento`.
+**Cuidado com a assimetria:** categoria é **uma só** (coluna `integer`), enquanto classe, tipo e propriedade são **listas** (`integer[]`). É fácil inverter — esta documentação descrevia o contrário até a migração do módulo.
 
 ### `categoria_equipamento`
 
+O nível de cima da hierarquia. Ex: "Armadura", "Armas", "Cura".
+
 | Coluna | Tipo | Notas |
 |---|---|---|
-| item | INTEGER PK | |
+| item | INTEGER PK | sequence própria no banco (`categoria_equipamento_item_seq`) |
 | descricao | VARCHAR(100) | |
-| classe_item | INTEGER | referência a `classe_equipamento.item` (opcional) |
+| icone | VARCHAR(100) | nullable |
+| classe_item | INTEGER | nullable — praticamente sem uso |
 | created_at / updated_at | timestamptz | |
-| deleted_at / deleted_by | UUID | soft delete |
-| created_by / updated_by | UUID | auditoria |
+| deleted_at / deleted_by | timestamptz / TEXT | soft delete |
+| created_by / updated_by | TEXT | auditoria |
 
 Categorias seed: 1=Armadura, 2=Exploração, 3=Cura, 4=Cosmético, 5=Utilitário, 6=Armas.
 
-RLS: SELECT público (anon + authenticated); escrita via service_role.
+### `classe_equipamento` (migration 015)
+
+Dimensão independente, não é pai de ninguém. Ex: "Simples", "Marcial", "Exótica", "Couro".
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| item | INTEGER PK | sequence própria |
+| descricao | VARCHAR(100) | |
+| soft delete / auditoria | — | padrão |
+
+### `tipo_equipamento` e `propriedade_equipamento` (migration 015)
+
+Filhos de **`categoria_equipamento`** via `categoria_item`. Ex de tipo: "Corpo a corpo", "Longo alcance". Ex de propriedade: "Ágil", "Área". Estrutura idêntica entre as duas.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| item | INTEGER PK | sequence própria |
+| descricao | VARCHAR(100) | |
+| categoria_item | INTEGER | referência a `categoria_equipamento.item` |
+| soft delete / auditoria | — | padrão |
+
+As duas também têm uma coluna `classe_item`, herdada da modelagem original: está vazia em todas as linhas e nenhum código lê ou escreve. Não é mapeada nos models.
+
+**O `item` vem da sequence do banco.** A versão Express calculava `MAX(item)+1` numa consulta à parte, o que gastava duas idas ao banco por inserção, deixava duas criações simultâneas escolherem o mesmo número e nunca avançava a sequence.
+
+### RLS — nota geral
+
+42 tabelas estão com `ROW LEVEL SECURITY` ligado, herança do Supabase, mas quase todas sem policy nenhuma. O app só funciona porque `rpg_app_user` tem `BYPASSRLS`. Com a autorização agora nos guards do Nest, o RLS não é mais a camada de segurança — mas continua sendo uma armadilha: qualquer conexão com um papel sem `BYPASSRLS` veria a maioria das tabelas vazia e não conseguiria escrever.
 
 ### `character_creation_whitelist`
 

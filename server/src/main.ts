@@ -17,7 +17,6 @@ import { PersonagensRouter } from "./modules/personagem/personagens.module.js";
 import { SkillRouter } from "./modules/skill/skill.module.js";
 import { TitulosRouter } from "./modules/titulos/titulos.module.js";
 import { LoreNotesRouter } from "./modules/lore-notes/lore-notes.module.js";
-import { ArmasRouter } from "./modules/armas/arma.module.js";
 import { CharacterCreationRouter } from "./modules/character-creation/character-creation.module.js";
 import { NpcsRouter } from "./modules/npcs/npcs.module.js";
 import { PlayerTelasRouter } from "./modules/player-telas/player-telas.module.js";
@@ -74,7 +73,6 @@ async function iniciarAplicacao(): Promise<void> {
   aplicacao.use("/api/skills", SkillRouter);
   aplicacao.use("/api/titulos", TitulosRouter);
   aplicacao.use("/api/lore-notes", LoreNotesRouter);
-  aplicacao.use("/api/armas", ArmasRouter);
   aplicacao.use("/api/character-creation-requests", CharacterCreationRouter);
   aplicacao.use("/api/npcs", NpcsRouter);
   aplicacao.use("/api/player-telas", PlayerTelasRouter);

@@ -26,7 +26,7 @@ export interface PropriedadeEquipamento {
 }
 
 export interface ArmaApi {
-  id: string
+  id: number
   nome: string
   dano: string
   peso: number | null
@@ -37,8 +37,8 @@ export interface ArmaApi {
   propriedade_equipamento_item: number[]
   descricao_equipamento: string | null
   pre_requisitos: string | null
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string | null
+  updatedAt: string | null
 }
 
 export interface CriarArmaPayload {
@@ -84,12 +84,12 @@ export async function criarArma(payload: CriarArmaPayload): Promise<ArmaApi> {
   return data
 }
 
-export async function editarArma(armaId: string, payload: EditarArmaPayload): Promise<ArmaApi> {
+export async function editarArma(armaId: number, payload: EditarArmaPayload): Promise<ArmaApi> {
   const { data } = await api.patch<ArmaApi>(`/armas/admin/${armaId}`, payload)
   return data
 }
 
-export async function deletarArma(armaId: string): Promise<{ success: boolean }> {
+export async function deletarArma(armaId: number): Promise<{ success: boolean }> {
   const { data } = await api.delete<{ success: boolean }>(`/armas/admin/${armaId}`)
   return data
 }

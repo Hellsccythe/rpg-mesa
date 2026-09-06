@@ -1,26 +1,25 @@
-import { getAdminClient, getSupabaseClient } from "../../config/database/supabase/client.js";
-import { ensureMasterAccess, getUserDisplayEmail } from "../../common/helpers/master-access.helper.js";
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { InjectModel } from "@nestjs/sequelize";
+import { EquipamentoModel } from "./models/equipamento.model.js";
+import {
+  CategoriaEquipamentoModel,
+  ClasseEquipamentoModel,
+  PropriedadeEquipamentoModel,
+  TipoEquipamentoModel,
+} from "./models/lookups-equipamento.model.js";
 import type {
-  CriarArmaDto,
-  EditarArmaDto,
-  CriarCategoriaDto,
-  EditarCategoriaDto,
-  CriarClasseDto,
-  EditarClasseDto,
-  CriarTipoDto,
-  EditarTipoDto,
-  CriarPropriedadeDto,
-  EditarPropriedadeDto,
+  CriarCategoriaEquipamentoDto,
+  CriarClasseEquipamentoDto,
+  CriarEquipamentoDto,
+  CriarFilhoDeCategoriaDto,
+  EditarCategoriaEquipamentoDto,
+  EditarClasseEquipamentoDto,
+  EditarEquipamentoDto,
+  EditarFilhoDeCategoriaDto,
 } from "./arma.dto.js";
 
-const ARMAS_TABLE        = "equipamentos";
-const CATEGORIAS_TABLE   = "categoria_equipamento";
-const CLASSES_TABLE      = "classe_equipamento";
-const TIPOS_TABLE        = "tipo_equipamento";
-const PROPRIEDADES_TABLE = "propriedade_equipamento";
-
-type ArmaRecord = {
-  id: string;
+export type EquipamentoApi = {
+  id: number;
   nome: string;
   dano: string;
   peso: number | null;
@@ -31,426 +30,344 @@ type ArmaRecord = {
   propriedade_equipamento_item: number[];
   descricao_equipamento: string | null;
   pre_requisitos: string | null;
-  createdAt?: string;
-  updatedAt?: string;
+  createdAt: string | null;
+  updatedAt: string | null;
 };
 
-export type CategoriaEquipamento = {
-  item: number;
-  descricao: string;
-  icone?: string | null;
-};
-
-export type ClasseEquipamento = {
-  item: number;
-  descricao: string;
-};
-
-export type TipoEquipamento = {
+export type CategoriaEquipamentoApi = { item: number; descricao: string; icone: string | null };
+export type ClasseEquipamentoApi = { item: number; descricao: string };
+export type FilhoDeCategoriaApi = {
   item: number;
   descricao: string;
   categoria_item: number | null;
 };
 
-export type PropriedadeEquipamento = {
-  item: number;
-  descricao: string;
-  categoria_item: number | null;
-};
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-function normalizeText(value: unknown): string {
-  return typeof value === "string" ? value.trim() : "";
+function formatarData(valor: unknown): string | null {
+  return valor instanceof Date ? valor.toISOString() : null;
 }
 
-function normalizeDecimal(value: unknown): number | null {
-  if (value === null || value === undefined) return null;
-  const n = Number(value);
-  if (!isFinite(n) || n < 0) return null;
-  return Math.round(n * 100) / 100;
+/**
+ * DECIMAL chega como texto pelo driver do Postgres (para não perder precisão
+ * em valores grandes). A API sempre devolveu número nestes dois campos.
+ */
+function paraNumeroOuNulo(valor: string | number | null): number | null {
+  if (valor === null || valor === undefined) return null;
+  const numero = Number(valor);
+  return Number.isFinite(numero) ? numero : null;
 }
 
-function normalizeTextOrNull(value: unknown): string | null {
-  if (value === null || value === undefined) return null;
-  const s = typeof value === "string" ? value.trim() : "";
-  return s === "" ? null : s;
+/**
+ * Tipo e propriedade têm exatamente a mesma forma (item, descricao,
+ * categoria_item) e as mesmas regras, então compartilham a implementação em
+ * vez de repetir os quatro métodos duas vezes.
+ */
+type ModeloFilhoDeCategoria = typeof TipoEquipamentoModel | typeof PropriedadeEquipamentoModel;
+
+function textoOuNulo(valor: string | null | undefined): string | null {
+  const texto = typeof valor === "string" ? valor.trim() : "";
+  return texto === "" ? null : texto;
 }
 
-function normalizeIntArray(value: unknown): number[] {
-  if (!Array.isArray(value)) return [];
-  return value.filter((v) => typeof v === "number" && Number.isInteger(v));
-}
+@Injectable()
+export class ArmaService {
+  constructor(
+    @InjectModel(EquipamentoModel)
+    private readonly modeloEquipamento: typeof EquipamentoModel,
+    @InjectModel(CategoriaEquipamentoModel)
+    private readonly modeloCategoria: typeof CategoriaEquipamentoModel,
+    @InjectModel(ClasseEquipamentoModel)
+    private readonly modeloClasse: typeof ClasseEquipamentoModel,
+    @InjectModel(TipoEquipamentoModel)
+    private readonly modeloTipo: typeof TipoEquipamentoModel,
+    @InjectModel(PropriedadeEquipamentoModel)
+    private readonly modeloPropriedade: typeof PropriedadeEquipamentoModel,
+  ) {}
 
-function normalizeIntOrNull(value: unknown): number | null {
-  if (value === null || value === undefined) return null;
-  const n = Number(value);
-  return Number.isInteger(n) && n >= 1 ? n : null;
-}
+  // ── Equipamentos ──────────────────────────────────────────────────────────
 
-function mapArma(row: any): ArmaRecord {
-  return {
-    id: String(row?.id ?? ""),
-    nome: normalizeText(row?.nome),
-    dano: normalizeText(row?.dano),
-    peso: normalizeDecimal(row?.peso),
-    valor: normalizeDecimal(row?.valor),
-    categoria_equipamento_item: normalizeIntOrNull(row?.categoria_equipamento_item),
-    classe_equipamento_item: normalizeIntArray(row?.classe_equipamento_item),
-    tipo_equipamento_item: normalizeIntArray(row?.tipo_equipamento_item),
-    propriedade_equipamento_item: normalizeIntArray(row?.propriedade_equipamento_item),
-    descricao_equipamento: normalizeTextOrNull(row?.descricao_equipamento),
-    pre_requisitos: normalizeTextOrNull(row?.pre_requisitos),
-    createdAt: row?.created_at,
-    updatedAt: row?.updated_at,
-  };
-}
+  /**
+   * A listagem pública e a do mestre devolvem exatamente o mesmo conteúdo — a
+   * diferença estava só em qual cliente do Supabase era usado, o que deixou de
+   * existir. Ficam as duas porque o frontend chama as duas.
+   */
+  async listar(): Promise<EquipamentoApi[]> {
+    const encontrados = await this.modeloEquipamento.findAll({ order: [["nome", "ASC"]] });
+    return encontrados.map((equipamento) => this.mapearEquipamento(equipamento));
+  }
 
-const SELECT_FIELDS =
-  "id, nome, dano, peso, valor, " +
-  "categoria_equipamento_item, classe_equipamento_item, tipo_equipamento_item, propriedade_equipamento_item, " +
-  "descricao_equipamento, pre_requisitos, created_at, updated_at";
+  async criar(dados: CriarEquipamentoDto): Promise<EquipamentoApi> {
+    const criado = await this.modeloEquipamento.create({
+      nome: dados.nome.trim(),
+      // dano é NOT NULL no banco; sem valor vira string vazia, não null.
+      dano: dados.dano?.trim() ?? "",
+      peso: dados.peso ?? null,
+      valor: dados.valor ?? null,
+      categoriaEquipamentoItem: dados.categoria_equipamento_item ?? null,
+      classeEquipamentoItem: dados.classe_equipamento_item ?? [],
+      tipoEquipamentoItem: dados.tipo_equipamento_item ?? [],
+      propriedadeEquipamentoItem: dados.propriedade_equipamento_item ?? [],
+      descricaoEquipamento: textoOuNulo(dados.descricao_equipamento),
+      preRequisitos: textoOuNulo(dados.pre_requisitos),
+    });
 
-async function proximoItem(tabela: string): Promise<number> {
-  const { data } = await getAdminClient()
-    .from(tabela)
-    .select("item")
-    .order("item", { ascending: false })
-    .limit(1);
-  return data && data.length > 0 ? (data[0].item as number) + 1 : 1;
-}
+    return this.mapearEquipamento(criado);
+  }
 
-// ── Equipamentos ──────────────────────────────────────────────────────────────
+  async editar(id: number, dados: EditarEquipamentoDto): Promise<EquipamentoApi> {
+    const equipamento = await this.modeloEquipamento.findByPk(id);
+    if (!equipamento) {
+      throw new NotFoundException("Equipamento não encontrado.");
+    }
 
-export const armaService = {
-  // ── Categorias (primário) ────────────────────────────────────────────────────
+    if (dados.nome !== undefined) equipamento.nome = dados.nome.trim();
+    if (dados.dano !== undefined) equipamento.dano = dados.dano?.trim() ?? "";
+    if (dados.peso !== undefined) equipamento.peso = dados.peso;
+    if (dados.valor !== undefined) equipamento.valor = dados.valor;
+    if (dados.categoria_equipamento_item !== undefined) {
+      equipamento.categoriaEquipamentoItem = dados.categoria_equipamento_item;
+    }
+    if (dados.classe_equipamento_item !== undefined) {
+      equipamento.classeEquipamentoItem = dados.classe_equipamento_item ?? [];
+    }
+    if (dados.tipo_equipamento_item !== undefined) {
+      equipamento.tipoEquipamentoItem = dados.tipo_equipamento_item ?? [];
+    }
+    if (dados.propriedade_equipamento_item !== undefined) {
+      equipamento.propriedadeEquipamentoItem = dados.propriedade_equipamento_item ?? [];
+    }
+    if (dados.descricao_equipamento !== undefined) {
+      equipamento.descricaoEquipamento = textoOuNulo(dados.descricao_equipamento);
+    }
+    if (dados.pre_requisitos !== undefined) {
+      equipamento.preRequisitos = textoOuNulo(dados.pre_requisitos);
+    }
 
-  async listarCategorias(): Promise<CategoriaEquipamento[]> {
-    const { data, error } = await getAdminClient()
-      .from(CATEGORIAS_TABLE)
-      .select("item, descricao, icone")
-      .is("deleted_at", null)
-      .order("item", { ascending: true });
-    if (error) throw error;
-    return (data ?? []) as CategoriaEquipamento[];
-  },
+    await equipamento.save();
+    return this.mapearEquipamento(equipamento);
+  }
 
-  async criarCategoria(dto: CriarCategoriaDto, accessToken?: string): Promise<CategoriaEquipamento> {
-    const masterUser = await ensureMasterAccess(accessToken);
-    const item = await proximoItem(CATEGORIAS_TABLE);
-    const { data, error } = await getAdminClient()
-      .from(CATEGORIAS_TABLE)
-      .insert({
-        item,
-        descricao: dto.descricao.trim(),
-        icone: dto.icone?.trim() ?? null,
-        created_by: getUserDisplayEmail(masterUser),
-        updated_by: getUserDisplayEmail(masterUser),
-      })
-      .select("item, descricao, icone")
-      .single();
-    if (error) throw error;
-    return data as CategoriaEquipamento;
-  },
+  async deletar(id: number): Promise<void> {
+    const equipamento = await this.modeloEquipamento.findByPk(id);
+    if (!equipamento) {
+      throw new NotFoundException("Equipamento não encontrado.");
+    }
+    await equipamento.destroy();
+  }
 
-  async editarCategoria(item: number, dto: EditarCategoriaDto, accessToken?: string): Promise<CategoriaEquipamento> {
-    await ensureMasterAccess(accessToken);
-    const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
-    if (dto.descricao !== undefined) updates.descricao = dto.descricao.trim();
-    if ("icone" in dto) updates.icone = dto.icone?.trim() ?? null;
-    const { data, error } = await getAdminClient()
-      .from(CATEGORIAS_TABLE)
-      .update(updates)
-      .eq("item", item)
-      .is("deleted_at", null)
-      .select("item, descricao, icone")
-      .single();
-    if (error) throw error;
-    return data as CategoriaEquipamento;
-  },
+  // ── Categorias ────────────────────────────────────────────────────────────
 
-  async deletarCategoria(item: number, accessToken?: string): Promise<{ success: boolean }> {
-    const masterUser = await ensureMasterAccess(accessToken);
-    const { error } = await getAdminClient()
-      .from(CATEGORIAS_TABLE)
-      .update({ deleted_at: new Date().toISOString(), deleted_by: getUserDisplayEmail(masterUser) })
-      .eq("item", item)
-      .is("deleted_at", null);
-    if (error) throw error;
-    return { success: true };
-  },
+  async listarCategorias(): Promise<CategoriaEquipamentoApi[]> {
+    const encontradas = await this.modeloCategoria.findAll({ order: [["item", "ASC"]] });
+    return encontradas.map((categoria) => ({
+      item: categoria.item,
+      descricao: categoria.descricao,
+      icone: categoria.icone,
+    }));
+  }
 
-  // ── Classes (secundário) ─────────────────────────────────────────────────────
+  async criarCategoria(dados: CriarCategoriaEquipamentoDto): Promise<CategoriaEquipamentoApi> {
+    const criada = await this.modeloCategoria.create({
+      descricao: dados.descricao.trim(),
+      icone: textoOuNulo(dados.icone),
+    });
+    return { item: criada.item, descricao: criada.descricao, icone: criada.icone };
+  }
 
-  async listarClasses(): Promise<ClasseEquipamento[]> {
-    const { data, error } = await getAdminClient()
-      .from(CLASSES_TABLE)
-      .select("item, descricao")
-      .is("deleted_at", null)
-      .order("item", { ascending: true });
-    if (error) throw error;
-    return (data ?? []) as ClasseEquipamento[];
-  },
+  async editarCategoria(
+    item: number,
+    dados: EditarCategoriaEquipamentoDto,
+  ): Promise<CategoriaEquipamentoApi> {
+    const categoria = await this.modeloCategoria.findByPk(item);
+    if (!categoria) {
+      throw new NotFoundException("Categoria não encontrada.");
+    }
 
-  async criarClasse(dto: CriarClasseDto, accessToken?: string): Promise<ClasseEquipamento> {
-    const masterUser = await ensureMasterAccess(accessToken);
-    const item = await proximoItem(CLASSES_TABLE);
-    const { data, error } = await getAdminClient()
-      .from(CLASSES_TABLE)
-      .insert({
-        item,
-        descricao: dto.descricao.trim(),
-        created_by: getUserDisplayEmail(masterUser),
-        updated_by: getUserDisplayEmail(masterUser),
-      })
-      .select("item, descricao")
-      .single();
-    if (error) throw error;
-    return data as ClasseEquipamento;
-  },
+    if (dados.descricao !== undefined) categoria.descricao = dados.descricao.trim();
+    if (dados.icone !== undefined) categoria.icone = textoOuNulo(dados.icone);
 
-  async editarClasse(item: number, dto: EditarClasseDto, accessToken?: string): Promise<ClasseEquipamento> {
-    await ensureMasterAccess(accessToken);
-    const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
-    if (dto.descricao !== undefined) updates.descricao = dto.descricao.trim();
-    const { data, error } = await getAdminClient()
-      .from(CLASSES_TABLE)
-      .update(updates)
-      .eq("item", item)
-      .is("deleted_at", null)
-      .select("item, descricao")
-      .single();
-    if (error) throw error;
-    return data as ClasseEquipamento;
-  },
+    await categoria.save();
+    return { item: categoria.item, descricao: categoria.descricao, icone: categoria.icone };
+  }
 
-  async deletarClasse(item: number, accessToken?: string): Promise<{ success: boolean }> {
-    const masterUser = await ensureMasterAccess(accessToken);
-    const { error } = await getAdminClient()
-      .from(CLASSES_TABLE)
-      .update({ deleted_at: new Date().toISOString(), deleted_by: getUserDisplayEmail(masterUser) })
-      .eq("item", item)
-      .is("deleted_at", null);
-    if (error) throw error;
-    return { success: true };
-  },
+  async deletarCategoria(item: number): Promise<void> {
+    const categoria = await this.modeloCategoria.findByPk(item);
+    if (!categoria) {
+      throw new NotFoundException("Categoria não encontrada.");
+    }
+    await categoria.destroy();
+  }
 
-  // ── Tipos ────────────────────────────────────────────────────────────────────
+  // ── Classes ───────────────────────────────────────────────────────────────
 
-  async listarTipos(categoriaItem?: number): Promise<TipoEquipamento[]> {
-    let query = getAdminClient()
-      .from(TIPOS_TABLE)
-      .select("item, descricao, categoria_item")
-      .is("deleted_at", null)
-      .order("item", { ascending: true });
-    if (categoriaItem !== undefined) query = query.eq("categoria_item", categoriaItem);
-    const { data, error } = await query;
-    if (error) throw error;
-    return (data ?? []) as TipoEquipamento[];
-  },
+  async listarClasses(): Promise<ClasseEquipamentoApi[]> {
+    const encontradas = await this.modeloClasse.findAll({ order: [["item", "ASC"]] });
+    return encontradas.map((classe) => ({ item: classe.item, descricao: classe.descricao }));
+  }
 
-  async criarTipo(dto: CriarTipoDto, accessToken?: string): Promise<TipoEquipamento> {
-    const masterUser = await ensureMasterAccess(accessToken);
-    const item = await proximoItem(TIPOS_TABLE);
-    const { data, error } = await getAdminClient()
-      .from(TIPOS_TABLE)
-      .insert({
-        item,
-        descricao: dto.descricao.trim(),
-        categoria_item: dto.categoria_item,
-        created_by: getUserDisplayEmail(masterUser),
-        updated_by: getUserDisplayEmail(masterUser),
-      })
-      .select("item, descricao, categoria_item")
-      .single();
-    if (error) throw error;
-    return data as TipoEquipamento;
-  },
+  async criarClasse(dados: CriarClasseEquipamentoDto): Promise<ClasseEquipamentoApi> {
+    const criada = await this.modeloClasse.create({ descricao: dados.descricao.trim() });
+    return { item: criada.item, descricao: criada.descricao };
+  }
 
-  async editarTipo(item: number, dto: EditarTipoDto, accessToken?: string): Promise<TipoEquipamento> {
-    await ensureMasterAccess(accessToken);
-    const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
-    if (dto.descricao !== undefined) updates.descricao = dto.descricao.trim();
-    if (dto.categoria_item !== undefined) updates.categoria_item = dto.categoria_item;
-    const { data, error } = await getAdminClient()
-      .from(TIPOS_TABLE)
-      .update(updates)
-      .eq("item", item)
-      .is("deleted_at", null)
-      .select("item, descricao, categoria_item")
-      .single();
-    if (error) throw error;
-    return data as TipoEquipamento;
-  },
+  async editarClasse(
+    item: number,
+    dados: EditarClasseEquipamentoDto,
+  ): Promise<ClasseEquipamentoApi> {
+    const classe = await this.modeloClasse.findByPk(item);
+    if (!classe) {
+      throw new NotFoundException("Classe não encontrada.");
+    }
 
-  async deletarTipo(item: number, accessToken?: string): Promise<{ success: boolean }> {
-    const masterUser = await ensureMasterAccess(accessToken);
-    const { error } = await getAdminClient()
-      .from(TIPOS_TABLE)
-      .update({ deleted_at: new Date().toISOString(), deleted_by: getUserDisplayEmail(masterUser) })
-      .eq("item", item)
-      .is("deleted_at", null);
-    if (error) throw error;
-    return { success: true };
-  },
+    if (dados.descricao !== undefined) classe.descricao = dados.descricao.trim();
 
-  // ── Propriedades ─────────────────────────────────────────────────────────────
+    await classe.save();
+    return { item: classe.item, descricao: classe.descricao };
+  }
 
-  async listarPropriedades(categoriaItem?: number): Promise<PropriedadeEquipamento[]> {
-    let query = getAdminClient()
-      .from(PROPRIEDADES_TABLE)
-      .select("item, descricao, categoria_item")
-      .is("deleted_at", null)
-      .order("item", { ascending: true });
-    if (categoriaItem !== undefined) query = query.eq("categoria_item", categoriaItem);
-    const { data, error } = await query;
-    if (error) throw error;
-    return (data ?? []) as PropriedadeEquipamento[];
-  },
+  async deletarClasse(item: number): Promise<void> {
+    const classe = await this.modeloClasse.findByPk(item);
+    if (!classe) {
+      throw new NotFoundException("Classe não encontrada.");
+    }
+    await classe.destroy();
+  }
 
-  async criarPropriedade(dto: CriarPropriedadeDto, accessToken?: string): Promise<PropriedadeEquipamento> {
-    const masterUser = await ensureMasterAccess(accessToken);
-    const item = await proximoItem(PROPRIEDADES_TABLE);
-    const { data, error } = await getAdminClient()
-      .from(PROPRIEDADES_TABLE)
-      .insert({
-        item,
-        descricao: dto.descricao.trim(),
-        categoria_item: dto.categoria_item,
-        created_by: getUserDisplayEmail(masterUser),
-        updated_by: getUserDisplayEmail(masterUser),
-      })
-      .select("item, descricao, categoria_item")
-      .single();
-    if (error) throw error;
-    return data as PropriedadeEquipamento;
-  },
+  // ── Tipos ─────────────────────────────────────────────────────────────────
 
-  async editarPropriedade(item: number, dto: EditarPropriedadeDto, accessToken?: string): Promise<PropriedadeEquipamento> {
-    await ensureMasterAccess(accessToken);
-    const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
-    if (dto.descricao !== undefined) updates.descricao = dto.descricao.trim();
-    if (dto.categoria_item !== undefined) updates.categoria_item = dto.categoria_item;
-    const { data, error } = await getAdminClient()
-      .from(PROPRIEDADES_TABLE)
-      .update(updates)
-      .eq("item", item)
-      .is("deleted_at", null)
-      .select("item, descricao, categoria_item")
-      .single();
-    if (error) throw error;
-    return data as PropriedadeEquipamento;
-  },
+  listarTipos(categoriaItem?: number): Promise<FilhoDeCategoriaApi[]> {
+    return this.listarFilhosDeCategoria(this.modeloTipo, categoriaItem);
+  }
 
-  async deletarPropriedade(item: number, accessToken?: string): Promise<{ success: boolean }> {
-    const masterUser = await ensureMasterAccess(accessToken);
-    const { error } = await getAdminClient()
-      .from(PROPRIEDADES_TABLE)
-      .update({ deleted_at: new Date().toISOString(), deleted_by: getUserDisplayEmail(masterUser) })
-      .eq("item", item)
-      .is("deleted_at", null);
-    if (error) throw error;
-    return { success: true };
-  },
+  criarTipo(dados: CriarFilhoDeCategoriaDto): Promise<FilhoDeCategoriaApi> {
+    return this.criarFilhoDeCategoria(this.modeloTipo, dados);
+  }
 
-  // ── Equipamentos (CRUD principal) ────────────────────────────────────────────
+  editarTipo(item: number, dados: EditarFilhoDeCategoriaDto): Promise<FilhoDeCategoriaApi> {
+    return this.editarFilhoDeCategoria(this.modeloTipo, item, dados, "Tipo não encontrado.");
+  }
 
-  async listarPublico() {
-    const { data, error } = await getSupabaseClient()
-      .from(ARMAS_TABLE)
-      .select(SELECT_FIELDS)
-      .is("deleted_at", null)
-      .order("nome", { ascending: true });
-    if (error) throw error;
-    return (data ?? []).map(mapArma);
-  },
+  deletarTipo(item: number): Promise<void> {
+    return this.deletarFilhoDeCategoria(this.modeloTipo, item, "Tipo não encontrado.");
+  }
 
-  async listar(accessToken?: string) {
-    await ensureMasterAccess(accessToken);
-    const { data, error } = await getAdminClient()
-      .from(ARMAS_TABLE)
-      .select(SELECT_FIELDS)
-      .is("deleted_at", null)
-      .order("nome", { ascending: true });
-    if (error) throw error;
-    return (data ?? []).map(mapArma);
-  },
+  // ── Propriedades ──────────────────────────────────────────────────────────
 
-  async criar(dto: CriarArmaDto, accessToken?: string) {
-    const masterUser = await ensureMasterAccess(accessToken);
-    const { data, error } = await getAdminClient()
-      .from(ARMAS_TABLE)
-      .insert({
-        nome: dto.nome.trim(),
-        dano: dto.dano?.trim() ?? "",
-        peso: dto.peso ?? null,
-        valor: dto.valor ?? null,
-        categoria_equipamento_item: dto.categoria_equipamento_item ?? null,
-        classe_equipamento_item: dto.classe_equipamento_item ?? [],
-        tipo_equipamento_item: dto.tipo_equipamento_item ?? [],
-        propriedade_equipamento_item: dto.propriedade_equipamento_item ?? [],
-        descricao_equipamento: dto.descricao_equipamento?.trim() ?? null,
-        pre_requisitos: dto.pre_requisitos?.trim() ?? null,
-        created_by: getUserDisplayEmail(masterUser),
-        updated_by: getUserDisplayEmail(masterUser),
-      })
-      .select(SELECT_FIELDS)
-      .single();
-    if (error) throw error;
-    return mapArma(data);
-  },
+  listarPropriedades(categoriaItem?: number): Promise<FilhoDeCategoriaApi[]> {
+    return this.listarFilhosDeCategoria(this.modeloPropriedade, categoriaItem);
+  }
 
-  async editar(armaId: string, dto: EditarArmaDto, accessToken?: string) {
-    const masterUser = await ensureMasterAccess(accessToken);
-    const { data: current, error: currentError } = await getAdminClient()
-      .from(ARMAS_TABLE)
-      .select("id")
-      .eq("id", armaId)
-      .is("deleted_at", null)
-      .single();
-    if (currentError || !current) throw new Error("Equipamento não encontrado");
+  criarPropriedade(dados: CriarFilhoDeCategoriaDto): Promise<FilhoDeCategoriaApi> {
+    return this.criarFilhoDeCategoria(this.modeloPropriedade, dados);
+  }
 
-    const updates: Record<string, unknown> = {
-      updated_at: new Date().toISOString(),
-      updated_by: getUserDisplayEmail(masterUser),
+  editarPropriedade(item: number, dados: EditarFilhoDeCategoriaDto): Promise<FilhoDeCategoriaApi> {
+    return this.editarFilhoDeCategoria(
+      this.modeloPropriedade,
+      item,
+      dados,
+      "Propriedade não encontrada.",
+    );
+  }
+
+  deletarPropriedade(item: number): Promise<void> {
+    return this.deletarFilhoDeCategoria(
+      this.modeloPropriedade,
+      item,
+      "Propriedade não encontrada.",
+    );
+  }
+
+  // ── Apoio ─────────────────────────────────────────────────────────────────
+
+  private async listarFilhosDeCategoria(
+    modelo: ModeloFilhoDeCategoria,
+    categoriaItem?: number,
+  ): Promise<FilhoDeCategoriaApi[]> {
+    const encontrados = await modelo.findAll({
+      where: categoriaItem === undefined ? undefined : { categoriaItem },
+      order: [["item", "ASC"]],
+    });
+    return encontrados.map((registro) => this.mapearFilhoDeCategoria(registro));
+  }
+
+  private async criarFilhoDeCategoria(
+    modelo: ModeloFilhoDeCategoria,
+    dados: CriarFilhoDeCategoriaDto,
+  ): Promise<FilhoDeCategoriaApi> {
+    await this.garantirCategoriaExistente(dados.categoria_item);
+
+    const criado = await modelo.create({
+      descricao: dados.descricao.trim(),
+      categoriaItem: dados.categoria_item,
+    });
+    return this.mapearFilhoDeCategoria(criado);
+  }
+
+  private async editarFilhoDeCategoria(
+    modelo: ModeloFilhoDeCategoria,
+    item: number,
+    dados: EditarFilhoDeCategoriaDto,
+    mensagemDeErro: string,
+  ): Promise<FilhoDeCategoriaApi> {
+    const registro = await modelo.findByPk(item);
+    if (!registro) {
+      throw new NotFoundException(mensagemDeErro);
+    }
+
+    if (dados.descricao !== undefined) registro.descricao = dados.descricao.trim();
+    if (dados.categoria_item !== undefined) {
+      await this.garantirCategoriaExistente(dados.categoria_item);
+      registro.categoriaItem = dados.categoria_item;
+    }
+
+    await registro.save();
+    return this.mapearFilhoDeCategoria(registro);
+  }
+
+  private async deletarFilhoDeCategoria(
+    modelo: ModeloFilhoDeCategoria,
+    item: number,
+    mensagemDeErro: string,
+  ): Promise<void> {
+    const registro = await modelo.findByPk(item);
+    if (!registro) {
+      throw new NotFoundException(mensagemDeErro);
+    }
+    await registro.destroy();
+  }
+
+  private async garantirCategoriaExistente(item: number): Promise<void> {
+    const categoria = await this.modeloCategoria.findByPk(item);
+    if (!categoria) {
+      throw new NotFoundException("Categoria não encontrada.");
+    }
+  }
+
+  private mapearFilhoDeCategoria(
+    registro: TipoEquipamentoModel | PropriedadeEquipamentoModel,
+  ): FilhoDeCategoriaApi {
+    return {
+      item: registro.item,
+      descricao: registro.descricao,
+      categoria_item: registro.categoriaItem,
     };
-    if (dto.nome !== undefined) updates.nome = dto.nome.trim();
-    if (dto.dano !== undefined) updates.dano = dto.dano.trim();
-    if (dto.peso !== undefined) updates.peso = dto.peso;
-    if (dto.valor !== undefined) updates.valor = dto.valor;
-    if ("categoria_equipamento_item" in dto) updates.categoria_equipamento_item = dto.categoria_equipamento_item ?? null;
-    if (dto.classe_equipamento_item !== undefined) updates.classe_equipamento_item = dto.classe_equipamento_item ?? [];
-    if (dto.tipo_equipamento_item !== undefined) updates.tipo_equipamento_item = dto.tipo_equipamento_item ?? [];
-    if (dto.propriedade_equipamento_item !== undefined) updates.propriedade_equipamento_item = dto.propriedade_equipamento_item ?? [];
-    if (dto.descricao_equipamento !== undefined) updates.descricao_equipamento = dto.descricao_equipamento?.trim() ?? null;
-    if (dto.pre_requisitos !== undefined) updates.pre_requisitos = dto.pre_requisitos?.trim() ?? null;
+  }
 
-    const { data, error } = await getAdminClient()
-      .from(ARMAS_TABLE)
-      .update(updates)
-      .eq("id", armaId)
-      .is("deleted_at", null)
-      .select(SELECT_FIELDS)
-      .single();
-    if (error) throw error;
-    return mapArma(data);
-  },
-
-  async deletar(armaId: string, accessToken?: string) {
-    const masterUser = await ensureMasterAccess(accessToken);
-    const { data: arma, error: fetchError } = await getAdminClient()
-      .from(ARMAS_TABLE)
-      .select("id")
-      .eq("id", armaId)
-      .is("deleted_at", null)
-      .single();
-    if (fetchError || !arma) throw new Error("Equipamento não encontrado");
-    const { error } = await getAdminClient()
-      .from(ARMAS_TABLE)
-      .update({ deleted_at: new Date().toISOString(), deleted_by: getUserDisplayEmail(masterUser) })
-      .eq("id", armaId)
-      .is("deleted_at", null);
-    if (error) throw error;
-    return { success: true };
-  },
-};
+  private mapearEquipamento(equipamento: EquipamentoModel): EquipamentoApi {
+    return {
+      id: equipamento.id,
+      nome: equipamento.nome?.trim() ?? "",
+      dano: equipamento.dano?.trim() ?? "",
+      peso: paraNumeroOuNulo(equipamento.peso),
+      valor: paraNumeroOuNulo(equipamento.valor),
+      categoria_equipamento_item: equipamento.categoriaEquipamentoItem,
+      classe_equipamento_item: equipamento.classeEquipamentoItem ?? [],
+      tipo_equipamento_item: equipamento.tipoEquipamentoItem ?? [],
+      propriedade_equipamento_item: equipamento.propriedadeEquipamentoItem ?? [],
+      descricao_equipamento: equipamento.descricaoEquipamento,
+      pre_requisitos: equipamento.preRequisitos,
+      createdAt: formatarData(equipamento.get("createdAt")),
+      updatedAt: formatarData(equipamento.get("updatedAt")),
+    };
+  }
+}
