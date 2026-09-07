@@ -512,6 +512,72 @@
       <!-- ═══ Etapa 6: Equipamentos ═══ -->
       <template v-else-if="etapa === 6">
         <div class="mx-auto max-w-2xl space-y-5">
+
+          <!-- ─── Dinheiro inicial ─── -->
+          <div v-if="dinheiroDoPassado.length" class="rounded-2xl border border-amber-500/20 bg-amber-950/10 p-5 space-y-4">
+            <div class="flex items-baseline justify-between gap-3">
+              <p class="text-sm font-semibold text-amber-200">Dinheiro Inicial</p>
+              <p class="text-xs text-amber-500/70">{{ descreverDinheiro(dinheiroDoPassado) }}</p>
+            </div>
+
+            <!-- Ainda não rolou -->
+            <template v-if="!dinheiroRolado">
+              <p class="text-xs text-zinc-500">
+                Seu passado ({{ passadoSelecionado?.nome }}) concede este dinheiro. Role os dados para
+                descobrir com quanto você começa.
+              </p>
+              <button
+                type="button" :disabled="rolandoDinheiro"
+                class="w-full rounded-2xl bg-amber-700 py-3 text-sm font-bold text-white transition-colors hover:bg-amber-600 disabled:opacity-50"
+                @click="rolarDinheiro"
+              >
+                {{ rolandoDinheiro ? 'Rolando...' : 'Rolar os dados' }}
+              </button>
+            </template>
+
+            <!-- Já rolou -->
+            <template v-else>
+              <div class="flex flex-wrap gap-2">
+                <div
+                  v-for="(detalhe, i) in dinheiroRolado.resultado.detalhes" :key="i"
+                  class="flex-1 min-w-[8rem] rounded-xl border border-amber-500/20 bg-black/20 px-3 py-2.5"
+                >
+                  <p class="text-[0.6rem] uppercase tracking-widest text-amber-500/60">
+                    {{ detalhe.quantidade }}d{{ detalhe.faces }} {{ detalhe.moeda }}
+                  </p>
+                  <p class="text-xl font-bold text-amber-200">{{ detalhe.soma }}</p>
+                  <p v-if="detalhe.dados.length > 1" class="text-[0.65rem] text-zinc-600">
+                    {{ detalhe.dados.join(' + ') }}
+                  </p>
+                </div>
+              </div>
+
+              <p v-if="dinheiroRolado.descartado" class="text-[0.7rem] text-zinc-600">
+                Rolagem descartada: {{ descreverTotal(dinheiroRolado.descartado.total) }}
+              </p>
+
+              <!-- Segunda chance -->
+              <div v-if="dinheiroRolado.tentativas < 2" class="space-y-2 border-t border-amber-500/15 pt-3">
+                <p class="text-xs text-zinc-500">
+                  Você pode rolar <strong class="text-amber-300">mais uma vez</strong> para tentar um valor
+                  maior — mas o resultado da segunda rolagem substitui este, mesmo se vier pior.
+                </p>
+                <button
+                  type="button" :disabled="rolandoDinheiro"
+                  class="w-full rounded-2xl border border-amber-500/40 py-2.5 text-sm font-semibold text-amber-300 transition-colors hover:bg-amber-500/10 disabled:opacity-50"
+                  @click="confirmandoRerolagem = true"
+                >
+                  {{ rolandoDinheiro ? 'Rolando...' : 'Arriscar uma segunda rolagem' }}
+                </button>
+              </div>
+              <p v-else class="border-t border-amber-500/15 pt-3 text-[0.7rem] text-zinc-600">
+                As duas rolagens foram usadas. Este é o seu dinheiro inicial.
+              </p>
+            </template>
+
+            <p v-if="erroDinheiro" class="text-xs text-red-400">{{ erroDinheiro }}</p>
+          </div>
+
           <!-- Barra de peso -->
           <div class="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-5 space-y-3">
             <div class="flex items-center justify-between">
@@ -586,6 +652,44 @@
         </div>
       </template>
 
+      <!-- Confirmação da segunda rolagem — é irreversível, então pergunta antes -->
+      <Modal
+        v-if="confirmandoRerolagem"
+        panel-class="max-w-sm"
+        tema="escuro"
+        :show-close-button="false"
+        :close-on-backdrop="false"
+        @close="confirmandoRerolagem = false"
+      >
+        <div class="space-y-4 p-6">
+          <p class="text-base font-bold text-white">Arriscar a segunda rolagem?</p>
+          <p class="text-sm text-zinc-400">
+            Você tem
+            <strong v-if="dinheiroRolado" class="text-amber-300">
+              {{ descreverTotal(dinheiroRolado.resultado.total) }}
+            </strong>.
+            Rolar de novo <strong class="text-white">descarta esse valor</strong> e fica com o novo,
+            seja ele maior ou menor. Não dá para voltar.
+          </p>
+          <div class="flex gap-3">
+            <button
+              type="button"
+              class="flex-1 rounded-2xl border border-white/10 py-2.5 text-sm font-semibold text-zinc-400 transition-colors hover:text-white"
+              @click="confirmandoRerolagem = false"
+            >
+              Ficar com este
+            </button>
+            <button
+              type="button" :disabled="rolandoDinheiro"
+              class="flex-1 rounded-2xl bg-amber-700 py-2.5 text-sm font-bold text-white transition-colors hover:bg-amber-600 disabled:opacity-50"
+              @click="rolarDinheiro"
+            >
+              {{ rolandoDinheiro ? 'Rolando...' : 'Arriscar' }}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
       <!-- ═══ Navegação entre etapas ═══ -->
       <!--
         O stepper do topo já era clicável, mas ninguém adivinha isso olhando
@@ -632,17 +736,21 @@
 
 <script setup lang="ts">
 import AvatarPersonagem from '@/components/AvatarPersonagem.vue'
+import Modal from '@/components/Modal.vue'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { listarRacasPublicas, type RacaApi } from '@/lib/api/racas.api'
 import { listarClasses, type ClasseApi } from '@/lib/api/classes.api'
-import { listarPassados, type PassadoApi, type AtributoBonus } from '@/lib/api/passados.api'
+import {
+  listarPassados, descreverDinheiro,
+  type PassadoApi, type AtributoBonus, type RolagemDeDinheiro,
+} from '@/lib/api/passados.api'
 import { listPublicGods } from '@/lib/api/gods.api'
 import { listarArmasPublicas, type ArmaApi } from '@/lib/api/armas.api'
 import {
   escolherRaca, escolherClasseInicial, escolherPassado,
   definirAtributos, escolherDeus, concluirOnboarding,
-  getCharacterById,
+  rolarDinheiroInicial, getCharacterById,
 } from '@/lib/api/personagens.api'
 import { escolherSkillInicial } from '@/lib/api/classes.api'
 import { obterMetaAuthLocal, useAuthStore } from '@/stores/auth'
@@ -887,6 +995,56 @@ function navegarParaEtapa(e: 1|2|3|4|5|6) {
 
 const podeVoltar  = computed(() => etapa.value > 1)
 const podeAvancar = computed(() => etapa.value < etapaMaxima.value)
+
+// ── Dinheiro inicial (etapa 6) ────────────────────────────────────────────────
+type ResultadoDeDinheiro = {
+  detalhes: Array<RolagemDeDinheiro & { dados: number[]; soma: number }>
+  total: Record<string, number>
+  roladoEm: string
+}
+type DinheiroGravado = {
+  tentativas: number
+  resultado: ResultadoDeDinheiro
+  descartado: ResultadoDeDinheiro | null
+}
+
+const rolandoDinheiro     = ref(false)
+const erroDinheiro        = ref('')
+const confirmandoRerolagem = ref(false)
+
+/** O que o passado escolhido concede. Vazio = passado sem dinheiro. */
+const dinheiroDoPassado = computed<RolagemDeDinheiro[]>(
+  () => passadoSelecionado.value?.dinheiro_inicial ?? [],
+)
+
+/** O que já foi rolado, lido do personagem. Nulo enquanto ninguém rolou. */
+const dinheiroRolado = computed<DinheiroGravado | null>(() => {
+  const gravado = (personagem.value as any)?.data?.dinheiro_inicial
+  return gravado?.resultado ? (gravado as DinheiroGravado) : null
+})
+
+/** "40 de prata, 2 de ouro" a partir do total por moeda. */
+function descreverTotal(total: Record<string, number>): string {
+  const partes = Object.entries(total).map(([moeda, valor]) => `${valor} de ${moeda}`)
+  return partes.length ? partes.join(', ') : 'nada'
+}
+
+async function rolarDinheiro() {
+  if (!personagem.value || rolandoDinheiro.value) return
+  rolandoDinheiro.value = true
+  erroDinheiro.value = ''
+  try {
+    // A resposta traz o personagem inteiro atualizado, então o resultado
+    // aparece por reatividade — não há cópia local do valor a manter em dia.
+    personagem.value = await rolarDinheiroInicial((personagem.value as any).characterId)
+    confirmandoRerolagem.value = false
+  } catch (err: any) {
+    erroDinheiro.value = err?.response?.data?.message ?? err.message ?? 'Erro ao rolar os dados.'
+    confirmandoRerolagem.value = false
+  } finally {
+    rolandoDinheiro.value = false
+  }
+}
 
 function voltarEtapa() {
   if (podeVoltar.value) navegarParaEtapa((etapa.value - 1) as 1|2|3|4|5|6)

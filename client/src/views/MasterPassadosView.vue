@@ -163,7 +163,20 @@
               </div>
             </div>
 
-            <div v-if="!p.skills.length && !p.titulos.length && (!p.atributo_bonus || Object.values(p.atributo_bonus).every(v => v === 0))" class="text-[0.65rem] italic text-zinc-700">
+            <!-- Dinheiro inicial -->
+            <div v-if="p.dinheiro_inicial?.length" class="space-y-1.5">
+              <p class="text-[0.6rem] font-bold uppercase tracking-widest text-amber-500/70">Dinheiro Inicial</p>
+              <div class="flex flex-wrap gap-1.5">
+                <span
+                  v-for="(rolagem, i) in p.dinheiro_inicial" :key="i"
+                  class="rounded-full border border-amber-500/25 bg-amber-950/40 px-2 py-0.5 text-[0.65rem] font-medium text-amber-300"
+                >
+                  {{ rolagem.quantidade }}d{{ rolagem.faces }} {{ rolagem.moeda }}
+                </span>
+              </div>
+            </div>
+
+            <div v-if="!p.skills.length && !p.titulos.length && !p.dinheiro_inicial?.length && (!p.atributo_bonus || Object.values(p.atributo_bonus).every(v => v === 0))" class="text-[0.65rem] italic text-zinc-700">
               Nenhuma recompensa configurada.
             </div>
           </div>
@@ -276,6 +289,56 @@
               />
             </div>
           </div>
+        </div>
+
+        <!-- Dinheiro Inicial -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-semibold uppercase tracking-wide text-amber-400/80">Dinheiro Inicial</label>
+            <span class="text-[0.65rem] text-zinc-600">{{ descreverDinheiro(form.dinheiro_inicial) }}</span>
+          </div>
+          <p class="text-[0.65rem] text-zinc-600">
+            O jogador rola estes dados na última etapa do onboarding. Pode ter mais de uma linha —
+            "1d100 de prata + 1d4 de ouro" são duas.
+          </p>
+
+          <div v-if="!form.dinheiro_inicial.length" class="rounded-xl border border-dashed border-white/10 px-4 py-3 text-center text-[0.7rem] text-zinc-600">
+            Este passado não concede dinheiro nenhum.
+          </div>
+
+          <div v-for="(rolagem, indice) in form.dinheiro_inicial" :key="indice" class="flex items-center gap-2">
+            <input
+              v-model.number="rolagem.quantidade"
+              type="number" min="1" max="100" step="1"
+              class="w-16 rounded-xl border border-white/10 bg-white/[0.04] px-2 py-2 text-center text-sm text-white outline-none focus:border-amber-500/50"
+            />
+            <span class="text-sm font-semibold text-zinc-500">d</span>
+            <input
+              v-model.number="rolagem.faces"
+              type="number" min="2" max="1000" step="1"
+              class="w-20 rounded-xl border border-white/10 bg-white/[0.04] px-2 py-2 text-center text-sm text-white outline-none focus:border-amber-500/50"
+            />
+            <span class="text-xs text-zinc-600">moedas de</span>
+            <div class="min-w-0 flex-1">
+              <VSelect v-model="rolagem.moeda" :options="OPCOES_MOEDA" />
+            </div>
+            <button
+              type="button"
+              class="shrink-0 rounded-xl border border-white/10 px-3 py-2 text-xs text-zinc-500 transition-colors hover:border-red-500/40 hover:text-red-400"
+              title="Remover esta rolagem"
+              @click="removerRolagem(indice)"
+            >
+              Remover
+            </button>
+          </div>
+
+          <button
+            type="button"
+            class="rounded-xl border border-amber-500/25 px-4 py-2 text-xs font-semibold text-amber-400/90 transition-colors hover:border-amber-500/50 hover:text-amber-300"
+            @click="adicionarRolagem"
+          >
+            + Adicionar dado
+          </button>
         </div>
 
         <!-- Skills e Títulos lado a lado -->
@@ -421,12 +484,16 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import Modal from '@/components/Modal.vue'
+import VSelect from '@/components/VSelect.vue'
 import {
   listarPassados,
   criarPassado,
   editarPassado,
   deletarPassado,
+  descreverDinheiro,
+  MOEDAS,
   type PassadoApi,
+  type RolagemDeDinheiro,
 } from '@/lib/api/passados.api'
 import { api } from '@/plugins/axios'
 
@@ -492,13 +559,23 @@ const buscaTitulo = ref('')
 const emptyBonus = () => ({ aura: 0, forca: 0, destreza: 0, resistencia: 0, inteligencia: 0 })
 
 const form = ref({
-  nome:           '',
-  descricao:      '',
-  foto_url:       '',
-  skill_ids:      [] as number[],
-  titulo_ids:     [] as number[],
-  atributo_bonus: emptyBonus() as Record<AtribKey, number>,
+  nome:             '',
+  descricao:        '',
+  foto_url:         '',
+  skill_ids:        [] as number[],
+  titulo_ids:       [] as number[],
+  atributo_bonus:   emptyBonus() as Record<AtribKey, number>,
+  dinheiro_inicial: [] as RolagemDeDinheiro[],
 })
+
+const OPCOES_MOEDA = MOEDAS.map(moeda => ({ value: moeda, label: moeda }))
+
+function adicionarRolagem() {
+  form.value.dinheiro_inicial.push({ quantidade: 1, faces: 20, moeda: 'prata' })
+}
+function removerRolagem(indice: number) {
+  form.value.dinheiro_inicial.splice(indice, 1)
+}
 
 const skillsFiltradas = computed(() =>
   skillsCatalogo.value.filter(s =>
@@ -565,9 +642,17 @@ function abrirModal(passado?: PassadoApi) {
         resistencia:  Number((b as any).resistencia  ?? 0),
         inteligencia: Number((b as any).inteligencia ?? 0),
       },
+      // Cópia rasa por rolagem: sem isso, editar no modal alteraria direto o
+      // objeto da listagem, e cancelar não desfaria nada.
+      dinheiro_inicial: (passado.dinheiro_inicial ?? []).map(r => ({ ...r })),
     }
   } else {
-    form.value = { nome: '', descricao: '', foto_url: '', skill_ids: [], titulo_ids: [], atributo_bonus: emptyBonus() }
+    form.value = {
+      nome: '', descricao: '', foto_url: '',
+      skill_ids: [], titulo_ids: [],
+      atributo_bonus: emptyBonus(),
+      dinheiro_inicial: [],
+    }
   }
   modalAberto.value = true
 }
@@ -591,6 +676,11 @@ async function salvar() {
       skill_ids:      form.value.skill_ids,
       titulo_ids:     form.value.titulo_ids,
       atributo_bonus: bonusVazio ? null : { ...b },
+      dinheiro_inicial: form.value.dinheiro_inicial.map(r => ({
+        quantidade: Number(r.quantidade),
+        faces:      Number(r.faces),
+        moeda:      r.moeda,
+      })),
     }
     if (editando.value) {
       const updated = await editarPassado(editando.value.id, payload)

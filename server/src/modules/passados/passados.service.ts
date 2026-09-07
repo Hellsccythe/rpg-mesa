@@ -3,7 +3,11 @@ import { InjectModel } from "@nestjs/sequelize";
 import { QueryTypes } from "sequelize";
 import { Sequelize } from "sequelize-typescript";
 import { ArmazenamentoArquivosService } from "../../common/storage/armazenamento-arquivos.service.js";
-import { PassadoModel, type AtributoBonus } from "./models/passado.model.js";
+import {
+  PassadoModel,
+  type AtributoBonus,
+  type RolagemDeDinheiro,
+} from "./models/passado.model.js";
 import type { CriarPassadoDto, EditarPassadoDto } from "./passados.dto.js";
 
 export type SkillResumo = { id: number; name: string };
@@ -19,6 +23,7 @@ export type PassadoApi = {
   skills: SkillResumo[];
   titulos: TituloResumo[];
   atributo_bonus: AtributoBonus | null;
+  dinheiro_inicial: RolagemDeDinheiro[];
   created_at: string;
   updated_at: string;
 };
@@ -43,6 +48,7 @@ const SQL_LISTAR_PASSADOS = `
     passados.skill_ids,
     passados.titulo_ids,
     passados.atributo_bonus,
+    passados.dinheiro_inicial,
     passados.created_at,
     passados.updated_at,
     COALESCE(skills_do_passado.lista, '[]'::json) AS skills,
@@ -138,6 +144,7 @@ export class PassadosService {
       skillIds: dados.skill_ids ?? [],
       tituloIds: dados.titulo_ids ?? [],
       atributoBonus: dados.atributo_bonus ?? null,
+      dinheiroInicial: dados.dinheiro_inicial ?? [],
     });
 
     return this.buscarEnriquecidoOuFalhar(criado.id);
@@ -157,6 +164,7 @@ export class PassadosService {
     if (dados.skill_ids !== undefined) registro.skillIds = dados.skill_ids;
     if (dados.titulo_ids !== undefined) registro.tituloIds = dados.titulo_ids;
     if (dados.atributo_bonus !== undefined) registro.atributoBonus = dados.atributo_bonus ?? null;
+    if (dados.dinheiro_inicial !== undefined) registro.dinheiroInicial = dados.dinheiro_inicial;
 
     await registro.save();
     return this.buscarEnriquecidoOuFalhar(id);
