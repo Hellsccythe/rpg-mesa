@@ -1,6 +1,6 @@
-// src/types/supabase.ts
-// id das entity tables agora é INTEGER (migration 022)
-// UUID permanece apenas em colunas de FK para auth.users (user_id, deleted_by, etc.)
+// src/types/api.ts
+// Formatos que a API do backend devolve e recebe. O arquivo se chamava
+// supabase.ts de quando os tipos vinham do banco pelo cliente do Supabase.
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 

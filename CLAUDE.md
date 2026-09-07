@@ -13,7 +13,7 @@ Sistema de gestão de sessões de RPG de mesa. Monorepo com Yarn 4 Workspaces.
 
 ## Env Vars
 
-**Client:** `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_API_BASE_URL`, `VITE_AVATAR_BUCKET`, `VITE_HISTORY_BUCKET`, `VITE_GM_AVATAR_URL`
+**Client:** `VITE_API_BASE_URL`, `VITE_GM_AVATAR_URL`
 
 **Server:** `PORT`, `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRES_IN_SEGUNDOS`, `UPLOADS_DIR`, `PUBLIC_BASE_URL`, `ALLOWED_ORIGIN`
 
@@ -310,12 +310,12 @@ Solicitações de criação de personagem submetidas por jogadores, pendentes de
 | username | TEXT | login handle desejado, único |
 | password_hash | TEXT | **hash bcrypt**. Era AES-256-CBC reversível porque o texto puro era necessário para criar a conta no Supabase Auth; hoje a conta nasce no próprio backend e o hash é só transferido para `usuarios.password_hash` na aprovação — a senha deixou de ser recuperável a partir do banco |
 | nome | TEXT | nome completo do personagem |
-| avatar_url | TEXT | nullable — path no bucket `character-avatars` |
+| avatar_url | TEXT | nullable — caminho relativo em `uploads/pendentes/` |
 | indole_id | INTEGER | referência a `indole.id` |
 | genero_id | INTEGER | referência a `genero.id` |
 | aparencia_fisica | TEXT | mínimo 30 letras sem espaços |
 | historia_texto | TEXT | nullable — mínimo 100 letras ou doc obrigatório |
-| historia_doc_url | TEXT | nullable — path no bucket `character-history` |
+| historia_doc_url | TEXT | nullable — caminho relativo em `uploads/pendentes/` |
 | status | TEXT | 'pendente' \| 'aprovado' \| 'rejeitado' |
 | rejeitado_motivo | TEXT | nullable |
 | revisado_em / revisado_por | timestamptz / TEXT | auditoria de revisão (email do mestre) |
@@ -691,7 +691,9 @@ O dashboard do player exibe todas as informações selecionadas no onboarding:
 
 Arquivos ficam em `uploads/<subpasta>/<nome>.<ext>` e são servidos em `/uploads/...`. **O banco guarda o caminho relativo** (`gods/pharasma.png`); a URL completa é montada na resposta a partir de `PUBLIC_BASE_URL`.
 
-Subpastas: `gods`, `maps`, `racas`, `passados`, `npcs`, `campanhas`, `pendentes` (avatar e história de solicitação de criação).
+Subpastas: `gods`, `maps`, `racas`, `passados`, `npcs`, `campanhas`, `lore` (PDF de nota), `personagens` (avatar e história anexados a um pedido de alteração) e `pendentes` (avatar e história de solicitação de criação).
+
+Cada módulo expõe a própria rota de upload — todas exigem mestre, exceto as de `character-creation-requests` (públicas, porque quem submete ainda não tem conta) e as de `personagens/:id/*`, que exigem ser dono do personagem.
 
 Nomes de arquivo são higienizados e recebem sufixo numérico só em colisão real com conteúdo diferente — arquivo idêntico reaproveita o mesmo nome.
 

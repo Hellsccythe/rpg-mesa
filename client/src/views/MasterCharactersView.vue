@@ -115,7 +115,7 @@ import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCharactersStore } from '@/stores/characters'
 import { setModalHeroPosition } from '@/lib/api/personagens.api'
-import type { PersonagemPublicoApi } from '@/types/supabase'
+import type { PersonagemPublicoApi } from '@/types/api'
 
 const router = useRouter()
 const store = useCharactersStore()

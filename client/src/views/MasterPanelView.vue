@@ -1003,15 +1003,15 @@ import {
 } from '@/lib/api/personagens.api'
 import { contarSolicitacoesPendentes } from '@/lib/api/character-creation-requests.api'
 import { listPublicGods } from '@/lib/api/gods.api'
-import type { GodApi, AprovacaoPendenteApi } from '@/types/supabase'
+import type { GodApi, AprovacaoPendenteApi } from '@/types/api'
 import { adicionarPontosDeClasse, alterarStatusPersonagem as apiAlterarStatus } from '@/lib/api/classes.api'
 import {
   listAllLoreNotes,
   createLoreNote,
   deleteLoreNote as deleteLoreNoteApi,
+  uploadPdfLore,
 } from '@/lib/api/lore-notes.api'
 import type { LoreNoteApi } from '@/lib/api/lore-notes.api'
-import { uploadLorePdf } from '@/lib/supabase/storage'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -1088,7 +1088,7 @@ async function criarLoreNote() {
     let pdfUrl: string | null = lorePdfUrl.value
     if (lorePdfFile.value && !pdfUrl) {
       loadingPdf.value = true
-      pdfUrl = await uploadLorePdf(lorePdfFile.value)
+      pdfUrl = (await uploadPdfLore(lorePdfFile.value)).path
       loadingPdf.value = false
     }
     await createLoreNote({

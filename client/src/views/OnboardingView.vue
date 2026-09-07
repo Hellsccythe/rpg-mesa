@@ -583,7 +583,7 @@ import {
 } from '@/lib/api/personagens.api'
 import { escolherSkillInicial } from '@/lib/api/classes.api'
 import { obterMetaAuthLocal, useAuthStore } from '@/stores/auth'
-import type { PersonagemApi, GodApi } from '@/types/supabase'
+import type { PersonagemApi, GodApi } from '@/types/api'
 
 const router    = useRouter()
 const route     = useRoute()

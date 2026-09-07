@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import type { CityMapApi, GodApi, PersonagemApi, PointOfInterestApi } from '@/types/supabase'
+import type { CityMapApi, GodApi, PersonagemApi, PointOfInterestApi } from '@/types/api'
 import {
   createGod as createGodApi,
   listGods as listGodsApi,

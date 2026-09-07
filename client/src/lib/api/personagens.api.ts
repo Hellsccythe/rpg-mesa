@@ -5,9 +5,8 @@ import type {
   ListarPersonagemDto,
   PaginaInicialApi,
   PersonagemApi,
-  SalvarPersonagemDto,
   SolicitarAlteracaoPersonagemDto,
-} from '@/types/supabase'
+} from '@/types/api'
 
 export async function getPaginaInicial(campaignSlug?: string) {
   const params = campaignSlug ? { campaignSlug } : undefined
@@ -28,23 +27,6 @@ export async function listMyCharacters(params: ListarPersonagemDto = {}) {
  */
 export async function getCharacterById(characterId: string | number) {
   const { data } = await api.get<PersonagemApi>(`/personagens/${characterId}`)
-  return data
-}
-
-export async function createCharacter(payload: SalvarPersonagemDto) {
-  const { data } = await api.post<PersonagemApi>('/personagens', payload)
-  return data
-}
-
-export async function registrarECriarPersonagem(payload: {
-  email: string
-  username: string
-  senha: string
-  nome: string
-  data?: Record<string, unknown>
-  avatarUrl?: string | null
-}) {
-  const { data } = await api.post<PersonagemApi>('/personagens/registrar', payload)
   return data
 }
 
@@ -101,28 +83,6 @@ export async function setModalHeroPosition(characterId: string | number, positio
   return data
 }
 
-export async function listCharacterCreationAllowedEmails() {
-  const { data } = await api.get<{ emails: string[] }>(
-    '/personagens/admin/character-creation-emails',
-  )
-  return data
-}
-
-export async function addCharacterCreationAllowedEmail(email: string) {
-  const { data } = await api.post<{ success: boolean; email: string }>(
-    '/personagens/admin/character-creation-emails',
-    { email },
-  )
-  return data
-}
-
-export async function removeCharacterCreationAllowedEmail(email: string) {
-  const { data } = await api.delete<{ success: boolean; email: string }>(
-    `/personagens/admin/character-creation-emails/${encodeURIComponent(email)}`,
-  )
-  return data
-}
-
 export async function deleteCharacterAsMaster(characterId: string | number) {
   const { data } = await api.delete<{ success: boolean }>(`/personagens/admin/${characterId}`)
   return data
@@ -138,15 +98,6 @@ export async function setCharacterGodInfo(
     { text },
   )
   return data
-}
-
-export async function verificarSeMestre(): Promise<boolean> {
-  try {
-    await api.get('/personagens/admin/verificar-mestre')
-    return true
-  } catch {
-    return false
-  }
 }
 
 export async function escolherRaca(characterId: string | number, raca_id: number): Promise<PersonagemApi> {
@@ -311,5 +262,41 @@ export async function alterarStatusPersonagem(
   status: 'vivo' | 'morto',
 ): Promise<PersonagemApi> {
   const { data } = await api.patch<PersonagemApi>(`/personagens/admin/${characterId}/status`, { status })
+  return data
+}
+
+/**
+ * Avatar e documento de história de um personagem que já existe — o que o
+ * jogador anexa ao pedir alteração. Antes iam direto ao bucket do Supabase
+ * pelo navegador; agora passam pelo backend, que confere se o personagem é de
+ * quem está enviando.
+ *
+ * Devolvem o caminho relativo, que é o que deve ser gravado.
+ */
+export async function uploadAvatarPersonagem(
+  characterId: string | number,
+  file: File,
+): Promise<{ path: string; publicUrl: string }> {
+  const form = new FormData()
+  form.append('file', file)
+  const { data } = await api.post<{ path: string; publicUrl: string }>(
+    `/personagens/${characterId}/upload-avatar`,
+    form,
+  )
+  return data
+}
+
+export async function uploadHistoriaPersonagem(
+  characterId: string | number,
+  file: File,
+): Promise<{ path: string; name: string; mimeType: string | null; publicUrl: string }> {
+  const form = new FormData()
+  form.append('file', file)
+  const { data } = await api.post<{
+    path: string
+    name: string
+    mimeType: string | null
+    publicUrl: string
+  }>(`/personagens/${characterId}/upload-historia`, form)
   return data
 }

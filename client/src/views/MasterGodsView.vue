@@ -356,7 +356,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useMasterCatalogStore } from '@/stores/masterCatalog'
 import { uploadGodImage } from '@/lib/api/gods.api'
 import { listarIndole } from '@/lib/api/indole.api'
-import type { GodApi, IndoleApi } from '@/types/supabase'
+import type { GodApi, IndoleApi } from '@/types/api'
 
 const opcoesIndoleList = ref<IndoleApi[]>([])
 const opcoesIndoleSelect = computed(() =>

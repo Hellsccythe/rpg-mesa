@@ -1,5 +1,5 @@
 import { api } from '@/plugins/axios'
-import type { PersonagemApi } from '@/types/supabase'
+import type { PersonagemApi } from '@/types/api'
 
 export type SkillResumo = { id: number; name: string }
 

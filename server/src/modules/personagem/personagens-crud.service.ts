@@ -74,6 +74,11 @@ export class PersonagensCrudService {
     }
   }
 
+  /** Usada pelas rotas de upload antes de aceitar o arquivo. */
+  async garantirAcesso(personagemId: number, usuario: UsuarioAutenticado): Promise<void> {
+    await this.buscarPermitidoOuFalhar(personagemId, usuario);
+  }
+
   private async buscarPermitidoOuFalhar(
     personagemId: number,
     usuario: UsuarioAutenticado,

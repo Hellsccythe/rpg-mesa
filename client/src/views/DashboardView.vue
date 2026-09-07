@@ -1509,7 +1509,6 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Modal from '@/components/Modal.vue'
 import HamburgerDrawerMenu from '@/components/HamburgerDrawerMenu.vue'
-import { getHistoryDocumentSignedUrl } from '@/lib/supabase/storage'
 import { limparMetaAuthLocal, useAuthStore } from '@/stores/auth'
 import { useCharactersStore } from '@/stores/characters'
 import { useMasterApprovalsStore } from '@/stores/masterApprovals'
@@ -1522,7 +1521,7 @@ import { listarRacasPublicas, type RacaApi } from '@/lib/api/racas.api'
 import { listarPassados, type PassadoApi } from '@/lib/api/passados.api'
 import { listPublicGods } from '@/lib/api/gods.api'
 import { listarIndole } from '@/lib/api/indole.api'
-import type { PersonagemApi, GodApi, IndoleApi } from '@/types/supabase'
+import type { PersonagemApi, GodApi, IndoleApi } from '@/types/api'
 
 interface InventoryItem {
   id: string
@@ -2314,11 +2313,20 @@ function handleHistoryDocSelect(event: Event) {
   feedback.value = ''
   feedbackIsError.value = false
 }
-async function openHistoryDocument(pathOrUrl: string) {
-  try {
-    const signedUrl = await getHistoryDocumentSignedUrl(pathOrUrl)
-    window.open(signedUrl, '_blank', 'noopener')
-  } catch { feedback.value = 'Não foi possível abrir o documento.'; feedbackIsError.value = true }
+/**
+ * Os arquivos agora ficam em disco e são servidos em /uploads/, então basta
+ * montar a URL — não há mais URL assinada do Supabase para pedir.
+ */
+function openHistoryDocument(pathOrUrl: string) {
+  if (!pathOrUrl) {
+    feedback.value = 'Não foi possível abrir o documento.'
+    feedbackIsError.value = true
+    return
+  }
+  const url = pathOrUrl.startsWith('http')
+    ? pathOrUrl
+    : `${(import.meta.env.VITE_API_BASE_URL ?? '/api').replace(/\/api\/?$/, '')}/uploads/${pathOrUrl.replace(/^\/+/, '')}`
+  window.open(url, '_blank', 'noopener')
 }
 
 function getRequestedCharacterId() {

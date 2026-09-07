@@ -435,7 +435,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useCharactersStore } from '@/stores/characters'
 import { listPublicGods as listarDeusesPublicos } from '@/lib/api/gods.api'
-import type { GodApi } from '@/types/supabase'
+import type { GodApi } from '@/types/api'
 
 
 const roteador = useRouter()

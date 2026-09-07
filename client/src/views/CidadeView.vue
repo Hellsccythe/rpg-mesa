@@ -351,7 +351,7 @@ import HamburgerDrawerMenu from '@/components/HamburgerDrawerMenu.vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { listCityMapsForCityView as listarMapasCidadeParaCidadeView } from '@/lib/api/city-maps.api'
-import type { CityMapApi, PointOfInterestApi } from '@/types/supabase'
+import type { CityMapApi, PointOfInterestApi } from '@/types/api'
 import hamletMap from '@/assets/maps/hamlet.png'
 
 interface PontoInteresseCidade extends PointOfInterestApi {

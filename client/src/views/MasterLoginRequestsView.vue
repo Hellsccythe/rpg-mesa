@@ -249,7 +249,7 @@ import {
   rejeitarSolicitacao,
   contarSolicitacoesPendentes,
 } from '@/lib/api/character-creation-requests.api'
-import type { CharacterCreationRequestApi } from '@/types/supabase'
+import type { CharacterCreationRequestApi } from '@/types/api'
 
 const router = useRouter()
 

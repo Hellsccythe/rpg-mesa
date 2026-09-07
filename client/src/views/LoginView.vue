@@ -721,7 +721,7 @@ import {
 } from '@/lib/api/character-creation-requests.api'
 import { listarIndole } from '@/lib/api/indole.api'
 import { listarGeneros } from '@/lib/api/genero.api'
-import type { IndoleApi, GeneroApi, PersonagemPublicoApi } from '@/types/supabase'
+import type { IndoleApi, GeneroApi, PersonagemPublicoApi } from '@/types/api'
 
 const storePersonagens = useCharactersStore()
 const authStore = useAuthStore()
