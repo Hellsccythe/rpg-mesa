@@ -21,10 +21,15 @@ As variáveis do Supabase e `MASTER_EMAILS` saíram: não há mais nenhum códig
 
 ## Rotas do Frontend
 
+A raiz **não é mais o login**: `/` lista as campanhas (mundos) e cada uma leva ao seu próprio login em `/mundo/:slug`. `/login` continua existindo como entrada direta, sem campanha.
+
 | Rota | View | Auth |
 |---|---|---|
-| `/` | LoginView | pública |
+| `/` | WorldsView | pública |
+| `/mundo/:slug` | LoginView | pública |
+| `/login` | LoginView | pública |
 | `/dashboard?characterId=` | DashboardView | auth |
+| `/onboarding?characterId=` | OnboardingView | auth (player) |
 | `/deuses` | DeusesView | pública |
 | `/cidade` | CidadeView | auth |
 | `/classes` | ClassesView | auth |
@@ -32,6 +37,7 @@ As variáveis do Supabase e `MASTER_EMAILS` saíram: não há mais nenhum códig
 | `/titulos` | TitulosView | auth |
 | `/racas` | RacasView | auth |
 | `/equipamentos` | EquipamentosView | auth |
+| `/npcs` | NpcsView | auth |
 | `/notas` | NotasView | auth |
 | `/master` | MasterPanelView | auth + isMaster |
 | `/master/deuses` | MasterGodsView | auth + isMaster |
@@ -39,15 +45,21 @@ As variáveis do Supabase e `MASTER_EMAILS` saíram: não há mais nenhum códig
 | `/master/personagens` | MasterCharactersView | auth + isMaster |
 | `/master/equipamentos` | MasterWeaponsView | auth + isMaster |
 | `/master/racas` | MasterRacasView | auth + isMaster |
+| `/master/classes` | MasterClassesView | auth + isMaster |
+| `/master/classes-secretas` | MasterClassesSecretasView | auth + isMaster |
 | `/master/skills` | MasterSkillsView | auth + isMaster |
+| `/master/skill-overrides` | MasterSkillOverridesView | auth + isMaster |
+| `/master/skill-niveis` | MasterSkillNiveisView | auth + isMaster |
+| `/master/titulos` | MasterTitulosView | auth + isMaster |
+| `/master/passados` | MasterPassadosView | auth + isMaster |
+| `/master/npcs` | MasterNpcsView | auth + isMaster |
+| `/master/progressao` | MasterProgressaoView | auth + isMaster |
+| `/master/campanhas` | MasterCampanhasView | auth + isMaster |
+| `/master/telas` | MasterTelasView | auth + isMaster |
 | `/master/tabelas-acessorias` | MasterTabelasAcessoriasView | auth + isMaster |
 | `/master/logins` | MasterLoginRequestsView | auth + isMaster |
 | `/master/usuarios` | MasterUsersView | auth + isMaster |
 | `/master/imagens` | MasterImagesView | auth + isMaster |
-| `/master/passados` | MasterPassadosView | auth + isMaster |
-| `/master/classes-secretas` | MasterClassesSecretasView | auth + isMaster |
-| `/master/skill-overrides` | MasterSkillOverridesView | auth + isMaster |
-| `/onboarding?characterId=` | OnboardingView | auth (player) |
 
 ## API Endpoints do Backend
 
@@ -226,13 +238,15 @@ Documentação completa em `docs/COMPONENTS.md`.
 
 ## Banco de Dados — Tabelas
 
-Schema completo em `docs/SCHEMA_CURRENT.sql`. Migrations em `database/migrations/` (001–045).
+Schema completo em `docs/SCHEMA_CURRENT.sql` — **arquivo gerado por `pg_dump --schema-only`, não editado a mão**; regere-o quando mexer no esquema (o comando está no cabeçalho do próprio arquivo). Migrations em `database/migrations/` (001–070). Documentação em PDF, com as ligações entre tabelas e os fluxos: `docs/BANCO_DE_DADOS.pdf`.
 
-**IMPORTANTE:** Migrations 022–023 converteram todas as PKs de UUID → INTEGER IDENTITY. Todas as tabelas de entidade usam `id INTEGER` como PK. `user_id` (referência a `auth.users`) permanece UUID.
+**Não sobrou nenhum UUID no banco.** As migrations 022–023 converteram as PKs para `INTEGER IDENTITY`, e a **061** terminou o serviço nas colunas que ainda referenciavam o Supabase Auth: `characters.user_id` hoje é `INTEGER` apontando para `usuarios.id`, e `characters.campaign_id` é `INTEGER` apontando para `campaigns.id`. A coluna `usuarios.auth_user_id` foi removida.
 
-**Migration 027:** `created_by`, `updated_by`, `deleted_by` foram convertidos de UUID → TEXT em todas as tabelas. Agora armazenam o **email do usuário** que realizou a ação (ex: `gm@exemplo.com`). Use sempre `getUserDisplayEmail(user)` nos serviços.
+**Migration 027:** `created_by`, `updated_by`, `deleted_by` viraram TEXT e guardam o **email** de quem fez a ação. Não há helper a chamar — os **hooks globais do Sequelize** (`server/src/common/database/auditoria.hooks.ts`) preenchem sozinhos, lendo o usuário autenticado do `AsyncLocalStorage`. Isso vale para escrita pelo ORM; `sequelize.query` cru **não** dispara hook nenhum, então quem escreve em SQL passa o autor na mão.
 
-**Referências entre tabelas são sempre por convenção de inteiro — nunca usar FOREIGN KEY constraints no banco.**
+**Migration 070:** a 027 trocou o tipo da coluna mas não converteu os dados — 214 linhas seguiam com o UUID do `auth.users`. A 070 fez o de-para para email. Sobrou um UUID em `characters.deleted_by` que nunca teve conta correspondente.
+
+**Referências entre tabelas são sempre por convenção de inteiro — nunca usar FOREIGN KEY constraints no banco.** O preço disso é que nada impede um órfão: apagar um registro referenciado não dá erro, deixa a referência apontando para o vazio. Quem apaga é responsável por limpar (ver "Integridade de Dados").
 
 ### `usuarios` (migration 027)
 
@@ -241,13 +255,18 @@ Contas de acesso ao sistema. Criada ao aprovar uma solicitação (players) ou se
 | Coluna | Tipo | Notas |
 |---|---|---|
 | id | INTEGER PK | IDENTITY |
-| auth_user_id | UUID | referência a `auth.users(id)` por convenção |
-| real_email | TEXT | email real do jogador ou GM |
-| username | TEXT | nullable — login handle |
-| tipo | TEXT | `'gm'` \| `'player'` |
-| ativo | BOOLEAN | default TRUE |
+| real_email | TEXT | NOT NULL — email real do jogador ou GM |
+| username | TEXT | nullable — login handle do jogador; GM entra pelo email |
+| tipo | TEXT | NOT NULL, default `'player'` — CHECK `'gm'` \| `'player'` |
+| ativo | BOOLEAN | NOT NULL, default TRUE — o login recusa quem está inativo |
+| password_hash | TEXT | bcrypt. **Nulo = pré-registro** (migration 065) |
+| requires_password_change | BOOLEAN | NOT NULL, default FALSE — força o modal de troca no próximo login |
 | created_at / updated_at | timestamptz | |
 | deleted_at / deleted_by | timestamptz / TEXT | soft delete |
+
+`auth_user_id` foi removida na migration 061. `password_hash` chegou na 062, quando o backup do Supabase veio sem o cofre de senhas do Auth: as 7 contas existentes receberam `12345` com `requires_password_change = true`.
+
+**Não há UNIQUE em `username` nem em `real_email`** — a unicidade é garantida só no código (`garantirUsernameLivre`). Duas inserções simultâneas passariam.
 
 Endpoints: `GET/PATCH /api/usuarios/admin`, `PATCH /api/usuarios/admin/:id/resetar-senha`, `PATCH /api/usuarios/admin/:id/ativo`.
 Tela: `/master/usuarios` → `MasterUsersView.vue`.
@@ -257,24 +276,46 @@ Tela: `/master/usuarios` → `MasterUsersView.vue`.
 | Coluna | Tipo | Notas |
 |---|---|---|
 | id | INTEGER PK | IDENTITY (migration 022) |
-| user_id | UUID | referência a auth.users |
-| campaign_id | UUID | nullable |
-| name | text | |
-| username | text | login handle, único |
-| level | integer | >= 1 |
-| data | jsonb | pendingChangeRequest, historyDocumentPath, adventureNotes, skills, titles, avatarFocalPoint, classPoints, **atributos**, **equipamentos_iniciais**, **deusEtapaConcluida** |
-| avatar_url | text | nullable |
+| user_id | INTEGER | NOT NULL — referência a `usuarios.id` (migration 061, antes UUID de `auth.users`) |
+| campaign_id | INTEGER | nullable — referência a `campaigns.id` |
+| name | text | NOT NULL |
+| username | text | cópia do `usuarios.username`, para exibição. UNIQUE **parcial** (`WHERE deleted_at IS NULL`) |
+| level | integer | NOT NULL, default 1 |
+| data | jsonb | NOT NULL, default `{}` — ver abaixo |
+| avatar_url | text | nullable — **caminho relativo** (`personagens/inari.png`) |
 | raca_id | INTEGER | referência a `racas.id` — null até escolha no onboarding |
+| classe_id | INTEGER | referência a `classes.id` — a classe inicial; as demais ficam em `data.classes` |
 | passado_id | INTEGER | referência a `passados.id` — null até escolha no onboarding |
-| deus_id | INTEGER | referência a `gods.id` — null se player pulou etapa |
-| status | TEXT | `'vivo'` \| `'morto'` — default `'vivo'` (migration 043) |
+| deus_id | INTEGER | referência a `gods.id` — null se o player pulou a etapa |
+| onboarding_completo | BOOLEAN | NOT NULL, default FALSE — falso redireciona para `/onboarding` |
+| status | TEXT | NOT NULL, default `'vivo'` — CHECK `'vivo'` \| `'morto'` (migration 043) |
 | indole_id | INTEGER | referência a `indole.id` (migration 024) |
 | genero_id | INTEGER | referência a `genero.id` (migration 025) |
 | aparencia_fisica | text | nullable |
 | historia_texto | text | nullable |
-| historia_doc_url | text | nullable |
+| historia_doc_url | text | nullable — caminho relativo |
 | deleted_at / deleted_by | timestamptz / TEXT | soft delete (migration 027: deleted_by agora é TEXT/email) |
 | created_by / updated_by | TEXT | email do autor (migration 027, antes UUID) |
+
+**O `data` é onde mora metade da ficha.** Não tem esquema declarado em lugar nenhum, então vale listar o que se grava lá:
+
+| Chave | O que é |
+|---|---|
+| `atributos` | a soma usada em jogo (base + bônus do passado) |
+| `atributos_base` | o que o jogador distribuiu no onboarding |
+| `atributos_bonus_passado` | a parcela vinda do passado |
+| `classes` | `[{name, nivel, xp, skillPoints}]` — a progressão por classe |
+| `classPoints` | pontos de classe não gastos |
+| `skills` / `titles` | skills e títulos concedidos ao personagem |
+| `equipamentos_iniciais` | escolha da etapa 6, com peso |
+| `inventario` | itens livres, sem peso |
+| `adventureNotes` | notas de aventura escritas pelo mestre |
+| `pendingChangeRequest` | pedido de alteração aguardando revisão (índice parcial em cima) |
+| `avatarFocalPoint` / `modalHeroPosition` | enquadramento da imagem, ajustado pelo mestre |
+| `xp` | XP do personagem (distinto do XP por classe) |
+| `deusEtapaConcluida` | marca a etapa 5 como vista, mesmo se pulada |
+
+**Cuidado:** `PATCH /api/personagens/:id` **substitui o `data` inteiro**. Mandar um objeto parcial apaga o resto sem aviso.
 
 ### `indole` (migration 024)
 
@@ -346,9 +387,11 @@ O email precisa estar **pré-registrado**: um `usuarios` com `password_hash` nul
 | classe_equipamento_item | INTEGER[] | array de referências a `classe_equipamento.item` (NOT NULL, default `'{}'`) |
 | tipo_equipamento_item | INTEGER[] | array de referências a `tipo_equipamento.item` |
 | propriedade_equipamento_item | INTEGER[] | array de referências a `propriedade_equipamento.item` |
-| deleted_at / deleted_by | timestamptz / UUID | soft delete |
+| deleted_at / deleted_by | timestamptz / TEXT | soft delete |
 | created_at / updated_at | timestamptz | |
-| created_by / updated_by | UUID | auditoria |
+| created_by / updated_by | TEXT | auditoria (email) |
+
+`dano` é **NOT NULL**: item que não é arma grava string vazia, nunca null.
 
 **Cuidado com a assimetria:** categoria é **uma só** (coluna `integer`), enquanto classe, tipo e propriedade são **listas** (`integer[]`). É fácil inverter — esta documentação descrevia o contrário até a migração do módulo.
 
@@ -405,9 +448,9 @@ Cuidado ao escrever essa checagem: uma sequence nunca usada (`is_called = false`
 
 42 tabelas estão com `ROW LEVEL SECURITY` ligado, herança do Supabase, mas quase todas sem policy nenhuma. O app só funciona porque `rpg_app_user` tem `BYPASSRLS`. Com a autorização agora nos guards do Nest, o RLS não é mais a camada de segurança — mas continua sendo uma armadilha: qualquer conexão com um papel sem `BYPASSRLS` veria a maioria das tabelas vazia e não conseguiria escrever.
 
-### `character_creation_whitelist`
+### `character_creation_whitelist` — **morta**
 
-E-mails autorizados a submeter solicitação de criação. Soft delete + auditoria completa.
+Era a lista de e-mails autorizados a submeter solicitação de criação. **Nenhum código lê ou escreve nela.** A autorização virou o pré-registro em `usuarios` (linha com `password_hash` nulo), checado por `garantirEmailPreAutorizado`. As 5 linhas continuam no banco e a tabela ainda aparece nos tipos do frontend; a mensagem de erro do `LoginView` ainda fala em "whitelist". Candidata a remoção.
 
 ### `skills`
 
@@ -537,6 +580,67 @@ Notas de lore que o mestre publica. Ver migrations 009–011; PK convertida para
 
 `content` é NOT NULL com default `''`.
 
+### `campaigns` e `campaign_gms` (migrations 056–059)
+
+Campanhas — os "mundos" da tela inicial. Cada personagem pertence a uma (`characters.campaign_id`).
+
+`campaigns`: `id`, `slug` (**UNIQUE** — é o que aparece em `/mundo/:slug`), `name`, `description`, `cover_image_url` (caminho relativo), `is_active` (só as ativas aparecem no `GET /api/campanhas` público) + soft delete e auditoria.
+
+`campaign_gms`: liga um `campaign_id` a um `email` de mestre. Sem UNIQUE — nada impede duplicar o mesmo mestre na mesma campanha.
+
+A migration 058 criou a campanha padrão `caminho-sem-volta` e a 059 ligou as solicitações de criação a ela.
+
+### `npcs` e `npc_acesso_player` (migrations posteriores à 059)
+
+`npcs`: `id`, `nome`, `raca_id` (→ `racas.id`), `descricao`, `foto_url` (caminho relativo) + soft delete e auditoria.
+
+`npc_acesso_player`: quais personagens enxergam quais NPCs. `UNIQUE(npc_id, character_id)` **total** — por isso o revogar é **hard delete**, igual a `classe_secreta_revelada`. O player só vê o que estiver listado aqui; o mestre vê tudo.
+
+Telas: `/master/npcs` (gestão + aba de acessos) e `/npcs` (visão do jogador, exige `characterId`).
+
+### `player_telas`
+
+Quais telas do menu cada personagem pode abrir. `UNIQUE(character_id, tela)`.
+
+A lista de telas liberáveis é **fixa no código**, em `TELAS_DISPONIVEIS` (`server/src/modules/player-telas/player-telas.service.ts`), não no banco: `cidade`, `classes`, `deuses`, `equipamentos`, `notas`, `npcs`, `racas`, `skills`, `titulos`. Valor desconhecido é descartado silenciosamente na gravação.
+
+`PUT /api/player-telas/admin/:characterId` **substitui o conjunto inteiro** — apaga tudo e reinsere. Mestre sempre recebe todas as telas, sem consultar a tabela.
+
+Tela: `/master/telas` → `MasterTelasView.vue`.
+
+### `level_progression` (migration 054) e `class_level_progression` (migration 053)
+
+Duas tabelas de XP, com propósitos diferentes — é fácil trocar uma pela outra.
+
+**`level_progression`** é a do **personagem**: `level` (**UNIQUE**), `tier`, `multiplier`, `xp_required_next` e `xp_total_accumulated`. 27 níveis cadastrados. É a tabela que `atribuirXpAoPersonagem` percorre para decidir o nível a partir do XP acumulado. O código-fonte da migração anterior consultava colunas que não existem aqui (`nivel`, `xp_necessario`), então **o XP nunca subia o nível de ninguém** até isso ser corrigido.
+
+**`class_level_progression`** é a do **par classe/nível**: `classe_id`, `nivel`, `xp_necessario`, com `UNIQUE(classe_id, nivel)`. Alimenta a progressão dentro de cada classe em `data.classes[].xp`.
+
+Nas duas o UNIQUE é total, então **soft delete não se aplica** — apagar um nível é hard delete (mesma armadilha descrita em `classe_secreta_revelada`).
+
+Tela: `/master/progressao` → `MasterProgressaoView.vue`.
+
+### `skill_natureza` (migrations 050 e 066)
+
+Lookup de natureza da skill: 1=Ativa, 2=Passiva, 3=Assinatura. Referenciada por `skills.skill_natureza_item`. Padrão `item INTEGER PK` + `descricao`. A 066 converteu o `item` para IDENTITY.
+
+### `skill_niveis` (migration 052)
+
+Evoluções de nível 2 e 3 de uma skill. `UNIQUE(skill_id, nivel)` **total** → o DELETE é **hard**.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| id | INTEGER PK | IDENTITY |
+| skill_id | INTEGER | referência a `skills.id` |
+| nivel | INTEGER | 2 ou 3 |
+| damage_multiplier_pct | INTEGER | nullable — bônus percentual de dano |
+| nome_override | VARCHAR(100) | nullable — cada campo `*_override` substitui o da skill base quando preenchido |
+| damage_base_override | TEXT | nullable |
+| multiplicador_override | VARCHAR | nullable |
+| effect_description_override | VARCHAR(500) | nullable |
+
+Tela: `/master/skill-niveis` → `MasterSkillNiveisView.vue`.
+
 ## Integridade de Dados — Deleção em Cascata
 
 ### Deleção de skill do catálogo (`DELETE /api/skills/admin/catalogo/:id`)
@@ -558,7 +662,8 @@ Antes da confirmação, o frontend (`MasterSkillsView`) chama `GET /api/skills/a
 - Backend fala com o Postgres pelo Sequelize. **Leituras com JOIN em SQL cru** (`sequelize.query`); **escritas pelo ORM**, para os hooks de auditoria dispararem
 - Soft delete padrão: `deleted_at IS NULL` para registros ativos
 - DTOs com `class-validator` no backend; tipos TypeScript no frontend
-- **A validação só roda nos módulos já migrados para o Nest**, via `ValidationPipe` global. Nos módulos Express que restam os decorators são decorativos — nada chama `validate()`, o router passa `req.body` direto para o service. Ao migrar um módulo, reveja as regras herdadas: elas nunca foram executadas e podem estar erradas (foi o caso do `@IsUrl` em `racas.foto_url`, que passaria a recusar os caminhos relativos que hoje se gravam)
+- A validação roda em **todo** o backend, pelo `ValidationPipe` global (`transform: true, whitelist: true`) — não há mais módulo Express. Historicamente os decorators eram decorativos (nada chamava `validate()`), então **regras herdadas daquela época já nasceram sem nunca ter sido executadas** e algumas estavam erradas: o `@IsUrl` em `racas.foto_url` recusaria os caminhos relativos que hoje se gravam. Ao mexer num DTO antigo, confira se a regra faz sentido em vez de confiar nela
+- **URL de arquivo:** o banco guarda caminho relativo; toda resposta que expõe uma imagem precisa passar por `montarUrlPublica`. Esquecer disso não dá erro — devolve o caminho cru e o navegador busca no host errado
 - Componentes compartilhados: `Modal.vue`, `DataTable.vue`, `HamburgerDrawerMenu.vue`, `TemaDarkLight.vue`, `SuperficieTema.vue`, `VSelect.vue`
 - **`DataTable.vue` é o padrão de tabela do projeto** — toda listagem CRUD admin deve usar este componente (ver `docs/COMPONENTS.md`)
 - **Nunca usar FOREIGN KEY constraints no banco** — referências entre tabelas são por convenção de inteiro apenas
@@ -579,21 +684,24 @@ Antes da confirmação, o frontend (`MasterSkillsView`) chama `GET /api/skills/a
 - **Jogador (tipo `player`):** autenticado, acessa apenas seu personagem no dashboard. Login pelo username.
 - **Mestre (tipo `gm`):** acessa `/master`, pode abrir qualquer personagem, gerencia catálogos. Login pelo email real.
 
-Quem é mestre vem de `usuarios.tipo = 'gm'`, que viaja dentro do JWT e é checado pelo `MasterGuard`. A env var `MASTER_EMAILS` só sobrevive nos módulos Express ainda não migrados e sai junto com eles.
+Quem é mestre vem de `usuarios.tipo = 'gm'`, que viaja dentro do JWT e é checado pelo `MasterGuard`. A env var `MASTER_EMAILS` **não existe mais** — era uma lista de e-mails em variável de ambiente, o que espalhava a definição de "quem é mestre" por dezenas de arquivos e obrigava a redeploy para promover alguém.
 
 Ambos os tipos têm registro na tabela `usuarios`. Players são criados automaticamente na aprovação.
+
+**Acesso a um personagem** é decidido em um lugar só, `garantirAcessoAoPersonagem` (`server/src/modules/personagem/personagem-acesso.ts`): mestre passa sempre, dono passa, o resto leva `ForbiddenException`. Toda rota que recebe `characterId` do cliente precisa chamá-la — foi assim que quatro rotas que aceitavam qualquer id foram fechadas na migração.
 
 ## Gerenciamento de Usuários
 
 - Tela: `/master/usuarios` → `MasterUsersView.vue`
-- Funções: listar todos, filtrar por tipo/status, editar username/tipo/nome do personagem, reset de senha, ativar/desativar conta, liberar/remover pré-registros, **deletar** (remove auth + personagem + avatar storage)
-- Username change atualiza: `usuarios.username` + `characters.username` + email Supabase Auth (`{novo}@rpg.internal`) + `user_metadata.display_name`
-- Desativar: aplica `ban_duration: "876600h"` via Supabase Admin API — bloqueia login
-- **Definir Senha GM** (botão violet): modal manual com input + validação de regras (mín 8, maiúscula, número, especial)
-- **Reset Padrão** (botão orange, disponível para GM e player): seta senha para `12345` + `user_metadata.requires_password_change = true`; no próximo login é exibido modal obrigatório para troca de senha seguindo as regras; após confirmar grava `requires_password_change: false` via `supabase.auth.updateUser`
-  - **Player**: modal de troca aparece no `DashboardView`
-  - **GM**: modal de troca aparece no `MasterPanelView` (verificado no `onMounted`)
-- **Supabase Auth display_name**: todo usuário criado recebe `user_metadata.display_name = username` para identificação no dashboard Supabase. Migration 031 preencheu os existentes.
+- Funções: listar todos, filtrar por tipo/status, editar username/tipo/nome do personagem, definir ou resetar senha, ativar/desativar conta, liberar/remover pré-registros, deletar
+- **Username change** atualiza `usuarios.username` e a cópia em `characters.username`. Não existe mais email sintético `{username}@rpg.internal`: o login usa o próprio username
+- **Desativar**: vira `usuarios.ativo = false`. O login já recusa quem está inativo, então a coluna sozinha basta — substituiu o `ban_duration` que era aplicado no Supabase Auth
+- **Deletar**: é **soft delete**, no usuário e no personagem. A documentação antiga dizia "hard delete: auth + personagem + storage"; hoje nada é apagado de verdade e **o avatar em disco é preservado**, justamente porque a exclusão é reversível
+- **Contas GM são protegidas**: `alterarAtivo` e `deletar` recusam quem tem `tipo = 'gm'`. Só dá para desativar ou apagar player pelo painel
+- **Definir Senha GM** (botão violet): modal com input + validação (mín 8, maiúscula, número, especial). Grava o bcrypt e deixa `requires_password_change = false`
+- **Reset Padrão** (botão orange, GM e player): senha vira `12345` e `requires_password_change = true`. No próximo login o modal obrigatório de troca aparece
+  - **Player**: modal no `DashboardView`
+  - **GM**: modal no `MasterPanelView` (verificado no `onMounted`)
 
 ## Fluxo de Auth
 
@@ -610,16 +718,20 @@ JWT próprio, emitido pelo backend. Supabase Auth saiu de cena.
 
 ## Fluxo de Criação de Personagem
 
-1. Jogador acessa `/` (LoginView) e abre modal "Criar Novo Personagem"
-2. Preenche: avatar (obrigatório, comprimido canvas + sharp), nome + sobrenome, email (deve estar na whitelist), username (3-20 chars, a-z0-9_-), senha (mín 8, maiúscula, número, especial), gênero (VSelect → `genero`), índole (VSelect → `indole`), aparência física (**mín 100 letras** sem espaços), história (**mín 1000 letras** OU arquivo Word/PDF)
-3. **Bypass de teste**: incluir o texto `"mas a bicicleta e azul"` na aparência ou história pula as validações de tamanho mínimo (frontend + backend)
-4. Frontend faz upload do avatar para `character-avatars/pending/` via `POST /upload-avatar` (público)
-5. Frontend submete `POST /character-creation-requests` — sem auth, backend valida whitelist + unicidade de username + regras
+**Pré-requisito:** o mestre precisa ter **pré-registrado o email** em `/master/usuarios` (`POST /api/usuarios/admin/pre-registrar`), o que cria uma linha em `usuarios` com `password_hash` nulo. Sem isso a submissão é recusada.
+
+1. Jogador acessa `/` (WorldsView), escolhe o mundo, cai em `/mundo/:slug` (LoginView) e abre o modal "Criar Novo Personagem"
+2. Preenche: avatar (obrigatório, comprimido no canvas + sharp no servidor), nome + sobrenome, email (precisa estar pré-registrado), username (3-20 chars, `a-z0-9_-`), senha (mín 8, maiúscula, número, especial), gênero (VSelect → `genero`), índole (VSelect → `indole`), aparência física (**mín 100 letras** sem espaços), história (**mín 1000 letras** OU arquivo Word/PDF)
+3. **Bypass de teste**: incluir o texto `"mas a bicicleta e azul"` na aparência ou na história pula as validações de tamanho mínimo (frontend + backend)
+4. Frontend sobe o avatar por `POST /api/character-creation-requests/upload-avatar` (público) → grava em `uploads/pendentes/` e devolve a URL
+5. Frontend submete `POST /api/character-creation-requests` — sem auth. O backend confere o pré-registro, a unicidade do username e as regras, e **guarda a senha já em bcrypt**
    - **Atenção:** a API `submeterSolicitacaoCriacao` mapeia camelCase → snake_case antes de enviar (ex: `aparenciaFisica → aparencia_fisica`)
-6. Jogador vê tela "Aguardando aprovação do mestre" — **sem login automático**
-7. Mestre vê bell com contagem em `/master` e acessa `/master/logins`
-8. Mestre aprova: backend cria usuário Supabase Auth (`{username}@rpg.internal`) + `display_name = username` + registro em `characters` + registro em `usuarios`
-9. Mestre rejeita: preenche motivo (opcional)
+6. Jogador vê "Aguardando aprovação do mestre" — **sem login automático**
+7. Mestre vê o sino com a contagem em `/master` e abre `/master/logins`
+8. Mestre aprova: o backend preenche o pré-registro em `usuarios` **transferindo o hash** já pronto e cria o registro em `characters`. Se a criação do personagem falhar, a conta é desfeita para não ficar órfã
+9. Mestre rejeita: preenche o motivo (opcional). O username volta a ficar livre — o índice único é parcial e só cobre `pendente`/`aprovado` (migration 069)
+
+**A senha nunca é recuperável a partir do banco.** Antes era AES-256-CBC reversível, porque o texto puro era necessário para criar a conta no Supabase Auth. Como a conta agora nasce aqui, basta transferir o hash.
 
 ## Fluxo de Onboarding (primeiro login do player)
 

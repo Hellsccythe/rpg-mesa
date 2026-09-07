@@ -1,0 +1,1054 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>RPG de Mesa — Documentação do Banco de Dados</title>
+<style>
+  @page { size: A4; margin: 16mm 14mm 18mm 14mm; }
+
+  :root {
+    --tinta:      #16181d;
+    --tinta-fraca:#5b6270;
+    --linha:      #d8dce3;
+    --linha-forte:#aeb5c0;
+    --fundo-alt:  #f5f6f9;
+    --destaque:   #7a3e12;
+    --destaque-bg:#fdf3e7;
+    --alerta:     #8c2f2f;
+    --alerta-bg:  #fcf0f0;
+    --ok:         #1f5c3d;
+    --ok-bg:      #eef7f1;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font: 9.6pt/1.5 "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: var(--tinta);
+    background: #fff;
+  }
+
+  h1, h2, h3, h4 { line-height: 1.22; margin: 0; font-weight: 650; }
+  h1 { font-size: 25pt; letter-spacing: -0.4pt; }
+  h2 {
+    font-size: 15pt; margin: 22pt 0 9pt;
+    padding-bottom: 4pt; border-bottom: 1.6pt solid var(--tinta);
+    break-after: avoid;
+  }
+  h3 {
+    font-size: 11.4pt; margin: 15pt 0 5pt;
+    color: var(--destaque);
+    break-after: avoid;
+  }
+  h4 { font-size: 9.8pt; margin: 10pt 0 3pt; break-after: avoid; }
+
+  p { margin: 0 0 7pt; }
+  ul, ol { margin: 0 0 8pt; padding-left: 15pt; }
+  li { margin-bottom: 2.5pt; }
+
+  code, .mono {
+    font-family: "Cascadia Mono", Consolas, "Courier New", monospace;
+    font-size: 0.88em;
+  }
+  code { background: var(--fundo-alt); padding: 0.5pt 2.5pt; border-radius: 2pt; }
+
+  table { width: 100%; border-collapse: collapse; margin: 5pt 0 11pt; font-size: 8.5pt; }
+  th, td { text-align: left; vertical-align: top; padding: 3.6pt 5pt; border-bottom: 0.6pt solid var(--linha); }
+  th {
+    background: var(--fundo-alt);
+    border-bottom: 1pt solid var(--linha-forte);
+    font-weight: 650; font-size: 8pt;
+    text-transform: uppercase; letter-spacing: 0.35pt;
+    color: var(--tinta-fraca);
+  }
+  tr { break-inside: avoid; }
+  td.col-mono { font-family: "Cascadia Mono", Consolas, monospace; font-size: 8pt; white-space: nowrap; }
+  td.col-tipo { color: var(--tinta-fraca); font-size: 7.8pt; white-space: nowrap; }
+
+  .pagina { break-before: page; }
+  .juntos { break-inside: avoid; }
+
+  .capa { padding-top: 42mm; text-align: center; }
+  .capa .sub { font-size: 12pt; color: var(--tinta-fraca); margin-top: 6pt; }
+  .capa .meta {
+    margin-top: 26mm; font-size: 8.6pt; color: var(--tinta-fraca);
+    border-top: 0.6pt solid var(--linha); padding-top: 8pt;
+    display: inline-block; min-width: 76mm;
+  }
+  .capa .selo {
+    display: inline-block; margin-bottom: 10pt; padding: 3pt 10pt;
+    border: 1pt solid var(--linha-forte); border-radius: 12pt;
+    font-size: 8pt; letter-spacing: 1.4pt; text-transform: uppercase;
+    color: var(--tinta-fraca);
+  }
+
+  .nota, .aviso, .bom {
+    padding: 7pt 10pt; margin: 8pt 0 11pt;
+    border-left: 2.6pt solid var(--destaque);
+    background: var(--destaque-bg);
+    font-size: 8.8pt; break-inside: avoid;
+  }
+  .aviso { border-left-color: var(--alerta); background: var(--alerta-bg); }
+  .bom   { border-left-color: var(--ok);     background: var(--ok-bg); }
+  .nota p:last-child, .aviso p:last-child, .bom p:last-child { margin-bottom: 0; }
+  .nota strong, .aviso strong, .bom strong { display: inline; }
+
+  .rotulo {
+    display: inline-block; padding: 0.8pt 4.5pt; border-radius: 2.5pt;
+    font-size: 7pt; font-weight: 650; letter-spacing: 0.3pt;
+    text-transform: uppercase; vertical-align: 1.2pt;
+  }
+  .r-pk    { background: #e5e9f2; color: #2c3e66; }
+  .r-fk    { background: #e8f0e8; color: #2c5233; }
+  .r-uk    { background: #f2ece0; color: #6b4a12; }
+  .r-morta { background: #f0dede; color: #7d2b2b; }
+  .r-nn    { background: #eceef2; color: #4a505c; }
+
+  .cartao {
+    border: 0.7pt solid var(--linha); border-radius: 3pt;
+    padding: 8pt 10pt; margin: 0 0 9pt;
+    break-inside: avoid;
+  }
+  .cartao h3 { margin-top: 0; }
+  .cartao .resumo { color: var(--tinta-fraca); font-size: 8.6pt; margin-bottom: 6pt; }
+
+  .lig { font-size: 8.4pt; margin-top: 5pt; }
+  .lig div { margin-bottom: 2pt; padding-left: 13pt; text-indent: -13pt; }
+  .lig .seta { font-weight: 650; color: var(--tinta-fraca); }
+
+  .fluxo { counter-reset: passo; margin: 6pt 0 12pt; padding: 0; list-style: none; }
+  .fluxo > li {
+    counter-increment: passo;
+    position: relative; padding-left: 20pt; margin-bottom: 6pt;
+    break-inside: avoid;
+  }
+  .fluxo > li::before {
+    content: counter(passo);
+    position: absolute; left: 0; top: 0.4pt;
+    width: 13.5pt; height: 13.5pt; border-radius: 50%;
+    background: var(--tinta); color: #fff;
+    font-size: 7.4pt; font-weight: 650;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .fluxo .toca { display: block; font-size: 7.9pt; color: var(--tinta-fraca); margin-top: 1pt; }
+
+  .sumario { font-size: 9.4pt; }
+  .sumario ol { list-style: none; padding: 0; counter-reset: sec; }
+  .sumario > ol > li {
+    counter-increment: sec; margin-bottom: 4pt;
+    border-bottom: 0.5pt dotted var(--linha); padding-bottom: 3pt;
+  }
+  .sumario > ol > li::before { content: counter(sec) ". "; font-weight: 650; color: var(--tinta-fraca); }
+  .sumario .filhos { font-size: 8.4pt; color: var(--tinta-fraca); padding-left: 12pt; margin-top: 2pt; }
+
+  .grade2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14pt; }
+
+  figure { margin: 10pt 0 14pt; break-inside: avoid; }
+  figcaption { font-size: 8pt; color: var(--tinta-fraca); margin-top: 5pt; text-align: center; }
+  svg { display: block; margin: 0 auto; max-width: 100%; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════ CAPA ══════════════════════════ -->
+<section class="capa">
+  <div class="selo">Documentação Técnica</div>
+  <h1>Banco de Dados</h1>
+  <div class="sub">RPG de Mesa — Caminho Sem Volta</div>
+  <div class="meta">
+    PostgreSQL 18 &middot; 42 tabelas &middot; 70 migrations<br>
+    Gerado em 7 de setembro de 2026
+  </div>
+</section>
+
+<!-- ══════════════════════════ SUMÁRIO ══════════════════════════ -->
+<section class="pagina sumario">
+  <h2>Sumário</h2>
+  <ol>
+    <li>Como ler este documento
+      <div class="filhos">Onde o banco roda &middot; convenções que valem para tudo</div></li>
+    <li>Mapa de ligações
+      <div class="filhos">O núcleo em volta de <code>characters</code> &middot; ligações por nome</div></li>
+    <li>Contas e acesso
+      <div class="filhos">usuarios &middot; character_creation_requests &middot; character_creation_whitelist</div></li>
+    <li>O personagem
+      <div class="filhos">characters &middot; o JSONB <code>data</code> &middot; player_telas &middot; skill_character_override</div></li>
+    <li>Mundo e catálogo
+      <div class="filhos">campaigns &middot; campaign_gms &middot; gods &middot; racas &middot; passados &middot; npcs &middot; city_maps &middot; lore_notes</div></li>
+    <li>Regras de jogo
+      <div class="filhos">classes &middot; titles &middot; skills &middot; skill_niveis &middot; progressão &middot; classes secretas</div></li>
+    <li>Equipamento
+      <div class="filhos">equipamentos &middot; a hierarquia usada &middot; a hierarquia paralela vazia</div></li>
+    <li>Lookups fixos
+      <div class="filhos">indole &middot; genero &middot; lookups de skill</div></li>
+    <li>Fluxos do sistema
+      <div class="filhos">login &middot; criação &middot; onboarding &middot; alteração &middot; XP &middot; classe secreta &middot; upload</div></li>
+    <li>Armadilhas conhecidas
+      <div class="filhos">o que já quebrou e por quê</div></li>
+  </ol>
+</section>
+
+<!-- ══════════════════════════ 1 ══════════════════════════ -->
+<section class="pagina">
+  <h2>1. Como ler este documento</h2>
+
+  <h3>Onde o banco roda</h3>
+  <p>PostgreSQL 18 num container Docker (<code>docker-compose.yml</code> na raiz do repositório), publicado na porta <strong>5433</strong>. Há também uma instalação nativa do Postgres no Windows na 5432, mantida como referência e backup — as duas guardam os mesmos dados. A aplicação conecta com o papel <code>rpg_app_user</code>; as credenciais ficam fora do repositório.</p>
+  <p>O esquema completo, em SQL, está em <code>docs/SCHEMA_CURRENT.sql</code> — arquivo gerado por <code>pg_dump</code>, não editado à mão. As alterações incrementais estão em <code>database/migrations/</code>, numeradas de 001 a 070.</p>
+
+  <h3>Convenções que valem para o banco inteiro</h3>
+
+  <h4>Não existe FOREIGN KEY</h4>
+  <p>Nenhuma. As referências entre tabelas são <strong>por convenção de inteiro</strong>: uma coluna <code>raca_id</code> guarda um <code>racas.id</code>, e é só isso — o banco não verifica, não impede apagar o alvo, não faz cascata. Toda a integridade fica no código da aplicação.</p>
+  <div class="aviso">
+    <p><strong>Consequência prática:</strong> apagar um registro referenciado não dá erro nenhum, deixa a referência apontando para o vazio. Quem apaga é responsável por limpar — é por isso que a deleção de skill do catálogo varre <code>passados</code>, <code>titles</code> e <code>classes</code> à mão.</p>
+  </div>
+
+  <h4>Chave primária: <code>id</code> ou <code>item</code></h4>
+  <p>Tabelas de entidade usam <code>id INTEGER GENERATED ALWAYS AS IDENTITY</code>. Tabelas de <em>lookup</em> (listas curtas que o mestre edita: tipos, categorias, propriedades) usam <code>item INTEGER</code> com sequence própria. A diferença é histórica, mas é confiável: se a coluna se chama <code>item</code>, é lookup.</p>
+
+  <h4>Soft delete</h4>
+  <p>Quase toda tabela tem <code>deleted_at</code> e <code>deleted_by</code>. Registro ativo é <code>deleted_at IS NULL</code> — e toda consulta precisa filtrar por isso explicitamente.</p>
+  <p><strong>Três tabelas são exceção</strong> e apagam de verdade: <code>classe_secreta_revelada</code>, <code>class_level_progression</code>, <code>skill_niveis</code> e <code>npc_acesso_player</code>. Todas têm índice único <em>total</em> (sem <code>WHERE deleted_at IS NULL</code>), então uma linha soft-deletada continuaria ocupando a chave e impediria recriar o registro — com o agravante de o culpado estar invisível na listagem.</p>
+
+  <h4>Auditoria</h4>
+  <p><code>created_by</code>, <code>updated_by</code> e <code>deleted_by</code> guardam o <strong>e-mail</strong> de quem fez a ação, em TEXT. São preenchidos automaticamente por hooks globais do Sequelize, que leem o usuário autenticado do contexto da requisição.</p>
+  <div class="nota">
+    <p>O preenchimento automático só acontece na escrita <strong>pelo ORM</strong>. <code>sequelize.query</code> cru não dispara hook nenhum — quem escreve em SQL passa o autor na mão.</p>
+  </div>
+
+  <h4>Caminhos de arquivo</h4>
+  <p>Colunas de imagem e documento (<code>avatar_url</code>, <code>foto_url</code>, <code>image_url</code>, <code>cover_image_url</code>, <code>historia_doc_url</code>, <code>pdf_url</code>) guardam o <strong>caminho relativo</strong> dentro de <code>uploads/</code>, como <code>personagens/inari.png</code>. A URL completa é montada na resposta da API, a partir de <code>PUBLIC_BASE_URL</code>. Trocar de host é trocar uma variável de ambiente, não reescrever linhas.</p>
+
+  <h4>Row Level Security</h4>
+  <div class="aviso">
+    <p>42 tabelas estão com <strong>RLS ligado e quase nenhuma policy</strong> — herança do Supabase. O sistema só funciona porque <code>rpg_app_user</code> tem <code>BYPASSRLS</code>. A autorização real vive nos <em>guards</em> do NestJS. Qualquer conexão com um papel sem <code>BYPASSRLS</code> veria a maioria das tabelas vazia e não conseguiria escrever.</p>
+  </div>
+
+  <h3>Legenda dos rótulos</h3>
+  <p>
+    <span class="rotulo r-pk">PK</span> chave primária &nbsp;
+    <span class="rotulo r-fk">REF</span> referência por convenção &nbsp;
+    <span class="rotulo r-uk">UNIQUE</span> índice único &nbsp;
+    <span class="rotulo r-nn">NOT NULL</span> obrigatória &nbsp;
+    <span class="rotulo r-morta">MORTA</span> sem uso no código
+  </p>
+</section>
+
+<!-- ══════════════════════════ 2 ══════════════════════════ -->
+<section class="pagina">
+  <h2>2. Mapa de ligações</h2>
+
+  <p><code>characters</code> é o centro de gravidade: guarda seis referências para catálogos e é apontada por cinco tabelas satélite. Tudo o mais orbita isso.</p>
+
+  <figure>
+  <svg viewBox="0 0 780 500" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+    <defs>
+      <marker id="seta" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#8a919e"/>
+      </marker>
+    </defs>
+
+    <!-- núcleo -->
+    <rect x="316" y="212" width="150" height="52" rx="4" fill="#16181d"/>
+    <text x="391" y="234" text-anchor="middle" fill="#fff" font-size="14" font-weight="650">characters</text>
+    <text x="391" y="250" text-anchor="middle" fill="#a8afbb" font-size="9.5">o personagem</text>
+
+    <!-- conta -->
+    <rect x="316" y="86" width="150" height="40" rx="4" fill="#e5e9f2" stroke="#9aa6c0"/>
+    <text x="391" y="104" text-anchor="middle" font-size="11.5" font-weight="620" fill="#2c3e66">usuarios</text>
+    <text x="391" y="117" text-anchor="middle" font-size="8.5" fill="#5b6270">conta de acesso</text>
+    <line x1="391" y1="126" x2="391" y2="206" stroke="#8a919e" stroke-width="1.2" marker-end="url(#seta)"/>
+    <text x="399" y="170" font-size="8.5" fill="#5b6270">user_id</text>
+
+    <!-- campanha -->
+    <rect x="90" y="86" width="140" height="40" rx="4" fill="#f5f6f9" stroke="#c3cad4"/>
+    <text x="160" y="104" text-anchor="middle" font-size="11.5" font-weight="620">campaigns</text>
+    <text x="160" y="117" text-anchor="middle" font-size="8.5" fill="#5b6270">o mundo</text>
+    <path d="M 230 112 Q 300 120 322 208" fill="none" stroke="#8a919e" stroke-width="1.2" marker-end="url(#seta)"/>
+    <text x="252" y="150" font-size="8.5" fill="#5b6270">campaign_id</text>
+
+    <!-- catálogos à esquerda -->
+    <g font-size="10.5">
+      <rect x="90" y="196" width="118" height="26" rx="3" fill="#f5f6f9" stroke="#c3cad4"/>
+      <text x="149" y="213" text-anchor="middle">racas</text>
+      <line x1="208" y1="209" x2="310" y2="224" stroke="#8a919e" stroke-width="1.1" marker-end="url(#seta)"/>
+
+      <rect x="90" y="232" width="118" height="26" rx="3" fill="#f5f6f9" stroke="#c3cad4"/>
+      <text x="149" y="249" text-anchor="middle">classes</text>
+      <line x1="208" y1="245" x2="310" y2="240" stroke="#8a919e" stroke-width="1.1" marker-end="url(#seta)"/>
+
+      <rect x="90" y="268" width="118" height="26" rx="3" fill="#f5f6f9" stroke="#c3cad4"/>
+      <text x="149" y="285" text-anchor="middle">passados</text>
+      <line x1="208" y1="281" x2="310" y2="256" stroke="#8a919e" stroke-width="1.1" marker-end="url(#seta)"/>
+    </g>
+
+    <!-- catálogos à direita -->
+    <g font-size="10.5">
+      <rect x="574" y="196" width="118" height="26" rx="3" fill="#f5f6f9" stroke="#c3cad4"/>
+      <text x="633" y="213" text-anchor="middle">gods</text>
+      <line x1="574" y1="209" x2="472" y2="224" stroke="#8a919e" stroke-width="1.1" marker-end="url(#seta)"/>
+
+      <rect x="574" y="232" width="118" height="26" rx="3" fill="#f5f6f9" stroke="#c3cad4"/>
+      <text x="633" y="249" text-anchor="middle">indole</text>
+      <line x1="574" y1="245" x2="472" y2="240" stroke="#8a919e" stroke-width="1.1" marker-end="url(#seta)"/>
+
+      <rect x="574" y="268" width="118" height="26" rx="3" fill="#f5f6f9" stroke="#c3cad4"/>
+      <text x="633" y="285" text-anchor="middle">genero</text>
+      <line x1="574" y1="281" x2="472" y2="256" stroke="#8a919e" stroke-width="1.1" marker-end="url(#seta)"/>
+    </g>
+
+    <!-- satélites embaixo -->
+    <g font-size="9.5">
+      <rect x="60"  y="378" width="140" height="34" rx="3" fill="#eef7f1" stroke="#a8c6b3"/>
+      <text x="130" y="393" text-anchor="middle" font-weight="600">player_telas</text>
+      <text x="130" y="405" text-anchor="middle" font-size="8" fill="#5b6270">telas liberadas</text>
+      <path d="M 130 378 Q 130 300 316 250" fill="none" stroke="#8a919e" stroke-width="1.1" marker-end="url(#seta)"/>
+
+      <rect x="212" y="378" width="140" height="34" rx="3" fill="#eef7f1" stroke="#a8c6b3"/>
+      <text x="282" y="393" text-anchor="middle" font-weight="600">npc_acesso_player</text>
+      <text x="282" y="405" text-anchor="middle" font-size="8" fill="#5b6270">NPCs visíveis</text>
+      <line x1="300" y1="378" x2="350" y2="268" stroke="#8a919e" stroke-width="1.1" marker-end="url(#seta)"/>
+
+      <rect x="364" y="378" width="150" height="34" rx="3" fill="#eef7f1" stroke="#a8c6b3"/>
+      <text x="439" y="393" text-anchor="middle" font-weight="600">classe_secreta_revelada</text>
+      <text x="439" y="405" text-anchor="middle" font-size="8" fill="#5b6270">1 titular por classe</text>
+      <line x1="439" y1="378" x2="420" y2="268" stroke="#8a919e" stroke-width="1.1" marker-end="url(#seta)"/>
+
+      <rect x="526" y="378" width="150" height="34" rx="3" fill="#eef7f1" stroke="#a8c6b3"/>
+      <text x="601" y="393" text-anchor="middle" font-weight="600">skill_character_override</text>
+      <text x="601" y="405" text-anchor="middle" font-size="8" fill="#5b6270">ajuste por player</text>
+      <path d="M 601 378 Q 601 300 466 252" fill="none" stroke="#8a919e" stroke-width="1.1" marker-end="url(#seta)"/>
+
+      <rect x="290" y="440" width="200" height="34" rx="3" fill="#eef7f1" stroke="#a8c6b3"/>
+      <text x="390" y="455" text-anchor="middle" font-weight="600">lore_notes</text>
+      <text x="390" y="467" text-anchor="middle" font-size="8" fill="#5b6270">character_id nulo = nota global</text>
+      <line x1="390" y1="440" x2="390" y2="270" stroke="#8a919e" stroke-width="1.1" stroke-dasharray="3 3" marker-end="url(#seta)"/>
+    </g>
+
+    <text x="390" y="42" text-anchor="middle" font-size="10" fill="#5b6270">a seta aponta para o lado que guarda a chave referenciada</text>
+    <text x="390" y="494" text-anchor="middle" font-size="9" fill="#8a919e">tracejado = referência opcional</text>
+  </svg>
+  <figcaption>O núcleo do esquema. Equipamento, skills e lookups ficam de fora — não se ligam a <code>characters</code> por coluna, e sim por cópia dentro do JSONB <code>data</code>.</figcaption>
+  </figure>
+
+  <h3>Ligações que não são por id</h3>
+  <p>Uma parte das referências aponta por <strong>nome, em texto</strong>, não por chave. Isso é frágil de propósito ou por herança, mas precisa ser conhecido: renomear o alvo quebra a ligação em silêncio.</p>
+
+  <table>
+    <thead><tr><th style="width:36%">Origem</th><th style="width:28%">Alvo</th><th>Observação</th></tr></thead>
+    <tbody>
+      <tr><td class="col-mono">classes.starting_skills[]</td><td class="col-mono">skills.name</td><td>array de texto; a deleção de skill limpa este array</td></tr>
+      <tr><td class="col-mono">classes.passive_skills[]</td><td class="col-mono">skills.name</td><td>idem, mas <em>não</em> é limpo na deleção</td></tr>
+      <tr><td class="col-mono">classes.signature_skill</td><td class="col-mono">skills.name</td><td>texto simples</td></tr>
+      <tr><td class="col-mono">skills.raca_vinculada[]</td><td class="col-mono">racas.nome</td><td>array de texto</td></tr>
+      <tr><td class="col-mono">skills.required_class</td><td class="col-mono">classes</td><td>VARCHAR — guarda ora nome, ora id</td></tr>
+      <tr><td class="col-mono">skill_character_override.skill_name</td><td class="col-mono">skills.name</td><td>compõe o UNIQUE com <code>character_id</code></td></tr>
+      <tr><td class="col-mono">campaign_gms.email</td><td class="col-mono">usuarios.real_email</td><td>liga mestre a campanha por e-mail</td></tr>
+      <tr><td class="col-mono">characters.data.skills[]</td><td class="col-mono">skills.name</td><td>cópia dentro do JSONB, tratada como histórico</td></tr>
+      <tr><td class="col-mono">*_by, revisado_por, revealed_by</td><td class="col-mono">usuarios.real_email</td><td>auditoria: e-mail, nunca id</td></tr>
+    </tbody>
+  </table>
+
+  <div class="nota">
+    <p><strong>Por que a auditoria guarda e-mail e não id:</strong> o registro precisa continuar legível depois que a conta some. Um id apontando para uma linha apagada não diz nada; um e-mail sim.</p>
+  </div>
+</section>
+
+<!-- ══════════════════════════ 3 ══════════════════════════ -->
+<section class="pagina">
+  <h2>3. Contas e acesso</h2>
+
+  <div class="cartao">
+    <h3>usuarios</h3>
+    <p class="resumo">A conta de login. Existe para mestres e jogadores. <strong>7 linhas.</strong></p>
+    <table>
+      <thead><tr><th style="width:27%">Coluna</th><th style="width:17%">Tipo</th><th>Notas</th></tr></thead>
+      <tbody>
+        <tr><td class="col-mono">id</td><td class="col-tipo">INTEGER</td><td><span class="rotulo r-pk">PK</span> identity</td></tr>
+        <tr><td class="col-mono">real_email</td><td class="col-tipo">TEXT</td><td><span class="rotulo r-nn">NOT NULL</span> e-mail real; é o login do mestre</td></tr>
+        <tr><td class="col-mono">username</td><td class="col-tipo">TEXT</td><td>login do jogador. <strong>Sem UNIQUE no banco</strong> — só o código garante</td></tr>
+        <tr><td class="col-mono">tipo</td><td class="col-tipo">TEXT</td><td><span class="rotulo r-nn">NOT NULL</span> CHECK <code>'gm'</code> | <code>'player'</code>, default <code>player</code></td></tr>
+        <tr><td class="col-mono">ativo</td><td class="col-tipo">BOOLEAN</td><td><span class="rotulo r-nn">NOT NULL</span> default true; o login recusa inativo</td></tr>
+        <tr><td class="col-mono">password_hash</td><td class="col-tipo">TEXT</td><td>bcrypt. <strong>Nulo = pré-registro</strong>: o mestre liberou o e-mail, a conta ainda não existe</td></tr>
+        <tr><td class="col-mono">requires_password_change</td><td class="col-tipo">BOOLEAN</td><td><span class="rotulo r-nn">NOT NULL</span> força o modal de troca no próximo login</td></tr>
+      </tbody>
+    </table>
+    <div class="lig">
+      <div><span class="seta">← é apontada por</span> <code>characters.user_id</code>; e por e-mail em <code>campaign_gms.email</code> e em toda coluna de auditoria</div>
+    </div>
+  </div>
+
+  <div class="nota">
+    <p>Não existe mais <code>auth_user_id</code>: a coluna que ligava ao Supabase Auth saiu na migration 061. Também não existe e-mail sintético <code>{username}@rpg.internal</code> — o jogador entra pelo próprio username.</p>
+  </div>
+
+  <div class="cartao">
+    <h3>character_creation_requests</h3>
+    <p class="resumo">Solicitação de criação submetida por um jogador, aguardando aprovação do mestre.</p>
+    <table>
+      <thead><tr><th style="width:27%">Coluna</th><th style="width:17%">Tipo</th><th>Notas</th></tr></thead>
+      <tbody>
+        <tr><td class="col-mono">id</td><td class="col-tipo">INTEGER</td><td><span class="rotulo r-pk">PK</span></td></tr>
+        <tr><td class="col-mono">email</td><td class="col-tipo">TEXT</td><td><span class="rotulo r-nn">NOT NULL</span> precisa estar pré-registrado em <code>usuarios</code></td></tr>
+        <tr><td class="col-mono">username</td><td class="col-tipo">TEXT</td><td><span class="rotulo r-uk">UNIQUE</span> <strong>parcial</strong>: só entre <code>pendente</code> e <code>aprovado</code></td></tr>
+        <tr><td class="col-mono">password_hash</td><td class="col-tipo">TEXT</td><td>bcrypt, gerado na submissão. Transferido para <code>usuarios</code> na aprovação</td></tr>
+        <tr><td class="col-mono">nome</td><td class="col-tipo">TEXT</td><td>nome do personagem</td></tr>
+        <tr><td class="col-mono">avatar_url</td><td class="col-tipo">TEXT</td><td>caminho relativo em <code>uploads/pendentes/</code></td></tr>
+        <tr><td class="col-mono">indole_id</td><td class="col-tipo">INTEGER</td><td><span class="rotulo r-fk">REF</span> <code>indole.id</code></td></tr>
+        <tr><td class="col-mono">genero_id</td><td class="col-tipo">INTEGER</td><td><span class="rotulo r-fk">REF</span> <code>genero.id</code></td></tr>
+        <tr><td class="col-mono">aparencia_fisica</td><td class="col-tipo">TEXT</td><td><span class="rotulo r-nn">NOT NULL</span> mín. 100 letras sem espaços</td></tr>
+        <tr><td class="col-mono">historia_texto</td><td class="col-tipo">TEXT</td><td>mín. 1000 letras, <em>ou</em> o documento abaixo</td></tr>
+        <tr><td class="col-mono">historia_doc_url</td><td class="col-tipo">TEXT</td><td>Word/PDF em <code>uploads/pendentes/</code></td></tr>
+        <tr><td class="col-mono">status</td><td class="col-tipo">VARCHAR</td><td><code>pendente</code> | <code>aprovado</code> | <code>rejeitado</code></td></tr>
+        <tr><td class="col-mono">rejeitado_motivo</td><td class="col-tipo">TEXT</td><td>preenchido na rejeição</td></tr>
+        <tr><td class="col-mono">revisado_em / revisado_por</td><td class="col-tipo">timestamptz / TEXT</td><td>e-mail do mestre que revisou</td></tr>
+        <tr><td class="col-mono">campaign_id</td><td class="col-tipo">INTEGER</td><td><span class="rotulo r-fk">REF</span> <code>campaigns.id</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="bom">
+    <p><strong>O UNIQUE parcial resolve um bug real.</strong> Quando o índice era total, um jogador rejeitado não conseguia reenviar: o username continuava ocupado pela própria solicitação recusada e a nova submissão estourava com chave duplicada. Hoje rejeitar devolve o nome.</p>
+  </div>
+
+  <div class="cartao">
+    <h3>character_creation_whitelist <span class="rotulo r-morta">Morta</span></h3>
+    <p class="resumo">Era a lista de e-mails autorizados a submeter solicitação. Colunas: <code>id</code>, <code>email</code> (UNIQUE) + soft delete e auditoria. <strong>5 linhas, nenhum código lê ou escreve.</strong></p>
+    <p>A autorização virou o pré-registro em <code>usuarios</code> — uma linha com <code>password_hash</code> nulo. A tabela ainda aparece nos tipos do frontend e a mensagem de erro do login ainda fala em "whitelist". Candidata a remoção.</p>
+  </div>
+</section>
+
+<!-- ══════════════════════════ 4 ══════════════════════════ -->
+<section class="pagina">
+  <h2>4. O personagem</h2>
+
+  <div class="cartao">
+    <h3>characters</h3>
+    <p class="resumo">A ficha. <strong>3 linhas</strong> (uma delas apagada).</p>
+    <table>
+      <thead><tr><th style="width:25%">Coluna</th><th style="width:16%">Tipo</th><th>Notas</th></tr></thead>
+      <tbody>
+        <tr><td class="col-mono">id</td><td class="col-tipo">INTEGER</td><td><span class="rotulo r-pk">PK</span> identity</td></tr>
+        <tr><td class="col-mono">user_id</td><td class="col-tipo">INTEGER</td><td><span class="rotulo r-nn">NOT NULL</span> <span class="rotulo r-fk">REF</span> <code>usuarios.id</code></td></tr>
+        <tr><td class="col-mono">campaign_id</td><td class="col-tipo">INTEGER</td><td><span class="rotulo r-fk">REF</span> <code>campaigns.id</code></td></tr>
+        <tr><td class="col-mono">name</td><td class="col-tipo">TEXT</td><td><span class="rotulo r-nn">NOT NULL</span></td></tr>
+        <tr><td class="col-mono">username</td><td class="col-tipo">TEXT</td><td><span class="rotulo r-uk">UNIQUE</span> parcial (<code>WHERE deleted_at IS NULL</code>). Cópia de <code>usuarios.username</code></td></tr>
+        <tr><td class="col-mono">level</td><td class="col-tipo">INTEGER</td><td><span class="rotulo r-nn">NOT NULL</span> default 1</td></tr>
+        <tr><td class="col-mono">data</td><td class="col-tipo">JSONB</td><td><span class="rotulo r-nn">NOT NULL</span> default <code>{}</code> — detalhado a seguir</td></tr>
+        <tr><td class="col-mono">avatar_url</td><td class="col-tipo">TEXT</td><td>caminho relativo, ex. <code>personagens/inari.png</code></td></tr>
+        <tr><td class="col-mono">raca_id</td><td class="col-tipo">INTEGER</td><td><span class="rotulo r-fk">REF</span> <code>racas.id</code> — nulo até o onboarding</td></tr>
+        <tr><td class="col-mono">classe_id</td><td class="col-tipo">INTEGER</td><td><span class="rotulo r-fk">REF</span> <code>classes.id</code> — a classe inicial</td></tr>
+        <tr><td class="col-mono">passado_id</td><td class="col-tipo">INTEGER</td><td><span class="rotulo r-fk">REF</span> <code>passados.id</code></td></tr>
+        <tr><td class="col-mono">deus_id</td><td class="col-tipo">INTEGER</td><td><span class="rotulo r-fk">REF</span> <code>gods.id</code> — nulo se pulou a etapa</td></tr>
+        <tr><td class="col-mono">indole_id</td><td class="col-tipo">INTEGER</td><td><span class="rotulo r-fk">REF</span> <code>indole.id</code></td></tr>
+        <tr><td class="col-mono">genero_id</td><td class="col-tipo">INTEGER</td><td><span class="rotulo r-fk">REF</span> <code>genero.id</code></td></tr>
+        <tr><td class="col-mono">onboarding_completo</td><td class="col-tipo">BOOLEAN</td><td><span class="rotulo r-nn">NOT NULL</span> falso redireciona para <code>/onboarding</code></td></tr>
+        <tr><td class="col-mono">status</td><td class="col-tipo">TEXT</td><td><span class="rotulo r-nn">NOT NULL</span> CHECK <code>'vivo'</code> | <code>'morto'</code></td></tr>
+        <tr><td class="col-mono">aparencia_fisica</td><td class="col-tipo">TEXT</td><td></td></tr>
+        <tr><td class="col-mono">historia_texto</td><td class="col-tipo">TEXT</td><td></td></tr>
+        <tr><td class="col-mono">historia_doc_url</td><td class="col-tipo">TEXT</td><td>caminho relativo</td></tr>
+      </tbody>
+    </table>
+    <div class="lig">
+      <div><span class="seta">→ aponta para</span> usuarios, campaigns, racas, classes, passados, gods, indole, genero</div>
+      <div><span class="seta">← é apontada por</span> classe_secreta_revelada, skill_character_override, npc_acesso_player, player_telas, lore_notes</div>
+    </div>
+  </div>
+
+  <h3>O JSONB <code>data</code></h3>
+  <p>Metade da ficha mora aqui, sem esquema declarado em lugar nenhum. Vale conhecer o conteúdo:</p>
+  <table>
+    <thead><tr><th style="width:30%">Chave</th><th>O que guarda</th></tr></thead>
+    <tbody>
+      <tr><td class="col-mono">atributos</td><td>a soma usada em jogo: base + bônus do passado</td></tr>
+      <tr><td class="col-mono">atributos_base</td><td>os 10 pontos que o jogador distribuiu no onboarding</td></tr>
+      <tr><td class="col-mono">atributos_bonus_passado</td><td>a parcela vinda do passado escolhido</td></tr>
+      <tr><td class="col-mono">classes</td><td><code>[{name, nivel, xp, skillPoints}]</code> — progressão por classe</td></tr>
+      <tr><td class="col-mono">classPoints</td><td>pontos de classe ainda não gastos</td></tr>
+      <tr><td class="col-mono">skills / titles</td><td>skills e títulos concedidos, copiados por nome</td></tr>
+      <tr><td class="col-mono">equipamentos_iniciais</td><td>escolha da etapa 6, com peso por item</td></tr>
+      <tr><td class="col-mono">inventario</td><td>itens livres, sem peso</td></tr>
+      <tr><td class="col-mono">adventureNotes</td><td>notas de aventura escritas pelo mestre</td></tr>
+      <tr><td class="col-mono">pendingChangeRequest</td><td>pedido de alteração aguardando revisão (há índice parcial em cima disso)</td></tr>
+      <tr><td class="col-mono">avatarFocalPoint / modalHeroPosition</td><td>enquadramento da imagem, ajustado pelo mestre</td></tr>
+      <tr><td class="col-mono">xp</td><td>XP do personagem — distinto do XP por classe</td></tr>
+      <tr><td class="col-mono">deusEtapaConcluida</td><td>marca a etapa 5 como vista, mesmo se pulada</td></tr>
+    </tbody>
+  </table>
+
+  <div class="aviso">
+    <p><strong><code>PATCH /api/personagens/:id</code> substitui o <code>data</code> inteiro.</strong> Mandar um objeto parcial apaga todo o resto — atributos, classes, skills, inventário — sem erro nenhum. Ler, alterar a chave, devolver o objeto completo.</p>
+  </div>
+
+  <div class="cartao">
+    <h3>player_telas</h3>
+    <p class="resumo">Quais telas do menu cada personagem pode abrir. <span class="rotulo r-uk">UNIQUE</span> <code>(character_id, tela)</code>. <strong>9 linhas.</strong></p>
+    <p>A lista de telas liberáveis é <strong>fixa no código</strong>, não no banco: <code>cidade</code>, <code>classes</code>, <code>deuses</code>, <code>equipamentos</code>, <code>notas</code>, <code>npcs</code>, <code>racas</code>, <code>skills</code>, <code>titulos</code>. Valor desconhecido é descartado em silêncio na gravação. O mestre sempre recebe todas, sem consultar a tabela.</p>
+    <p><code>PUT /api/player-telas/admin/:characterId</code> <strong>substitui o conjunto inteiro</strong> — apaga tudo e reinsere.</p>
+  </div>
+
+  <div class="cartao">
+    <h3>skill_character_override</h3>
+    <p class="resumo">Permite ao mestre dar a um jogador específico um dano base ou multiplicador diferente do catálogo. <span class="rotulo r-uk">UNIQUE</span> <code>(skill_name, character_id)</code>.</p>
+    <table>
+      <thead><tr><th style="width:32%">Coluna</th><th style="width:18%">Tipo</th><th>Notas</th></tr></thead>
+      <tbody>
+        <tr><td class="col-mono">skill_name</td><td class="col-tipo">TEXT</td><td>referência a <code>skills.name</code> — <strong>por nome</strong></td></tr>
+        <tr><td class="col-mono">character_id</td><td class="col-tipo">INTEGER</td><td><span class="rotulo r-fk">REF</span> <code>characters.id</code></td></tr>
+        <tr><td class="col-mono">damage_base_override</td><td class="col-tipo">TEXT</td><td>notação de dado, ex. <code>2d8</code></td></tr>
+        <tr><td class="col-mono">multiplicador_override</td><td class="col-tipo">TEXT[]</td><td>mesmo formato de <code>skills.multiplicador_atributo</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ══════════════════════════ 5 ══════════════════════════ -->
+<section class="pagina">
+  <h2>5. Mundo e catálogo</h2>
+
+  <div class="cartao">
+    <h3>campaigns &nbsp;·&nbsp; campaign_gms</h3>
+    <p class="resumo">As campanhas são os "mundos" da tela inicial. <strong>1 campanha</strong> cadastrada.</p>
+    <table>
+      <thead><tr><th style="width:28%">Coluna</th><th style="width:16%">Tipo</th><th>Notas</th></tr></thead>
+      <tbody>
+        <tr><td class="col-mono">id</td><td class="col-tipo">INTEGER</td><td><span class="rotulo r-pk">PK</span></td></tr>
+        <tr><td class="col-mono">slug</td><td class="col-tipo">VARCHAR</td><td><span class="rotulo r-uk">UNIQUE</span> é o que aparece em <code>/mundo/:slug</code></td></tr>
+        <tr><td class="col-mono">name / description</td><td class="col-tipo">VARCHAR / TEXT</td><td></td></tr>
+        <tr><td class="col-mono">cover_image_url</td><td class="col-tipo">TEXT</td><td>caminho relativo</td></tr>
+        <tr><td class="col-mono">is_active</td><td class="col-tipo">BOOLEAN</td><td><span class="rotulo r-nn">NOT NULL</span> só as ativas aparecem na listagem pública</td></tr>
+      </tbody>
+    </table>
+    <p><code>campaign_gms</code> liga um <code>campaign_id</code> a um <code>email</code> de mestre. <strong>Sem UNIQUE</strong> — nada impede duplicar o mesmo mestre na mesma campanha.</p>
+    <div class="lig">
+      <div><span class="seta">← é apontada por</span> <code>characters.campaign_id</code>, <code>character_creation_requests.campaign_id</code>, <code>campaign_gms.campaign_id</code></div>
+    </div>
+  </div>
+
+  <div class="cartao">
+    <h3>gods</h3>
+    <p class="resumo">Panteão. <strong>21 linhas.</strong> Colunas de conteúdo: <code>name</code> (UNIQUE), <code>title</code>, <code>description</code>, <code>short_description</code>, <code>dogma</code>, <code>anatema</code>, <code>weapons</code>, <code>image_url</code> (caminho relativo), <code>data</code> JSONB.</p>
+    <div class="lig">
+      <div><span class="seta">→ aponta para</span> <code>indole.id</code> via <code>indole_id</code></div>
+      <div><span class="seta">← é apontada por</span> <code>characters.deus_id</code></div>
+    </div>
+    <p style="font-size:8.4pt;color:var(--tinta-fraca);margin-top:5pt">Carrega ainda <code>image_path</code> e <code>indole</code> (texto), anteriores à normalização da migration 063. Sem uso.</p>
+  </div>
+
+  <div class="cartao">
+    <h3>racas</h3>
+    <p class="resumo">Raças jogáveis. <strong>4 linhas.</strong></p>
+    <table>
+      <thead><tr><th style="width:28%">Coluna</th><th style="width:16%">Tipo</th><th>Notas</th></tr></thead>
+      <tbody>
+        <tr><td class="col-mono">nome</td><td class="col-tipo">TEXT</td><td><span class="rotulo r-nn">NOT NULL</span></td></tr>
+        <tr><td class="col-mono">descricao</td><td class="col-tipo">TEXT</td><td>visível a todos</td></tr>
+        <tr><td class="col-mono">lore</td><td class="col-tipo">TEXT</td><td><strong>só o mestre vê</strong> — a listagem pública devolve <code>null</code></td></tr>
+        <tr><td class="col-mono">foto_url</td><td class="col-tipo">TEXT</td><td>caminho relativo</td></tr>
+        <tr><td class="col-mono">habilidades</td><td class="col-tipo">JSONB</td><td><span class="rotulo r-nn">NOT NULL</span> <code>[{nome, descricao}]</code></td></tr>
+        <tr><td class="col-mono">atributos_bonus</td><td class="col-tipo">JSONB</td><td><span class="rotulo r-nn">NOT NULL</span> <code>[{atributo, valor}]</code></td></tr>
+      </tbody>
+    </table>
+    <div class="lig">
+      <div><span class="seta">← é apontada por</span> <code>characters.raca_id</code>, <code>npcs.raca_id</code>, e por nome em <code>skills.raca_vinculada[]</code></div>
+    </div>
+  </div>
+
+  <div class="cartao">
+    <h3>passados</h3>
+    <p class="resumo">Origens do personagem. Cada passado concede skills e títulos. <strong>7 linhas.</strong></p>
+    <table>
+      <thead><tr><th style="width:28%">Coluna</th><th style="width:16%">Tipo</th><th>Notas</th></tr></thead>
+      <tbody>
+        <tr><td class="col-mono">nome / descricao</td><td class="col-tipo">VARCHAR / TEXT</td><td></td></tr>
+        <tr><td class="col-mono">foto_url</td><td class="col-tipo">TEXT</td><td>caminho relativo</td></tr>
+        <tr><td class="col-mono">skill_ids</td><td class="col-tipo">INTEGER[]</td><td><span class="rotulo r-nn">NOT NULL</span> <span class="rotulo r-fk">REF</span> <code>skills.id</code></td></tr>
+        <tr><td class="col-mono">titulo_ids</td><td class="col-tipo">INTEGER[]</td><td><span class="rotulo r-nn">NOT NULL</span> <span class="rotulo r-fk">REF</span> <code>titles.id</code></td></tr>
+        <tr><td class="col-mono">atributo_bonus</td><td class="col-tipo">JSONB</td><td>bônus somado aos atributos no onboarding</td></tr>
+      </tbody>
+    </table>
+    <div class="nota">
+      <p>As skills e títulos do passado <strong>não são copiados</strong> para o personagem. O dashboard os lê do catálogo na hora de exibir — então editar o passado muda retroativamente o que os jogadores daquele passado enxergam.</p>
+    </div>
+  </div>
+
+  <div class="cartao">
+    <h3>npcs &nbsp;·&nbsp; npc_acesso_player</h3>
+    <p class="resumo">NPCs e quem pode vê-los. Ambas vazias por enquanto.</p>
+    <p><code>npcs</code>: <code>nome</code>, <code>raca_id</code> (<span class="rotulo r-fk">REF</span> <code>racas.id</code>), <code>descricao</code>, <code>foto_url</code>.</p>
+    <p><code>npc_acesso_player</code>: <span class="rotulo r-uk">UNIQUE</span> <code>(npc_id, character_id)</code> <strong>total</strong> — por isso revogar acesso é <strong>hard delete</strong>. O jogador só vê o que estiver listado; o mestre vê tudo.</p>
+  </div>
+
+  <div class="grade2">
+    <div class="cartao">
+      <h3>city_maps</h3>
+      <p class="resumo">Mapas da cidade. <strong>1 linha.</strong></p>
+      <p><code>name</code> (UNIQUE), <code>map_reference</code>, <code>description</code>, <code>data</code> JSONB. Não se liga a nenhuma outra tabela.</p>
+    </div>
+    <div class="cartao">
+      <h3>lore_notes</h3>
+      <p class="resumo">Notas de lore publicadas pelo mestre. Vazia.</p>
+      <p><code>title</code>, <code>subtitle</code>, <code>content</code> (NOT NULL, default <code>''</code>), <code>ordem</code>, <code>pdf_url</code>.</p>
+      <p><code>character_id</code> <strong>nulo = nota global</strong> (todos veem); preenchido, só aquele personagem.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════ 6 ══════════════════════════ -->
+<section class="pagina">
+  <h2>6. Regras de jogo</h2>
+
+  <div class="cartao">
+    <h3>classes</h3>
+    <p class="resumo">Classes jogáveis. <strong>29 linhas.</strong></p>
+    <table>
+      <thead><tr><th style="width:27%">Coluna</th><th style="width:16%">Tipo</th><th>Notas</th></tr></thead>
+      <tbody>
+        <tr><td class="col-mono">name</td><td class="col-tipo">TEXT</td><td><span class="rotulo r-uk">UNIQUE</span></td></tr>
+        <tr><td class="col-mono">tier</td><td class="col-tipo">TEXT</td><td>CHECK: <code>Base</code>, <code>Híbrida</code> ou <code>Hidden</code></td></tr>
+        <tr><td class="col-mono">max_level</td><td class="col-tipo">INTEGER</td><td><span class="rotulo r-nn">NOT NULL</span> default 20</td></tr>
+        <tr><td class="col-mono">requirements</td><td class="col-tipo">JSONB</td><td><span class="rotulo r-nn">NOT NULL</span> default <code>{}</code></td></tr>
+        <tr><td class="col-mono">stat_bonuses</td><td class="col-tipo">JSONB</td><td><span class="rotulo r-nn">NOT NULL</span> default <code>{}</code></td></tr>
+        <tr><td class="col-mono">starting_skills</td><td class="col-tipo">TEXT[]</td><td><span class="rotulo r-nn">NOT NULL</span> default <code>{}</code> — nomes de skill</td></tr>
+        <tr><td class="col-mono">passive_skills</td><td class="col-tipo">TEXT[]</td><td>nullable — nomes de skill</td></tr>
+        <tr><td class="col-mono">signature_skill</td><td class="col-tipo">TEXT</td><td>nome da skill de assinatura</td></tr>
+        <tr><td class="col-mono">requer_deus</td><td class="col-tipo">BOOLEAN</td><td><span class="rotulo r-nn">NOT NULL</span></td></tr>
+        <tr><td class="col-mono">is_secret</td><td class="col-tipo">BOOLEAN</td><td><span class="rotulo r-nn">NOT NULL</span> classes secretas não aparecem no onboarding</td></tr>
+      </tbody>
+    </table>
+    <div class="lig">
+      <div><span class="seta">← é apontada por</span> <code>characters.classe_id</code>, <code>classe_secreta_revelada.classe_id</code>, <code>class_level_progression.classe_id</code>, <code>titles.classe_secreta_id</code></div>
+    </div>
+  </div>
+
+  <div class="cartao">
+    <h3>classe_secreta_revelada</h3>
+    <p class="resumo">Qual personagem detém cada classe secreta. <span class="rotulo r-uk">UNIQUE</span> <code>(classe_id)</code> garante exclusividade — um titular por classe.</p>
+    <p>Colunas: <code>classe_id</code>, <code>character_id</code>, <code>revealed_at</code>, <code>revealed_by</code> (e-mail do mestre).</p>
+    <p>Marcar o personagem como <strong>morto</strong> apaga automaticamente os registros dele, liberando as classes. Personagens mortos não aparecem na lista de seleção ao revelar.</p>
+    <div class="aviso">
+      <p>O UNIQUE é <strong>total</strong>, não parcial. Uma linha soft-deletada continuaria ocupando a chave e impediria revelar a classe de novo — invisível na listagem. Por isso revogar é <strong>hard delete</strong>.</p>
+    </div>
+  </div>
+
+  <div class="cartao">
+    <h3>titles</h3>
+    <p class="resumo">Títulos. <strong>20 linhas.</strong> <code>name</code> UNIQUE, <code>tier</code>, <code>description</code>.</p>
+    <table>
+      <thead><tr><th style="width:30%">Coluna</th><th style="width:16%">Tipo</th><th>Notas</th></tr></thead>
+      <tbody>
+        <tr><td class="col-mono">bonuses</td><td class="col-tipo">JSONB</td><td><span class="rotulo r-nn">NOT NULL</span> default <code>{}</code></td></tr>
+        <tr><td class="col-mono">requirements</td><td class="col-tipo">JSONB</td><td><span class="rotulo r-nn">NOT NULL</span> default <code>{}</code></td></tr>
+        <tr><td class="col-mono">skill_ids</td><td class="col-tipo">INTEGER[]</td><td><span class="rotulo r-nn">NOT NULL</span> <span class="rotulo r-fk">REF</span> <code>skills.id</code></td></tr>
+        <tr><td class="col-mono">is_hidden</td><td class="col-tipo">BOOLEAN</td><td>oculta os requisitos do jogador</td></tr>
+        <tr><td class="col-mono">classe_secreta_id</td><td class="col-tipo">INTEGER</td><td><span class="rotulo r-fk">REF</span> <code>classes.id</code> — preenchido, o título só aparece para quem tem aquela classe revelada</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="cartao">
+    <h3>skills</h3>
+    <p class="resumo">Catálogo de habilidades. <strong>66 linhas.</strong> <code>name</code> UNIQUE.</p>
+    <table>
+      <thead><tr><th style="width:30%">Coluna</th><th style="width:16%">Tipo</th><th>Notas</th></tr></thead>
+      <tbody>
+        <tr><td class="col-mono">description</td><td class="col-tipo">TEXT</td><td><span class="rotulo r-nn">NOT NULL</span> sem descrição grava string vazia, <strong>nunca null</strong></td></tr>
+        <tr><td class="col-mono">damage_base</td><td class="col-tipo">TEXT</td><td>notação de dado, ex. <code>1d8</code>, <code>2d6+3</code></td></tr>
+        <tr><td class="col-mono">multiplicador_atributo</td><td class="col-tipo">TEXT[]</td><td>expressões que escalam o dano, ex. <code>{"2d8 + Destreza"}</code></td></tr>
+        <tr><td class="col-mono">effect_description</td><td class="col-tipo">VARCHAR</td><td></td></tr>
+        <tr><td class="col-mono">custo / cooldown / range</td><td class="col-tipo">INTEGER / INTEGER / TEXT</td><td></td></tr>
+        <tr><td class="col-mono">skill_tipo_item</td><td class="col-tipo">INTEGER</td><td><span class="rotulo r-fk">REF</span> <code>skill_tipo.item</code></td></tr>
+        <tr><td class="col-mono">skill_categoria_item</td><td class="col-tipo">INTEGER[]</td><td><span class="rotulo r-fk">REF</span> <code>skill_categoria.item</code></td></tr>
+        <tr><td class="col-mono">skill_tipo_dano_item</td><td class="col-tipo">INTEGER[]</td><td><span class="rotulo r-fk">REF</span> <code>skill_tipo_dano.item</code></td></tr>
+        <tr><td class="col-mono">skill_natureza_item</td><td class="col-tipo">INTEGER</td><td><span class="rotulo r-fk">REF</span> <code>skill_natureza.item</code></td></tr>
+        <tr><td class="col-mono">raca_vinculada</td><td class="col-tipo">TEXT[]</td><td>nomes de raça</td></tr>
+        <tr><td class="col-mono">required_class</td><td class="col-tipo">VARCHAR</td><td>ora nome, ora id — inconsistente</td></tr>
+        <tr><td class="col-mono">nivel_minimo_classe</td><td class="col-tipo">INTEGER</td><td><strong>inerte</strong>: o dashboard lê, mas está nulo em todas as linhas e nenhuma rota escreve</td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:8.4pt;color:var(--tinta-fraca)">A tabela ainda carrega <code>damage_modifier</code>, <code>damage_type</code>, <code>cost</code>, <code>is_secret</code> e <code>required_class_id</code>, anteriores à migration 047. Nenhum código lê ou escreve, mas as três primeiras têm dados e continuam vindo na resposta da API porque a versão antiga fazia <code>SELECT *</code>.</p>
+  </div>
+
+  <div class="cartao">
+    <h3>skill_niveis</h3>
+    <p class="resumo">Evoluções de nível 2 e 3 de uma skill. <span class="rotulo r-uk">UNIQUE</span> <code>(skill_id, nivel)</code> total → o DELETE é <strong>hard</strong>. Vazia.</p>
+    <p>Cada campo <code>*_override</code> (<code>nome</code>, <code>damage_base</code>, <code>multiplicador</code>, <code>effect_description</code>) substitui o da skill base quando preenchido. <code>damage_multiplier_pct</code> é um bônus percentual de dano.</p>
+  </div>
+
+  <h3>As duas tabelas de progressão</h3>
+  <p>É fácil trocar uma pela outra — têm propósitos diferentes.</p>
+  <table>
+    <thead><tr><th style="width:26%">Tabela</th><th style="width:14%">Escopo</th><th>Colunas e uso</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="col-mono">level_progression</td>
+        <td>personagem</td>
+        <td><code>level</code> (UNIQUE), <code>tier</code>, <code>multiplier</code>, <code>xp_required_next</code>, <code>xp_total_accumulated</code>. <strong>27 níveis.</strong> É a tabela percorrida para decidir o nível a partir do XP acumulado</td>
+      </tr>
+      <tr>
+        <td class="col-mono">class_level_progression</td>
+        <td>classe</td>
+        <td><code>classe_id</code>, <code>nivel</code>, <code>xp_necessario</code>, com UNIQUE <code>(classe_id, nivel)</code>. Alimenta <code>data.classes[].xp</code>. Vazia</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="aviso">
+    <p>O código antigo consultava colunas que <strong>não existem</strong> em <code>level_progression</code> (<code>nivel</code>, <code>xp_necessario</code> — que são da <em>outra</em> tabela). O resultado é que <strong>conceder XP nunca subia o nível de ninguém</strong>. Nas duas o UNIQUE é total, então apagar um nível é hard delete.</p>
+  </div>
+</section>
+
+<!-- ══════════════════════════ 7 ══════════════════════════ -->
+<section class="pagina">
+  <h2>7. Equipamento</h2>
+
+  <p>Existem <strong>duas hierarquias paralelas</strong> de classificação de equipamento no banco. Só uma é usada. Saber qual poupa muito tempo.</p>
+
+  <figure>
+  <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+    <defs>
+      <marker id="s2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#8a919e"/>
+      </marker>
+    </defs>
+
+    <text x="16" y="20" font-size="10.5" font-weight="650" fill="#1f5c3d">EM USO — 15 equipamentos cadastrados</text>
+    <rect x="16" y="30" width="356" height="118" rx="4" fill="#eef7f1" stroke="#a8c6b3"/>
+
+    <rect x="34" y="46" width="150" height="30" rx="3" fill="#16181d"/>
+    <text x="109" y="66" text-anchor="middle" fill="#fff" font-size="11" font-weight="620">equipamentos</text>
+
+    <g font-size="9.5">
+      <rect x="212" y="42" width="142" height="22" rx="3" fill="#fff" stroke="#c3cad4"/>
+      <text x="283" y="57" text-anchor="middle">categoria_equipamento</text>
+      <line x1="184" y1="56" x2="206" y2="53" stroke="#8a919e" stroke-width="1.1" marker-end="url(#s2)"/>
+
+      <rect x="212" y="68" width="142" height="22" rx="3" fill="#fff" stroke="#c3cad4"/>
+      <text x="283" y="83" text-anchor="middle">classe_equipamento</text>
+      <line x1="184" y1="61" x2="206" y2="79" stroke="#8a919e" stroke-width="1.1" marker-end="url(#s2)"/>
+
+      <rect x="212" y="94" width="142" height="22" rx="3" fill="#fff" stroke="#c3cad4"/>
+      <text x="283" y="109" text-anchor="middle">tipo_equipamento</text>
+      <line x1="184" y1="66" x2="206" y2="105" stroke="#8a919e" stroke-width="1.1" marker-end="url(#s2)"/>
+
+      <rect x="212" y="120" width="142" height="22" rx="3" fill="#fff" stroke="#c3cad4"/>
+      <text x="283" y="135" text-anchor="middle">propriedade_equipamento</text>
+      <line x1="184" y1="71" x2="206" y2="131" stroke="#8a919e" stroke-width="1.1" marker-end="url(#s2)"/>
+    </g>
+    <text x="34" y="90" font-size="8.5" fill="#5b6270">categoria: 1 só</text>
+    <text x="34" y="102" font-size="8.5" fill="#5b6270">classe/tipo/prop:</text>
+    <text x="34" y="113" font-size="8.5" fill="#5b6270">arrays INTEGER[]</text>
+
+    <text x="404" y="20" font-size="10.5" font-weight="650" fill="#8c2f2f">PARALELA — praticamente vazia</text>
+    <rect x="404" y="30" width="340" height="238" rx="4" fill="#fcf0f0" stroke="#d9b3b3"/>
+
+    <rect x="422" y="44" width="140" height="24" rx="3" fill="#fff" stroke="#c3cad4"/>
+    <text x="492" y="60" text-anchor="middle" font-size="9.5">equipamento_tipo</text>
+    <text x="572" y="60" font-size="8" fill="#5b6270">5 linhas</text>
+
+    <g font-size="9">
+      <rect x="422" y="86" width="120" height="22" rx="3" fill="#fff" stroke="#c3cad4"/>
+      <text x="482" y="101" text-anchor="middle">categoria_arma</text>
+      <text x="550" y="101" font-size="8" fill="#5b6270">1</text>
+      <line x1="470" y1="68" x2="470" y2="82" stroke="#8a919e" stroke-width="1" marker-end="url(#s2)"/>
+
+      <rect x="422" y="114" width="120" height="22" rx="3" fill="#fff" stroke="#c3cad4"/>
+      <text x="482" y="129" text-anchor="middle">categoria_armadura</text>
+      <text x="550" y="129" font-size="8" fill="#5b6270">0</text>
+
+      <rect x="422" y="142" width="120" height="22" rx="3" fill="#fff" stroke="#c3cad4"/>
+      <text x="482" y="157" text-anchor="middle">categoria_variados</text>
+      <text x="550" y="157" font-size="8" fill="#5b6270">0</text>
+
+      <rect x="596" y="86" width="132" height="22" rx="3" fill="#fff" stroke="#c3cad4"/>
+      <text x="662" y="101" text-anchor="middle">propriedade_arma</text>
+      <line x1="542" y1="97" x2="590" y2="97" stroke="#8a919e" stroke-width="1" marker-end="url(#s2)"/>
+
+      <rect x="596" y="114" width="132" height="22" rx="3" fill="#fff" stroke="#c3cad4"/>
+      <text x="662" y="129" text-anchor="middle">classe_arma</text>
+      <line x1="542" y1="103" x2="590" y2="125" stroke="#8a919e" stroke-width="1" marker-end="url(#s2)"/>
+
+      <rect x="596" y="142" width="132" height="22" rx="3" fill="#fff" stroke="#c3cad4"/>
+      <text x="662" y="157" text-anchor="middle">propriedade_armadura</text>
+
+      <rect x="596" y="170" width="132" height="22" rx="3" fill="#fff" stroke="#c3cad4"/>
+      <text x="662" y="185" text-anchor="middle">classe_armadura</text>
+
+      <rect x="596" y="198" width="132" height="22" rx="3" fill="#fff" stroke="#c3cad4"/>
+      <text x="662" y="213" text-anchor="middle">propriedade_variados</text>
+
+      <rect x="596" y="226" width="132" height="22" rx="3" fill="#fff" stroke="#c3cad4"/>
+      <text x="662" y="241" text-anchor="middle">classe_variados</text>
+    </g>
+
+    <text x="422" y="192" font-size="8.5" fill="#8c2f2f" font-weight="600">Nenhuma coluna de</text>
+    <text x="422" y="203" font-size="8.5" fill="#8c2f2f" font-weight="600">`equipamentos` aponta</text>
+    <text x="422" y="214" font-size="8.5" fill="#8c2f2f" font-weight="600">para esta hierarquia.</text>
+    <text x="422" y="232" font-size="8.5" fill="#5b6270">Editável em</text>
+    <text x="422" y="243" font-size="8.5" fill="#5b6270">/master/tabelas-acessorias</text>
+
+    <text x="16" y="176" font-size="9" fill="#5b6270">A hierarquia da esquerda é a que o cadastro de equipamento realmente usa.</text>
+    <text x="16" y="190" font-size="9" fill="#5b6270">A da direita tem tela própria, backend próprio e 1 linha de dado.</text>
+  </svg>
+  <figcaption>As duas hierarquias de classificação. Ao mexer em equipamento, a da esquerda é a que importa.</figcaption>
+  </figure>
+
+  <div class="cartao">
+    <h3>equipamentos</h3>
+    <p class="resumo">Armas, armaduras e itens. <strong>15 linhas.</strong> Antes se chamava <code>armas</code>.</p>
+    <table>
+      <thead><tr><th style="width:32%">Coluna</th><th style="width:18%">Tipo</th><th>Notas</th></tr></thead>
+      <tbody>
+        <tr><td class="col-mono">nome</td><td class="col-tipo">VARCHAR</td><td><span class="rotulo r-nn">NOT NULL</span></td></tr>
+        <tr><td class="col-mono">dano</td><td class="col-tipo">VARCHAR</td><td><span class="rotulo r-nn">NOT NULL</span> item que não é arma grava <strong>string vazia</strong>, nunca null</td></tr>
+        <tr><td class="col-mono">peso / valor</td><td class="col-tipo">NUMERIC</td><td>kg e moedas</td></tr>
+        <tr><td class="col-mono">descricao_equipamento</td><td class="col-tipo">VARCHAR</td><td></td></tr>
+        <tr><td class="col-mono">pre_requisitos</td><td class="col-tipo">VARCHAR</td><td></td></tr>
+        <tr><td class="col-mono">categoria_equipamento_item</td><td class="col-tipo">INTEGER</td><td><strong>uma só</strong> <span class="rotulo r-fk">REF</span> <code>categoria_equipamento.item</code></td></tr>
+        <tr><td class="col-mono">classe_equipamento_item</td><td class="col-tipo">INTEGER[]</td><td><span class="rotulo r-nn">NOT NULL</span> lista</td></tr>
+        <tr><td class="col-mono">tipo_equipamento_item</td><td class="col-tipo">INTEGER[]</td><td><span class="rotulo r-nn">NOT NULL</span> lista</td></tr>
+        <tr><td class="col-mono">propriedade_equipamento_item</td><td class="col-tipo">INTEGER[]</td><td><span class="rotulo r-nn">NOT NULL</span> lista</td></tr>
+      </tbody>
+    </table>
+    <div class="aviso">
+      <p><strong>Assimetria fácil de inverter:</strong> categoria é <em>uma só</em> (coluna <code>integer</code>), enquanto classe, tipo e propriedade são <em>listas</em> (<code>integer[]</code>). A documentação do projeto descrevia o contrário até a migração do módulo.</p>
+    </div>
+    <p style="font-size:8.4pt;color:var(--tinta-fraca)">Nenhuma tabela aponta para <code>equipamentos</code>. O que o personagem carrega é uma cópia dentro de <code>characters.data.equipamentos_iniciais</code> e <code>data.inventario</code>.</p>
+  </div>
+
+  <div class="grade2">
+    <div class="cartao">
+      <h3>categoria_equipamento</h3>
+      <p class="resumo">Topo da hierarquia. <strong>8 linhas.</strong></p>
+      <p><code>item</code> PK, <code>descricao</code>, <code>icone</code>. Seed: Armadura, Exploração, Cura, Cosmético, Utilitário, Armas.</p>
+      <p style="font-size:8.4pt">É apontada por <code>equipamentos</code>, <code>tipo_equipamento.categoria_item</code> e <code>propriedade_equipamento.categoria_item</code>.</p>
+    </div>
+    <div class="cartao">
+      <h3>classe_equipamento</h3>
+      <p class="resumo">Dimensão independente. <strong>8 linhas.</strong></p>
+      <p>Não é pai de ninguém. Ex.: Simples, Marcial, Exótica, Couro.</p>
+    </div>
+    <div class="cartao">
+      <h3>tipo_equipamento</h3>
+      <p class="resumo">Filho de categoria. <strong>10 linhas.</strong></p>
+      <p>Ex.: Corpo a corpo, Longo alcance. Tem também uma coluna <code>classe_item</code> herdada, vazia em todas as linhas e não mapeada no código.</p>
+    </div>
+    <div class="cartao">
+      <h3>propriedade_equipamento</h3>
+      <p class="resumo">Filho de categoria. <strong>26 linhas.</strong></p>
+      <p>Ex.: Ágil, Área. Mesma estrutura de <code>tipo_equipamento</code>, mesma <code>classe_item</code> vazia.</p>
+    </div>
+  </div>
+
+  <div class="nota">
+    <p><strong>O <code>item</code> vem da sequence do banco.</strong> A versão antiga calculava <code>MAX(item)+1</code> numa consulta à parte: duas idas ao banco por inserção, duas criações simultâneas escolhendo o mesmo número, e a sequence nunca avançando. Ver a armadilha nº 2 na última seção.</p>
+  </div>
+</section>
+
+<!-- ══════════════════════════ 8 ══════════════════════════ -->
+<section class="pagina">
+  <h2>8. Lookups fixos</h2>
+
+  <div class="grade2">
+    <div class="cartao">
+      <h3>indole</h3>
+      <p class="resumo">Alinhamento. <strong>5 linhas</strong>, seed fixo.</p>
+      <p><code>id</code> PK, <code>codigo</code> (UNIQUE), <code>descricao</code>.</p>
+      <p><code>bom</code>, <code>neutro-bom</code>, <code>neutro</code>, <code>neutro-ruim</code>, <code>ruim</code>.</p>
+      <p style="font-size:8.4pt">Apontada por <code>characters</code>, <code>gods</code> e <code>character_creation_requests</code>.</p>
+    </div>
+    <div class="cartao">
+      <h3>genero</h3>
+      <p class="resumo">Gênero e pronome. <strong>3 linhas</strong>, seed fixo.</p>
+      <p><code>id</code> PK, <code>codigo</code> (UNIQUE), <code>descricao</code>, <code>pronome</code>.</p>
+      <p><code>ela</code>, <code>ele</code>, <code>outro</code>.</p>
+      <p style="font-size:8.4pt">Apontada por <code>characters</code> e <code>character_creation_requests</code>.</p>
+    </div>
+  </div>
+
+  <h3>Lookups de skill</h3>
+  <p>Todos seguem o padrão <code>item INTEGER</code> PK + <code>descricao</code> + soft delete + auditoria. Editáveis em <code>/master/skills</code>.</p>
+  <table>
+    <thead><tr><th style="width:26%">Tabela</th><th style="width:10%">Linhas</th><th>Referenciada por</th></tr></thead>
+    <tbody>
+      <tr><td class="col-mono">skill_tipo</td><td>4</td><td><code>skills.skill_tipo_item</code> — valor único</td></tr>
+      <tr><td class="col-mono">skill_categoria</td><td>6</td><td><code>skills.skill_categoria_item[]</code> — array</td></tr>
+      <tr><td class="col-mono">skill_tipo_dano</td><td>8</td><td><code>skills.skill_tipo_dano_item[]</code> — array</td></tr>
+      <tr><td class="col-mono">skill_natureza</td><td>3</td><td><code>skills.skill_natureza_item</code> — Ativa, Passiva, Assinatura</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Tabelas acessórias de equipamento</h3>
+  <p>A hierarquia paralela da seção anterior. Todas com <code>item</code> PK + <code>descricao</code>, soft delete e auditoria. Editáveis em <code>/master/tabelas-acessorias</code>.</p>
+  <table>
+    <thead><tr><th style="width:26%">Tabela</th><th style="width:10%">Linhas</th><th>Pai</th></tr></thead>
+    <tbody>
+      <tr><td class="col-mono">equipamento_tipo</td><td>5</td><td>— &nbsp;(seed: Arma, Armadura, Variados)</td></tr>
+      <tr><td class="col-mono">categoria_arma</td><td>1</td><td><code>equipamento_tipo_item</code></td></tr>
+      <tr><td class="col-mono">categoria_armadura</td><td>0</td><td><code>equipamento_tipo_item</code></td></tr>
+      <tr><td class="col-mono">categoria_variados</td><td>0</td><td><code>equipamento_tipo_item</code></td></tr>
+      <tr><td class="col-mono">propriedade_arma</td><td>0</td><td><code>categoria_arma_item</code></td></tr>
+      <tr><td class="col-mono">classe_arma</td><td>0</td><td><code>categoria_arma_item</code></td></tr>
+      <tr><td class="col-mono">propriedade_armadura</td><td>0</td><td><code>categoria_armadura_item</code></td></tr>
+      <tr><td class="col-mono">classe_armadura</td><td>0</td><td><code>categoria_armadura_item</code></td></tr>
+      <tr><td class="col-mono">propriedade_variados</td><td>0</td><td><code>categoria_variados_item</code></td></tr>
+      <tr><td class="col-mono">classe_variados</td><td>0</td><td><code>categoria_variados_item</code></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ══════════════════════════ 9 ══════════════════════════ -->
+<section class="pagina">
+  <h2>9. Fluxos do sistema</h2>
+
+  <h3>9.1 Autenticação</h3>
+  <p>JWT próprio, emitido pelo backend. Não há sessão no servidor: sair é apagar o que está guardado no navegador.</p>
+  <ol class="fluxo">
+    <li><strong><code>POST /api/auth/login</code></strong> com <code>{ identificador, senha }</code>. O identificador é o <em>username</em> do jogador ou o <em>e-mail real</em> do mestre.
+      <span class="toca">lê: usuarios.username, usuarios.real_email, usuarios.password_hash (bcrypt)</span></li>
+    <li>Recusa se <code>ativo = false</code>, ou se <code>password_hash</code> for <strong>nulo</strong> — nulo significa pré-registro, conta ainda não criada.</li>
+    <li>Resposta: <code>{ tokenAcesso, tipo, precisaTrocarSenha, usuario }</code>. O <code>tipo</code> (<code>gm</code>/<code>player</code>) viaja <strong>dentro do JWT</strong> — é daí que sai a decisão de quem é mestre.
+      <span class="toca">JWT: { usuarioId, email, tipo }</span></li>
+    <li>O navegador guarda <code>rpg-mesa.token</code> e <code>rpg-mesa.auth-meta</code> no <code>localStorage</code>. A sessão expira em 24 h, verificado no router guard e no store.</li>
+    <li>Cada requisição leva <code>Authorization: Bearer &lt;token&gt;</code>. O <code>JwtAuthGuard</code> valida e publica o usuário no contexto (AsyncLocalStorage) — de onde os hooks do Sequelize tiram o autor da auditoria.</li>
+    <li>Se <code>requires_password_change</code> for verdadeiro, aparece o modal obrigatório de troca: no <code>DashboardView</code> para jogador, no <code>MasterPanelView</code> para mestre.
+      <span class="toca">grava: usuarios.password_hash, usuarios.requires_password_change = false</span></li>
+  </ol>
+
+  <h3>9.2 Criação de personagem</h3>
+  <ol class="fluxo">
+    <li><strong>Mestre pré-registra o e-mail</strong> em <code>/master/usuarios</code>. Sem isso a submissão é recusada.
+      <span class="toca">grava: usuarios (password_hash nulo)</span></li>
+    <li>Jogador abre <code>/</code>, escolhe o mundo, cai em <code>/mundo/:slug</code> e abre "Criar Novo Personagem".</li>
+    <li>Sobe o avatar por <code>POST /api/character-creation-requests/upload-avatar</code> — rota <strong>pública</strong>, porque quem submete ainda não tem conta.
+      <span class="toca">grava: uploads/pendentes/&lt;arquivo&gt;.png</span></li>
+    <li>Submete <code>POST /api/character-creation-requests</code>. O backend confere pré-registro, formato e unicidade do username, e as regras de tamanho: aparência ≥ 100 letras, história ≥ 1000 letras ou documento.
+      <span class="toca">grava: character_creation_requests (password_hash em bcrypt)</span></li>
+    <li>Jogador vê "Aguardando aprovação" — <strong>sem login automático</strong>.</li>
+    <li>Mestre vê o sino em <code>/master</code> e abre <code>/master/logins</code>.
+      <span class="toca">lê: character_creation_requests WHERE status = 'pendente'</span></li>
+    <li><strong>Aprovando:</strong> o pré-registro em <code>usuarios</code> é preenchido com o hash já pronto, e o personagem é criado. Se a criação do personagem falhar, a conta é desfeita para não ficar órfã.
+      <span class="toca">grava: usuarios.password_hash · characters</span></li>
+    <li><strong>Rejeitando:</strong> grava o motivo. O username volta a ficar livre — o índice único cobre só <code>pendente</code> e <code>aprovado</code>.</li>
+  </ol>
+  <div class="bom">
+    <p><strong>A senha nunca é recuperável a partir do banco.</strong> Antes era AES-256-CBC reversível, porque o texto puro era necessário para criar a conta no Supabase Auth — e a chave de criptografia estava no valor padrão do código. Como a conta agora nasce no próprio backend, basta transferir o hash.</p>
+  </div>
+
+  <h3 class="pagina" style="margin-top:0">9.3 Onboarding — as 6 etapas</h3>
+  <p>Depois de aprovado, o jogador entra e passa pelo onboarding antes do dashboard. <code>DashboardView</code> detecta <code>onboarding_completo = false</code> e redireciona. Mestres nunca são redirecionados.</p>
+  <table>
+    <thead><tr><th style="width:6%">#</th><th style="width:16%">Etapa</th><th style="width:38%">Endpoint</th><th>Onde grava</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Raça</td><td class="col-mono">PATCH /personagens/:id/escolher-raca</td><td class="col-mono">characters.raca_id</td></tr>
+      <tr><td>2</td><td>Classe</td><td class="col-mono">PATCH /personagens/:id/escolher-classe</td><td class="col-mono">characters.classe_id + data.classes (2 pontos de skill)</td></tr>
+      <tr><td>2b</td><td>Skill inicial</td><td class="col-mono">POST /personagens/:id/escolher-skill-inicial</td><td class="col-mono">data.skills — gasta 1 ponto, sobe o nível da classe</td></tr>
+      <tr><td>3</td><td>Passado</td><td class="col-mono">PATCH /personagens/:id/escolher-passado</td><td class="col-mono">characters.passado_id</td></tr>
+      <tr><td>4</td><td>Atributos</td><td class="col-mono">PATCH /personagens/:id/definir-atributos</td><td class="col-mono">data.atributos_base, _bonus_passado, atributos</td></tr>
+      <tr><td>5</td><td>Deus</td><td class="col-mono">PATCH /personagens/:id/escolher-deus</td><td class="col-mono">characters.deus_id — pode ser pulada</td></tr>
+      <tr><td>6</td><td>Equipamentos</td><td class="col-mono">PATCH /personagens/:id/concluir-onboarding</td><td class="col-mono">data.equipamentos_iniciais + onboarding_completo = true</td></tr>
+    </tbody>
+  </table>
+  <p>A etapa 2b só aparece se a classe tiver <code>starting_skills</code>. O jogador pode voltar livremente às etapas já concluídas pelo stepper do topo.</p>
+  <div class="nota">
+    <p><strong>Capacidade de carga (etapa 6):</strong> <code>peso máximo = 2 + força × 2</code>, onde a força já inclui o bônus do passado. O backend valida na conclusão — não dá para passar do limite pelo cliente.</p>
+    <p><strong>Atributos:</strong> 10 pontos distribuíveis. O <code>data</code> guarda as três parcelas separadas de propósito, para o bônus do passado poder ser recalculado sem perder o que o jogador escolheu.</p>
+  </div>
+
+  <h3>9.4 Pedido de alteração da ficha</h3>
+  <ol class="fluxo">
+    <li>Jogador abre "Gerenciar Personagem" no dashboard e pede a mudança (nome, avatar, aparência, história).
+      <span class="toca">grava: characters.data.pendingChangeRequest — e sobe arquivo por /personagens/:id/upload-avatar</span></li>
+    <li>O pedido aparece para o mestre. Há índice parcial em <code>data ? 'pendingChangeRequest'</code> justamente para essa listagem ser barata.
+      <span class="toca">lê: GET /personagens/admin/solicitacoes</span></li>
+    <li>Mestre revisa. Aprovando, os campos pedidos são aplicados ao personagem e o <code>pendingChangeRequest</code> é removido.
+      <span class="toca">grava: characters (campos aprovados)</span></li>
+  </ol>
+
+  <h3>9.5 Progressão e XP</h3>
+  <ol class="fluxo">
+    <li>Mestre concede XP <strong>ao personagem</strong> (<code>PATCH /personagens/admin/:id/atribuir-xp-personagem</code>) ou <strong>a uma classe</strong> (<code>.../atribuir-xp</code>). São coisas distintas.</li>
+    <li>Para o personagem: o XP é somado a <code>data.xp</code> e o nível é recalculado percorrendo <code>level_progression</code> por <code>xp_total_accumulated</code>.
+      <span class="toca">lê: level_progression · grava: characters.level, data.xp</span></li>
+    <li>Mestre também concede pontos de classe e de skill, que o jogador gasta depois.
+      <span class="toca">grava: data.classPoints, data.classes[].skillPoints</span></li>
+    <li>Jogador gasta: adquire classe nova (<code>POST /personagens/:id/escolher-classe</code>), converte ponto de classe em ponto de skill (<code>.../levar-classe</code>) ou distribui atributos.</li>
+  </ol>
+
+  <h3>9.6 Classes secretas</h3>
+  <ol class="fluxo">
+    <li>A classe é marcada com <code>is_secret = true</code>. Some do onboarding e da listagem dos outros jogadores.</li>
+    <li>Mestre revela em <code>/master/classes-secretas</code>: escolhe a classe e o personagem (só <strong>vivos</strong> aparecem).
+      <span class="toca">grava: classe_secreta_revelada (UNIQUE classe_id — um titular por classe)</span></li>
+    <li>Títulos com <code>classe_secreta_id</code> preenchido passam a aparecer para aquele jogador, e só para ele.</li>
+    <li>Revogar é <strong>hard delete</strong> — o UNIQUE total não admite soft delete.</li>
+    <li>Marcar o personagem como <strong>morto</strong> (<code>PATCH /personagens/admin/:id/status</code>) apaga todos os registros dele, liberando as classes automaticamente.
+      <span class="toca">grava: characters.status · apaga: classe_secreta_revelada</span></li>
+  </ol>
+
+  <h3>9.7 Liberação de telas e NPCs</h3>
+  <ol class="fluxo">
+    <li>Mestre define em <code>/master/telas</code> quais telas o personagem enxerga. O <code>PUT</code> substitui o conjunto inteiro.
+      <span class="toca">grava: player_telas (apaga tudo e reinsere)</span></li>
+    <li>Em <code>/master/npcs</code>, aba de acessos, marca quais personagens veem cada NPC.
+      <span class="toca">grava/apaga: npc_acesso_player (hard delete)</span></li>
+    <li>O jogador consulta <code>GET /player-telas/me?characterId=</code> e <code>GET /npcs/player?characterId=</code>. As duas rotas checam que o personagem é dele.</li>
+  </ol>
+
+  <h3>9.8 Upload de arquivos</h3>
+  <ol class="fluxo">
+    <li>O arquivo sobe pelo backend — <strong>nunca direto do navegador para o storage</strong>, como era no Supabase.</li>
+    <li>Imagem passa por <code>sharp</code>: rotaciona pelo EXIF, cabe em 800×800 e vira PNG com compressão máxima. Limite de 5 MB na entrada.</li>
+    <li>O nome é higienizado (sem acento, minúsculo) e recebe sufixo numérico <strong>só em colisão real com conteúdo diferente</strong>. Reenviar o mesmo arquivo reaproveita o que já está lá, em vez de duplicar.
+      <span class="toca">grava: uploads/&lt;subpasta&gt;/&lt;nome&gt;.png</span></li>
+    <li>A rota devolve <code>{ path, publicUrl }</code>. O banco guarda o <strong>path relativo</strong>; a URL completa é remontada em toda leitura.</li>
+  </ol>
+  <p>Subpastas: <code>gods</code>, <code>maps</code>, <code>racas</code>, <code>passados</code>, <code>npcs</code>, <code>campanhas</code>, <code>lore</code>, <code>personagens</code> (avatar e história de personagem existente) e <code>pendentes</code> (solicitação de criação).</p>
+  <p>Todas as rotas de upload exigem mestre, <strong>exceto</strong> as de <code>character-creation-requests</code> (públicas por necessidade) e as de <code>personagens/:id/*</code>, que exigem ser dono do personagem.</p>
+</section>
+
+<!-- ══════════════════════════ 10 ══════════════════════════ -->
+<section class="pagina">
+  <h2>10. Armadilhas conhecidas</h2>
+
+  <p>Cada uma destas já causou um bug real neste projeto. Todas falham em silêncio — nenhuma dá erro na hora.</p>
+
+  <h3>1. Coluna NOT NULL recebendo <code>null</code> explícito</h3>
+  <p>O default do Postgres <strong>só se aplica quando a coluna é omitida do INSERT</strong>. Passar <code>null</code> explicitamente viola a constraint. Já aconteceu em <code>classes.starting_skills</code>, <code>equipamentos.dano</code>, <code>skills.description</code>, <code>titles.bonuses</code> e <code>lore_notes.content</code>. Ao mexer num módulo, confira toda coluna NOT NULL com default.</p>
+
+  <h3>2. Sequences dessincronizadas</h3>
+  <p>O código antigo escolhia a chave com <code>MAX(item)+1</code> e mandava o valor explícito. A sequence nunca era chamada e ficou parada no início enquanto os dados avançavam. Ao passar a deixar o banco gerar a chave, a primeira inserção estoura com <em>duplicate key</em>. Aconteceu em <code>skill_tipo_dano</code>, parada em 1 com registros até o item 8.</p>
+  <p>A migration <strong>067</strong> percorre toda sequence ligada a uma coluna e a adianta para o maior valor gravado. É idempotente — rode de novo antes de mexer em qualquer módulo que ainda escolha chave na mão.</p>
+  <div class="nota">
+    <p>Ao escrever essa verificação: uma sequence <strong>nunca usada</strong> (<code>is_called = false</code>) devolve o próprio <code>last_value</code> no primeiro <code>nextval</code>, e não <code>last_value + 1</code>. Comparar só o <code>last_value</code> com o máximo deixa passar exatamente esse caso.</p>
+  </div>
+
+  <h3>3. UNIQUE total impede soft delete</h3>
+  <p>Quatro tabelas têm índice único sem <code>WHERE deleted_at IS NULL</code>: <code>classe_secreta_revelada</code>, <code>class_level_progression</code>, <code>skill_niveis</code> e <code>npc_acesso_player</code>. Nelas uma linha soft-deletada continuaria ocupando a chave e impediria recriar o registro — e o culpado estaria invisível na listagem. Por isso o DELETE nessas quatro é de verdade.</p>
+  <p>O caso oposto também morde: <code>character_creation_requests.username</code> tinha índice <em>total</em>, o que impedia um jogador rejeitado de reenviar. Virou parcial na migration 069.</p>
+
+  <h3>4. <code>PATCH</code> que substitui o JSONB inteiro</h3>
+  <p><code>PATCH /api/personagens/:id</code> troca <code>data</code> por completo. Mandar um objeto parcial apaga atributos, classes, skills e inventário sem erro nenhum. Ler, alterar a chave, devolver o objeto inteiro.</p>
+
+  <h3>5. Caminho relativo devolvido cru</h3>
+  <p>O banco guarda <code>personagens/inari.png</code>; o frontend precisa da URL completa. Toda leitura que expõe imagem precisa passar por <code>montarUrlPublica</code>. Esquecer não dá erro — devolve o caminho cru e o navegador busca contra a própria origem, dando 404.</p>
+  <p>Ficou escondido por muito tempo porque todas as linhas ainda tinham URL completa do Supabase gravada, e a função deixa URL completa passar intacta. Quatro caminhos de leitura estavam errados e só apareceram quando a primeira linha passou a guardar caminho relativo.</p>
+
+  <h3>6. <code>Promise.all</code> em carregador de tela</h3>
+  <p>Uma dependência que falha derruba a tela inteira, mesmo que as outras tenham respondido. Já corrigido com <code>Promise.allSettled</code> em <code>MasterProgressaoView</code> e <code>ClassesView</code>; vale conferir em qualquer tela que ainda apareça em branco.</p>
+
+  <h3>7. RLS ligado sem policy</h3>
+  <p>42 tabelas com row level security ativo e quase nenhuma policy. Só funciona porque o papel da aplicação tem <code>BYPASSRLS</code>. Trocar o papel da conexão por um sem esse atributo faria a maioria das tabelas parecer vazia — sem erro, só sem dados.</p>
+
+  <h3>8. Referência sem FOREIGN KEY</h3>
+  <p>Apagar um registro referenciado não dá erro. A limpeza é manual, e está implementada só para a deleção de skill do catálogo — que remove o id de <code>passados.skill_ids</code>, <code>titles.skill_ids</code> e o nome de <code>classes.starting_skills</code>. As skills já concedidas em <code>characters.data.skills</code> <strong>não</strong> são removidas: são histórico pessoal.</p>
+  <p><code>classes.passive_skills</code> e <code>signature_skill</code> não são limpos por ninguém.</p>
+
+  <div class="nota" style="margin-top:18pt">
+    <p>Documento gerado a partir do estado real do banco em 7 de setembro de 2026. Fonte do arquivo: <code>docs/banco-de-dados.html</code>. Para regerar o PDF, renderize esse HTML com o navegador em modo headless.</p>
+  </div>
+</section>
+
+</body>
+</html>
