@@ -12,7 +12,7 @@ export interface SubmeterCriacaoPayload {
   aparenciaFisica?: string
   historiaTexto?: string
   historiaDocUrl?: string
-  campaignId?: string | null
+  campaignId?: number | null
 }
 
 export async function submeterSolicitacaoCriacao(

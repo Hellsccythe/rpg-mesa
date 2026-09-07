@@ -138,6 +138,15 @@ Sistema de gestão de sessões de RPG de mesa. Monorepo com Yarn 4 Workspaces.
 | POST | `/api/classes/secretas/admin/revelar` | isMaster (revela classe secreta a um personagem) |
 | DELETE | `/api/classes/secretas/admin/revogar/:classeId` | isMaster (revoga acesso) |
 | PATCH | `/api/personagens/admin/:id/status` | isMaster (vivo \| morto; morte libera classe secreta) |
+| GET | `/api/campanhas` | público (só as ativas) |
+| GET | `/api/campanhas/:slug` | público |
+| GET | `/api/campanhas/admin/listar` | isMaster (inclui inativas) |
+| POST | `/api/campanhas/admin` | isMaster |
+| PATCH | `/api/campanhas/admin/:id` | isMaster |
+| DELETE | `/api/campanhas/admin/:id` | isMaster (soft delete, 204) |
+| POST | `/api/campanhas/admin/upload-capa` | isMaster (multipart `file`) |
+| GET/POST | `/api/campanhas/admin/:id/gms` | isMaster |
+| DELETE | `/api/campanhas/admin/:id/gms/:gmId` | isMaster (soft delete, 204) |
 | GET | `/api/npcs/admin` | isMaster |
 | POST | `/api/npcs/admin` | isMaster |
 | PATCH | `/api/npcs/admin/:id` | isMaster |

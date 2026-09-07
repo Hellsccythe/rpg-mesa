@@ -15,7 +15,6 @@ import { UsuariosService } from "./modules/usuarios/usuarios.service.js";
 import { registrarServicoUsuarios } from "./modules/usuarios/usuarios.ponte.js";
 import { PersonagensRouter } from "./modules/personagem/personagens.module.js";
 import { CharacterCreationRouter } from "./modules/character-creation/character-creation.module.js";
-import { CampanhasRouter } from "./modules/campanhas/campanhas.module.js";
 
 async function iniciarAplicacao(): Promise<void> {
   const aplicacao = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -65,7 +64,6 @@ async function iniciarAplicacao(): Promise<void> {
   // conforme for migrado — tabelas-acessorias já saiu, por exemplo.
   aplicacao.use("/api/personagens", PersonagensRouter);
   aplicacao.use("/api/character-creation-requests", CharacterCreationRouter);
-  aplicacao.use("/api/campanhas", CampanhasRouter);
 
   const porta = Number(process.env.PORT ?? 3000);
   await aplicacao.listen(porta);

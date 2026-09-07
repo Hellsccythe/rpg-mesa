@@ -21,6 +21,7 @@ import { PlayerTelasModule } from "./modules/player-telas/player-telas.module.js
 import { AdminModule } from "./modules/admin/admin.module.js";
 import { LoreNotesModule } from "./modules/lore-notes/lore-notes.module.js";
 import { NpcsModule } from "./modules/npcs/npcs.module.js";
+import { CampanhasModule } from "./modules/campanhas/campanhas.module.js";
 import { LevelProgressionModule } from "./modules/level-progression/level-progression.module.js";
 
 @Module({
@@ -50,6 +51,7 @@ import { LevelProgressionModule } from "./modules/level-progression/level-progre
     AdminModule,
     LoreNotesModule,
     NpcsModule,
+    CampanhasModule,
   ],
 })
 export class AppModule {}

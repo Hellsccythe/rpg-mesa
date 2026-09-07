@@ -1,199 +1,227 @@
-import { getAdminClient } from "../../config/database/supabase/client.js";
-import { ensureMasterAccess, getMasterEmails, getUserDisplayEmail } from "../../common/helpers/master-access.helper.js";
-
-const TABLE      = "campaigns";
-const TABLE_GMS  = "campaign_gms";
-const IMAGES_BUCKET = process.env.GAME_IMAGES_BUCKET ?? "game-images";
+import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { InjectModel } from "@nestjs/sequelize";
+import { ArmazenamentoArquivosService } from "../../common/storage/armazenamento-arquivos.service.js";
+import { CampanhaModel } from "./models/campanha.model.js";
+import { CampanhaGmModel } from "./models/campanha-gm.model.js";
+import type { AdicionarGmDto, CriarCampanhaDto, EditarCampanhaDto } from "./campanhas.dto.js";
 
 export type CampanhaApi = {
-  id: string;
+  id: number;
   slug: string;
   name: string;
   description: string | null;
   cover_image_url: string | null;
   is_active: boolean;
-  created_at: string;
-  updated_at: string;
+  created_at: string | null;
+  updated_at: string | null;
 };
 
 export type CampanhaGmApi = {
   id: number;
-  campaign_id: string;
+  campaign_id: number;
   email: string;
-  created_at: string;
+  created_at: string | null;
   created_by: string | null;
 };
 
-function mapRow(row: any): CampanhaApi {
-  return {
-    id:              row.id,
-    slug:            row.slug,
-    name:            row.name,
-    description:     row.description ?? null,
-    cover_image_url: row.cover_image_url ?? null,
-    is_active:       row.is_active ?? true,
-    created_at:      row.created_at,
-    updated_at:      row.updated_at,
-  };
+function formatarData(valor: unknown): string | null {
+  return valor instanceof Date ? valor.toISOString() : null;
 }
 
-export const campanhasService = {
-  async listar(): Promise<CampanhaApi[]> {
-    const { data, error } = await getAdminClient()
-      .from(TABLE)
-      .select("*")
-      .is("deleted_at", null)
-      .eq("is_active", true)
-      .order("created_at", { ascending: true });
-    if (error) throw error;
-    return (data ?? []).map(mapRow);
-  },
+function textoOuNulo(valor: string | null | undefined): string | null {
+  const texto = typeof valor === "string" ? valor.trim() : "";
+  return texto === "" ? null : texto;
+}
 
-  async listarAdmin(accessToken?: string): Promise<CampanhaApi[]> {
-    await ensureMasterAccess(accessToken);
-    const { data, error } = await getAdminClient()
-      .from(TABLE)
-      .select("*")
-      .is("deleted_at", null)
-      .order("created_at", { ascending: true });
-    if (error) throw error;
-    return (data ?? []).map(mapRow);
-  },
+/** Só letras minúsculas, números e hífen — é o que vai na URL. */
+function normalizarSlug(valor: string): string {
+  return valor.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-");
+}
+
+@Injectable()
+export class CampanhasService {
+  constructor(
+    @InjectModel(CampanhaModel)
+    private readonly modeloCampanha: typeof CampanhaModel,
+    @InjectModel(CampanhaGmModel)
+    private readonly modeloCampanhaGm: typeof CampanhaGmModel,
+    private readonly armazenamentoArquivos: ArmazenamentoArquivosService,
+  ) {}
+
+  // ── Campanhas ─────────────────────────────────────────────────────────────
+
+  /** Listagem pública: só as ativas. */
+  async listarAtivas(): Promise<CampanhaApi[]> {
+    const encontradas = await this.modeloCampanha.findAll({
+      where: { isActive: true },
+      order: [["createdAt", "ASC"]],
+    });
+    return encontradas.map((campanha) => this.mapear(campanha));
+  }
+
+  /** Listagem do mestre: inclui as inativas. */
+  async listarParaMestre(): Promise<CampanhaApi[]> {
+    const encontradas = await this.modeloCampanha.findAll({ order: [["createdAt", "ASC"]] });
+    return encontradas.map((campanha) => this.mapear(campanha));
+  }
 
   async buscarPorSlug(slug: string): Promise<CampanhaApi> {
-    const { data, error } = await getAdminClient()
-      .from(TABLE)
-      .select("*")
-      .eq("slug", slug)
-      .is("deleted_at", null)
-      .single();
-    if (error || !data) throw new Error("Campanha não encontrada");
-    return mapRow(data);
-  },
-
-  async criar(
-    dto: { slug: string; name: string; description?: string; cover_image_url?: string; is_active?: boolean },
-    accessToken?: string,
-  ): Promise<CampanhaApi> {
-    const user = await ensureMasterAccess(accessToken);
-    const email = getUserDisplayEmail(user);
-
-    const slug = dto.slug.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-");
-    if (!slug || !dto.name?.trim()) throw new Error("Slug e nome são obrigatórios");
-
-    const { data, error } = await getAdminClient()
-      .from(TABLE)
-      .insert({
-        slug,
-        name:            dto.name.trim(),
-        description:     dto.description?.trim() ?? null,
-        cover_image_url: dto.cover_image_url ?? null,
-        is_active:       dto.is_active ?? true,
-        created_by:      email,
-        updated_by:      email,
-      })
-      .select("*")
-      .single();
-    if (error) {
-      if (error.code === "23505") throw new Error("Já existe uma campanha com esse slug");
-      throw error;
+    const campanha = await this.modeloCampanha.findOne({ where: { slug: slug.trim() } });
+    if (!campanha) {
+      throw new NotFoundException("Campanha não encontrada.");
     }
-    return mapRow(data);
-  },
+    return this.mapear(campanha);
+  }
 
-  async editar(
-    id: string,
-    dto: { name?: string; description?: string; cover_image_url?: string; is_active?: boolean; slug?: string },
-    accessToken?: string,
-  ): Promise<CampanhaApi> {
-    const user = await ensureMasterAccess(accessToken);
-    const email = getUserDisplayEmail(user);
-
-    const patch: Record<string, unknown> = { updated_by: email, updated_at: new Date().toISOString() };
-    if (dto.name        !== undefined) patch.name            = dto.name.trim();
-    if (dto.description !== undefined) patch.description     = dto.description?.trim() ?? null;
-    if (dto.cover_image_url !== undefined) patch.cover_image_url = dto.cover_image_url ?? null;
-    if (dto.is_active   !== undefined) patch.is_active       = dto.is_active;
-    if (dto.slug        !== undefined) patch.slug             = dto.slug.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-");
-
-    const { data, error } = await getAdminClient()
-      .from(TABLE)
-      .update(patch)
-      .eq("id", id)
-      .is("deleted_at", null)
-      .select("*")
-      .single();
-    if (error) {
-      if (error.code === "23505") throw new Error("Já existe uma campanha com esse slug");
-      throw error;
+  async criar(dados: CriarCampanhaDto): Promise<CampanhaApi> {
+    const slug = normalizarSlug(dados.slug);
+    if (!slug) {
+      throw new ConflictException("Slug inválido depois de normalizado.");
     }
-    if (!data) throw new Error("Campanha não encontrada");
-    return mapRow(data);
-  },
+    await this.garantirSlugLivre(slug);
 
-  async deletar(id: string, accessToken?: string): Promise<void> {
-    const user = await ensureMasterAccess(accessToken);
-    const email = getUserDisplayEmail(user);
+    const criada = await this.modeloCampanha.create({
+      slug,
+      name: dados.name.trim(),
+      description: textoOuNulo(dados.description),
+      coverImageUrl: this.armazenamentoArquivos.normalizarParaArmazenamento(
+        dados.cover_image_url ?? null,
+      ),
+      isActive: dados.is_active ?? true,
+    });
 
-    const { error } = await getAdminClient()
-      .from(TABLE)
-      .update({ deleted_at: new Date().toISOString(), deleted_by: email })
-      .eq("id", id)
-      .is("deleted_at", null);
-    if (error) throw error;
-  },
+    return this.mapear(criada);
+  }
 
-  // ── GMs ────────────────────────────────────────────────────────────────────
-
-  async listarGms(campaignId: string, accessToken?: string): Promise<CampanhaGmApi[]> {
-    await ensureMasterAccess(accessToken);
-    const { data, error } = await getAdminClient()
-      .from(TABLE_GMS)
-      .select("*")
-      .eq("campaign_id", campaignId)
-      .order("created_at", { ascending: true });
-    if (error) throw error;
-    return (data ?? []) as CampanhaGmApi[];
-  },
-
-  async adicionarGm(campaignId: string, email: string, accessToken?: string): Promise<CampanhaGmApi> {
-    const user = await ensureMasterAccess(accessToken);
-    const byEmail = getUserDisplayEmail(user);
-
-    const { data, error } = await getAdminClient()
-      .from(TABLE_GMS)
-      .insert({ campaign_id: campaignId, email: email.trim().toLowerCase(), created_by: byEmail })
-      .select("*")
-      .single();
-    if (error) {
-      if (error.code === "23505") throw new Error("Este GM já está vinculado a esta campanha");
-      throw error;
+  async editar(id: number, dados: EditarCampanhaDto): Promise<CampanhaApi> {
+    const campanha = await this.modeloCampanha.findByPk(id);
+    if (!campanha) {
+      throw new NotFoundException("Campanha não encontrada.");
     }
-    return data as CampanhaGmApi;
-  },
 
-  async removerGm(campaignId: string, gmId: number, accessToken?: string): Promise<void> {
-    await ensureMasterAccess(accessToken);
-    const { error } = await getAdminClient()
-      .from(TABLE_GMS)
-      .delete()
-      .eq("id", gmId)
-      .eq("campaign_id", campaignId);
-    if (error) throw error;
-  },
+    if (dados.slug !== undefined) {
+      const slug = normalizarSlug(dados.slug);
+      if (!slug) {
+        throw new ConflictException("Slug inválido depois de normalizado.");
+      }
+      if (slug !== campanha.slug) {
+        await this.garantirSlugLivre(slug);
+        campanha.slug = slug;
+      }
+    }
+    if (dados.name !== undefined) campanha.name = dados.name.trim();
+    if (dados.description !== undefined) campanha.description = textoOuNulo(dados.description);
+    if (dados.cover_image_url !== undefined) {
+      campanha.coverImageUrl = this.armazenamentoArquivos.normalizarParaArmazenamento(
+        dados.cover_image_url,
+      );
+    }
+    if (dados.is_active !== undefined) campanha.isActive = dados.is_active;
 
-  // ── Verificação de acesso por email ────────────────────────────────────────
+    await campanha.save();
+    return this.mapear(campanha);
+  }
 
-  async emailTemAcessoCampanha(email: string, campaignId: string): Promise<boolean> {
-    const masterEmails = getMasterEmails();
-    if (masterEmails.includes(email.toLowerCase())) return true;
+  async deletar(id: number): Promise<void> {
+    const campanha = await this.modeloCampanha.findByPk(id);
+    if (!campanha) {
+      throw new NotFoundException("Campanha não encontrada.");
+    }
+    await campanha.destroy();
+  }
 
-    const { data } = await getAdminClient()
-      .from(TABLE_GMS)
-      .select("id")
-      .eq("campaign_id", campaignId)
-      .eq("email", email.toLowerCase())
-      .limit(1);
-    return (data ?? []).length > 0;
-  },
-};
+  // ── Mestres da campanha ───────────────────────────────────────────────────
+
+  async listarGms(campanhaId: number): Promise<CampanhaGmApi[]> {
+    await this.garantirCampanhaExistente(campanhaId);
+
+    const encontrados = await this.modeloCampanhaGm.findAll({
+      where: { campaignId: campanhaId },
+      order: [["createdAt", "ASC"]],
+    });
+
+    return encontrados.map((gm) => ({
+      id: gm.id,
+      campaign_id: gm.campaignId,
+      email: gm.email,
+      created_at: formatarData(gm.get("createdAt")),
+      created_by: gm.createdBy,
+    }));
+  }
+
+  /**
+   * A tabela não tem índice único em (campaign_id, email): o código antigo
+   * tratava o erro 23505 de chave duplicada, que nunca podia acontecer, e o
+   * mesmo GM podia ser cadastrado várias vezes. A checagem passa a ser feita
+   * aqui.
+   */
+  async adicionarGm(campanhaId: number, dados: AdicionarGmDto): Promise<CampanhaGmApi> {
+    await this.garantirCampanhaExistente(campanhaId);
+
+    const email = dados.email.trim().toLowerCase();
+    const jaVinculado = await this.modeloCampanhaGm.findOne({
+      where: { campaignId: campanhaId, email },
+    });
+    if (jaVinculado) {
+      throw new ConflictException("Este GM já está vinculado a esta campanha.");
+    }
+
+    const criado = await this.modeloCampanhaGm.create({ campaignId: campanhaId, email });
+
+    return {
+      id: criado.id,
+      campaign_id: criado.campaignId,
+      email: criado.email,
+      created_at: formatarData(criado.get("createdAt")),
+      created_by: criado.createdBy,
+    };
+  }
+
+  async removerGm(campanhaId: number, gmId: number): Promise<void> {
+    const gm = await this.modeloCampanhaGm.findOne({
+      where: { id: gmId, campaignId: campanhaId },
+    });
+    if (!gm) {
+      throw new NotFoundException("Vínculo de GM não encontrado nesta campanha.");
+    }
+    // Soft delete: aqui não há índice único travando a recriação, então a
+    // auditoria da tabela pode ser usada como foi desenhada.
+    await gm.destroy();
+  }
+
+  // ── Apoio ─────────────────────────────────────────────────────────────────
+
+  private async garantirCampanhaExistente(id: number): Promise<void> {
+    const campanha = await this.modeloCampanha.findByPk(id);
+    if (!campanha) {
+      throw new NotFoundException("Campanha não encontrada.");
+    }
+  }
+
+  /**
+   * O UNIQUE de slug é total, então uma campanha soft-deletada ainda ocupa o
+   * nome. Por isso a busca inclui as deletadas — senão o erro que o usuário
+   * veria seria um 500 de chave duplicada, sem explicação.
+   */
+  private async garantirSlugLivre(slug: string): Promise<void> {
+    const existente = await this.modeloCampanha.findOne({ where: { slug }, paranoid: false });
+    if (existente) {
+      throw new ConflictException("Já existe uma campanha com esse slug.");
+    }
+  }
+
+  /** O banco guarda o caminho relativo; a API responde com a URL completa. */
+  private mapear(campanha: CampanhaModel): CampanhaApi {
+    return {
+      id: campanha.id,
+      slug: campanha.slug,
+      name: campanha.name,
+      description: campanha.description,
+      cover_image_url:
+        this.armazenamentoArquivos.montarUrlPublica(campanha.coverImageUrl) || null,
+      is_active: campanha.isActive,
+      created_at: formatarData(campanha.get("createdAt")),
+      updated_at: formatarData(campanha.get("updatedAt")),
+    };
+  }
+}

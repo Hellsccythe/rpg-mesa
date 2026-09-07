@@ -733,7 +733,7 @@ const campanhaSlug = computed(() => {
   const s = route.params.slug
   return typeof s === 'string' && s ? s : null
 })
-const campanhaId = ref<string | null>(null)
+const campanhaId = ref<number | null>(null)
 
 const mostrarModalCriacao = ref(false)
 const personagemSelecionado = ref<PersonagemPublicoApi | null>(null)
