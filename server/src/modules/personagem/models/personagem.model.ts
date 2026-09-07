@@ -1,9 +1,9 @@
 import { Column, DataType, Model, Table } from "sequelize-typescript";
 
 /**
- * Substitui o antigo src/models/personagem.model.ts, que usava os decorators
- * caseiros de common/decorators (feitos para montar strings de select do
- * Supabase). Aqueles saem de cena quando o último módulo Express migrar.
+ * Substituiu o antigo src/models/personagem.model.ts, que usava decorators
+ * caseiros para montar as strings de select do Supabase — os dois saíram
+ * junto com o último router Express.
  *
  * O JSONB "data" concentra o que é do personagem e varia bastante entre eles:
  * skills, títulos, atributos, classes, notas de aventura, equipamentos

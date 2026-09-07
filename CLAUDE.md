@@ -4,16 +4,20 @@ Sistema de gestão de sessões de RPG de mesa. Monorepo com Yarn 4 Workspaces.
 
 ## Stack
 
-- **Frontend (`client/`):** Vue 3 + Vite + Pinia + Vue Router + Axios + Tailwind CSS + Supabase JS
-- **Backend (`server/`):** Express 5 + TypeScript + Supabase JS + class-validator/class-transformer
-- **Auth/DB/Storage:** Supabase (auth, PostgreSQL, storage de arquivos)
+- **Frontend (`client/`):** Vue 3 + Vite + Pinia + Vue Router + Axios + Tailwind CSS
+- **Backend (`server/`):** NestJS 12 + TypeScript + Sequelize (`sequelize-typescript`) + class-validator/class-transformer
+- **Auth:** JWT próprio (bcrypt em `usuarios.password_hash`) — ver "Fluxo de Auth"
+- **DB:** PostgreSQL 18 em Docker (`docker-compose.yml`), porta 5433
+- **Storage:** disco local em `uploads/`, servido em `/uploads/`
 - **Deploy:** Frontend no Vercel (`vercel.json`), backend separado
 
 ## Env Vars
 
 **Client:** `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_API_BASE_URL`, `VITE_AVATAR_BUCKET`, `VITE_HISTORY_BUCKET`, `VITE_GM_AVATAR_URL`
 
-**Server:** `PORT`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `MASTER_EMAILS` (comma-separated), `ALLOWED_ORIGIN`, `ENCRYPTION_KEY`
+**Server:** `PORT`, `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRES_IN_SEGUNDOS`, `UPLOADS_DIR`, `PUBLIC_BASE_URL`, `ALLOWED_ORIGIN`
+
+As variáveis do Supabase e `MASTER_EMAILS` saíram: não há mais nenhum código que as leia.
 
 ## Rotas do Frontend
 
@@ -137,6 +141,24 @@ Sistema de gestão de sessões de RPG de mesa. Monorepo com Yarn 4 Workspaces.
 | GET | `/api/classes/secretas/admin` | isMaster (lista classes secretas com titular atual) |
 | POST | `/api/classes/secretas/admin/revelar` | isMaster (revela classe secreta a um personagem) |
 | DELETE | `/api/classes/secretas/admin/revogar/:classeId` | isMaster (revoga acesso) |
+| POST | `/api/personagens/:id/escolher-classe` | auth (adquire classe nova, gasta 1 ponto de classe) |
+| POST | `/api/personagens/:id/levar-classe` | auth (converte 1 ponto de classe em 1 ponto de skill) |
+| PATCH | `/api/personagens/:id/distribuir-pontos-atributo` | auth |
+| PATCH | `/api/personagens/:id` | auth — dono ou mestre |
+| PATCH | `/api/personagens/:id/solicitacao` | auth (pede alteração que o mestre revisa) |
+| GET | `/api/personagens/admin/solicitacoes` | isMaster |
+| POST | `/api/personagens/admin/solicitacoes/:id/revisar` | isMaster |
+| POST | `/api/personagens/admin/:id/class-points` | isMaster |
+| POST | `/api/personagens/admin/:id/skill-points-classe` | isMaster |
+| POST | `/api/personagens/admin/:id/atribuir-pontos-atributo` | isMaster |
+| POST | `/api/personagens/admin/:id/resetar-pontos-atributo` | isMaster |
+| PATCH | `/api/personagens/admin/:id/atribuir-xp` | isMaster (XP numa classe) |
+| PATCH | `/api/personagens/admin/:id/atribuir-xp-personagem` | isMaster (XP do personagem) |
+| PATCH | `/api/personagens/admin/:id/god-info/:godId` | isMaster |
+| PATCH | `/api/personagens/admin/:id/avatar-focal-point` | isMaster |
+| PATCH | `/api/personagens/admin/:id/modal-hero-position` | isMaster |
+| POST | `/api/personagens/admin/personagens/:id/notas` | isMaster (nota de aventura) |
+| DELETE | `/api/personagens/admin/:id` | isMaster (soft delete + apaga o avatar do disco) |
 | PATCH | `/api/personagens/admin/:id/status` | isMaster (vivo \| morto; morte libera classe secreta) |
 | GET | `/api/campanhas` | público (só as ativas) |
 | GET | `/api/campanhas/:slug` | público |
@@ -533,7 +555,7 @@ Antes da confirmação, o frontend (`MasterSkillsView`) chama `GET /api/skills/a
 ## Padrões de Código
 
 - Código e comentários em **português brasileiro (pt-BR)**
-- Backend usa **admin client** (ignora RLS) para escritas; **anon client** para leituras públicas
+- Backend fala com o Postgres pelo Sequelize. **Leituras com JOIN em SQL cru** (`sequelize.query`); **escritas pelo ORM**, para os hooks de auditoria dispararem
 - Soft delete padrão: `deleted_at IS NULL` para registros ativos
 - DTOs com `class-validator` no backend; tipos TypeScript no frontend
 - **A validação só roda nos módulos já migrados para o Nest**, via `ValidationPipe` global. Nos módulos Express que restam os decorators são decorativos — nada chama `validate()`, o router passa `req.body` direto para o service. Ao migrar um módulo, reveja as regras herdadas: elas nunca foram executadas e podem estar erradas (foi o caso do `@IsUrl` em `racas.foto_url`, que passaria a recusar os caminhos relativos que hoje se gravam)
@@ -665,10 +687,13 @@ O dashboard do player exibe todas as informações selecionadas no onboarding:
 - **Barra de capacidade de carga**: verde < 70%, âmbar 70–90%, vermelho ≥ 90%. Fórmula: `Força × 2`
 - Inventário geral (itens livres, sem peso) com mochila rápida (dropdown)
 
-## Storage (Supabase)
+## Storage (disco local)
 
-- Avatar: bucket `character-avatars` (`VITE_AVATAR_BUCKET`) — uploads pendentes em `pending/`, aprovados movidos para raiz
-- História: bucket `character-history` (`VITE_HISTORY_BUCKET`)
+Arquivos ficam em `uploads/<subpasta>/<nome>.<ext>` e são servidos em `/uploads/...`. **O banco guarda o caminho relativo** (`gods/pharasma.png`); a URL completa é montada na resposta a partir de `PUBLIC_BASE_URL`.
+
+Subpastas: `gods`, `maps`, `racas`, `passados`, `npcs`, `campanhas`, `pendentes` (avatar e história de solicitação de criação).
+
+Nomes de arquivo são higienizados e recebem sufixo numérico só em colisão real com conteúdo diferente — arquivo idêntico reaproveita o mesmo nome.
 
 ## Backup de Imagens
 
