@@ -3,6 +3,50 @@ import { mkdir, readFile, writeFile, unlink } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
 /**
+ * Monta a URL pública a partir do que está guardado no banco. Aceita também
+ * URL completa: registros antigos (do tempo do Supabase) ficaram com a URL
+ * inteira gravada, e devem continuar sendo devolvidos como estão.
+ *
+ * Está aqui fora da classe porque quem responde não é só quem tem o serviço
+ * injetado: o mapper de personagem é uma função pura, chamada de 37 lugares,
+ * e receber a instância em todos eles seria pior do que ler a variável de
+ * ambiente na hora.
+ */
+export function montarUrlPublica(caminhoOuUrl: string | null | undefined): string {
+  const valor = (caminhoOuUrl ?? "").trim();
+  if (!valor) return "";
+  if (valor.startsWith("http://") || valor.startsWith("https://")) return valor;
+
+  // Lido a cada chamada, e não no topo do módulo: o dotenv roda no main.ts,
+  // que pode ser carregado depois deste arquivo.
+  const urlBase = (
+    process.env.PUBLIC_BASE_URL ?? `http://localhost:${process.env.PORT ?? 3000}`
+  ).replace(/\/+$/, "");
+
+  return `${urlBase}/uploads/${valor.replace(/^\/+/, "")}`;
+}
+
+/**
+ * Caminho a guardar no banco a partir do que o frontend enviou. O frontend
+ * devolve a URL que recebeu no upload, então aqui ela volta a virar caminho
+ * relativo. URL de outro domínio é preservada intacta.
+ */
+export function normalizarParaArmazenamento(caminhoOuUrl: string | null | undefined): string | null {
+  const valor = (caminhoOuUrl ?? "").trim();
+  if (!valor) return null;
+
+  const marcador = "/uploads/";
+  const posicao = valor.indexOf(marcador);
+  if (posicao === -1) {
+    // Não é uma URL nossa: pode já ser um caminho relativo, ou uma URL externa.
+    return valor.startsWith("http://") || valor.startsWith("https://")
+      ? valor
+      : valor.replace(/^\/+/, "");
+  }
+  return valor.slice(posicao + marcador.length);
+}
+
+/**
  * Substitui o Supabase Storage: os arquivos passam a viver em disco, numa
  * pasta servida estaticamente pelo próprio Express (ver main.ts), organizada
  * em subpastas equivalentes aos antigos buckets (gods/, passados/, maps/...).
@@ -18,9 +62,6 @@ import { join, resolve } from "node:path";
 @Injectable()
 export class ArmazenamentoArquivosService {
   private readonly pastaRaiz = resolve(process.env.UPLOADS_DIR ?? "uploads");
-  private readonly urlBasePublica = (
-    process.env.PUBLIC_BASE_URL ?? `http://localhost:${process.env.PORT ?? 3000}`
-  ).replace(/\/+$/, "");
 
   /**
    * Grava o arquivo e devolve o caminho relativo para guardar no banco.
@@ -67,36 +108,14 @@ export class ArmazenamentoArquivosService {
     }
   }
 
-  /**
-   * Monta a URL pública a partir do que está guardado no banco. Aceita também
-   * URL completa: registros antigos (do tempo do Supabase) ficaram com a URL
-   * inteira gravada, e devem continuar sendo devolvidos como estão.
-   */
+  /** Ver a função de mesmo nome no topo do arquivo. */
   montarUrlPublica(caminhoOuUrl: string | null | undefined): string {
-    const valor = (caminhoOuUrl ?? "").trim();
-    if (!valor) return "";
-    if (valor.startsWith("http://") || valor.startsWith("https://")) return valor;
-    return `${this.urlBasePublica}/uploads/${valor.replace(/^\/+/, "")}`;
+    return montarUrlPublica(caminhoOuUrl);
   }
 
-  /**
-   * Caminho de a guardar no banco a partir do que o frontend enviou. O
-   * frontend devolve a URL que recebeu no upload, então aqui ela volta a
-   * virar caminho relativo. URL de outro domínio é preservada intacta.
-   */
+  /** Ver a função de mesmo nome no topo do arquivo. */
   normalizarParaArmazenamento(caminhoOuUrl: string | null | undefined): string | null {
-    const valor = (caminhoOuUrl ?? "").trim();
-    if (!valor) return null;
-
-    const marcador = "/uploads/";
-    const posicao = valor.indexOf(marcador);
-    if (posicao === -1) {
-      // Não é uma URL nossa: pode já ser um caminho relativo, ou uma URL externa.
-      return valor.startsWith("http://") || valor.startsWith("https://")
-        ? valor
-        : valor.replace(/^\/+/, "");
-    }
-    return valor.slice(posicao + marcador.length);
+    return normalizarParaArmazenamento(caminhoOuUrl);
   }
 
   /** Remove o arquivo. Silencioso se já não existir — não é erro para quem chama. */

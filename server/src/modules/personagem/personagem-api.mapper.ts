@@ -1,3 +1,4 @@
+import { montarUrlPublica } from "../../common/storage/armazenamento-arquivos.service.js";
 import type { PersonagemModel } from "./models/personagem.model.js";
 
 /**
@@ -44,7 +45,10 @@ export function mapearPersonagemParaApi(personagem: PersonagemModel): Personagem
     name: personagem.name,
     level: personagem.level,
     data: (personagem.data ?? {}) as Record<string, unknown>,
-    avatarUrl: personagem.avatarUrl,
+    // O banco guarda o caminho relativo ("personagens/inari.png"); o frontend
+    // precisa da URL completa, senão o navegador resolve contra a origem dele
+    // e busca a imagem no lugar errado.
+    avatarUrl: montarUrlPublica(personagem.avatarUrl) || null,
     racaId: personagem.racaId,
     classeId: personagem.classeId,
     passadoId: personagem.passadoId,
@@ -55,7 +59,7 @@ export function mapearPersonagemParaApi(personagem: PersonagemModel): Personagem
     generoId: personagem.generoId,
     aparenciaFisica: personagem.aparenciaFisica,
     historiaTexto: personagem.historiaTexto,
-    historiaDocUrl: personagem.historiaDocUrl,
+    historiaDocUrl: montarUrlPublica(personagem.historiaDocUrl) || null,
     createdAt: formatarData(personagem.get("createdAt")),
     updatedAt: formatarData(personagem.get("updatedAt")),
   };

@@ -3,6 +3,7 @@ import { InjectModel } from "@nestjs/sequelize";
 import { QueryTypes, Op } from "sequelize";
 import { Sequelize } from "sequelize-typescript";
 import * as bcrypt from "bcryptjs";
+import { montarUrlPublica } from "../../common/storage/armazenamento-arquivos.service.js";
 import { UsuarioModel } from "./models/usuario.model.js";
 import type { AlterarAtivoDto, EditarUsuarioDto, PreRegistrarDto } from "./usuarios.dto.js";
 
@@ -115,7 +116,7 @@ export class UsuariosService {
               username: linha.personagem_username,
               raca_id: linha.personagem_raca_id,
               level: linha.personagem_level ?? 1,
-              avatar_url: linha.personagem_avatar_url,
+              avatar_url: montarUrlPublica(linha.personagem_avatar_url) || null,
             },
     }));
   }
