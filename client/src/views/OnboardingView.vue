@@ -198,9 +198,15 @@
               :disabled="step.etapa > etapaMaxima"
               @click="navegarParaEtapa(step.etapa as 1|2|3|4|5|6)"
             >
+              <!--
+                Concluída é `step.etapa < etapaMaxima`, e não `etapa > step.etapa`:
+                comparar com a etapa atual fazia as etapas já feitas perderem o
+                check verde assim que o jogador voltava, como se ele tivesse
+                perdido o progresso.
+              -->
               <div class="h-6 w-6 rounded-full flex items-center justify-center text-[0.6rem] font-bold"
-                :class="etapa > step.etapa ? 'bg-green-600 text-white' : etapa === step.etapa ? `${step.bgColor} text-white` : 'border border-white/20 text-zinc-500'">
-                <svg v-if="etapa > step.etapa" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>
+                :class="etapa === step.etapa ? `${step.bgColor} text-white` : step.etapa < etapaMaxima ? 'bg-green-600 text-white' : 'border border-white/20 text-zinc-500'">
+                <svg v-if="etapa !== step.etapa && step.etapa < etapaMaxima" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>
                 <span v-else>{{ step.etapa }}</span>
               </div>
               <span :class="etapa === step.etapa ? `font-semibold ${step.textColor}` : 'text-zinc-600'">{{ step.label }}</span>
@@ -580,6 +586,46 @@
         </div>
       </template>
 
+      <!-- ═══ Navegação entre etapas ═══ -->
+      <!--
+        O stepper do topo já era clicável, mas ninguém adivinha isso olhando
+        para ele. Estes dois botões dizem em voz alta o que dá para fazer.
+        Avançar só chega até a etapa mais longe já alcançada: passar dali
+        depende de fazer a escolha da etapa atual.
+      -->
+      <div class="mt-10 flex items-center justify-between gap-4 border-t border-white/[0.06] pt-6">
+        <button
+          type="button"
+          :disabled="!podeVoltar"
+          class="flex items-center gap-2 rounded-2xl border border-white/10 px-5 py-2.5 text-sm font-semibold text-zinc-300 transition-colors hover:border-white/25 hover:text-white disabled:pointer-events-none disabled:opacity-30"
+          @click="voltarEtapa"
+        >
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          Voltar
+        </button>
+
+        <p class="text-center text-xs text-zinc-600">
+          Etapa {{ etapa }} de 6
+          <span v-if="!podeAvancar && etapa === etapaMaxima" class="mt-0.5 block text-zinc-700">
+            Faça sua escolha para continuar
+          </span>
+        </p>
+
+        <button
+          type="button"
+          :disabled="!podeAvancar"
+          class="flex items-center gap-2 rounded-2xl border border-white/10 px-5 py-2.5 text-sm font-semibold text-zinc-300 transition-colors hover:border-white/25 hover:text-white disabled:pointer-events-none disabled:opacity-30"
+          @click="avancarEtapa"
+        >
+          Avançar
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+      </div>
+
     </div>
   </div>
 </template>
@@ -829,7 +875,7 @@ function selecionarPassado(passado: PassadoApi) {
   erroEscolha.value        = ''
 }
 
-// ── Confirmações ──────────────────────────────────────────────────────────────
+// ── Navegação entre etapas ────────────────────────────────────────────────────
 function navegarParaEtapa(e: 1|2|3|4|5|6) {
   if (e > etapaMaxima.value) return
   confirmando.value = false
@@ -838,6 +884,18 @@ function navegarParaEtapa(e: 1|2|3|4|5|6) {
   erroEscolha.value = ''
   etapa.value = e
 }
+
+const podeVoltar  = computed(() => etapa.value > 1)
+const podeAvancar = computed(() => etapa.value < etapaMaxima.value)
+
+function voltarEtapa() {
+  if (podeVoltar.value) navegarParaEtapa((etapa.value - 1) as 1|2|3|4|5|6)
+}
+function avancarEtapa() {
+  if (podeAvancar.value) navegarParaEtapa((etapa.value + 1) as 1|2|3|4|5|6)
+}
+
+// ── Confirmações ──────────────────────────────────────────────────────────────
 
 async function sairOnboarding() {
   showGearMenu.value = false
