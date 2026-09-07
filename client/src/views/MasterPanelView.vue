@@ -497,8 +497,8 @@
               <div class="gm-icon-wrap mb-3 bg-orange-500/10 text-orange-400">
                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
               </div>
-              <p class="font-semibold text-zinc-100 group-hover:text-white">Tipos de Equipamento</p>
-              <p class="mt-0.5 text-xs text-zinc-500">Arma, Armadura, Variados e seus tipos filhos</p>
+              <p class="font-semibold text-zinc-100 group-hover:text-white">Uso do Equipamento</p>
+              <p class="mt-0.5 text-xs text-zinc-500">Arma, Armadura, Variados e suas categorias filhas</p>
               <span class="mt-3 inline-block text-xs text-orange-400 group-hover:text-orange-300">Abrir guia →</span>
             </button>
 
