@@ -1,8 +1,14 @@
-import { getAdminClient, getSupabaseClient } from "../../config/database/supabase/client.js";
-import { ensureMasterAccess, getMasterEmails, getUserDisplayEmail } from "../../common/helpers/master-access.helper.js";
-
-const TABLE       = "npcs";
-const ACESSO_TABLE = "npc_acesso_player";
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { InjectModel } from "@nestjs/sequelize";
+import { QueryTypes } from "sequelize";
+import { Sequelize } from "sequelize-typescript";
+import type { UsuarioAutenticado } from "../../common/cls/usuario-autenticado.interface.js";
+import { ArmazenamentoArquivosService } from "../../common/storage/armazenamento-arquivos.service.js";
+import { PersonagemModel } from "../personagem/models/personagem.model.js";
+import { garantirAcessoAoPersonagem } from "../personagem/personagem-acesso.js";
+import { NpcModel } from "./models/npc.model.js";
+import { NpcAcessoModel } from "./models/npc-acesso.model.js";
+import type { CriarNpcDto, EditarNpcDto } from "./npcs.dto.js";
 
 export type NpcApi = {
   id: number;
@@ -11,188 +17,227 @@ export type NpcApi = {
   raca_nome: string | null;
   descricao: string | null;
   foto_url: string | null;
-  created_at: string;
-  updated_at: string;
+  created_at: string | null;
+  updated_at: string | null;
 };
 
-export type NpcAcessoPlayer = {
+export type AcessoDePersonagem = {
   character_id: number;
   nome: string;
   username: string | null;
   tem_acesso: boolean;
 };
 
-function mapRow(row: any, racaMap: Record<number, string>): NpcApi {
-  return {
-    id:        row.id,
-    nome:      row.nome ?? "",
-    raca_id:   row.raca_id ?? null,
-    raca_nome: row.raca_id ? (racaMap[row.raca_id] ?? null) : null,
-    descricao: row.descricao ?? null,
-    foto_url:  row.foto_url ?? null,
-    created_at: row.created_at,
-    updated_at: row.updated_at,
-  };
-}
-
-async function buildRacaMap(rows: any[], admin: ReturnType<typeof getAdminClient>) {
-  const racaIds = [...new Set<number>(rows.map(r => r.raca_id).filter(Boolean))];
-  if (!racaIds.length) return {} as Record<number, string>;
-
-  const { data } = await admin
-    .from("racas")
-    .select("id, nome")
-    .in("id", racaIds)
-    .is("deleted_at", null);
-
-  const map: Record<number, string> = {};
-  for (const r of (data ?? [])) map[r.id] = r.nome;
-  return map;
-}
-
-export const npcsService = {
-  async listarAdmin(accessToken?: string): Promise<NpcApi[]> {
-    await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
-    const { data, error } = await admin
-      .from(TABLE)
-      .select("*")
-      .is("deleted_at", null)
-      .order("nome");
-    if (error) throw error;
-    const rows = data ?? [];
-    const racaMap = await buildRacaMap(rows, admin);
-    return rows.map(r => mapRow(r, racaMap));
-  },
-
-  async listarPlayer(characterId: number, accessToken?: string): Promise<NpcApi[]> {
-    const supabase = getSupabaseClient(accessToken);
-    const { data: { user }, error: authErr } = await supabase.auth.getUser();
-    if (authErr || !user) throw new Error("Usuário não autenticado");
-
-    const admin = getAdminClient();
-
-    const { data: acessos } = await admin
-      .from(ACESSO_TABLE)
-      .select("npc_id")
-      .eq("character_id", characterId);
-
-    const npcIds = (acessos ?? []).map((a: any) => a.npc_id);
-    if (!npcIds.length) return [];
-
-    const { data, error } = await admin
-      .from(TABLE)
-      .select("*")
-      .in("id", npcIds)
-      .is("deleted_at", null)
-      .order("nome");
-    if (error) throw error;
-
-    const rows = data ?? [];
-    const racaMap = await buildRacaMap(rows, admin);
-    return rows.map(r => mapRow(r, racaMap));
-  },
-
-  async criar(
-    payload: { nome: string; raca_id?: number; descricao?: string; foto_url?: string },
-    accessToken?: string,
-  ): Promise<NpcApi> {
-    const user = await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
-    const { data, error } = await admin
-      .from(TABLE)
-      .insert({
-        nome:       payload.nome.trim(),
-        raca_id:    payload.raca_id ?? null,
-        descricao:  payload.descricao?.trim() ?? null,
-        foto_url:   payload.foto_url?.trim() || null,
-        created_by: getUserDisplayEmail(user),
-        updated_by: getUserDisplayEmail(user),
-      })
-      .select("*")
-      .single();
-    if (error) throw error;
-    const racaMap = await buildRacaMap([data], admin);
-    return mapRow(data, racaMap);
-  },
-
-  async editar(
-    id: number,
-    payload: { nome?: string; raca_id?: number | null; descricao?: string; foto_url?: string },
-    accessToken?: string,
-  ): Promise<NpcApi> {
-    const user = await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
-
-    const updates: Record<string, any> = {
-      updated_by: getUserDisplayEmail(user),
-      updated_at: new Date().toISOString(),
-    };
-    if (payload.nome      !== undefined) updates.nome      = payload.nome.trim();
-    if (payload.raca_id   !== undefined) updates.raca_id   = payload.raca_id;
-    if (payload.descricao !== undefined) updates.descricao = payload.descricao?.trim() ?? null;
-    if (payload.foto_url  !== undefined) updates.foto_url  = payload.foto_url?.trim() || null;
-
-    const { data, error } = await admin
-      .from(TABLE)
-      .update(updates)
-      .eq("id", id)
-      .is("deleted_at", null)
-      .select("*")
-      .single();
-    if (error) throw error;
-    if (!data) throw new Error("NPC não encontrado.");
-    const racaMap = await buildRacaMap([data], admin);
-    return mapRow(data, racaMap);
-  },
-
-  async deletar(id: number, accessToken?: string): Promise<void> {
-    const user = await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
-    const { error } = await admin
-      .from(TABLE)
-      .update({ deleted_at: new Date().toISOString(), deleted_by: getUserDisplayEmail(user) })
-      .eq("id", id)
-      .is("deleted_at", null);
-    if (error) throw error;
-  },
-
-  async listarAcessosNpc(npcId: number, accessToken?: string): Promise<NpcAcessoPlayer[]> {
-    await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
-
-    const [{ data: acessos }, { data: personagens }] = await Promise.all([
-      admin.from(ACESSO_TABLE).select("character_id").eq("npc_id", npcId),
-      admin.from("characters").select("id, name, username").is("deleted_at", null).neq("raca_id", null),
-    ]);
-
-    const idsComAcesso = new Set((acessos ?? []).map((a: any) => a.character_id));
-
-    return (personagens ?? []).map((p: any) => ({
-      character_id: p.id,
-      nome:         p.name ?? "",
-      username:     p.username ?? null,
-      tem_acesso:   idsComAcesso.has(p.id),
-    }));
-  },
-
-  async concederAcesso(npcId: number, characterId: number, accessToken?: string): Promise<void> {
-    const user = await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
-    const { error } = await admin
-      .from(ACESSO_TABLE)
-      .upsert({ npc_id: npcId, character_id: characterId, created_by: getUserDisplayEmail(user) }, { onConflict: "npc_id,character_id" });
-    if (error) throw error;
-  },
-
-  async revogarAcesso(npcId: number, characterId: number, accessToken?: string): Promise<void> {
-    await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
-    const { error } = await admin
-      .from(ACESSO_TABLE)
-      .delete()
-      .eq("npc_id", npcId)
-      .eq("character_id", characterId);
-    if (error) throw error;
-  },
+type LinhaDeNpc = {
+  id: number;
+  nome: string;
+  raca_id: number | null;
+  raca_nome: string | null;
+  descricao: string | null;
+  foto_url: string | null;
+  created_at: Date | null;
+  updated_at: Date | null;
 };
+
+/**
+ * O nome da raça vinha de uma segunda consulta com um mapa em memória; um
+ * LEFT JOIN resolve. É LEFT de propósito: NPC sem raça, ou com raça deletada,
+ * continua aparecendo.
+ */
+const SQL_LISTAR_NPCS = `
+  SELECT
+    npcs.id,
+    npcs.nome,
+    npcs.raca_id,
+    npcs.descricao,
+    npcs.foto_url,
+    npcs.created_at,
+    npcs.updated_at,
+    racas.nome AS raca_nome
+  FROM npcs
+  LEFT JOIN racas
+    ON racas.id = npcs.raca_id
+   AND racas.deleted_at IS NULL
+  WHERE npcs.deleted_at IS NULL
+`;
+
+/**
+ * Todos os personagens que já passaram da escolha de raça, marcando quais têm
+ * acesso a este NPC. Antes eram duas consultas e um Set em memória.
+ */
+const SQL_ACESSOS_DO_NPC = `
+  SELECT
+    characters.id       AS character_id,
+    characters.name     AS nome,
+    characters.username AS username,
+    (acesso.npc_id IS NOT NULL) AS tem_acesso
+  FROM characters
+  LEFT JOIN npc_acesso_player AS acesso
+    ON acesso.character_id = characters.id
+   AND acesso.npc_id = :npcId
+  WHERE characters.deleted_at IS NULL
+    AND characters.raca_id IS NOT NULL
+  ORDER BY characters.name
+`;
+
+@Injectable()
+export class NpcsService {
+  constructor(
+    @InjectModel(NpcModel)
+    private readonly modeloNpc: typeof NpcModel,
+    @InjectModel(NpcAcessoModel)
+    private readonly modeloAcesso: typeof NpcAcessoModel,
+    @InjectModel(PersonagemModel)
+    private readonly modeloPersonagem: typeof PersonagemModel,
+    private readonly armazenamentoArquivos: ArmazenamentoArquivosService,
+    private readonly sequelize: Sequelize,
+  ) {}
+
+  // ── Leitura ───────────────────────────────────────────────────────────────
+
+  async listarParaMestre(): Promise<NpcApi[]> {
+    const linhas = await this.sequelize.query<LinhaDeNpc>(
+      `${SQL_LISTAR_NPCS} ORDER BY npcs.nome`,
+      { type: QueryTypes.SELECT },
+    );
+    return linhas.map((linha) => this.converterLinha(linha));
+  }
+
+  /**
+   * Só os NPCs que o mestre liberou para aquele personagem.
+   *
+   * A versão anterior autenticava mas não conferia o dono: qualquer jogador
+   * podia passar um characterId alheio e ver quais NPCs os outros conhecem.
+   */
+  async listarParaPersonagem(
+    personagemId: number,
+    usuario: UsuarioAutenticado,
+  ): Promise<NpcApi[]> {
+    const personagem = await this.modeloPersonagem.findByPk(personagemId);
+    if (!personagem) {
+      throw new NotFoundException("Personagem não encontrado.");
+    }
+    garantirAcessoAoPersonagem(personagem, usuario);
+
+    const linhas = await this.sequelize.query<LinhaDeNpc>(
+      `${SQL_LISTAR_NPCS}
+         AND npcs.id IN (
+           SELECT npc_id FROM npc_acesso_player WHERE character_id = :personagemId
+         )
+       ORDER BY npcs.nome`,
+      { replacements: { personagemId }, type: QueryTypes.SELECT },
+    );
+    return linhas.map((linha) => this.converterLinha(linha));
+  }
+
+  // ── Escrita ───────────────────────────────────────────────────────────────
+
+  async criar(dados: CriarNpcDto): Promise<NpcApi> {
+    const criado = await this.modeloNpc.create({
+      nome: dados.nome.trim(),
+      racaId: dados.raca_id ?? null,
+      descricao: dados.descricao?.trim() || null,
+      fotoUrl: this.armazenamentoArquivos.normalizarParaArmazenamento(dados.foto_url ?? null),
+    });
+
+    return this.buscarOuFalhar(criado.id);
+  }
+
+  async editar(id: number, dados: EditarNpcDto): Promise<NpcApi> {
+    const npc = await this.modeloNpc.findByPk(id);
+    if (!npc) {
+      throw new NotFoundException("NPC não encontrado.");
+    }
+
+    if (dados.nome !== undefined) npc.nome = dados.nome.trim();
+    if (dados.raca_id !== undefined) npc.racaId = dados.raca_id;
+    if (dados.descricao !== undefined) npc.descricao = dados.descricao?.trim() || null;
+    if (dados.foto_url !== undefined) {
+      npc.fotoUrl = this.armazenamentoArquivos.normalizarParaArmazenamento(dados.foto_url);
+    }
+
+    await npc.save();
+    return this.buscarOuFalhar(id);
+  }
+
+  async deletar(id: number): Promise<void> {
+    const npc = await this.modeloNpc.findByPk(id);
+    if (!npc) {
+      throw new NotFoundException("NPC não encontrado.");
+    }
+    await npc.destroy();
+  }
+
+  // ── Acesso dos personagens ────────────────────────────────────────────────
+
+  async listarAcessos(npcId: number): Promise<AcessoDePersonagem[]> {
+    await this.garantirNpcExistente(npcId);
+
+    return this.sequelize.query<AcessoDePersonagem>(SQL_ACESSOS_DO_NPC, {
+      replacements: { npcId },
+      type: QueryTypes.SELECT,
+    });
+  }
+
+  async concederAcesso(npcId: number, personagemId: number): Promise<void> {
+    await this.garantirNpcExistente(npcId);
+
+    const personagem = await this.modeloPersonagem.findByPk(personagemId);
+    if (!personagem) {
+      throw new NotFoundException("Personagem não encontrado.");
+    }
+
+    const jaTem = await this.modeloAcesso.findOne({
+      where: { npcId, characterId: personagemId },
+    });
+    if (jaTem) return;
+
+    await this.modeloAcesso.create({ npcId, characterId: personagemId });
+  }
+
+  /** Apaga de verdade — ver a nota em NpcAcessoModel sobre o UNIQUE total. */
+  async revogarAcesso(npcId: number, personagemId: number): Promise<void> {
+    const acesso = await this.modeloAcesso.findOne({
+      where: { npcId, characterId: personagemId },
+    });
+    if (!acesso) {
+      throw new NotFoundException("Este personagem não tem acesso a este NPC.");
+    }
+    await acesso.destroy();
+  }
+
+  // ── Apoio ─────────────────────────────────────────────────────────────────
+
+  private async garantirNpcExistente(id: number): Promise<void> {
+    const npc = await this.modeloNpc.findByPk(id);
+    if (!npc) {
+      throw new NotFoundException("NPC não encontrado.");
+    }
+  }
+
+  private async buscarOuFalhar(id: number): Promise<NpcApi> {
+    const linhas = await this.sequelize.query<LinhaDeNpc>(`${SQL_LISTAR_NPCS} AND npcs.id = :id`, {
+      replacements: { id },
+      type: QueryTypes.SELECT,
+    });
+
+    if (linhas.length === 0) {
+      throw new NotFoundException("NPC não encontrado.");
+    }
+    return this.converterLinha(linhas[0]);
+  }
+
+  /** O banco guarda o caminho relativo; a API responde com a URL completa. */
+  private converterLinha(linha: LinhaDeNpc): NpcApi {
+    return {
+      id: linha.id,
+      nome: linha.nome,
+      raca_id: linha.raca_id,
+      raca_nome: linha.raca_nome,
+      descricao: linha.descricao,
+      foto_url: this.armazenamentoArquivos.montarUrlPublica(linha.foto_url) || null,
+      created_at: linha.created_at instanceof Date ? linha.created_at.toISOString() : null,
+      updated_at: linha.updated_at instanceof Date ? linha.updated_at.toISOString() : null,
+    };
+  }
+}

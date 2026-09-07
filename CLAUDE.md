@@ -138,6 +138,19 @@ Sistema de gestão de sessões de RPG de mesa. Monorepo com Yarn 4 Workspaces.
 | POST | `/api/classes/secretas/admin/revelar` | isMaster (revela classe secreta a um personagem) |
 | DELETE | `/api/classes/secretas/admin/revogar/:classeId` | isMaster (revoga acesso) |
 | PATCH | `/api/personagens/admin/:id/status` | isMaster (vivo \| morto; morte libera classe secreta) |
+| GET | `/api/npcs/admin` | isMaster |
+| POST | `/api/npcs/admin` | isMaster |
+| PATCH | `/api/npcs/admin/:id` | isMaster |
+| DELETE | `/api/npcs/admin/:id` | isMaster (soft delete) |
+| POST | `/api/npcs/admin/upload-image` | isMaster (multipart `file`) |
+| GET | `/api/npcs/admin/:id/acessos` | isMaster (todos os personagens, marcando quem tem acesso) |
+| POST/DELETE | `/api/npcs/admin/:id/acessos/:characterId` | isMaster (**hard delete** — UNIQUE total) |
+| GET | `/api/npcs/player?characterId=X` | auth — só o dono do personagem ou o mestre |
+| GET | `/api/lore-notes?characterId=X` | auth — só o dono do personagem ou o mestre |
+| GET | `/api/lore-notes/admin` | isMaster |
+| POST | `/api/lore-notes/admin` | isMaster |
+| PATCH | `/api/lore-notes/admin/:id` | isMaster |
+| DELETE | `/api/lore-notes/admin/:id` | isMaster (soft delete, 204) |
 | GET | `/api/player-telas/disponiveis` | público (lista fixa das telas liberáveis) |
 | GET | `/api/player-telas/me?characterId=X` | auth — só o dono do personagem ou o mestre |
 | GET | `/api/player-telas/admin/:characterId` | isMaster |
