@@ -15,6 +15,7 @@ import { PersonagensOnboardingModule } from "./modules/personagem/personagens-on
 import { RacasModule } from "./modules/racas/raca.module.js";
 import { ClassesModule } from "./modules/classes/classes.module.js";
 import { ArmasModule } from "./modules/armas/arma.module.js";
+import { SkillsModule } from "./modules/skill/skill.module.js";
 import { LevelProgressionModule } from "./modules/level-progression/level-progression.module.js";
 
 @Module({
@@ -38,6 +39,7 @@ import { LevelProgressionModule } from "./modules/level-progression/level-progre
     RacasModule,
     ClassesModule,
     ArmasModule,
+    SkillsModule,
   ],
 })
 export class AppModule {}

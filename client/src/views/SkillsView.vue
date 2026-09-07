@@ -440,9 +440,11 @@ function typeBadgeClass(type: string): string {
   return TYPE_COLORS[type.toLowerCase()] ?? 'bg-indigo-900/40 border border-indigo-600/40 text-indigo-300'
 }
 
-function formatMultiplicador(m: string[][] | null | undefined): string {
-  if (!m?.length) return ''
-  return m.flat().join('/')
+// multiplicador_atributo e text[] no banco: lista plana de expressoes como
+// "2d8 + Destreza". O tipo declarava string[][] e obrigava este .flat().
+function formatMultiplicador(multiplicadores: string[] | null | undefined): string {
+  if (!multiplicadores?.length) return ''
+  return multiplicadores.join('/')
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────

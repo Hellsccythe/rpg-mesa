@@ -60,7 +60,6 @@ Sistema de gestão de sessões de RPG de mesa. Monorepo com Yarn 4 Workspaces.
 | GET | `/api/gods` | público |
 | GET | `/api/city-maps` | auth |
 | GET | `/api/classes` | público |
-| GET | `/api/skills` | auth |
 | GET | `/api/titulos` | público |
 | GET | `/api/armas` | público |
 | GET | `/api/armas/categorias` | público |
@@ -79,6 +78,13 @@ Sistema de gestão de sessões de RPG de mesa. Monorepo com Yarn 4 Workspaces.
 | POST/PATCH/DELETE | `/api/skills/categorias/admin[/:item]` | isMaster |
 | GET | `/api/skills/tipos-dano` | público |
 | POST/PATCH/DELETE | `/api/skills/tipos-dano/admin[/:item]` | isMaster |
+| GET | `/api/skills/naturezas` | público |
+| POST/PATCH/DELETE | `/api/skills/naturezas/admin[/:item]` | isMaster |
+| GET | `/api/skills/niveis?skill_id=X` | público (evoluções de nível 2 e 3 da skill) |
+| POST | `/api/skills/admin/niveis` | isMaster |
+| PATCH | `/api/skills/admin/niveis/:id` | isMaster |
+| DELETE | `/api/skills/admin/niveis/:id` | isMaster (**hard delete** — UNIQUE total) |
+| POST | `/api/skills/admin/personagens/:characterId` | isMaster (concede skill avulsa a um personagem) |
 | GET | `/api/tabelas-acessorias/tipos` | público |
 | GET | `/api/tabelas-acessorias/categorias-arma` | público |
 | GET | `/api/tabelas-acessorias/propriedades-arma` | público |
@@ -329,6 +335,14 @@ As duas também têm uma coluna `classe_item`, herdada da modelagem original: es
 
 **O `item` vem da sequence do banco.** A versão Express calculava `MAX(item)+1` numa consulta à parte, o que gastava duas idas ao banco por inserção, deixava duas criações simultâneas escolherem o mesmo número e nunca avançava a sequence.
 
+### Sequences dessincronizadas (migration 067)
+
+O ponto acima deixou um estrago silencioso: como ninguém chamava as sequences, várias ficaram paradas no início enquanto os dados avançavam. Enquanto todo módulo escolhia a chave na mão isso não aparecia — ao migrar para o Sequelize, que deixa o banco gerar a chave, a primeira inserção estoura com `duplicate key value violates unique constraint`. Aconteceu em `skill_tipo_dano`, cuja sequence estava em 1 com registros até o item 8.
+
+A migration 067 percorre toda sequence ligada a uma coluna e a adianta para o maior valor gravado. **Rode-a de novo antes de migrar qualquer módulo que ainda escolha chave na mão** — é idempotente.
+
+Cuidado ao escrever essa checagem: uma sequence nunca usada (`is_called = false`) devolve o próprio `last_value` no primeiro `nextval`, e não `last_value + 1`. Comparar só o `last_value` com o máximo deixa passar exatamente esse caso — foi o que aconteceu com `categoria_arma` na primeira versão da migration.
+
 ### RLS — nota geral
 
 42 tabelas estão com `ROW LEVEL SECURITY` ligado, herança do Supabase, mas quase todas sem policy nenhuma. O app só funciona porque `rpg_app_user` tem `BYPASSRLS`. Com a autorização agora nos guards do Nest, o RLS não é mais a camada de segurança — mas continua sendo uma armadilha: qualquer conexão com um papel sem `BYPASSRLS` veria a maioria das tabelas vazia e não conseguiria escrever.
@@ -343,20 +357,24 @@ E-mails autorizados a submeter solicitação de criação. Soft delete + auditor
 |---|---|---|
 | id | INTEGER PK | IDENTITY (migration 022) |
 | name | VARCHAR(100) | obrigatório |
-| description | VARCHAR(2000) | nullable |
+| description | TEXT | **NOT NULL** — sem descrição grava string vazia, nunca null |
 | raca_vinculada | TEXT[] | array de nomes de raças (migration 046 — era VARCHAR(100)) |
 | skill_tipo_item | INTEGER | referência a `skill_tipo.item` (migration 020) |
 | skill_categoria_item | INTEGER[] | array de referências a `skill_categoria.item` (migration 046 — era INTEGER) |
 | skill_tipo_dano_item | INTEGER[] | array de referências a `skill_tipo_dano.item` (migration 046 — era INTEGER) |
-| multiplicador_atributo | VARCHAR(60) | atributo que escala o dano: 'aura', 'forca', 'destreza', 'resistencia', 'inteligencia' (migration 047 — renomeado de damage_display) |
+| skill_natureza_item | INTEGER | referência a `skill_natureza.item` (Ativa, Passiva, Assinatura) |
+| multiplicador_atributo | **TEXT[]** | lista plana de expressões que escalam o dano, ex: `{"2d8 + Destreza"}` (migration 047 — renomeado de damage_display) |
+| nivel_minimo_classe | INTEGER | lido pelo DashboardView para travar skill por nível, mas **nulo em todas as linhas** e nenhuma rota escreve — recurso inerte |
 | damage_base | TEXT | notação de dado, ex: "1d8", "2d6+3" (migration 047 — era NUMERIC) |
 | effect_description | VARCHAR(500) | descrição curta do efeito |
 | custo | INTEGER | custo de recurso/mana |
 | cooldown | INTEGER | cooldown em turnos |
 | range | VARCHAR(60) | alcance, ex: "Toque", "10m" |
 | required_class | VARCHAR(100) | ID da classe requerida |
-| deleted_at / deleted_by | timestamptz / UUID | soft delete |
-| created_by / updated_by | UUID | auditoria |
+| deleted_at / deleted_by | timestamptz / TEXT | soft delete |
+| created_by / updated_by | TEXT | auditoria |
+
+A tabela ainda carrega `damage_modifier`, `damage_type`, `cost`, `is_secret` e `required_class_id`, anteriores à migration 047. Nenhum código lê ou escreve, mas as três primeiras têm dados (15, 16 e 31 linhas) e continuam no retorno da API porque a versão anterior fazia `SELECT *`.
 
 **`effect_value` foi removido (migration 047).** O valor é calculado em runtime combinando `damage_base` (dado) com o atributo do personagem em `multiplicador_atributo`.
 
@@ -370,7 +388,7 @@ Override de skill por personagem. Permite que o mestre configure dano base ou mu
 | skill_name | TEXT | nome da skill (referência a `characters.data.skills[].name`) |
 | character_id | INTEGER | referência a `characters.id` |
 | damage_base_override | TEXT | notação de dado sobrescrita, ex: "2d8" |
-| multiplicador_override | VARCHAR(50) | atributo sobrescrito, ex: "forca" |
+| multiplicador_override | **TEXT[]** | mesmo formato de `skills.multiplicador_atributo` |
 | created_at / updated_at | timestamptz | |
 | created_by / updated_by | TEXT | email do mestre |
 
