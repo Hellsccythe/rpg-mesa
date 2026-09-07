@@ -77,15 +77,21 @@ export class PassadosController {
     const imagemComprimida = await sharp(arquivo.buffer, { failOn: "none" })
       .rotate()
       .resize({ width: 1200, height: 1200, fit: "inside", withoutEnlargement: true })
-      .jpeg({ quality: 85 })
+      .png({ compressionLevel: 9 })
       .toBuffer();
 
-    const publicUrl = await this.armazenamentoArquivos.salvar(
+    const caminhoRelativo = await this.armazenamentoArquivos.salvar(
       SUBPASTA_IMAGENS,
       arquivo.originalname,
       imagemComprimida,
+      "png",
     );
 
-    return { publicUrl };
+    // path é o que deve ser gravado no banco; publicUrl serve para o preview
+    // imediato no frontend. O backend aceita qualquer um dos dois de volta.
+    return {
+      path: caminhoRelativo,
+      publicUrl: this.armazenamentoArquivos.montarUrlPublica(caminhoRelativo),
+    };
   }
 }

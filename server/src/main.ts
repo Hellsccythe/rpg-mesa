@@ -11,23 +11,9 @@ import { resolve } from "node:path";
 import type { Sequelize } from "sequelize-typescript";
 import { AppModule } from "./app.module.js";
 import { contextoRequisicaoMiddleware } from "./common/cls/contexto-requisicao.middleware.js";
+import { UsuariosService } from "./modules/usuarios/usuarios.service.js";
+import { registrarServicoUsuarios } from "./modules/usuarios/usuarios.ponte.js";
 import { PersonagensRouter } from "./modules/personagem/personagens.module.js";
-import { GodRouter } from "./modules/god/god.module.js";
-import { CityMapsRouter } from "./modules/city_maps/city-maps.module.js";
-import { ClassesRouter } from "./modules/classes/classes.module.js";
-import { SkillRouter } from "./modules/skill/skill.module.js";
-import { TitulosRouter } from "./modules/titulos/titulos.module.js";
-import { LoreNotesRouter } from "./modules/lore-notes/lore-notes.module.js";
-import { ArmasRouter } from "./modules/armas/arma.module.js";
-import { RacasRouter } from "./modules/racas/raca.module.js";
-import { IndoleRouter } from "./modules/indole/indole.module.js";
-import { GeneroRouter } from "./modules/genero/genero.module.js";
-import { CharacterCreationRouter } from "./modules/character-creation/character-creation.module.js";
-import { UsuariosRouter } from "./modules/usuarios/usuarios.module.js";
-import { NpcsRouter } from "./modules/npcs/npcs.module.js";
-import { PlayerTelasRouter } from "./modules/player-telas/player-telas.module.js";
-import { CampanhasRouter } from "./modules/campanhas/campanhas.module.js";
-import { AdminRouter } from "./modules/admin/admin.module.js";
 
 async function iniciarAplicacao(): Promise<void> {
   const aplicacao = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -62,26 +48,20 @@ async function iniciarAplicacao(): Promise<void> {
     }
   });
 
+  // Ponte para os módulos Express que ainda precisam criar contas.
+  registrarServicoUsuarios(aplicacao.get(UsuariosService));
+
+  // Registra as rotas do Nest ANTES de montar os routers Express abaixo.
+  // Sem isto, um módulo migrado pela metade perderia para o router antigo:
+  // o Express atende na ordem em que as rotas entram, e o listen() só
+  // registraria as do Nest depois. Importa enquanto /api/personagens tiver
+  // rotas nos dois lados.
+  await aplicacao.init();
+
   // Módulos ainda não migrados pro Nest continuam servidos pelos routers
   // Express antigos (que ainda falam com o Supabase). Cada um sai daqui
   // conforme for migrado — tabelas-acessorias já saiu, por exemplo.
   aplicacao.use("/api/personagens", PersonagensRouter);
-  aplicacao.use("/api/gods", GodRouter);
-  aplicacao.use("/api/city-maps", CityMapsRouter);
-  aplicacao.use("/api/classes", ClassesRouter);
-  aplicacao.use("/api/skills", SkillRouter);
-  aplicacao.use("/api/titulos", TitulosRouter);
-  aplicacao.use("/api/lore-notes", LoreNotesRouter);
-  aplicacao.use("/api/armas", ArmasRouter);
-  aplicacao.use("/api/racas", RacasRouter);
-  aplicacao.use("/api/indole", IndoleRouter);
-  aplicacao.use("/api/genero", GeneroRouter);
-  aplicacao.use("/api/character-creation-requests", CharacterCreationRouter);
-  aplicacao.use("/api/usuarios", UsuariosRouter);
-  aplicacao.use("/api/npcs", NpcsRouter);
-  aplicacao.use("/api/player-telas", PlayerTelasRouter);
-  aplicacao.use("/api/campanhas", CampanhasRouter);
-  aplicacao.use("/api/admin", AdminRouter);
 
   const porta = Number(process.env.PORT ?? 3000);
   await aplicacao.listen(porta);

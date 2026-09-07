@@ -20,9 +20,14 @@ export async function listMyCharacters(params: ListarPersonagemDto = {}) {
   return data
 }
 
-export async function getCharacterById(characterId: string | number, isMaster: boolean) {
-  const endpoint = isMaster ? `/personagens/admin/${characterId}` : `/personagens/${characterId}`
-  const { data } = await api.get<PersonagemApi>(endpoint)
+/**
+ * Rota única para jogador e mestre. Antes o frontend escolhia entre
+ * /personagens/:id e /personagens/admin/:id porque o backend precisava de
+ * clientes Supabase diferentes; agora o tipo do usuário vem no token e quem
+ * decide o que pode ser aberto é o backend.
+ */
+export async function getCharacterById(characterId: string | number) {
+  const { data } = await api.get<PersonagemApi>(`/personagens/${characterId}`)
   return data
 }
 
@@ -252,15 +257,38 @@ export async function atribuirXpPersonagem(
   return data
 }
 
-export async function listarLevelProgression(): Promise<Array<{ id: number; nivel: number; xp_necessario: number }>> {
-  const { data } = await api.get('/personagens/admin/level-progression')
+/**
+ * Progressão de XP por nível de personagem, em faixas: cada nível pertence a
+ * um tier (Rápido, Médio, Épico) com seu multiplicador, e guarda tanto o XP
+ * para o próximo nível quanto o acumulado até ali.
+ */
+export interface LevelProgressionApi {
+  id: number
+  level: number
+  tier: string
+  multiplier: number
+  xp_required_next: number
+  xp_total_accumulated: number
+  created_at: string
+  updated_at: string
+}
+
+export type EntradaLevelProgressionPayload = Omit<
+  LevelProgressionApi,
+  'id' | 'created_at' | 'updated_at'
+>
+
+export async function listarLevelProgression(tier?: string): Promise<LevelProgressionApi[]> {
+  const { data } = await api.get<LevelProgressionApi[]>('/personagens/admin/level-progression', {
+    params: tier ? { tier } : {},
+  })
   return data
 }
 
 export async function salvarLevelProgression(
-  entradas: Array<{ nivel: number; xp_necessario: number }>,
-): Promise<Array<{ id: number; nivel: number; xp_necessario: number }>> {
-  const { data } = await api.post('/personagens/admin/level-progression', { entradas })
+  entradas: EntradaLevelProgressionPayload[],
+): Promise<LevelProgressionApi[]> {
+  const { data } = await api.post<LevelProgressionApi[]>('/personagens/admin/level-progression', { entradas })
   return data
 }
 

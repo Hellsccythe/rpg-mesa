@@ -1,13 +1,13 @@
 import { api } from '@/plugins/axios'
 
 export interface LoreNoteApi {
-  id: string
+  id: number
   title: string
   subtitle: string | null
   content: string
   pdf_url: string | null
   ordem: number
-  character_id: string | null
+  character_id: number | null
   created_at: string
   updated_at: string
 }
@@ -18,12 +18,12 @@ export interface CreateLoreNotePayload {
   content: string
   pdfUrl?: string | null
   ordem?: number
-  /** null ou undefined = nota global; uuid = nota exclusiva do personagem */
-  characterId?: string | null
+  /** null ou ausente = nota global; id do personagem = nota exclusiva dele */
+  characterId?: number | null
 }
 
 /** Lista notas globais + específicas do personagem (para jogadores). */
-export async function listLoreNotes(characterId?: string | number): Promise<LoreNoteApi[]> {
+export async function listLoreNotes(characterId?: number): Promise<LoreNoteApi[]> {
   const params = characterId ? { characterId } : {}
   const { data } = await api.get<LoreNoteApi[]>('/lore-notes', { params })
   return data
@@ -41,13 +41,13 @@ export async function createLoreNote(payload: CreateLoreNotePayload): Promise<Lo
 }
 
 export async function updateLoreNote(
-  id: string,
+  id: number,
   payload: Partial<CreateLoreNotePayload>,
 ): Promise<LoreNoteApi> {
   const { data } = await api.patch<LoreNoteApi>(`/lore-notes/admin/${id}`, payload)
   return data
 }
 
-export async function deleteLoreNote(id: string): Promise<void> {
+export async function deleteLoreNote(id: number): Promise<void> {
   await api.delete(`/lore-notes/admin/${id}`)
 }

@@ -611,7 +611,7 @@ const filtroNome      = ref('')
 const filtroCategoria = ref<number | null>(null)
 
 const mostrarForm = ref(false)
-const editandoId  = ref<string | null>(null)
+const editandoId  = ref<number | null>(null)
 const formFeedback      = ref('')
 const formFeedbackError = ref(false)
 

@@ -321,9 +321,10 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { listarRacasAdmin, criarRaca, editarRaca, deletarRaca } from '@/lib/api/racas.api'
+import {
+  listarRacasAdmin, criarRaca, editarRaca, deletarRaca, uploadFotoRaca,
+} from '@/lib/api/racas.api'
 import type { RacaApi, AtributoBonus } from '@/lib/api/racas.api'
-import { uploadRacaFoto } from '@/lib/supabase/storage'
 import { listarCatalogoSkills, criarSkillCatalogo } from '@/lib/api/skills.api'
 import type { SkillApi } from '@/lib/api/skills.api'
 
@@ -341,7 +342,7 @@ const carregando = ref(false)
 const salvando = ref(false)
 const deletando = ref(false)
 const formAberto = ref(false)
-const editandoId = ref<string | null>(null)
+const editandoId = ref<number | null>(null)
 const racaParaDeletar = ref<RacaApi | null>(null)
 const feedback = reactive({ msg: '', tipo: 'ok' as 'ok' | 'erro' })
 
@@ -478,7 +479,12 @@ async function salvarNovaSkill() {
     const nova = await criarSkillCatalogo({
       name: modalSkill.nome.trim(),
       description: modalSkill.description.trim() || undefined,
-      raca_vinculada: modalSkill.category === 'Racial' ? modalSkill.raca_vinculada.trim() || undefined : undefined,
+      // raca_vinculada virou TEXT[] na migration 046; este era o único ponto
+      // que ainda mandava string solta, e o TypeScript já vinha reclamando.
+      raca_vinculada:
+        modalSkill.category === 'Racial' && modalSkill.raca_vinculada.trim()
+          ? [modalSkill.raca_vinculada.trim()]
+          : undefined,
     })
     skillsCatalogo.value.push(nova)
     skillsCatalogo.value.sort((a, b) => a.name.localeCompare(b.name))
@@ -512,7 +518,8 @@ async function salvar() {
   try {
     let fotoUrl: string | null = form.foto_url.trim() || null
     if (fotoFile.value) {
-      fotoUrl = await uploadRacaFoto(fotoFile.value)
+      // Grava o caminho relativo; a URL completa é montada pelo backend na resposta.
+      fotoUrl = (await uploadFotoRaca(fotoFile.value)).path
     }
     const payload = {
       nome: form.nome.trim(),

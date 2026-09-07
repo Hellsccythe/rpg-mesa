@@ -160,7 +160,7 @@ async function salvar(id: string | number) {
   try {
     const pos = posicoesPendentes[id] ?? ''
     await setModalHeroPosition(id, pos)
-    const char = characters.value.find(c => c.characterId === id)
+    const char = characters.value.find(c => String(c.characterId) === String(id))
     if (char) char.modalHeroPosition = pos || null
     delete posicoesPendentes[id]
   } catch (e: any) {

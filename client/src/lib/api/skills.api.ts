@@ -18,7 +18,7 @@ export interface SkillApi {
   skill_tipo_item?: number | null
   skill_categoria_item?: number[] | null
   skill_tipo_dano_item?: number[] | null
-  multiplicador_atributo?: string[][] | null
+  multiplicador_atributo?: string[] | null
   damage_base?: string | null
   effect_description?: string | null
   custo?: number | null

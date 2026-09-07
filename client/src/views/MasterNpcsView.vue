@@ -184,7 +184,7 @@
             v-else
             class="relative flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-white/10 bg-white/[0.02] py-8 text-center transition-colors hover:border-indigo-500/40 hover:bg-indigo-950/10 cursor-pointer"
             :class="uploadandoImagem ? 'opacity-60 pointer-events-none' : ''"
-            @click="$refs.fileInputImagem.click()"
+            @click="($refs.fileInputImagem as HTMLInputElement)?.click()"
             @dragover.prevent
             @drop.prevent="onDropImagem"
           >
@@ -363,10 +363,11 @@ async function uploadImagem(file: File) {
   try {
     const fd = new FormData()
     fd.append('file', file)
-    const { data } = await api.post<{ publicUrl: string }>('/npcs/admin/upload-image', fd)
-    form.value.foto_url = data.publicUrl
+    const { data } = await api.post<{ path: string; publicUrl: string }>('/npcs/admin/upload-image', fd)
+    // grava o caminho relativo; a URL completa e montada pelo backend na resposta
+    form.value.foto_url = data.path
   } catch (err: any) {
-    erroUpload.value = err?.response?.data?.error ?? err.message ?? 'Erro ao enviar imagem.'
+    erroUpload.value = err?.response?.data?.message ?? err?.response?.data?.error ?? err.message ?? 'Erro ao enviar imagem.'
   } finally {
     uploadandoImagem.value = false
   }

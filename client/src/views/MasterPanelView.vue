@@ -1012,7 +1012,6 @@ import {
 } from '@/lib/api/lore-notes.api'
 import type { LoreNoteApi } from '@/lib/api/lore-notes.api'
 import { uploadLorePdf } from '@/lib/supabase/storage'
-import { supabase } from '@/lib/supabase/client'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -1076,9 +1075,10 @@ async function carregarLoreNotes() {
   }
 }
 
-function nomePersonagemDaNota(characterId: string | null): string {
+function nomePersonagemDaNota(characterId: number | null): string {
   if (!characterId) return 'Global'
-  return characters.value.find((c) => c.characterId === characterId)?.name ?? characterId
+  const encontrado = characters.value.find((c) => Number(c.characterId) === characterId)
+  return encontrado?.name ?? String(characterId)
 }
 
 async function criarLoreNote() {
@@ -1096,7 +1096,7 @@ async function criarLoreNote() {
       subtitle: loreNoteSubtitle.value.trim() || undefined,
       content: loreNoteContent.value,
       pdfUrl: pdfUrl || null,
-      characterId: loreNoteCharacterId.value || null,
+      characterId: Number(loreNoteCharacterId.value) || null,
     })
     loreNoteTitle.value = ''
     loreNoteSubtitle.value = ''
@@ -1116,7 +1116,7 @@ async function criarLoreNote() {
   }
 }
 
-const modalDeleteLoreId = ref<string | null>(null)
+const modalDeleteLoreId = ref<number | null>(null)
 const tituloDeleteLore = ref('')
 
 function abrirConfirmacaoDeleteLore(nota: LoreNoteApi) {
@@ -1136,7 +1136,7 @@ async function confirmarDeleteLore() {
   await deletarLoreNote(id)
 }
 
-async function deletarLoreNote(id: string) {
+async function deletarLoreNote(id: number) {
   loadingLoreNotes.value = true
   try {
     await deleteLoreNoteApi(id)
@@ -1177,7 +1177,7 @@ const focalPresets = [
 async function carregarFocalChar() {
   if (!focalCharId.value) { focalCharAvatar.value = null; return }
   try {
-    const char = await getCharacterById(focalCharId.value, true)
+    const char = await getCharacterById(focalCharId.value)
     focalCharAvatar.value = char.avatarUrl
     const saved: string = char.data?.avatarFocalPoint ?? 'center 20%'
     aplicarPreset(saved)
@@ -1268,7 +1268,7 @@ const deleteCharacterId = ref('')
 const deleteConfirmName = ref('')
 const loadingDelete = ref(false)
 const deleteCharacterName = computed(
-  () => characters.value.find((c) => c.characterId === deleteCharacterId.value)?.name ?? '',
+  () => characters.value.find((c) => String(c.characterId) === deleteCharacterId.value)?.name ?? '',
 )
 
 const pendingApprovals = computed(() => masterApprovalsStore.pendingApprovals)
@@ -1708,11 +1708,7 @@ async function salvarNovaSenhaObrigatoria() {
   salvandoNovaSenha.value = true
   erroNovaSenha.value = ''
   try {
-    const { error } = await supabase.auth.updateUser({
-      password: novaSenhaObrigatoria.value,
-      data: { requires_password_change: false },
-    })
-    if (error) throw error
+    await authStore.trocarSenha(novaSenhaObrigatoria.value)
     showPasswordChangeModal.value = false
   } catch (err: any) {
     erroNovaSenha.value = err?.message ?? 'Erro ao salvar nova senha.'
@@ -1724,8 +1720,7 @@ async function salvarNovaSenhaObrigatoria() {
 onMounted(async () => {
   await loadAll()
   try {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user?.user_metadata?.requires_password_change) {
+    if (authStore.precisaTrocarSenha) {
       novaSenhaObrigatoria.value = ''
       novaSenhaObrigatoriaConfirmacao.value = ''
       erroNovaSenha.value = ''

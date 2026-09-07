@@ -654,7 +654,7 @@ function temBonusAtributo(passado: PassadoApi): boolean {
 }
 
 // Equipamentos
-const equipamentosSelecionados = ref<{id: string; nome: string; peso: number}[]>([])
+const equipamentosSelecionados = ref<{id: number; nome: string; peso: number}[]>([])
 const buscaEquipamento = ref('')
 const pesoMaximo = computed(() => 2 + (atributos.forca + passadoBonusPorAtributo.value.forca) * 2)
 const pesoUsado  = computed(() => equipamentosSelecionados.value.reduce((s, e) => s + e.peso, 0))
@@ -707,7 +707,7 @@ async function carregar() {
       listarPassados(),
       listPublicGods(),
       listarArmasPublicas(),
-      getCharacterById(characterId, false),
+      getCharacterById(characterId),
     ])
 
     if ((personagemData as any).onboardingCompleto) {
@@ -780,7 +780,7 @@ function decrementarAtributo(key: keyof typeof atributos) {
 }
 
 // ── Equipamentos helpers ──────────────────────────────────────────────────────
-function jaSelecionado(id: string) {
+function jaSelecionado(id: number) {
   return equipamentosSelecionados.value.some(e => e.id === id)
 }
 function adicionarEquipamento(item: ArmaApi) {
@@ -789,7 +789,7 @@ function adicionarEquipamento(item: ArmaApi) {
   if (pesoUsado.value + peso > pesoMaximo.value) return
   equipamentosSelecionados.value.push({ id: item.id, nome: item.nome, peso })
 }
-function removerEquipamento(id: string) {
+function removerEquipamento(id: number) {
   equipamentosSelecionados.value = equipamentosSelecionados.value.filter(e => e.id !== id)
 }
 

@@ -733,7 +733,7 @@ const campanhaSlug = computed(() => {
   const s = route.params.slug
   return typeof s === 'string' && s ? s : null
 })
-const campanhaId = ref<string | null>(null)
+const campanhaId = ref<number | null>(null)
 
 const mostrarModalCriacao = ref(false)
 const personagemSelecionado = ref<PersonagemPublicoApi | null>(null)
@@ -910,7 +910,9 @@ async function logarPersonagem() {
   const idPersonagem = personagemSelecionado.value.characterId
 
   try {
-    await authStore.entrar(`${username}@rpg.internal`, senhaLoginPersonagem.value, idPersonagem)
+    // O backend aceita o username direto; o sufixo @rpg.internal era
+    // exigência do Supabase Auth e deixou de existir.
+    await authStore.entrar(username, senhaLoginPersonagem.value, idPersonagem)
     fecharModalLoginPersonagem()
     router.push({ name: 'dashboard', query: { characterId: idPersonagem } })
   } catch (err: any) {
@@ -1208,12 +1210,13 @@ async function submeterCriacao() {
   erroCriacao.value = ''
 
   try {
-    const { publicUrl: avatarUrl } = await uploadAvatarCriacao(avatarArquivoCriacao.value)
+    // grava o caminho relativo; a URL completa e montada pelo backend na resposta
+    const { path: avatarUrl } = await uploadAvatarCriacao(avatarArquivoCriacao.value)
 
     let historiaDocUrl: string | undefined
     if (docSelecionadoCriacao.value) {
-      const { publicUrl } = await uploadHistoriaDoc(docSelecionadoCriacao.value)
-      historiaDocUrl = publicUrl
+      const { path } = await uploadHistoriaDoc(docSelecionadoCriacao.value)
+      historiaDocUrl = path
     }
 
     const nomeCompleto = sobrenomePersonagem.value.trim()

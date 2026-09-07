@@ -1,56 +1,44 @@
-import { getAdminClient, getSupabaseClient } from "../../config/database/supabase/client.js";
-import { ensureMasterAccess } from "../../common/helpers/master-access.helper.js";
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { InjectModel } from "@nestjs/sequelize";
+import { IndoleModel } from "./models/indole.model.js";
+import type { CriarIndoleDto, EditarIndoleDto } from "./indole.dto.js";
 
-export type IndoleRecord = {
-  id: number;
-  codigo: string;
-  descricao: string;
-  created_at?: string;
-};
+@Injectable()
+export class IndoleService {
+  constructor(
+    @InjectModel(IndoleModel)
+    private readonly modeloIndole: typeof IndoleModel,
+  ) {}
 
-export const indoleService = {
-  async listar(): Promise<IndoleRecord[]> {
-    const { data, error } = await getSupabaseClient()
-      .from("indole")
-      .select("id, codigo, descricao, created_at")
-      .order("id", { ascending: true });
-    if (error) throw error;
-    return (data ?? []) as IndoleRecord[];
-  },
+  async listar(): Promise<IndoleModel[]> {
+    return this.modeloIndole.findAll({ order: [["id", "ASC"]] });
+  }
 
-  async criar(dto: { codigo: string; descricao: string }, accessToken?: string): Promise<IndoleRecord> {
-    await ensureMasterAccess(accessToken);
-    const { data, error } = await getAdminClient()
-      .from("indole")
-      .insert({ codigo: dto.codigo.trim(), descricao: dto.descricao.trim() })
-      .select("id, codigo, descricao, created_at")
-      .single();
-    if (error) throw error;
-    return data as IndoleRecord;
-  },
+  async criar(dados: CriarIndoleDto): Promise<IndoleModel> {
+    return this.modeloIndole.create({
+      codigo: dados.codigo.trim(),
+      descricao: dados.descricao.trim(),
+    });
+  }
 
-  async editar(id: number, dto: { codigo?: string; descricao?: string }, accessToken?: string): Promise<IndoleRecord> {
-    await ensureMasterAccess(accessToken);
-    const updates: Record<string, unknown> = {};
-    if (dto.codigo !== undefined) updates.codigo = dto.codigo.trim();
-    if (dto.descricao !== undefined) updates.descricao = dto.descricao.trim();
-    const { data, error } = await getAdminClient()
-      .from("indole")
-      .update(updates)
-      .eq("id", id)
-      .select("id, codigo, descricao, created_at")
-      .single();
-    if (error) throw error;
-    return data as IndoleRecord;
-  },
+  async editar(id: number, dados: EditarIndoleDto): Promise<IndoleModel> {
+    const registro = await this.buscarOuFalhar(id);
+    if (dados.codigo !== undefined) registro.codigo = dados.codigo.trim();
+    if (dados.descricao !== undefined) registro.descricao = dados.descricao.trim();
+    await registro.save();
+    return registro;
+  }
 
-  async deletar(id: number, accessToken?: string): Promise<{ success: boolean }> {
-    await ensureMasterAccess(accessToken);
-    const { error } = await getAdminClient()
-      .from("indole")
-      .delete()
-      .eq("id", id);
-    if (error) throw error;
-    return { success: true };
-  },
-};
+  async deletar(id: number): Promise<void> {
+    const registro = await this.buscarOuFalhar(id);
+    // Soft delete: a versão anterior apagava de verdade, o que deixaria
+    // gods.indole_id e characters.indole_id apontando para o vazio.
+    await registro.destroy();
+  }
+
+  private async buscarOuFalhar(id: number): Promise<IndoleModel> {
+    const registro = await this.modeloIndole.findByPk(id);
+    if (!registro) throw new NotFoundException("Índole não encontrada");
+    return registro;
+  }
+}

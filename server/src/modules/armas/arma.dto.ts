@@ -1,198 +1,136 @@
-import { IsArray, IsInt, IsNumber, IsOptional, IsString, Max, MaxLength, Min } from "class-validator";
+import { Type } from "class-transformer";
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+  MinLength,
+} from "class-validator";
 
-// ── Equipamento ───────────────────────────────────────────────────────────────
+/**
+ * Nomes em snake_case porque é o que o frontend já envia.
+ *
+ * Cuidado com a assimetria de categoria (uma) contra classe, tipo e
+ * propriedade (listas) — é o mesmo formato das colunas.
+ */
 
-export class CriarArmaDto {
+export class CriarEquipamentoDto {
   @IsString()
+  @MinLength(1, { message: "Campo 'nome' é obrigatório." })
   @MaxLength(255)
-  nome: string;
+  nome!: string;
 
-  @IsOptional()
-  @IsString()
-  @MaxLength(60)
-  dano?: string;
+  @IsOptional() @IsString() @MaxLength(60)
+  dano?: string | null;
 
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  categoria_equipamento_item?: number;
+  @IsOptional() @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) @Max(999999)
+  peso?: number | null;
 
-  @IsOptional()
-  @IsArray()
-  @IsInt({ each: true })
-  classe_equipamento_item?: number[];
+  @IsOptional() @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) @Max(9999999999)
+  valor?: number | null;
 
-  @IsOptional()
-  @IsArray()
-  @IsInt({ each: true })
-  tipo_equipamento_item?: number[];
-
-  @IsOptional()
-  @IsArray()
-  @IsInt({ each: true })
-  propriedade_equipamento_item?: number[];
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(500)
-  descricao_equipamento?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(300)
-  pre_requisitos?: string;
-
-  @IsOptional()
-  @IsNumber({ maxDecimalPlaces: 2 })
-  @Min(0)
-  @Max(9999999.99)
-  peso?: number;
-
-  @IsOptional()
-  @IsNumber({ maxDecimalPlaces: 2 })
-  @Min(0)
-  @Max(99999999999.99)
-  valor?: number;
-}
-
-export class EditarArmaDto {
-  @IsOptional()
-  @IsString()
-  @MaxLength(255)
-  nome?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(60)
-  dano?: string;
-
-  @IsOptional()
-  @IsInt()
-  @Min(1)
+  @IsOptional() @IsInt() @Min(1)
   categoria_equipamento_item?: number | null;
 
-  @IsOptional()
-  @IsArray()
-  @IsInt({ each: true })
+  @IsOptional() @IsArray() @ArrayMaxSize(50) @IsInt({ each: true }) @Min(1, { each: true })
   classe_equipamento_item?: number[];
 
-  @IsOptional()
-  @IsArray()
-  @IsInt({ each: true })
+  @IsOptional() @IsArray() @ArrayMaxSize(50) @IsInt({ each: true }) @Min(1, { each: true })
   tipo_equipamento_item?: number[];
 
-  @IsOptional()
-  @IsArray()
-  @IsInt({ each: true })
+  @IsOptional() @IsArray() @ArrayMaxSize(50) @IsInt({ each: true }) @Min(1, { each: true })
   propriedade_equipamento_item?: number[];
 
-  @IsOptional()
-  @IsString()
-  @MaxLength(500)
-  descricao_equipamento?: string;
+  @IsOptional() @IsString() @MaxLength(500)
+  descricao_equipamento?: string | null;
 
-  @IsOptional()
-  @IsString()
-  @MaxLength(300)
-  pre_requisitos?: string;
-
-  @IsOptional()
-  @IsNumber({ maxDecimalPlaces: 2 })
-  @Min(0)
-  @Max(9999999.99)
-  peso?: number;
-
-  @IsOptional()
-  @IsNumber({ maxDecimalPlaces: 2 })
-  @Min(0)
-  @Max(99999999999.99)
-  valor?: number;
+  @IsOptional() @IsString() @MaxLength(300)
+  pre_requisitos?: string | null;
 }
 
-// ── Categoria (primário) ──────────────────────────────────────────────────────
+export class EditarEquipamentoDto {
+  @IsOptional() @IsString() @MinLength(1) @MaxLength(255)
+  nome?: string;
 
-export class CriarCategoriaDto {
-  @IsString()
-  @MaxLength(100)
-  descricao: string;
+  @IsOptional() @IsString() @MaxLength(60)
+  dano?: string | null;
 
-  @IsOptional()
-  @IsString()
-  @MaxLength(60)
-  icone?: string;
+  @IsOptional() @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) @Max(999999)
+  peso?: number | null;
+
+  @IsOptional() @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) @Max(9999999999)
+  valor?: number | null;
+
+  @IsOptional() @IsInt() @Min(1)
+  categoria_equipamento_item?: number | null;
+
+  @IsOptional() @IsArray() @ArrayMaxSize(50) @IsInt({ each: true }) @Min(1, { each: true })
+  classe_equipamento_item?: number[];
+
+  @IsOptional() @IsArray() @ArrayMaxSize(50) @IsInt({ each: true }) @Min(1, { each: true })
+  tipo_equipamento_item?: number[];
+
+  @IsOptional() @IsArray() @ArrayMaxSize(50) @IsInt({ each: true }) @Min(1, { each: true })
+  propriedade_equipamento_item?: number[];
+
+  @IsOptional() @IsString() @MaxLength(500)
+  descricao_equipamento?: string | null;
+
+  @IsOptional() @IsString() @MaxLength(300)
+  pre_requisitos?: string | null;
 }
 
-export class EditarCategoriaDto {
-  @IsOptional()
-  @IsString()
-  @MaxLength(100)
-  descricao?: string;
+// ── Tabelas de apoio ────────────────────────────────────────────────────────
 
-  @IsOptional()
-  @IsString()
-  @MaxLength(60)
+export class CriarCategoriaEquipamentoDto {
+  @IsString() @MinLength(1, { message: "Campo 'descricao' é obrigatório." }) @MaxLength(100)
+  descricao!: string;
+
+  @IsOptional() @IsString() @MaxLength(100)
   icone?: string | null;
 }
 
-// ── Classe (secundário) ───────────────────────────────────────────────────────
+export class EditarCategoriaEquipamentoDto {
+  @IsOptional() @IsString() @MinLength(1) @MaxLength(100)
+  descricao?: string;
 
-export class CriarClasseDto {
-  @IsString()
-  @MaxLength(100)
-  descricao: string;
+  @IsOptional() @IsString() @MaxLength(100)
+  icone?: string | null;
 }
 
-export class EditarClasseDto {
-  @IsOptional()
-  @IsString()
-  @MaxLength(100)
+export class CriarClasseEquipamentoDto {
+  @IsString() @MinLength(1, { message: "Campo 'descricao' é obrigatório." }) @MaxLength(100)
+  descricao!: string;
+}
+
+export class EditarClasseEquipamentoDto {
+  @IsOptional() @IsString() @MinLength(1) @MaxLength(100)
   descricao?: string;
 }
 
-// ── Tipo ──────────────────────────────────────────────────────────────────────
+/** Serve para tipo e para propriedade, que têm a mesma forma. */
+export class CriarFilhoDeCategoriaDto {
+  @IsString() @MinLength(1, { message: "Campo 'descricao' é obrigatório." }) @MaxLength(100)
+  descricao!: string;
 
-export class CriarTipoDto {
-  @IsString()
-  @MaxLength(100)
-  descricao: string;
-
-  @IsInt()
-  @Min(1)
-  categoria_item: number;
+  @IsInt({ message: "categoria_item é obrigatório." }) @Min(1)
+  categoria_item!: number;
 }
 
-export class EditarTipoDto {
-  @IsOptional()
-  @IsString()
-  @MaxLength(100)
+export class EditarFilhoDeCategoriaDto {
+  @IsOptional() @IsString() @MinLength(1) @MaxLength(100)
   descricao?: string;
 
-  @IsOptional()
-  @IsInt()
-  @Min(1)
+  @IsOptional() @IsInt() @Min(1)
   categoria_item?: number;
 }
 
-// ── Propriedade ───────────────────────────────────────────────────────────────
-
-export class CriarPropriedadeDto {
-  @IsString()
-  @MaxLength(100)
-  descricao: string;
-
-  @IsInt()
-  @Min(1)
-  categoria_item: number;
-}
-
-export class EditarPropriedadeDto {
-  @IsOptional()
-  @IsString()
-  @MaxLength(100)
-  descricao?: string;
-
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  categoria_item?: number;
+export class FiltroPorCategoriaDto {
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1)
+  categoria?: number;
 }

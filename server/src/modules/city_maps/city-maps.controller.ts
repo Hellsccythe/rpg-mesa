@@ -1,35 +1,114 @@
-import { cityMapsService } from "./city-maps.service.js";
-import type { EditarCityMapDto, SalvarCityMapDto } from "./city-maps.dto.js";
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
+import sharp from "sharp";
+import { JwtAuthGuard } from "../../common/auth/jwt-auth.guard.js";
+import { MasterGuard } from "../../common/auth/master.guard.js";
+import { ArmazenamentoArquivosService } from "../../common/storage/armazenamento-arquivos.service.js";
+import { CityMapsService } from "./city-maps.service.js";
+import { EditarCityMapDto, SalvarCityMapDto } from "./city-maps.dto.js";
 
-export const cityMapsController = {
-  async listarAutenticado(accessToken?: string) {
-    return cityMapsService.listarAutenticado(accessToken);
-  },
+const TAMANHO_MAXIMO_IMAGEM_BYTES = 30 * 1024 * 1024;
+const LADO_MAXIMO_PIXELS = 2200;
+const SUBPASTA_IMAGENS = "maps";
 
-  async listar(accessToken?: string) {
-    return cityMapsService.listar(accessToken);
-  },
+@Controller("city-maps")
+export class CityMapsController {
+  constructor(
+    private readonly servicoCityMaps: CityMapsService,
+    private readonly armazenamentoArquivos: ArmazenamentoArquivosService,
+  ) {}
 
-  async uploadImagem(
-    file: { buffer: Buffer; originalname: string; mimetype: string; size: number },
-    accessToken?: string,
+  /**
+   * A listagem exige apenas estar logado (qualquer jogador vê os mapas da
+   * cidade); a versão /admin existe porque o frontend a usa na tela do mestre.
+   * Ambas devolvem os mesmos dados.
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get()
+  listar() {
+    return this.servicoCityMaps.listar();
+  }
+
+  @UseGuards(JwtAuthGuard, MasterGuard)
+  @Get("admin")
+  listarParaMestre() {
+    return this.servicoCityMaps.listar();
+  }
+
+  @UseGuards(JwtAuthGuard, MasterGuard)
+  @Post("admin")
+  salvar(@Body() dadosCriacao: SalvarCityMapDto) {
+    return this.servicoCityMaps.salvar(dadosCriacao);
+  }
+
+  @UseGuards(JwtAuthGuard, MasterGuard)
+  @Patch("admin/:cityMapId")
+  editar(
+    @Param("cityMapId", ParseIntPipe) cityMapId: number,
+    @Body() dadosEdicao: EditarCityMapDto,
   ) {
-    return cityMapsService.uploadImagem(file, accessToken);
-  },
+    return this.servicoCityMaps.editar(cityMapId, dadosEdicao);
+  }
 
-  async salvar(dto: SalvarCityMapDto, accessToken?: string) {
-    if (!dto.name?.trim()) throw new Error("Nome da cidade é obrigatório");
-    if (!dto.mapReference?.trim()) throw new Error("Referência do mapa é obrigatória");
-    return cityMapsService.salvar(dto, accessToken);
-  },
+  @UseGuards(JwtAuthGuard, MasterGuard)
+  @Delete("admin/:cityMapId")
+  async deletar(@Param("cityMapId", ParseIntPipe) cityMapId: number) {
+    await this.servicoCityMaps.deletar(cityMapId);
+    return { success: true };
+  }
 
-  async editar(cityMapId: string, dto: EditarCityMapDto, accessToken?: string) {
-    if (dto.name !== undefined && !dto.name.trim()) {
-      throw new Error("Nome da cidade não pode ficar vazio");
+  @UseGuards(JwtAuthGuard, MasterGuard)
+  @Post("admin/upload-image")
+  @UseInterceptors(FileInterceptor("file"))
+  async enviarImagem(@UploadedFile() arquivo?: Express.Multer.File) {
+    if (!arquivo?.buffer?.length) {
+      throw new BadRequestException("Arquivo de imagem invalido");
     }
-    if (dto.mapReference !== undefined && !dto.mapReference.trim()) {
-      throw new Error("Referência do mapa não pode ficar vazia");
+    if (!arquivo.mimetype?.startsWith("image/")) {
+      throw new BadRequestException("Formato invalido. Envie uma imagem");
     }
-    return cityMapsService.editar(cityMapId, dto, accessToken);
-  },
-};
+    if (arquivo.size > TAMANHO_MAXIMO_IMAGEM_BYTES) {
+      throw new BadRequestException("Imagem excede o limite de 30MB");
+    }
+
+    // Mapas comportam mais pixels que retratos: o jogador dá zoom para achar
+    // pontos de interesse, então o lado máximo aqui é maior.
+    const imagemProcessada = await sharp(arquivo.buffer, { failOn: "none" })
+      .rotate()
+      .resize({
+        width: LADO_MAXIMO_PIXELS,
+        height: LADO_MAXIMO_PIXELS,
+        fit: "inside",
+        withoutEnlargement: true,
+      })
+      .png({ compressionLevel: 9 })
+      .toBuffer();
+
+    const caminhoRelativo = await this.armazenamentoArquivos.salvar(
+      SUBPASTA_IMAGENS,
+      arquivo.originalname || "mapa",
+      imagemProcessada,
+      "png",
+    );
+
+    // path é o que deve ser gravado no banco; publicUrl serve para o preview
+    // imediato no frontend. O backend aceita qualquer um dos dois de volta.
+    return {
+      path: caminhoRelativo,
+      publicUrl: this.armazenamentoArquivos.montarUrlPublica(caminhoRelativo),
+    };
+  }
+}

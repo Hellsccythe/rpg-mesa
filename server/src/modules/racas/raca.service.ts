@@ -1,142 +1,113 @@
-import { getAdminClient, getSupabaseClient } from "../../config/database/supabase/client.js";
-import { ensureMasterAccess, getUserDisplayEmail } from "../../common/helpers/master-access.helper.js";
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { InjectModel } from "@nestjs/sequelize";
+import { ArmazenamentoArquivosService } from "../../common/storage/armazenamento-arquivos.service.js";
+import {
+  RacaModel,
+  type BonusDeAtributoDeRaca,
+  type HabilidadeDeRaca,
+} from "./models/raca.model.js";
 import type { CriarRacaDto, EditarRacaDto } from "./raca.dto.js";
 
-const RACAS_TABLE = "racas";
-
 export type RacaApi = {
-  id: string;
+  id: number;
   nome: string;
   foto_url: string | null;
   descricao: string | null;
   lore: string | null;
-  habilidades: { nome: string; descricao: string }[];
-  atributos_bonus: { atributo: string; valor: string }[];
-  createdAt?: string;
-  updatedAt?: string;
+  habilidades: HabilidadeDeRaca[];
+  atributos_bonus: BonusDeAtributoDeRaca[];
+  createdAt: string | null;
+  updatedAt: string | null;
 };
 
-const SELECT_FIELDS =
-  "id, nome, foto_url, descricao, lore, habilidades, atributos_bonus, created_at, updated_at";
-
-function mapRaca(row: any): RacaApi {
-  return {
-    id: String(row?.id ?? ""),
-    nome: typeof row?.nome === "string" ? row.nome.trim() : "",
-    foto_url: row?.foto_url ?? null,
-    descricao: row?.descricao ?? null,
-    lore: row?.lore ?? null,
-    habilidades: Array.isArray(row?.habilidades) ? row.habilidades : [],
-    atributos_bonus: Array.isArray(row?.atributos_bonus) ? row.atributos_bonus : [],
-    createdAt: row?.created_at,
-    updatedAt: row?.updated_at,
-  };
+function formatarData(valor: unknown): string | null {
+  return valor instanceof Date ? valor.toISOString() : null;
 }
 
-export const racaService = {
-  async listarPublico() {
-    const client = getAdminClient();
-    const { data, error } = await client
-      .from(RACAS_TABLE)
-      .select("id, nome, foto_url, descricao, habilidades, atributos_bonus, created_at, updated_at")
-      .is("deleted_at", null)
-      .order("nome", { ascending: true });
+@Injectable()
+export class RacaService {
+  constructor(
+    @InjectModel(RacaModel)
+    private readonly modeloRaca: typeof RacaModel,
+    private readonly armazenamentoArquivos: ArmazenamentoArquivosService,
+  ) {}
 
-    if (error) throw error;
-    // lore NÃO é retornado na listagem pública
-    return (data ?? []).map((row: any) => ({ ...mapRaca(row), lore: null }));
-  },
+  // ── Leitura ───────────────────────────────────────────────────────────────
 
-  async listar(accessToken?: string) {
-    await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
+  /**
+   * Listagem pública (tela de raças e onboarding). O lore é omitido de
+   * propósito: é o texto que o mestre escreve para revelar aos poucos.
+   */
+  async listarPublico(): Promise<RacaApi[]> {
+    const encontradas = await this.modeloRaca.findAll({ order: [["nome", "ASC"]] });
+    return encontradas.map((raca) => ({ ...this.mapear(raca), lore: null }));
+  }
 
-    const { data, error } = await admin
-      .from(RACAS_TABLE)
-      .select(SELECT_FIELDS)
-      .is("deleted_at", null)
-      .order("nome", { ascending: true });
+  async listarParaMestre(): Promise<RacaApi[]> {
+    const encontradas = await this.modeloRaca.findAll({ order: [["nome", "ASC"]] });
+    return encontradas.map((raca) => this.mapear(raca));
+  }
 
-    if (error) throw error;
-    return (data ?? []).map(mapRaca);
-  },
+  // ── Escrita (ORM, pra os hooks de auditoria dispararem) ───────────────────
 
-  async criar(dto: CriarRacaDto, accessToken?: string) {
-    const masterUser = await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
+  async criar(dados: CriarRacaDto): Promise<RacaApi> {
+    const criada = await this.modeloRaca.create({
+      nome: dados.nome.trim(),
+      fotoUrl: this.armazenamentoArquivos.normalizarParaArmazenamento(dados.foto_url ?? null),
+      descricao: dados.descricao?.trim() || null,
+      lore: dados.lore?.trim() || null,
+      habilidades: dados.habilidades ?? [],
+      atributosBonus: dados.atributos_bonus ?? [],
+    });
 
-    const { data, error } = await admin
-      .from(RACAS_TABLE)
-      .insert({
-        nome: dto.nome.trim(),
-        foto_url: dto.foto_url?.trim() ?? null,
-        descricao: dto.descricao?.trim() ?? null,
-        lore: dto.lore?.trim() ?? null,
-        habilidades: dto.habilidades ?? [],
-        atributos_bonus: dto.atributos_bonus ?? [],
-        created_by: getUserDisplayEmail(masterUser),
-        updated_by: getUserDisplayEmail(masterUser),
-      })
-      .select(SELECT_FIELDS)
-      .single();
+    return this.mapear(criada);
+  }
 
-    if (error) throw error;
-    return mapRaca(data);
-  },
+  async editar(id: number, dados: EditarRacaDto): Promise<RacaApi> {
+    const raca = await this.buscarOuFalhar(id);
 
-  async editar(racaId: string, dto: EditarRacaDto, accessToken?: string) {
-    const masterUser = await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
+    if (dados.nome !== undefined) raca.nome = dados.nome.trim();
+    if (dados.foto_url !== undefined) {
+      raca.fotoUrl = this.armazenamentoArquivos.normalizarParaArmazenamento(dados.foto_url);
+    }
+    if (dados.descricao !== undefined) raca.descricao = dados.descricao?.trim() || null;
+    if (dados.lore !== undefined) raca.lore = dados.lore?.trim() || null;
+    if (dados.habilidades !== undefined) raca.habilidades = dados.habilidades;
+    if (dados.atributos_bonus !== undefined) raca.atributosBonus = dados.atributos_bonus;
 
-    const { data: current, error: currentError } = await admin
-      .from(RACAS_TABLE)
-      .select("id")
-      .eq("id", racaId)
-      .is("deleted_at", null)
-      .single();
+    await raca.save();
+    return this.mapear(raca);
+  }
 
-    if (currentError || !current) throw new Error("Raça não encontrada");
+  async deletar(id: number): Promise<void> {
+    const raca = await this.buscarOuFalhar(id);
+    // Soft delete (paranoid). A imagem em disco fica: o registro pode ser
+    // restaurado, e o arquivo não voltaria.
+    await raca.destroy();
+  }
 
-    const updates: Record<string, unknown> = { updated_by: getUserDisplayEmail(masterUser) };
-    if (dto.nome !== undefined)           updates.nome = dto.nome.trim();
-    if (dto.foto_url !== undefined)       updates.foto_url = dto.foto_url?.trim() ?? null;
-    if (dto.descricao !== undefined)      updates.descricao = dto.descricao?.trim() ?? null;
-    if (dto.lore !== undefined)           updates.lore = dto.lore?.trim() ?? null;
-    if (dto.habilidades !== undefined)    updates.habilidades = dto.habilidades;
-    if (dto.atributos_bonus !== undefined) updates.atributos_bonus = dto.atributos_bonus;
+  // ── Apoio ─────────────────────────────────────────────────────────────────
 
-    const { data, error } = await admin
-      .from(RACAS_TABLE)
-      .update(updates)
-      .eq("id", racaId)
-      .is("deleted_at", null)
-      .select(SELECT_FIELDS)
-      .single();
+  private async buscarOuFalhar(id: number): Promise<RacaModel> {
+    const raca = await this.modeloRaca.findByPk(id);
+    if (!raca) {
+      throw new NotFoundException("Raça não encontrada.");
+    }
+    return raca;
+  }
 
-    if (error) throw error;
-    return mapRaca(data);
-  },
-
-  async deletar(racaId: string, accessToken?: string) {
-    const masterUser = await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
-
-    const { data: raca, error: fetchError } = await admin
-      .from(RACAS_TABLE)
-      .select("id")
-      .eq("id", racaId)
-      .is("deleted_at", null)
-      .single();
-
-    if (fetchError || !raca) throw new Error("Raça não encontrada");
-
-    const { error } = await admin
-      .from(RACAS_TABLE)
-      .update({ deleted_at: new Date().toISOString(), deleted_by: getUserDisplayEmail(masterUser) })
-      .eq("id", racaId)
-      .is("deleted_at", null);
-
-    if (error) throw error;
-    return { success: true };
-  },
-};
+  /** O banco guarda o caminho relativo; a API responde com a URL completa. */
+  private mapear(raca: RacaModel): RacaApi {
+    return {
+      id: raca.id,
+      nome: raca.nome?.trim() ?? "",
+      foto_url: this.armazenamentoArquivos.montarUrlPublica(raca.fotoUrl) || null,
+      descricao: raca.descricao,
+      lore: raca.lore,
+      habilidades: Array.isArray(raca.habilidades) ? raca.habilidades : [],
+      atributos_bonus: Array.isArray(raca.atributosBonus) ? raca.atributosBonus : [],
+      createdAt: formatarData(raca.get("createdAt")),
+      updatedAt: formatarData(raca.get("updatedAt")),
+    };
+  }
+}

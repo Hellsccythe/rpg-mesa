@@ -50,11 +50,21 @@ Sistema de gestão de sessões de RPG de mesa. Monorepo com Yarn 4 Workspaces.
 | Método | Rota | Acesso |
 |---|---|---|
 | GET | `/api/personagens` | auth |
+| GET | `/api/personagens/:id` | auth (mestre abre qualquer um; jogador só o seu) |
+| GET | `/api/racas` | público (sem `lore`) |
+| GET | `/api/racas/admin` | isMaster (com `lore`) |
+| POST | `/api/racas/admin` | isMaster |
+| PATCH | `/api/racas/admin/:id` | isMaster |
+| DELETE | `/api/racas/admin/:id` | isMaster (soft delete) |
+| POST | `/api/racas/admin/upload-image` | isMaster (multipart `file`) |
 | GET | `/api/gods` | público |
 | GET | `/api/city-maps` | auth |
 | GET | `/api/classes` | público |
-| GET | `/api/skills` | auth |
-| GET | `/api/titulos` | público |
+| GET | `/api/titulos/catalogo` | público (enriquecido com os nomes das skills) |
+| POST | `/api/titulos/admin` | isMaster |
+| PATCH | `/api/titulos/admin/:id` | isMaster |
+| DELETE | `/api/titulos/admin/:id` | isMaster (soft delete) |
+| POST | `/api/titulos/admin/personagens/:characterId` | isMaster (concede título avulso) |
 | GET | `/api/armas` | público |
 | GET | `/api/armas/categorias` | público |
 | GET | `/api/armas/admin` | isMaster |
@@ -72,6 +82,13 @@ Sistema de gestão de sessões de RPG de mesa. Monorepo com Yarn 4 Workspaces.
 | POST/PATCH/DELETE | `/api/skills/categorias/admin[/:item]` | isMaster |
 | GET | `/api/skills/tipos-dano` | público |
 | POST/PATCH/DELETE | `/api/skills/tipos-dano/admin[/:item]` | isMaster |
+| GET | `/api/skills/naturezas` | público |
+| POST/PATCH/DELETE | `/api/skills/naturezas/admin[/:item]` | isMaster |
+| GET | `/api/skills/niveis?skill_id=X` | público (evoluções de nível 2 e 3 da skill) |
+| POST | `/api/skills/admin/niveis` | isMaster |
+| PATCH | `/api/skills/admin/niveis/:id` | isMaster |
+| DELETE | `/api/skills/admin/niveis/:id` | isMaster (**hard delete** — UNIQUE total) |
+| POST | `/api/skills/admin/personagens/:characterId` | isMaster (concede skill avulsa a um personagem) |
 | GET | `/api/tabelas-acessorias/tipos` | público |
 | GET | `/api/tabelas-acessorias/categorias-arma` | público |
 | GET | `/api/tabelas-acessorias/propriedades-arma` | público |
@@ -110,11 +127,44 @@ Sistema de gestão de sessões de RPG de mesa. Monorepo com Yarn 4 Workspaces.
 | PATCH | `/api/skills/admin/overrides/:id` | isMaster |
 | DELETE | `/api/skills/admin/overrides/:id` | isMaster |
 | GET | `/api/classes/admin` | isMaster |
-| GET | `/api/classes/para-player` | auth (retorna normais + secretas reveladas ao character) |
+| GET | `/api/classes/para-player?characterId=X` | auth — só o dono do personagem ou o mestre (retorna normais + secretas reveladas) |
+| GET | `/api/classes/level-progression` | auth (mesma tabela de `/personagens/admin/level-progression`, que é isMaster) |
+| GET | `/api/classes/progressao?classe_id=X` | isMaster (XP por nível dentro de uma classe) |
+| POST | `/api/classes/progressao/admin` | isMaster |
+| POST | `/api/classes/progressao/admin/bulk` | isMaster |
+| PATCH | `/api/classes/progressao/admin/:id` | isMaster |
+| DELETE | `/api/classes/progressao/admin/:id` | isMaster (**hard delete** — ver nota abaixo) |
 | GET | `/api/classes/secretas/admin` | isMaster (lista classes secretas com titular atual) |
 | POST | `/api/classes/secretas/admin/revelar` | isMaster (revela classe secreta a um personagem) |
 | DELETE | `/api/classes/secretas/admin/revogar/:classeId` | isMaster (revoga acesso) |
 | PATCH | `/api/personagens/admin/:id/status` | isMaster (vivo \| morto; morte libera classe secreta) |
+| GET | `/api/campanhas` | público (só as ativas) |
+| GET | `/api/campanhas/:slug` | público |
+| GET | `/api/campanhas/admin/listar` | isMaster (inclui inativas) |
+| POST | `/api/campanhas/admin` | isMaster |
+| PATCH | `/api/campanhas/admin/:id` | isMaster |
+| DELETE | `/api/campanhas/admin/:id` | isMaster (soft delete, 204) |
+| POST | `/api/campanhas/admin/upload-capa` | isMaster (multipart `file`) |
+| GET/POST | `/api/campanhas/admin/:id/gms` | isMaster |
+| DELETE | `/api/campanhas/admin/:id/gms/:gmId` | isMaster (soft delete, 204) |
+| GET | `/api/npcs/admin` | isMaster |
+| POST | `/api/npcs/admin` | isMaster |
+| PATCH | `/api/npcs/admin/:id` | isMaster |
+| DELETE | `/api/npcs/admin/:id` | isMaster (soft delete) |
+| POST | `/api/npcs/admin/upload-image` | isMaster (multipart `file`) |
+| GET | `/api/npcs/admin/:id/acessos` | isMaster (todos os personagens, marcando quem tem acesso) |
+| POST/DELETE | `/api/npcs/admin/:id/acessos/:characterId` | isMaster (**hard delete** — UNIQUE total) |
+| GET | `/api/npcs/player?characterId=X` | auth — só o dono do personagem ou o mestre |
+| GET | `/api/lore-notes?characterId=X` | auth — só o dono do personagem ou o mestre |
+| GET | `/api/lore-notes/admin` | isMaster |
+| POST | `/api/lore-notes/admin` | isMaster |
+| PATCH | `/api/lore-notes/admin/:id` | isMaster |
+| DELETE | `/api/lore-notes/admin/:id` | isMaster (soft delete, 204) |
+| GET | `/api/player-telas/disponiveis` | público (lista fixa das telas liberáveis) |
+| GET | `/api/player-telas/me?characterId=X` | auth — só o dono do personagem ou o mestre |
+| GET | `/api/player-telas/admin/:characterId` | isMaster |
+| PUT | `/api/player-telas/admin/:characterId` | isMaster (substitui o conjunto inteiro) |
+| GET | `/api/admin/exportar-schema?dialeto=postgresql\|mysql\|sqlite` | isMaster (devolve texto puro como anexo) |
 
 ## Componentes Compartilhados
 
@@ -236,7 +286,7 @@ Solicitações de criação de personagem submetidas por jogadores, pendentes de
 | id | INTEGER PK | IDENTITY |
 | email | TEXT | email real do jogador |
 | username | TEXT | login handle desejado, único |
-| password_hash | TEXT | senha criptografada AES-256-CBC (não bcrypt) |
+| password_hash | TEXT | **hash bcrypt**. Era AES-256-CBC reversível porque o texto puro era necessário para criar a conta no Supabase Auth; hoje a conta nasce no próprio backend e o hash é só transferido para `usuarios.password_hash` na aprovação — a senha deixou de ser recuperável a partir do banco |
 | nome | TEXT | nome completo do personagem |
 | avatar_url | TEXT | nullable — path no bucket `character-avatars` |
 | indole_id | INTEGER | referência a `indole.id` |
@@ -246,11 +296,16 @@ Solicitações de criação de personagem submetidas por jogadores, pendentes de
 | historia_doc_url | TEXT | nullable — path no bucket `character-history` |
 | status | TEXT | 'pendente' \| 'aprovado' \| 'rejeitado' |
 | rejeitado_motivo | TEXT | nullable |
-| revisado_em / revisado_por | timestamptz / UUID | auditoria de revisão |
-| deleted_at / deleted_by | timestamptz / UUID | soft delete |
+| revisado_em / revisado_por | timestamptz / TEXT | auditoria de revisão (email do mestre) |
+| campaign_id | INTEGER | nullable |
+| deleted_at / deleted_by | timestamptz / TEXT | soft delete |
 | created_at / updated_at | timestamptz | |
 
-Ao aprovar: cria usuário no Supabase Auth com email `{username}@rpg.internal` + descriptografa senha → cria registro em `characters`.
+Ao aprovar: cria (ou preenche o pré-registro de) `usuarios` com o hash já pronto → cria registro em `characters`. Se a criação do personagem falhar, a conta recém-criada é desfeita para não ficar órfã.
+
+`username` é único **apenas entre solicitações pendentes ou aprovadas** (índice parcial, migration 069). Uma rejeitada libera o nome para o jogador reenviar. Antes o índice era total e o reenvio estourava com chave duplicada.
+
+O email precisa estar **pré-registrado**: um `usuarios` com `password_hash` nulo. A checagem antiga procurava `auth_user_id IS NULL`, coluna removida na migration 061 junto com o Supabase Auth — o que quebrava toda submissão.
 
 ### `equipamentos` (anteriormente `armas`)
 
@@ -265,57 +320,68 @@ Ao aprovar: cria usuário no Supabase Auth com email `{username}@rpg.internal` +
 | peso | NUMERIC(8,2) | nullable, em kg |
 | valor | NUMERIC(12,2) | nullable, em moedas |
 | propriedades | VARCHAR(500) | nullable |
-| classe_equipamento_item | INTEGER | referência a `classe_equipamento.item` |
-| categoria_equipamento_item | INTEGER[] | array de referências a `categoria_equipamento.item` |
+| categoria_equipamento_item | INTEGER | referência **única** a `categoria_equipamento.item` (nullable) |
+| classe_equipamento_item | INTEGER[] | array de referências a `classe_equipamento.item` (NOT NULL, default `'{}'`) |
 | tipo_equipamento_item | INTEGER[] | array de referências a `tipo_equipamento.item` |
 | propriedade_equipamento_item | INTEGER[] | array de referências a `propriedade_equipamento.item` |
 | deleted_at / deleted_by | timestamptz / UUID | soft delete |
 | created_at / updated_at | timestamptz | |
 | created_by / updated_by | UUID | auditoria |
 
-RLS: SELECT público (anon + authenticated); escrita via service_role (admin client).
-
-### `classe_equipamento` (migration 015)
-
-Pai de tipo, propriedade e categoria. Ex: "Arma", "Armadura", "Ferramenta".
-
-| Coluna | Tipo | Notas |
-|---|---|---|
-| item | INTEGER PK | auto via MAX(item)+1 |
-| descricao | VARCHAR(100) | |
-| created_at / updated_at | timestamptz | |
-| deleted_at / deleted_by | timestamptz / UUID | soft delete |
-| created_by / updated_by | UUID | auditoria |
-
-### `tipo_equipamento` (migration 015)
-
-Filho de `classe_equipamento`. Ex: "Longa distância", "Corpo a corpo".
-
-| Coluna | Tipo | Notas |
-|---|---|---|
-| item | INTEGER PK | |
-| descricao | VARCHAR(100) | |
-| classe_item | INTEGER | referência a `classe_equipamento.item` (NOT NULL) |
-| soft delete / auditoria | — | padrão |
-
-### `propriedade_equipamento` (migration 015)
-
-Filho de `classe_equipamento`. Ex: "Perfurante", "Pesada". Estrutura idêntica a `tipo_equipamento`.
+**Cuidado com a assimetria:** categoria é **uma só** (coluna `integer`), enquanto classe, tipo e propriedade são **listas** (`integer[]`). É fácil inverter — esta documentação descrevia o contrário até a migração do módulo.
 
 ### `categoria_equipamento`
 
+O nível de cima da hierarquia. Ex: "Armadura", "Armas", "Cura".
+
 | Coluna | Tipo | Notas |
 |---|---|---|
-| item | INTEGER PK | |
+| item | INTEGER PK | sequence própria no banco (`categoria_equipamento_item_seq`) |
 | descricao | VARCHAR(100) | |
-| classe_item | INTEGER | referência a `classe_equipamento.item` (opcional) |
+| icone | VARCHAR(100) | nullable |
+| classe_item | INTEGER | nullable — praticamente sem uso |
 | created_at / updated_at | timestamptz | |
-| deleted_at / deleted_by | UUID | soft delete |
-| created_by / updated_by | UUID | auditoria |
+| deleted_at / deleted_by | timestamptz / TEXT | soft delete |
+| created_by / updated_by | TEXT | auditoria |
 
 Categorias seed: 1=Armadura, 2=Exploração, 3=Cura, 4=Cosmético, 5=Utilitário, 6=Armas.
 
-RLS: SELECT público (anon + authenticated); escrita via service_role.
+### `classe_equipamento` (migration 015)
+
+Dimensão independente, não é pai de ninguém. Ex: "Simples", "Marcial", "Exótica", "Couro".
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| item | INTEGER PK | sequence própria |
+| descricao | VARCHAR(100) | |
+| soft delete / auditoria | — | padrão |
+
+### `tipo_equipamento` e `propriedade_equipamento` (migration 015)
+
+Filhos de **`categoria_equipamento`** via `categoria_item`. Ex de tipo: "Corpo a corpo", "Longo alcance". Ex de propriedade: "Ágil", "Área". Estrutura idêntica entre as duas.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| item | INTEGER PK | sequence própria |
+| descricao | VARCHAR(100) | |
+| categoria_item | INTEGER | referência a `categoria_equipamento.item` |
+| soft delete / auditoria | — | padrão |
+
+As duas também têm uma coluna `classe_item`, herdada da modelagem original: está vazia em todas as linhas e nenhum código lê ou escreve. Não é mapeada nos models.
+
+**O `item` vem da sequence do banco.** A versão Express calculava `MAX(item)+1` numa consulta à parte, o que gastava duas idas ao banco por inserção, deixava duas criações simultâneas escolherem o mesmo número e nunca avançava a sequence.
+
+### Sequences dessincronizadas (migration 067)
+
+O ponto acima deixou um estrago silencioso: como ninguém chamava as sequences, várias ficaram paradas no início enquanto os dados avançavam. Enquanto todo módulo escolhia a chave na mão isso não aparecia — ao migrar para o Sequelize, que deixa o banco gerar a chave, a primeira inserção estoura com `duplicate key value violates unique constraint`. Aconteceu em `skill_tipo_dano`, cuja sequence estava em 1 com registros até o item 8.
+
+A migration 067 percorre toda sequence ligada a uma coluna e a adianta para o maior valor gravado. **Rode-a de novo antes de migrar qualquer módulo que ainda escolha chave na mão** — é idempotente.
+
+Cuidado ao escrever essa checagem: uma sequence nunca usada (`is_called = false`) devolve o próprio `last_value` no primeiro `nextval`, e não `last_value + 1`. Comparar só o `last_value` com o máximo deixa passar exatamente esse caso — foi o que aconteceu com `categoria_arma` na primeira versão da migration.
+
+### RLS — nota geral
+
+42 tabelas estão com `ROW LEVEL SECURITY` ligado, herança do Supabase, mas quase todas sem policy nenhuma. O app só funciona porque `rpg_app_user` tem `BYPASSRLS`. Com a autorização agora nos guards do Nest, o RLS não é mais a camada de segurança — mas continua sendo uma armadilha: qualquer conexão com um papel sem `BYPASSRLS` veria a maioria das tabelas vazia e não conseguiria escrever.
 
 ### `character_creation_whitelist`
 
@@ -327,20 +393,24 @@ E-mails autorizados a submeter solicitação de criação. Soft delete + auditor
 |---|---|---|
 | id | INTEGER PK | IDENTITY (migration 022) |
 | name | VARCHAR(100) | obrigatório |
-| description | VARCHAR(2000) | nullable |
+| description | TEXT | **NOT NULL** — sem descrição grava string vazia, nunca null |
 | raca_vinculada | TEXT[] | array de nomes de raças (migration 046 — era VARCHAR(100)) |
 | skill_tipo_item | INTEGER | referência a `skill_tipo.item` (migration 020) |
 | skill_categoria_item | INTEGER[] | array de referências a `skill_categoria.item` (migration 046 — era INTEGER) |
 | skill_tipo_dano_item | INTEGER[] | array de referências a `skill_tipo_dano.item` (migration 046 — era INTEGER) |
-| multiplicador_atributo | VARCHAR(60) | atributo que escala o dano: 'aura', 'forca', 'destreza', 'resistencia', 'inteligencia' (migration 047 — renomeado de damage_display) |
+| skill_natureza_item | INTEGER | referência a `skill_natureza.item` (Ativa, Passiva, Assinatura) |
+| multiplicador_atributo | **TEXT[]** | lista plana de expressões que escalam o dano, ex: `{"2d8 + Destreza"}` (migration 047 — renomeado de damage_display) |
+| nivel_minimo_classe | INTEGER | lido pelo DashboardView para travar skill por nível, mas **nulo em todas as linhas** e nenhuma rota escreve — recurso inerte |
 | damage_base | TEXT | notação de dado, ex: "1d8", "2d6+3" (migration 047 — era NUMERIC) |
 | effect_description | VARCHAR(500) | descrição curta do efeito |
 | custo | INTEGER | custo de recurso/mana |
 | cooldown | INTEGER | cooldown em turnos |
 | range | VARCHAR(60) | alcance, ex: "Toque", "10m" |
 | required_class | VARCHAR(100) | ID da classe requerida |
-| deleted_at / deleted_by | timestamptz / UUID | soft delete |
-| created_by / updated_by | UUID | auditoria |
+| deleted_at / deleted_by | timestamptz / TEXT | soft delete |
+| created_by / updated_by | TEXT | auditoria |
+
+A tabela ainda carrega `damage_modifier`, `damage_type`, `cost`, `is_secret` e `required_class_id`, anteriores à migration 047. Nenhum código lê ou escreve, mas as três primeiras têm dados (15, 16 e 31 linhas) e continuam no retorno da API porque a versão anterior fazia `SELECT *`.
 
 **`effect_value` foi removido (migration 047).** O valor é calculado em runtime combinando `damage_base` (dado) com o atributo do personagem em `multiplicador_atributo`.
 
@@ -354,7 +424,7 @@ Override de skill por personagem. Permite que o mestre configure dano base ou mu
 | skill_name | TEXT | nome da skill (referência a `characters.data.skills[].name`) |
 | character_id | INTEGER | referência a `characters.id` |
 | damage_base_override | TEXT | notação de dado sobrescrita, ex: "2d8" |
-| multiplicador_override | VARCHAR(50) | atributo sobrescrito, ex: "forca" |
+| multiplicador_override | **TEXT[]** | mesmo formato de `skills.multiplicador_atributo` |
 | created_at / updated_at | timestamptz | |
 | created_by / updated_by | TEXT | email do mestre |
 
@@ -370,9 +440,15 @@ Tabelas de catálogo gerenciadas pelo mestre. PKs convertidas para INTEGER IDENT
 
 `gods` tem `indole_id INTEGER` referenciando `indole.id`.
 
+**`racas`** tem `habilidades JSONB` e `atributos_bonus JSONB` (listas de `{nome, descricao}` e `{atributo, valor}`) e `lore TEXT`. O `lore` é o único campo que a listagem pública omite — `GET /api/racas` devolve `lore: null`, e só `GET /api/racas/admin` traz o conteúdo. `foto_url` guarda **caminho relativo** (`racas/elfo.png`); a URL completa é montada na resposta.
+
 **`classes`** tem `is_secret BOOLEAN DEFAULT FALSE` (migration 042). Classes secretas não aparecem no onboarding nem para outros players — só são reveladas pelo mestre através de `/master/classes-secretas`. São exclusivas: apenas um personagem vivo por sessão pode deter cada classe secreta.
 
+`classes.starting_skills` é `text[]` **NOT NULL** com default `'{}'` — gravar `null` viola a constraint (o default só vale quando a coluna é omitida do INSERT). Já `passive_skills` é nullable. `tier` tem CHECK: só `'Base'`, `'Híbrida'` ou `'Hidden'`.
+
 **`titles`** tem `is_hidden BOOLEAN DEFAULT FALSE` (oculta requisitos) e `classe_secreta_id INTEGER DEFAULT NULL` (migration 045). Quando `classe_secreta_id` é preenchido, o título só é visível para players que tiverem essa classe secreta revelada.
+
+`bonuses`, `requirements` e `skill_ids` são **NOT NULL** com default `'{}'` — gravar null viola a constraint.
 
 ### `classe_secreta_revelada` (migration 044)
 
@@ -389,6 +465,8 @@ Controla qual personagem detém cada classe secreta. Constraint `UNIQUE(classe_i
 - Ao revelar: mestre acessa `/master/classes-secretas`, seleciona classe e personagem → POST `/api/classes/secretas/admin/revelar`
 - Ao revogar: mestre clica em "Revogar" → DELETE `/api/classes/secretas/admin/revogar/:classeId`
 - Ao marcar personagem como morto: `alterarStatus` remove automaticamente todos os registros de `classe_secreta_revelada` do personagem, liberando as classes para outros
+
+**Soft delete não se aplica a `classe_secreta_revelada` nem a `class_level_progression`.** As duas tabelas têm as colunas `deleted_at`/`deleted_by`, mas os índices únicos (`UNIQUE(classe_id)` e `UNIQUE(classe_id, nivel)`) são totais, não parciais: uma linha soft-deletada continuaria ocupando a chave e impediria recriar aquele registro — com o agravante de o culpado estar invisível na listagem. Revogar uma classe secreta ou apagar um nível de progressão apaga de verdade. Para mudar isso seria preciso antes tornar os índices parciais (`WHERE deleted_at IS NULL`).
 
 ### Tabelas acessórias de equipamento (migrations 019)
 
@@ -431,7 +509,11 @@ API: `GET /api/passados` (público), `POST/PATCH/DELETE /api/passados/admin[/:id
 
 ### `lore_notes`
 
-Notas de lore — ver migrations 009–011. PK convertida para INTEGER IDENTITY (migration 022).
+Notas de lore que o mestre publica. Ver migrations 009–011; PK convertida para INTEGER IDENTITY (migration 022).
+
+`character_id INTEGER` nulo significa nota **global** (todos veem); preenchido, a nota só aparece para aquele personagem. A coluna existia como `uuid` desde a migration 010, sumiu durante a conversão de PKs para INTEGER, e **o backend continuou filtrando e gravando por ela** — o que deixou todas as rotas do módulo quebradas contra o esquema real até a migration 068 devolvê-la. Não apareceu antes porque a tabela está vazia.
+
+`content` é NOT NULL com default `''`.
 
 ## Integridade de Dados — Deleção em Cascata
 
@@ -454,6 +536,7 @@ Antes da confirmação, o frontend (`MasterSkillsView`) chama `GET /api/skills/a
 - Backend usa **admin client** (ignora RLS) para escritas; **anon client** para leituras públicas
 - Soft delete padrão: `deleted_at IS NULL` para registros ativos
 - DTOs com `class-validator` no backend; tipos TypeScript no frontend
+- **A validação só roda nos módulos já migrados para o Nest**, via `ValidationPipe` global. Nos módulos Express que restam os decorators são decorativos — nada chama `validate()`, o router passa `req.body` direto para o service. Ao migrar um módulo, reveja as regras herdadas: elas nunca foram executadas e podem estar erradas (foi o caso do `@IsUrl` em `racas.foto_url`, que passaria a recusar os caminhos relativos que hoje se gravam)
 - Componentes compartilhados: `Modal.vue`, `DataTable.vue`, `HamburgerDrawerMenu.vue`, `TemaDarkLight.vue`, `SuperficieTema.vue`, `VSelect.vue`
 - **`DataTable.vue` é o padrão de tabela do projeto** — toda listagem CRUD admin deve usar este componente (ver `docs/COMPONENTS.md`)
 - **Nunca usar FOREIGN KEY constraints no banco** — referências entre tabelas são por convenção de inteiro apenas
@@ -471,8 +554,10 @@ Antes da confirmação, o frontend (`MasterSkillsView`) chama `GET /api/skills/a
 
 ## Papéis de Usuário
 
-- **Jogador (tipo `player`):** autenticado, acessa apenas seu personagem no dashboard. Login com `{username}@rpg.internal`.
-- **Mestre (tipo `gm` / `isMaster=true`):** acessa `/master`, pode abrir qualquer personagem, gerencia catálogos. Login com email real. Definido via `MASTER_EMAILS` env var.
+- **Jogador (tipo `player`):** autenticado, acessa apenas seu personagem no dashboard. Login pelo username.
+- **Mestre (tipo `gm`):** acessa `/master`, pode abrir qualquer personagem, gerencia catálogos. Login pelo email real.
+
+Quem é mestre vem de `usuarios.tipo = 'gm'`, que viaja dentro do JWT e é checado pelo `MasterGuard`. A env var `MASTER_EMAILS` só sobrevive nos módulos Express ainda não migrados e sai junto com eles.
 
 Ambos os tipos têm registro na tabela `usuarios`. Players são criados automaticamente na aprovação.
 
@@ -490,11 +575,16 @@ Ambos os tipos têm registro na tabela `usuarios`. Players são criados automati
 
 ## Fluxo de Auth
 
-1. Supabase Auth no frontend
-2. `AuthMeta` no localStorage: `activeCharacterId`, `isMaster`, `authenticatedAt`
-3. Sessão expira em 24h (verificado no router guard e no store)
-4. Axios interceptor envia `Authorization: Bearer <token>` para o backend
-5. Backend valida token no Supabase
+JWT próprio, emitido pelo backend. Supabase Auth saiu de cena.
+
+1. `POST /api/auth/login` recebe `{ identificador, senha }` — o identificador é o username (jogador) ou o email real (mestre). Senha em bcrypt na coluna `usuarios.password_hash`
+2. Resposta: `{ tokenAcesso, tipo, precisaTrocarSenha, usuario }`
+3. `localStorage`: `rpg-mesa.token` (o JWT) e `rpg-mesa.auth-meta` (`autenticadoEm`, `idPersonagemAtivo`, `eMestre`, `usuario`)
+4. Sessão expira em 24h (verificado no router guard e no store). Não há sessão no servidor: sair é apagar o que está guardado
+5. Axios interceptor envia `Authorization: Bearer <token>`; `JwtAuthGuard` valida e publica o usuário no contexto da requisição (AsyncLocalStorage), de onde os hooks do Sequelize tiram `created_by`/`updated_by`/`deleted_by`
+6. `GET /api/auth/eu` confirma o token; `PATCH /api/auth/trocar-senha` é a troca da própria senha
+
+`usuarios.password_hash` nulo significa **pré-registro**: o mestre liberou o email, mas a conta ainda não existe — o login recusa.
 
 ## Fluxo de Criação de Personagem
 
@@ -519,15 +609,18 @@ Todas as 6 etapas estão implementadas em `OnboardingView.vue`.
 | Etapa | Endpoint | Permanente? | Notas |
 |---|---|---|---|
 | 1 — Raça | `PATCH /api/personagens/:id/escolher-raca` | Sim | Atualiza `characters.raca_id` |
-| 2 — Classe | `PATCH /api/personagens/:id/escolher-classe-inicial` | Sim | Salva em `data.classes` |
-| 3 — Passado | `PATCH /api/personagens/:id/escolher-passado` | Sim | Atualiza `characters.passado_id`; concede skills/títulos do passado |
+| 2 — Classe | `PATCH /api/personagens/:id/escolher-classe` | Sim | Atualiza `characters.classe_id` e cria a entrada em `data.classes` com 2 pontos de skill |
+| 2b — Skill inicial | `POST /api/personagens/:id/escolher-skill-inicial` | Sim | Só aparece se a classe tiver `starting_skills`. Gasta 1 ponto de skill e sobe o nível da classe |
+| 3 — Passado | `PATCH /api/personagens/:id/escolher-passado` | Sim | Atualiza `characters.passado_id`. As skills e títulos do passado **não** são copiados para o personagem — o dashboard os lê do catálogo de passados na hora de exibir |
 | 4 — Atributos | `PATCH /api/personagens/:id/definir-atributos` | Sim | Salva em `data.atributos` |
 | 5 — Deus | `PATCH /api/personagens/:id/escolher-deus` | Sim | Atualiza `characters.deus_id`; pode ser pulado |
 | 6 — Equipamentos | `PATCH /api/personagens/:id/concluir-onboarding` | — | Salva `data.equipamentos_iniciais`; seta `onboarding_completo = true` |
 
 **Navegação entre etapas:** o player pode transitar livremente entre as etapas já concluídas usando o stepper no topo. `etapaMaxima` controla quais etapas são clicáveis. Ao concluir a etapa 6, é redirecionado para `/dashboard`.
 
-**Capacidade de carga (etapa 6):** `pesoMaximo = atributos.forca * 2`. Backend valida na conclusão do onboarding.
+**Capacidade de carga (etapa 6):** `pesoMaximo = 2 + atributos.forca * 2`, onde `forca` já inclui o bônus do passado. Backend valida na conclusão do onboarding.
+
+**Atributos (etapa 4):** 10 pontos distribuíveis. O `data` guarda as três parcelas separadas — `atributos_base` (o que o jogador distribuiu), `atributos_bonus_passado` e `atributos` (a soma, que é o valor usado em jogo).
 
 **Gear menu:** botão de engrenagem fixo no topo direito do onboarding permite sair/fazer logout.
 

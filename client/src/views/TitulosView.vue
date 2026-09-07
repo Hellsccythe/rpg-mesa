@@ -315,7 +315,7 @@ function handleNavSelect(itemId: string) {
 // ── Personagem ─────────────────────────────────────────────────────────────
 const character = computed(() => {
   const id = String(route.query.characterId ?? authStore.idPersonagemAtivo ?? '')
-  return charactersStore.myCharacters.find((c) => c.characterId === id) ?? null
+  return charactersStore.myCharacters.find((c) => String(c.characterId) === id) ?? null
 })
 
 const personagemTitulos = computed<any[]>(() => {

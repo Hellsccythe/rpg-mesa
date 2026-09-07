@@ -5,7 +5,7 @@
     "moduleResolution": "nodenext",
     "rootDir": "src",
     "outDir": "dist",
-    "types": ["node"],
+    "types": ["node", "multer"],
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
