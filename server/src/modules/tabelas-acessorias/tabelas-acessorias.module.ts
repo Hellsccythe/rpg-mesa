@@ -1,6 +1,6 @@
 import { Module } from "@nestjs/common";
 import { SequelizeModule } from "@nestjs/sequelize";
-import { EquipamentoTipoModel } from "./models/equipamento-tipo.model.js";
+import { UsoEquipamentoModel } from "./models/uso-equipamento.model.js";
 import { CategoriaArmaModel } from "./models/categoria-arma.model.js";
 import { CategoriaArmaduraModel } from "./models/categoria-armadura.model.js";
 import { CategoriaVariadosModel } from "./models/categoria-variados.model.js";
@@ -16,7 +16,7 @@ import { TabelasAcessoriasService } from "./tabelas-acessorias.service.js";
 @Module({
   imports: [
     SequelizeModule.forFeature([
-      EquipamentoTipoModel,
+      UsoEquipamentoModel,
       CategoriaArmaModel,
       CategoriaArmaduraModel,
       CategoriaVariadosModel,

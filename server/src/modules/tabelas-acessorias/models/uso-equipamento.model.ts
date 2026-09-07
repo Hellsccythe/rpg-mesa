@@ -1,7 +1,7 @@
 import { Column, DataType, Model, PrimaryKey, Table } from "sequelize-typescript";
 
-@Table({ tableName: "equipamento_tipo", timestamps: true, paranoid: true })
-export class EquipamentoTipoModel extends Model {
+@Table({ tableName: "uso_equipamento", timestamps: true, paranoid: true })
+export class UsoEquipamentoModel extends Model {
   @PrimaryKey
   @Column(DataType.INTEGER)
   declare item: number;

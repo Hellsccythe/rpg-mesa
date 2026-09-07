@@ -3,7 +3,7 @@ import { api } from '@/plugins/axios'
 export interface TabelaItemApi {
   item: number
   descricao: string
-  equipamento_tipo_item?: number | null
+  uso_equipamento_item?: number | null
   categoria_arma_item?: number | null
   categoria_armadura_item?: number | null
   categoria_variados_item?: number | null
@@ -27,7 +27,7 @@ function crud<T = TabelaItemApi>(path: string) {
   }
 }
 
-export const tiposApi = crud('/tipos')
+export const usoEquipamentoApi = crud('/uso-equipamento')
 export const categoriasArmaApi = crud('/categorias-arma')
 export const categoriasArmaduraApi = crud('/categorias-armadura')
 export const categoriasVariadosApi = crud('/categorias-variados')

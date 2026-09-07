@@ -105,7 +105,8 @@ A raiz **não é mais o login**: `/` lista as campanhas (mundos) e cada uma leva
 | PATCH | `/api/skills/admin/niveis/:id` | isMaster |
 | DELETE | `/api/skills/admin/niveis/:id` | isMaster (**hard delete** — UNIQUE total) |
 | POST | `/api/skills/admin/personagens/:characterId` | isMaster (concede skill avulsa a um personagem) |
-| GET | `/api/tabelas-acessorias/tipos` | público |
+| GET | `/api/tabelas-acessorias/uso-equipamento` | público (Arma \| Armadura \| Variados) |
+| POST/PATCH/DELETE | `/api/tabelas-acessorias/uso-equipamento/admin[/:item]` | isMaster |
 | GET | `/api/tabelas-acessorias/categorias-arma` | público |
 | GET | `/api/tabelas-acessorias/propriedades-arma` | público |
 | GET | `/api/tabelas-acessorias/classes-arma` | público |
@@ -238,7 +239,7 @@ Documentação completa em `docs/COMPONENTS.md`.
 
 ## Banco de Dados — Tabelas
 
-Schema completo em `docs/SCHEMA_CURRENT.sql` — **arquivo gerado por `pg_dump --schema-only`, não editado a mão**; regere-o quando mexer no esquema (o comando está no cabeçalho do próprio arquivo). Migrations em `database/migrations/` (001–070). Documentação em PDF, com as ligações entre tabelas e os fluxos: `docs/BANCO_DE_DADOS.pdf`.
+Schema completo em `docs/SCHEMA_CURRENT.sql` — **arquivo gerado por `pg_dump --schema-only`, não editado a mão**; regere-o quando mexer no esquema (o comando está no cabeçalho do próprio arquivo). Migrations em `database/migrations/` (001–072). Documentação em PDF, com as ligações entre tabelas e os fluxos: `docs/BANCO_DE_DADOS.pdf`.
 
 **Não sobrou nenhum UUID no banco.** As migrations 022–023 converteram as PKs para `INTEGER IDENTITY`, e a **061** terminou o serviço nas colunas que ainda referenciavam o Supabase Auth: `characters.user_id` hoje é `INTEGER` apontando para `usuarios.id`, e `characters.campaign_id` é `INTEGER` apontando para `campaigns.id`. A coluna `usuarios.auth_user_id` foi removida.
 
@@ -313,6 +314,7 @@ Tela: `/master/usuarios` → `MasterUsersView.vue`.
 | `pendingChangeRequest` | pedido de alteração aguardando revisão (índice parcial em cima) |
 | `avatarFocalPoint` / `modalHeroPosition` | enquadramento da imagem, ajustado pelo mestre |
 | `xp` | XP do personagem (distinto do XP por classe) |
+| `dinheiro_inicial` | resultado da rolagem da etapa 6: `{tentativas, resultado, descartado}` |
 | `deusEtapaConcluida` | marca a etapa 5 como vista, mesmo se pulada |
 
 **Cuidado:** `PATCH /api/personagens/:id` **substitui o `data` inteiro**. Mandar um objeto parcial apaga o resto sem aviso.
@@ -539,10 +541,10 @@ Hierarquia de lookup para equipamentos. Todas seguem padrão `item INTEGER PK` +
 
 | Tabela | Pai | Notas |
 |---|---|---|
-| `equipamento_tipo` | — | Seed: 1=Arma, 2=Armadura, 3=Variados |
-| `categoria_arma` | `equipamento_tipo_item=1` fixo | Categorias de arma |
-| `categoria_armadura` | `equipamento_tipo_item=2` fixo | Categorias de armadura |
-| `categoria_variados` | `equipamento_tipo_item=3` fixo | Categorias de variados |
+| `uso_equipamento` | — | Para que serve: Arma, Armadura, Variados. Era `equipamento_tipo` até a migration 072 |
+| `categoria_arma` | `uso_equipamento_item` | Categorias de arma |
+| `categoria_armadura` | `uso_equipamento_item` | Categorias de armadura |
+| `categoria_variados` | `uso_equipamento_item` | Categorias de variados |
 | `propriedade_arma` | `categoria_arma_item` opcional | Propriedades de arma |
 | `classe_arma` | `categoria_arma_item` opcional | Classes de arma |
 | `propriedade_armadura` | `categoria_armadura_item` opcional | Propriedades de armadura |
@@ -564,9 +566,20 @@ Origens/históricos dos personagens, gerenciados pelo mestre. Cada passado pode 
 | foto_url | TEXT | nullable — URL de imagem de capa |
 | skill_ids | INTEGER[] | array de `skills.id` — skills concedidas |
 | titulo_ids | INTEGER[] | array de `titles.id` — títulos concedidos |
+| atributo_bonus | JSONB | bônus somado aos atributos no onboarding |
+| dinheiro_inicial | JSONB | **NOT NULL**, default `[]` (migration 071) — ver abaixo |
 | created_at / updated_at | timestamptz | |
 | created_by / updated_by | TEXT | email do autor |
 | deleted_at / deleted_by | timestamptz / TEXT | soft delete |
+
+**`dinheiro_inicial` é uma LISTA de rolagens**, não um valor:
+
+```json
+[{"quantidade": 1, "faces": 100, "moeda": "prata"},
+ {"quantidade": 1, "faces": 4,   "moeda": "ouro"}]
+```
+
+Lista porque um passado pode conceder mais de um dado e em mais de uma moeda — é o caso do Aventureiro. Moedas: `bronze`, `prata`, `ouro`. Até a migration 071 isso vivia escrito em português no fim da `descricao`, onde nada conseguia rolar. A migration extraiu os valores e **removeu a linha da descrição**, para os dois não discordarem depois.
 
 Backend retorna passado enriquecido: além dos IDs, inclui `skills: [{id,name}]` e `titulos: [{id,name}]`.
 Tela: `/master/passados` → `MasterPassadosView.vue`.
@@ -748,9 +761,14 @@ Todas as 6 etapas estão implementadas em `OnboardingView.vue`.
 | 3 — Passado | `PATCH /api/personagens/:id/escolher-passado` | Sim | Atualiza `characters.passado_id`. As skills e títulos do passado **não** são copiados para o personagem — o dashboard os lê do catálogo de passados na hora de exibir |
 | 4 — Atributos | `PATCH /api/personagens/:id/definir-atributos` | Sim | Salva em `data.atributos` |
 | 5 — Deus | `PATCH /api/personagens/:id/escolher-deus` | Sim | Atualiza `characters.deus_id`; pode ser pulado |
+| 6a — Dinheiro | `POST /api/personagens/:id/rolar-dinheiro-inicial` | Sim | Rola o `dinheiro_inicial` do passado; grava em `data.dinheiro_inicial` |
 | 6 — Equipamentos | `PATCH /api/personagens/:id/concluir-onboarding` | — | Salva `data.equipamentos_iniciais`; seta `onboarding_completo = true` |
 
-**Navegação entre etapas:** o player pode transitar livremente entre as etapas já concluídas usando o stepper no topo. `etapaMaxima` controla quais etapas são clicáveis. Ao concluir a etapa 6, é redirecionado para `/dashboard`.
+**Navegação entre etapas:** o player transita livremente entre as etapas já concluídas — pelo stepper do topo (clicável) ou pelos botões **Voltar / Avançar** no rodapé. `etapaMaxima` guarda a etapa mais longe já alcançada e limita os dois. Ao concluir a etapa 6, é redirecionado para `/dashboard`.
+
+**Dinheiro inicial (etapa 6):** o jogador rola os dados que o passado dá. São **duas tentativas no máximo**; a segunda substitui a primeira mesmo se vier pior, e o valor descartado fica gravado em `data.dinheiro_inicial.descartado`.
+
+**O dado é rolado no servidor**, nunca no navegador — no cliente bastaria recarregar a página até sair o valor máximo, e a regra das duas tentativas não significaria nada. A rota não aceita corpo: o que rolar vem do passado do personagem.
 
 **Capacidade de carga (etapa 6):** `pesoMaximo = 2 + atributos.forca * 2`, onde `forca` já inclui o bônus do passado. Backend valida na conclusão do onboarding.
 

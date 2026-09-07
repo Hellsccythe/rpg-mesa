@@ -10,7 +10,7 @@ export class CategoriaVariadosModel extends Model {
   declare descricao: string;
 
   @Column({ type: DataType.INTEGER, allowNull: true })
-  declare equipamentoTipoItem: number | null;
+  declare usoEquipamentoItem: number | null;
 
   @Column({ type: DataType.TEXT, allowNull: true })
   declare createdBy: string | null;
