@@ -2033,9 +2033,9 @@ async function loadNotifications(charId: string | number) {
   const lastSeen = getLastSeen(charId)
   const list: Notification[] = []
   try {
-    const notes = await listLoreNotes(charId)
+    const notes = await listLoreNotes(Number(charId))
     for (const note of notes) {
-      if (note.character_id === charId && new Date(note.created_at) > lastSeen) {
+      if (note.character_id === Number(charId) && new Date(note.created_at) > lastSeen) {
         list.push({ id: `note-${note.id}`, type: 'note', title: note.title, typeLabel: 'Nova nota exclusiva', route: '/notas' })
       }
     }

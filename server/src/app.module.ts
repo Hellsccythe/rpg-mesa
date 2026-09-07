@@ -19,6 +19,7 @@ import { SkillsModule } from "./modules/skill/skill.module.js";
 import { TitulosModule } from "./modules/titulos/titulos.module.js";
 import { PlayerTelasModule } from "./modules/player-telas/player-telas.module.js";
 import { AdminModule } from "./modules/admin/admin.module.js";
+import { LoreNotesModule } from "./modules/lore-notes/lore-notes.module.js";
 import { LevelProgressionModule } from "./modules/level-progression/level-progression.module.js";
 
 @Module({
@@ -46,6 +47,7 @@ import { LevelProgressionModule } from "./modules/level-progression/level-progre
     TitulosModule,
     PlayerTelasModule,
     AdminModule,
+    LoreNotesModule,
   ],
 })
 export class AppModule {}

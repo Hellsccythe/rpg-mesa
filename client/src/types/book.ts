@@ -30,6 +30,6 @@ export interface LoreNoteItem {
   tipo: 'static' | 'dynamic'
   totalPaginas: number
   pages?: BookPage[]
-  apiId?: string
+  apiId?: number
   rawContent?: string
 }

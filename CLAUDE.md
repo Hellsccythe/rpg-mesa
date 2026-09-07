@@ -482,7 +482,11 @@ API: `GET /api/passados` (público), `POST/PATCH/DELETE /api/passados/admin[/:id
 
 ### `lore_notes`
 
-Notas de lore — ver migrations 009–011. PK convertida para INTEGER IDENTITY (migration 022).
+Notas de lore que o mestre publica. Ver migrations 009–011; PK convertida para INTEGER IDENTITY (migration 022).
+
+`character_id INTEGER` nulo significa nota **global** (todos veem); preenchido, a nota só aparece para aquele personagem. A coluna existia como `uuid` desde a migration 010, sumiu durante a conversão de PKs para INTEGER, e **o backend continuou filtrando e gravando por ela** — o que deixou todas as rotas do módulo quebradas contra o esquema real até a migration 068 devolvê-la. Não apareceu antes porque a tabela está vazia.
+
+`content` é NOT NULL com default `''`.
 
 ## Integridade de Dados — Deleção em Cascata
 

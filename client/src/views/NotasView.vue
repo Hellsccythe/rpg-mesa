@@ -339,7 +339,7 @@ const NOTA_PANTEAO: LoreNoteItem = {
 const todasAsNotas = computed<LoreNoteItem[]>(() => [
   NOTA_PANTEAO,
   ...notasDinamicas.value.map<LoreNoteItem>((n) => ({
-    id: n.id,
+    id: String(n.id),
     titulo: n.title,
     subtitulo: n.subtitle ?? undefined,
     tipo: 'dynamic',
@@ -504,7 +504,7 @@ onMounted(async () => {
 
   loadingNotas.value = true
   try {
-    const characterId = String(route.query.characterId ?? authStore.idPersonagemAtivo ?? '') || undefined
+    const characterId = Number(route.query.characterId ?? authStore.idPersonagemAtivo ?? 0) || undefined
     notasDinamicas.value = await listLoreNotes(characterId)
   } catch {
     // sem notas dinâmicas, continua com estáticas

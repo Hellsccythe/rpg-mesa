@@ -1075,9 +1075,10 @@ async function carregarLoreNotes() {
   }
 }
 
-function nomePersonagemDaNota(characterId: string | null): string {
+function nomePersonagemDaNota(characterId: number | null): string {
   if (!characterId) return 'Global'
-  return characters.value.find((c) => String(c.characterId) === characterId)?.name ?? characterId
+  const encontrado = characters.value.find((c) => Number(c.characterId) === characterId)
+  return encontrado?.name ?? String(characterId)
 }
 
 async function criarLoreNote() {
@@ -1095,7 +1096,7 @@ async function criarLoreNote() {
       subtitle: loreNoteSubtitle.value.trim() || undefined,
       content: loreNoteContent.value,
       pdfUrl: pdfUrl || null,
-      characterId: loreNoteCharacterId.value || null,
+      characterId: Number(loreNoteCharacterId.value) || null,
     })
     loreNoteTitle.value = ''
     loreNoteSubtitle.value = ''
@@ -1115,7 +1116,7 @@ async function criarLoreNote() {
   }
 }
 
-const modalDeleteLoreId = ref<string | null>(null)
+const modalDeleteLoreId = ref<number | null>(null)
 const tituloDeleteLore = ref('')
 
 function abrirConfirmacaoDeleteLore(nota: LoreNoteApi) {
@@ -1135,7 +1136,7 @@ async function confirmarDeleteLore() {
   await deletarLoreNote(id)
 }
 
-async function deletarLoreNote(id: string) {
+async function deletarLoreNote(id: number) {
   loadingLoreNotes.value = true
   try {
     await deleteLoreNoteApi(id)
