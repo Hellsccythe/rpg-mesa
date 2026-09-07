@@ -1,7 +1,7 @@
 import type { PersonagemModel } from "./models/personagem.model.js";
 
 /**
- * Formato que o frontend consome (client/src/types/supabase.ts →
+ * Formato que o frontend consome (client/src/types/api.ts →
  * PersonagemApi). Vale a pena manter esta tradução explícita: o model do
  * Sequelize expõe a chave primária como "id", enquanto todo o frontend
  * procura por "characterId" — devolver o model cru faz as telas perderem o
