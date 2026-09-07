@@ -138,6 +138,11 @@ Sistema de gestão de sessões de RPG de mesa. Monorepo com Yarn 4 Workspaces.
 | POST | `/api/classes/secretas/admin/revelar` | isMaster (revela classe secreta a um personagem) |
 | DELETE | `/api/classes/secretas/admin/revogar/:classeId` | isMaster (revoga acesso) |
 | PATCH | `/api/personagens/admin/:id/status` | isMaster (vivo \| morto; morte libera classe secreta) |
+| GET | `/api/player-telas/disponiveis` | público (lista fixa das telas liberáveis) |
+| GET | `/api/player-telas/me?characterId=X` | auth — só o dono do personagem ou o mestre |
+| GET | `/api/player-telas/admin/:characterId` | isMaster |
+| PUT | `/api/player-telas/admin/:characterId` | isMaster (substitui o conjunto inteiro) |
+| GET | `/api/admin/exportar-schema?dialeto=postgresql\|mysql\|sqlite` | isMaster (devolve texto puro como anexo) |
 
 ## Componentes Compartilhados
 

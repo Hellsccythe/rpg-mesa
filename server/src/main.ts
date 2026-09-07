@@ -17,9 +17,7 @@ import { PersonagensRouter } from "./modules/personagem/personagens.module.js";
 import { LoreNotesRouter } from "./modules/lore-notes/lore-notes.module.js";
 import { CharacterCreationRouter } from "./modules/character-creation/character-creation.module.js";
 import { NpcsRouter } from "./modules/npcs/npcs.module.js";
-import { PlayerTelasRouter } from "./modules/player-telas/player-telas.module.js";
 import { CampanhasRouter } from "./modules/campanhas/campanhas.module.js";
-import { AdminRouter } from "./modules/admin/admin.module.js";
 
 async function iniciarAplicacao(): Promise<void> {
   const aplicacao = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -71,9 +69,7 @@ async function iniciarAplicacao(): Promise<void> {
   aplicacao.use("/api/lore-notes", LoreNotesRouter);
   aplicacao.use("/api/character-creation-requests", CharacterCreationRouter);
   aplicacao.use("/api/npcs", NpcsRouter);
-  aplicacao.use("/api/player-telas", PlayerTelasRouter);
   aplicacao.use("/api/campanhas", CampanhasRouter);
-  aplicacao.use("/api/admin", AdminRouter);
 
   const porta = Number(process.env.PORT ?? 3000);
   await aplicacao.listen(porta);
