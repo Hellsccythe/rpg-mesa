@@ -85,17 +85,17 @@
               :aria-label="`Ver ficha de ${char.name}`"
             >
               <div class="relative aspect-[3/4] overflow-hidden rounded-2xl">
-                <img
-                  v-if="char.avatarUrl"
+                <AvatarPersonagem
                   :src="char.avatarUrl"
                   :alt="char.name"
-                  class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  style="object-position: center 20%"
-                  loading="lazy"
-                />
-                <div v-else class="flex h-full w-full items-center justify-center bg-violet-950/50 text-[0.6rem] font-semibold uppercase text-zinc-500">
-                  Sem Avatar
-                </div>
+                  classe-imagem="transition-transform duration-500 group-hover:scale-110"
+                >
+                  <template #fallback>
+                    <div class="flex h-full w-full items-center justify-center bg-violet-950/50 text-[0.6rem] font-semibold uppercase text-zinc-500">
+                      Sem Avatar
+                    </div>
+                  </template>
+                </AvatarPersonagem>
                 <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
                 <div class="absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/10 transition-all group-hover:ring-amber-500/60 group-hover:shadow-lg group-hover:shadow-amber-500/10" />
                 <!-- Status overlay para morto -->
@@ -985,6 +985,7 @@
 </template>
 
 <script setup lang="ts">
+import AvatarPersonagem from '@/components/AvatarPersonagem.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'

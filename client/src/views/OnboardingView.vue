@@ -169,8 +169,11 @@
       <div class="mb-10 flex flex-col items-center gap-4 text-center">
         <div class="relative">
           <div class="h-20 w-20 overflow-hidden rounded-full border-2 border-white/20 bg-black/40 ring-4 ring-indigo-500/20">
-            <img v-if="personagem?.avatarUrl" :src="personagem.avatarUrl" :alt="personagem.name" class="h-full w-full object-cover" />
-            <div v-else class="flex h-full items-center justify-center text-3xl text-zinc-600">{{ personagem?.name?.[0]?.toUpperCase() ?? '?' }}</div>
+            <AvatarPersonagem :src="personagem?.avatarUrl" :alt="personagem?.name" enquadramento="center">
+              <template #fallback>
+                <div class="flex h-full w-full items-center justify-center text-3xl text-zinc-600">{{ personagem?.name?.[0]?.toUpperCase() ?? '?' }}</div>
+              </template>
+            </AvatarPersonagem>
           </div>
           <div class="absolute -bottom-1 -right-1 rounded-full bg-indigo-500 p-1.5">
             <svg class="h-3 w-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
@@ -457,21 +460,34 @@
             class="onboarding-card group relative overflow-hidden rounded-3xl border text-left transition-all duration-300"
             :class="hover === deus.id ? 'border-amber-500/50 bg-amber-500/10 shadow-[0_0_40px_rgb(245_158_11/0.12)]' : 'border-white/[0.06] bg-white/[0.02] hover:border-white/15'"
             @mouseenter="hover = deus.id" @mouseleave="hover = null" @click="confirmarDeus(Number(deus.id))">
-            <div class="relative h-44 overflow-hidden">
-              <img v-if="deus.imageUrl" :src="deus.imageUrl" :alt="deus.name" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+            <!--
+              A imagem ocupa o card inteiro e o texto flutua sobre ela. Antes a
+              faixa de imagem tinha altura fixa e o texto vinha abaixo, em bloco
+              opaco: as artes dos deuses são retratos verticais, então o recorte
+              central cortava a cabeça e o resto ficava escondido atrás do texto.
+
+              object-top ancora o recorte no topo (mostra o rosto), e o degradê
+              escurece só o necessário para o texto ler — o contorno da arte
+              continua visível por trás.
+            -->
+            <div class="relative h-72 overflow-hidden">
+              <img v-if="deus.imageUrl" :src="deus.imageUrl" :alt="deus.name" class="h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-105" />
               <div v-else class="flex h-full w-full items-center justify-center bg-gradient-to-br from-amber-900/40 to-orange-900/40 text-6xl">⚡</div>
-              <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-              <div v-if="deus.indole" class="absolute bottom-3 left-3">
-                <span class="rounded-full border border-amber-500/40 bg-amber-950/70 px-2.5 py-0.5 text-[0.65rem] font-semibold text-amber-300">{{ deus.indole }}</span>
+
+              <div class="pointer-events-none absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t from-black/90 via-black/55 to-transparent" />
+
+              <div v-if="deus.indole" class="absolute left-3 top-3">
+                <span class="rounded-full border border-amber-500/40 bg-amber-950/80 px-2.5 py-0.5 text-[0.65rem] font-semibold text-amber-300 backdrop-blur-sm">{{ deus.indole }}</span>
               </div>
-            </div>
-            <div class="p-5">
-              <h3 class="mb-0.5 text-base font-bold text-zinc-100 group-hover:text-white">{{ deus.name }}</h3>
-              <p v-if="deus.title" class="mb-2 text-xs text-amber-400/70 italic">{{ deus.title }}</p>
-              <p v-if="deus.shortDescription" class="line-clamp-2 text-xs leading-relaxed text-zinc-500 group-hover:text-zinc-400">{{ deus.shortDescription }}</p>
-              <div class="mt-3 flex items-center justify-between text-xs font-semibold" :class="hover === deus.id ? 'text-amber-300' : 'text-zinc-600'">
-                <span>Escolher este deus</span>
-                <svg class="h-4 w-4 group-hover:translate-x-1 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+
+              <div class="absolute inset-x-0 bottom-0 p-5">
+                <h3 class="mb-0.5 text-base font-bold text-white drop-shadow">{{ deus.name }}</h3>
+                <p v-if="deus.title" class="mb-2 text-xs italic text-amber-300/90">{{ deus.title }}</p>
+                <p v-if="deus.shortDescription" class="line-clamp-2 text-xs leading-relaxed text-zinc-300/90 group-hover:text-zinc-200">{{ deus.shortDescription }}</p>
+                <div class="mt-3 flex items-center justify-between text-xs font-semibold" :class="hover === deus.id ? 'text-amber-300' : 'text-zinc-400'">
+                  <span>Escolher este deus</span>
+                  <svg class="h-4 w-4 transition-transform group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </div>
               </div>
             </div>
           </button>
@@ -569,6 +585,7 @@
 </template>
 
 <script setup lang="ts">
+import AvatarPersonagem from '@/components/AvatarPersonagem.vue'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { listarRacasPublicas, type RacaApi } from '@/lib/api/racas.api'

@@ -56,15 +56,13 @@
         >
           <!-- Avatar -->
           <div class="h-12 w-12 shrink-0 overflow-hidden rounded-full border border-white/10 bg-black/30">
-            <img
-              v-if="u.personagem?.avatar_url"
-              :src="u.personagem.avatar_url"
-              :alt="u.personagem.name"
-              class="h-full w-full object-cover"
-            />
-            <div v-else class="flex h-full items-center justify-center text-lg font-bold text-zinc-600">
-              {{ u.personagem?.name?.[0]?.toUpperCase() ?? '?' }}
-            </div>
+            <AvatarPersonagem :src="u.personagem?.avatar_url" :alt="u.personagem?.name" enquadramento="center">
+              <template #fallback>
+                <div class="flex h-full w-full items-center justify-center text-lg font-bold text-zinc-600">
+                  {{ u.personagem?.name?.[0]?.toUpperCase() ?? '?' }}
+                </div>
+              </template>
+            </AvatarPersonagem>
           </div>
 
           <!-- Infos -->
@@ -174,6 +172,7 @@
 </template>
 
 <script setup lang="ts">
+import AvatarPersonagem from '@/components/AvatarPersonagem.vue'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import Modal from '@/components/Modal.vue'

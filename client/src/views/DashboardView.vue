@@ -147,18 +147,20 @@
               <!-- Portrait card -->
               <div class="dash-portrait-card overflow-hidden">
                 <div class="relative aspect-[3/4] overflow-hidden cursor-pointer group" @click="modalRetratoAberto = true" title="Clique para ampliar">
-                  <img
-                    v-if="character.avatarUrl"
+                  <AvatarPersonagem
                     :src="character.avatarUrl"
                     :alt="character.name"
-                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    :style="{ objectPosition: character.data?.avatarFocalPoint ?? 'center 20%' }"
-                  />
-                  <div v-else class="w-full h-full dash-avatar-empty flex items-center justify-center">
-                    <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" class="text-zinc-600">
-                      <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
-                    </svg>
-                  </div>
+                    :enquadramento="(character.data?.avatarFocalPoint as string) ?? 'center 20%'"
+                    classe-imagem="group-hover:scale-105 transition-transform duration-300"
+                  >
+                    <template #fallback>
+                      <div class="w-full h-full dash-avatar-empty flex items-center justify-center">
+                        <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" class="text-zinc-600">
+                          <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+                        </svg>
+                      </div>
+                    </template>
+                  </AvatarPersonagem>
                   <div class="absolute inset-0 bg-gradient-to-t from-[#070C18] via-[#070C18]/15 to-transparent" />
                   <div class="absolute bottom-0 left-0 right-0 p-4">
                     <h1 class="font-cinzel text-xl font-bold text-amber-300 leading-tight drop-shadow-lg">{{ character.name }}</h1>
@@ -731,10 +733,17 @@
           <div class="px-6 py-5 border-b border-[#6B4E9E]/15">
             <div class="flex gap-4 items-start">
               <div class="w-16 h-16 rounded-2xl overflow-hidden flex-shrink-0 border border-[#6B4E9E]/30">
-                <img v-if="character.avatarUrl" :src="character.avatarUrl" :alt="character.name" class="w-full h-full object-cover" :style="{ objectPosition: character.data?.avatarFocalPoint ?? 'center 20%' }" />
-                <div v-else class="w-full h-full dash-avatar-empty flex items-center justify-center">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-zinc-600"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-                </div>
+                <AvatarPersonagem
+                  :src="character.avatarUrl"
+                  :alt="character.name"
+                  :enquadramento="(character.data?.avatarFocalPoint as string) ?? 'center 20%'"
+                >
+                  <template #fallback>
+                    <div class="w-full h-full dash-avatar-empty flex items-center justify-center">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-zinc-600"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                    </div>
+                  </template>
+                </AvatarPersonagem>
               </div>
               <div class="flex-1 min-w-0">
                 <p class="font-cinzel font-bold text-amber-400 text-lg leading-tight">{{ character.name }}</p>
@@ -1007,11 +1016,12 @@
         <div class="relative rounded-2xl overflow-hidden">
           <!-- Imagem -->
           <img
-            v-if="character.avatarUrl"
+            v-if="character.avatarUrl && !retratoAmpliadoFalhou"
             :src="character.avatarUrl"
             :alt="character.name"
             class="w-full max-h-[80vh] object-cover block"
             :style="{ objectPosition: character.data?.avatarFocalPoint ?? 'center 20%' }"
+            @error="retratoAmpliadoFalhou = true"
           />
           <div v-else class="h-80 bg-zinc-900 flex items-center justify-center text-zinc-600 text-sm">Sem imagem</div>
 
@@ -1505,6 +1515,7 @@
 </template>
 
 <script setup lang="ts">
+import AvatarPersonagem from '@/components/AvatarPersonagem.vue'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Modal from '@/components/Modal.vue'
@@ -1587,6 +1598,10 @@ const feedbackIsError = ref(false)
 
 // Modais de origem / retrato
 const modalRetratoAberto = ref(false)
+// Este retrato tem dimensionamento proprio (max-h-[80vh]), entao nao usa o
+// AvatarPersonagem, que preenche o pai. O tratamento de falha fica aqui.
+const retratoAmpliadoFalhou = ref(false)
+watch(() => character.value?.avatarUrl, () => { retratoAmpliadoFalhou.value = false })
 const modalRacaAberto = ref(false)
 const modalPassadoAberto = ref(false)
 const modalDeusAberto = ref(false)

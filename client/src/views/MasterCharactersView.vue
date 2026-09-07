@@ -43,17 +43,12 @@
 
             <!-- Preview modal hero -->
             <div class="relative mx-4 h-48 overflow-hidden rounded-xl border border-[#6B4E9E]/30 bg-[#0A0F1C]">
-              <img
-                v-if="char.avatarUrl"
+              <AvatarPersonagem
                 :src="char.avatarUrl"
-                class="h-full w-full object-cover"
-                :style="{ objectPosition: posicoesPendentes[char.characterId] ?? char.modalHeroPosition ?? 'center 20%' }"
                 :alt="char.name"
+                :enquadramento="posicoesPendentes[char.characterId] ?? char.modalHeroPosition ?? 'center 20%'"
+                rotulo="Sem avatar"
               />
-              <div
-                v-else
-                class="h-full w-full flex items-center justify-center text-zinc-600 text-sm"
-              >Sem avatar</div>
               <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
               <p class="absolute bottom-2 left-3 text-xs text-zinc-300 font-semibold">{{ char.name }}</p>
             </div>
@@ -111,6 +106,7 @@
 </template>
 
 <script setup lang="ts">
+import AvatarPersonagem from '@/components/AvatarPersonagem.vue'
 import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCharactersStore } from '@/stores/characters'
