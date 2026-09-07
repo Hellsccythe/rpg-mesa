@@ -1,21 +1,57 @@
-import { titulosService } from "./titulos.service.js";
-import type { AdicionarTituloPersonagemDto, SalvarTituloDto } from "./titulos.dto.js";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  UseGuards,
+} from "@nestjs/common";
+import { JwtAuthGuard } from "../../common/auth/jwt-auth.guard.js";
+import { MasterGuard } from "../../common/auth/master.guard.js";
+import { TitulosService } from "./titulos.service.js";
+import {
+  AdicionarTituloPersonagemDto,
+  EditarTituloDto,
+  SalvarTituloDto,
+} from "./titulos.dto.js";
 
-export const titulosController = {
-  async salvar(dto: SalvarTituloDto, accessToken?: string) {
-    if (!dto.name?.trim()) throw new Error("Nome do título é obrigatório");
-    if (!dto.tier?.trim()) throw new Error("Tier do título é obrigatório");
-    if (!dto.description?.trim()) throw new Error("Descrição do título é obrigatória");
-    return titulosService.salvar(dto, accessToken);
-  },
+@Controller("titulos")
+export class TitulosController {
+  constructor(private readonly servicoTitulos: TitulosService) {}
 
-  async adicionarEmPersonagem(
-    characterId: string,
-    dto: AdicionarTituloPersonagemDto,
-    accessToken?: string,
+  @Get("catalogo")
+  listarCatalogo() {
+    return this.servicoTitulos.listarCatalogo();
+  }
+
+  @UseGuards(JwtAuthGuard, MasterGuard)
+  @Post("admin/personagens/:characterId")
+  adicionarEmPersonagem(
+    @Param("characterId", ParseIntPipe) personagemId: number,
+    @Body() dados: AdicionarTituloPersonagemDto,
   ) {
-    if (!characterId) throw new Error("ID do personagem é obrigatório");
-    if (!dto.titleName?.trim()) throw new Error("Nome do título é obrigatório");
-    return titulosService.adicionarEmPersonagem(characterId, dto, accessToken);
-  },
-};
+    return this.servicoTitulos.adicionarEmPersonagem(personagemId, dados);
+  }
+
+  @UseGuards(JwtAuthGuard, MasterGuard)
+  @Post("admin")
+  criar(@Body() dados: SalvarTituloDto) {
+    return this.servicoTitulos.criar(dados);
+  }
+
+  @UseGuards(JwtAuthGuard, MasterGuard)
+  @Patch("admin/:id")
+  editar(@Param("id", ParseIntPipe) id: number, @Body() dados: EditarTituloDto) {
+    return this.servicoTitulos.editar(id, dados);
+  }
+
+  @UseGuards(JwtAuthGuard, MasterGuard)
+  @Delete("admin/:id")
+  async deletar(@Param("id", ParseIntPipe) id: number) {
+    await this.servicoTitulos.deletar(id);
+    return { success: true };
+  }
+}

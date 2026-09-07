@@ -60,7 +60,11 @@ Sistema de gestão de sessões de RPG de mesa. Monorepo com Yarn 4 Workspaces.
 | GET | `/api/gods` | público |
 | GET | `/api/city-maps` | auth |
 | GET | `/api/classes` | público |
-| GET | `/api/titulos` | público |
+| GET | `/api/titulos/catalogo` | público (enriquecido com os nomes das skills) |
+| POST | `/api/titulos/admin` | isMaster |
+| PATCH | `/api/titulos/admin/:id` | isMaster |
+| DELETE | `/api/titulos/admin/:id` | isMaster (soft delete) |
+| POST | `/api/titulos/admin/personagens/:characterId` | isMaster (concede título avulso) |
 | GET | `/api/armas` | público |
 | GET | `/api/armas/categorias` | público |
 | GET | `/api/armas/admin` | isMaster |
@@ -411,6 +415,8 @@ Tabelas de catálogo gerenciadas pelo mestre. PKs convertidas para INTEGER IDENT
 `classes.starting_skills` é `text[]` **NOT NULL** com default `'{}'` — gravar `null` viola a constraint (o default só vale quando a coluna é omitida do INSERT). Já `passive_skills` é nullable. `tier` tem CHECK: só `'Base'`, `'Híbrida'` ou `'Hidden'`.
 
 **`titles`** tem `is_hidden BOOLEAN DEFAULT FALSE` (oculta requisitos) e `classe_secreta_id INTEGER DEFAULT NULL` (migration 045). Quando `classe_secreta_id` é preenchido, o título só é visível para players que tiverem essa classe secreta revelada.
+
+`bonuses`, `requirements` e `skill_ids` são **NOT NULL** com default `'{}'` — gravar null viola a constraint.
 
 ### `classe_secreta_revelada` (migration 044)
 
