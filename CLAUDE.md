@@ -286,7 +286,7 @@ Solicitações de criação de personagem submetidas por jogadores, pendentes de
 | id | INTEGER PK | IDENTITY |
 | email | TEXT | email real do jogador |
 | username | TEXT | login handle desejado, único |
-| password_hash | TEXT | senha criptografada AES-256-CBC (não bcrypt) |
+| password_hash | TEXT | **hash bcrypt**. Era AES-256-CBC reversível porque o texto puro era necessário para criar a conta no Supabase Auth; hoje a conta nasce no próprio backend e o hash é só transferido para `usuarios.password_hash` na aprovação — a senha deixou de ser recuperável a partir do banco |
 | nome | TEXT | nome completo do personagem |
 | avatar_url | TEXT | nullable — path no bucket `character-avatars` |
 | indole_id | INTEGER | referência a `indole.id` |
@@ -296,11 +296,16 @@ Solicitações de criação de personagem submetidas por jogadores, pendentes de
 | historia_doc_url | TEXT | nullable — path no bucket `character-history` |
 | status | TEXT | 'pendente' \| 'aprovado' \| 'rejeitado' |
 | rejeitado_motivo | TEXT | nullable |
-| revisado_em / revisado_por | timestamptz / UUID | auditoria de revisão |
-| deleted_at / deleted_by | timestamptz / UUID | soft delete |
+| revisado_em / revisado_por | timestamptz / TEXT | auditoria de revisão (email do mestre) |
+| campaign_id | INTEGER | nullable |
+| deleted_at / deleted_by | timestamptz / TEXT | soft delete |
 | created_at / updated_at | timestamptz | |
 
-Ao aprovar: cria usuário no Supabase Auth com email `{username}@rpg.internal` + descriptografa senha → cria registro em `characters`.
+Ao aprovar: cria (ou preenche o pré-registro de) `usuarios` com o hash já pronto → cria registro em `characters`. Se a criação do personagem falhar, a conta recém-criada é desfeita para não ficar órfã.
+
+`username` é único **apenas entre solicitações pendentes ou aprovadas** (índice parcial, migration 069). Uma rejeitada libera o nome para o jogador reenviar. Antes o índice era total e o reenvio estourava com chave duplicada.
+
+O email precisa estar **pré-registrado**: um `usuarios` com `password_hash` nulo. A checagem antiga procurava `auth_user_id IS NULL`, coluna removida na migration 061 junto com o Supabase Auth — o que quebrava toda submissão.
 
 ### `equipamentos` (anteriormente `armas`)
 

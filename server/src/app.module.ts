@@ -22,6 +22,7 @@ import { AdminModule } from "./modules/admin/admin.module.js";
 import { LoreNotesModule } from "./modules/lore-notes/lore-notes.module.js";
 import { NpcsModule } from "./modules/npcs/npcs.module.js";
 import { CampanhasModule } from "./modules/campanhas/campanhas.module.js";
+import { CharacterCreationModule } from "./modules/character-creation/character-creation.module.js";
 import { LevelProgressionModule } from "./modules/level-progression/level-progression.module.js";
 
 @Module({
@@ -52,6 +53,7 @@ import { LevelProgressionModule } from "./modules/level-progression/level-progre
     LoreNotesModule,
     NpcsModule,
     CampanhasModule,
+    CharacterCreationModule,
   ],
 })
 export class AppModule {}

@@ -14,7 +14,6 @@ import { contextoRequisicaoMiddleware } from "./common/cls/contexto-requisicao.m
 import { UsuariosService } from "./modules/usuarios/usuarios.service.js";
 import { registrarServicoUsuarios } from "./modules/usuarios/usuarios.ponte.js";
 import { PersonagensRouter } from "./modules/personagem/personagens.module.js";
-import { CharacterCreationRouter } from "./modules/character-creation/character-creation.module.js";
 
 async function iniciarAplicacao(): Promise<void> {
   const aplicacao = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -63,7 +62,6 @@ async function iniciarAplicacao(): Promise<void> {
   // Express antigos (que ainda falam com o Supabase). Cada um sai daqui
   // conforme for migrado — tabelas-acessorias já saiu, por exemplo.
   aplicacao.use("/api/personagens", PersonagensRouter);
-  aplicacao.use("/api/character-creation-requests", CharacterCreationRouter);
 
   const porta = Number(process.env.PORT ?? 3000);
   await aplicacao.listen(porta);

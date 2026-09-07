@@ -1,292 +1,305 @@
-import crypto from "node:crypto";
-import { getAdminClient } from "../../config/database/supabase/client.js";
-import { ensureMasterAccess, getUserDisplayEmail } from "../../common/helpers/master-access.helper.js";
-import { obterServicoUsuarios } from "../usuarios/usuarios.ponte.js";
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { InjectModel } from "@nestjs/sequelize";
+import { Op, QueryTypes } from "sequelize";
+import { Sequelize } from "sequelize-typescript";
+import * as bcrypt from "bcryptjs";
+import { obterUsuarioAutenticadoDoContexto } from "../../common/cls/contexto-requisicao.js";
+import { ArmazenamentoArquivosService } from "../../common/storage/armazenamento-arquivos.service.js";
+import { PersonagemModel } from "../personagem/models/personagem.model.js";
+import { UsuarioModel } from "../usuarios/models/usuario.model.js";
+import { UsuariosService } from "../usuarios/usuarios.service.js";
+import { SolicitacaoCriacaoModel } from "./models/solicitacao-criacao.model.js";
+import type { SubmeterSolicitacaoDto } from "./character-creation.dto.js";
 
-const REQUESTS_TABLE = "character_creation_requests";
-const PERSONAGEM_TABLE = "characters";
+const CUSTO_HASH_BCRYPT = 10;
 
-function getEncryptionKey(): Buffer {
-  const raw = process.env.ENCRYPTION_KEY ?? "rpg-mesa-default-key-change-this!";
-  return crypto.createHash("sha256").update(raw).digest();
+/** Texto que dispensa os mínimos de tamanho, para poder testar o fluxo. */
+const FRASE_DE_BYPASS = "mas a bicicleta e azul";
+
+const MINIMO_LETRAS_APARENCIA = 100;
+const MINIMO_LETRAS_HISTORIA = 1000;
+
+/** Formato antigo da senha: "<iv em hex>:<cifra em hex>", do AES-256-CBC. */
+const FORMATO_SENHA_LEGADO = /^[0-9a-f]{32}:[0-9a-f]+$/i;
+
+export type SolicitacaoApi = Record<string, unknown>;
+
+function contarLetras(texto: string): number {
+  return texto.replace(/<[^>]*>/g, "").replace(/\s/g, "").length;
 }
 
-function encryptPassword(password: string): string {
-  const key = getEncryptionKey();
-  const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv("aes-256-cbc", key, iv);
-  const encrypted = Buffer.concat([cipher.update(password, "utf8"), cipher.final()]);
-  return iv.toString("hex") + ":" + encrypted.toString("hex");
-}
+/**
+ * As solicitações já com índole e gênero resolvidos. Antes eram três consultas
+ * e dois Maps em memória.
+ *
+ * password_hash fica de fora de propósito: não há motivo para a tela do mestre
+ * receber o hash da senha de ninguém.
+ */
+const SQL_LISTAR_SOLICITACOES = `
+  SELECT
+    pedido.id,
+    pedido.email,
+    pedido.username,
+    pedido.nome,
+    pedido.avatar_url,
+    pedido.indole_id,
+    pedido.genero_id,
+    pedido.aparencia_fisica,
+    pedido.historia_texto,
+    pedido.historia_doc_url,
+    pedido.status,
+    pedido.rejeitado_motivo,
+    pedido.revisado_em,
+    pedido.revisado_por,
+    pedido.campaign_id,
+    pedido.created_at,
+    pedido.updated_at,
+    CASE WHEN indole.id IS NULL THEN NULL ELSE
+      json_build_object('id', indole.id, 'codigo', indole.codigo, 'descricao', indole.descricao)
+    END AS indole,
+    CASE WHEN genero.id IS NULL THEN NULL ELSE
+      json_build_object('id', genero.id, 'codigo', genero.codigo, 'descricao', genero.descricao, 'pronome', genero.pronome)
+    END AS genero
+  FROM character_creation_requests AS pedido
+  LEFT JOIN indole ON indole.id = pedido.indole_id
+  LEFT JOIN genero ON genero.id = pedido.genero_id
+  WHERE pedido.deleted_at IS NULL
+  ORDER BY pedido.created_at DESC
+`;
 
-function decryptPassword(stored: string): string {
-  const [ivHex, encHex] = stored.split(":");
-  const key = getEncryptionKey();
-  const iv = Buffer.from(ivHex, "hex");
-  const enc = Buffer.from(encHex, "hex");
-  const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
-  return Buffer.concat([decipher.update(enc), decipher.final()]).toString("utf8");
-}
+@Injectable()
+export class CharacterCreationService {
+  constructor(
+    @InjectModel(SolicitacaoCriacaoModel)
+    private readonly modeloSolicitacao: typeof SolicitacaoCriacaoModel,
+    @InjectModel(PersonagemModel)
+    private readonly modeloPersonagem: typeof PersonagemModel,
+    @InjectModel(UsuarioModel)
+    private readonly modeloUsuario: typeof UsuarioModel,
+    private readonly servicoUsuarios: UsuariosService,
+    private readonly armazenamentoArquivos: ArmazenamentoArquivosService,
+    private readonly sequelize: Sequelize,
+  ) {}
 
-function normalizeEmail(value: unknown) {
-  return typeof value === "string" ? value.trim().toLowerCase() : "";
-}
+  // ── Submissão (pública) ───────────────────────────────────────────────────
 
-function isValidEmail(value: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-}
+  async submeter(dados: SubmeterSolicitacaoDto): Promise<{ success: boolean; id: number }> {
+    const email = dados.email.trim().toLowerCase();
+    await this.garantirEmailPreAutorizado(email);
 
-async function checkEmailPreAutorizado(email: string): Promise<boolean> {
-  const { data } = await getAdminClient()
-    .from("usuarios")
-    .select("id")
-    .eq("real_email", email)
-    .is("auth_user_id", null)
-    .is("deleted_at", null)
-    .limit(1)
-    .maybeSingle();
-  return data != null;
-}
-
-export type SolicitacaoCriacaoDto = {
-  email: string;
-  username: string;
-  password: string;
-  nome: string;
-  avatar_url?: string | null;
-  indole_id?: number | null;
-  genero_id?: number | null;
-  aparencia_fisica: string;
-  historia_texto?: string | null;
-  historia_doc_url?: string | null;
-  campaign_id?: string | null;
-};
-
-export const characterCreationService = {
-  async submeter(dto: SolicitacaoCriacaoDto): Promise<{ success: boolean; id: number }> {
-    const admin = getAdminClient();
-
-    const email = normalizeEmail(dto.email);
-    if (!isValidEmail(email)) throw new Error("Email inválido.");
-
-    const preAutorizado = await checkEmailPreAutorizado(email);
-    if (!preAutorizado) {
-      throw new Error("Email não autorizado pelo mestre para criação de personagem.");
-    }
-
-    const username = (dto.username ?? "").trim().toLowerCase();
+    const username = dados.username.trim().toLowerCase();
     if (!/^[a-z0-9_-]{3,20}$/.test(username)) {
-      throw new Error("Usuário deve ter entre 3 e 20 caracteres (letras, números, _ ou -).");
+      throw new BadRequestException(
+        "Usuário deve ter entre 3 e 20 caracteres (letras, números, _ ou -).",
+      );
     }
+    await this.garantirUsernameLivre(username);
 
-    // Verifica unicidade do username em requests pendentes/aprovados
-    const { data: existingReq } = await admin
-      .from(REQUESTS_TABLE)
-      .select("id")
-      .eq("username", username)
-      .in("status", ["pendente", "aprovado"])
-      .is("deleted_at", null)
-      .maybeSingle();
-    if (existingReq) throw new Error("Este nome de usuário já está em uso.");
+    this.validarSenha(dados.password);
 
-    const { data: existingChar } = await admin
-      .from(PERSONAGEM_TABLE)
-      .select("id")
-      .eq("username", username)
-      .is("deleted_at", null)
-      .maybeSingle();
-    if (existingChar) throw new Error("Este nome de usuário já está em uso.");
+    const aparencia = dados.aparencia_fisica.trim();
+    const historiaTexto = dados.historia_texto?.trim() ?? "";
+    const historiaDoc = dados.historia_doc_url?.trim() ?? "";
+    this.validarAparenciaEHistoria(aparencia, historiaTexto, historiaDoc);
 
-    const password = dto.password ?? "";
-    if (password.length < 8) throw new Error("Senha deve ter no mínimo 8 caracteres.");
-    if (!/[A-Z]/.test(password)) throw new Error("Senha deve conter ao menos uma letra maiúscula.");
-    if (!/[0-9]/.test(password)) throw new Error("Senha deve conter ao menos um número.");
-    if (!/[^a-zA-Z0-9]/.test(password))
-      throw new Error("Senha deve conter ao menos um caractere especial.");
+    // bcrypt aqui, e nada de senha recuperável: o hash é transferido para
+    // usuarios.password_hash quando o mestre aprovar.
+    const senhaComHash = await bcrypt.hash(dados.password, CUSTO_HASH_BCRYPT);
 
-    const aparencia = typeof dto.aparencia_fisica === "string" ? dto.aparencia_fisica.trim() : "";
-    const historiaRaw = typeof dto.historia_texto === "string" ? dto.historia_texto : "";
-    const bypass = aparencia.includes("mas a bicicleta e azul") || historiaRaw.includes("mas a bicicleta e azul");
+    const criada = await this.modeloSolicitacao.create({
+      email,
+      username,
+      passwordHash: senhaComHash,
+      nome: dados.nome.trim(),
+      avatarUrl: this.armazenamentoArquivos.normalizarParaArmazenamento(dados.avatar_url ?? null),
+      indoleId: dados.indole_id ?? null,
+      generoId: dados.genero_id ?? null,
+      aparenciaFisica: aparencia,
+      historiaTexto: historiaTexto || null,
+      historiaDocUrl:
+        this.armazenamentoArquivos.normalizarParaArmazenamento(historiaDoc || null),
+      status: "pendente",
+      campaignId: dados.campaign_id ?? null,
+    });
 
-    if (!bypass && aparencia.replace(/\s/g, "").length < 100)
-      throw new Error("Aparência física deve ter no mínimo 100 letras (sem espaços).");
+    return { success: true, id: criada.id };
+  }
 
-    const temTexto =
-      typeof dto.historia_texto === "string" && dto.historia_texto.trim().length > 0;
-    const temDoc =
-      typeof dto.historia_doc_url === "string" && dto.historia_doc_url.trim().length > 0;
-    if (!temTexto && !temDoc)
-      throw new Error("Informe a história do personagem (texto ou arquivo).");
-    if (!bypass && temTexto) {
-      const letras = dto.historia_texto!.replace(/<[^>]*>/g, "").replace(/\s/g, "").length;
-      if (letras < 1000)
-        throw new Error(
-          "História deve ter no mínimo 1000 letras (sem contar espaços e marcação HTML).",
-        );
-    }
+  // ── Revisão (mestre) ──────────────────────────────────────────────────────
 
-    const passwordEncrypted = encryptPassword(password);
+  async listar(): Promise<SolicitacaoApi[]> {
+    const linhas = await this.sequelize.query<Record<string, any>>(SQL_LISTAR_SOLICITACOES, {
+      type: QueryTypes.SELECT,
+    });
 
-    const { data, error } = await admin
-      .from(REQUESTS_TABLE)
-      .insert({
-        email,
-        username,
-        password_hash: passwordEncrypted,
-        nome: (dto.nome ?? "").trim(),
-        avatar_url: dto.avatar_url ?? null,
-        indole_id: dto.indole_id ?? null,
-        genero_id: dto.genero_id ?? null,
-        aparencia_fisica: aparencia,
-        historia_texto: temTexto ? dto.historia_texto : null,
-        historia_doc_url: temDoc ? (dto.historia_doc_url ?? "").trim() : null,
-        status: "pendente",
-        campaign_id: dto.campaign_id ?? null,
-      })
-      .select("id")
-      .single();
-
-    if (error) throw error;
-    return { success: true, id: (data as any).id as number };
-  },
-
-  async listar(accessToken?: string) {
-    await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
-
-    const { data, error } = await admin
-      .from(REQUESTS_TABLE)
-      .select(
-        "id, email, username, nome, avatar_url, indole_id, genero_id, aparencia_fisica, historia_texto, historia_doc_url, status, rejeitado_motivo, revisado_em, created_at, updated_at",
-      )
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false });
-
-    if (error) throw error;
-
-    const [indoleRes, generoRes] = await Promise.all([
-      admin.from("indole").select("id, codigo, descricao"),
-      admin.from("genero").select("id, codigo, descricao, pronome"),
-    ]);
-
-    const indoleMap = new Map((indoleRes.data ?? []).map((r: any) => [r.id, r]));
-    const generoMap = new Map((generoRes.data ?? []).map((r: any) => [r.id, r]));
-
-    return (data ?? []).map((row: any) => ({
-      ...row,
-      indole: row.indole_id != null ? (indoleMap.get(row.indole_id) ?? null) : null,
-      genero: row.genero_id != null ? (generoMap.get(row.genero_id) ?? null) : null,
+    return linhas.map((linha) => ({
+      ...linha,
+      avatar_url: this.armazenamentoArquivos.montarUrlPublica(linha.avatar_url) || null,
+      historia_doc_url: this.armazenamentoArquivos.montarUrlPublica(linha.historia_doc_url) || null,
     }));
-  },
+  }
 
-  async aprovar(id: number, accessToken?: string) {
-    const masterUser = await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
+  async contarPendentes(): Promise<number> {
+    return this.modeloSolicitacao.count({ where: { status: "pendente" } });
+  }
 
-    const { data: req, error: fetchError } = await admin
-      .from(REQUESTS_TABLE)
-      .select("*")
-      .eq("id", id)
-      .is("deleted_at", null)
-      .single();
+  /**
+   * Cria a conta e o personagem a partir da solicitação. O hash da senha é
+   * transferido como está — a versão anterior decifrava a senha em texto para
+   * mandar ao Supabase Auth.
+   */
+  async aprovar(id: number): Promise<{ success: boolean }> {
+    const solicitacao = await this.buscarPendenteOuFalhar(id);
 
-    if (fetchError || !req) throw new Error("Solicitação não encontrada.");
-    if ((req as any).status !== "pendente") throw new Error("Solicitação já foi processada.");
-
-    const { data: existingChar } = await admin
-      .from(PERSONAGEM_TABLE)
-      .select("id")
-      .eq("username", (req as any).username)
-      .is("deleted_at", null)
-      .maybeSingle();
-    if (existingChar) throw new Error("Nome de usuário já ocupado por outro personagem.");
-
-    let rawPassword: string;
-    try {
-      rawPassword = decryptPassword((req as any).password_hash);
-    } catch {
-      throw new Error("Não foi possível recuperar as credenciais do jogador.");
+    if (FORMATO_SENHA_LEGADO.test(solicitacao.passwordHash)) {
+      throw new BadRequestException(
+        "Esta solicitação guarda a senha no formato antigo, que não é mais aceito. " +
+          "Peça ao jogador para enviar a solicitação novamente.",
+      );
     }
 
-    // A conta nasce na nossa própria tabela usuarios (hash bcrypt), não mais
-    // no Supabase Auth. O id devolvido é o inteiro que characters.user_id
-    // referencia desde a migration 061.
-    const userId = await obterServicoUsuarios().criarConta({
-      email: (req as any).email,
-      username: (req as any).username,
-      senha: rawPassword,
+    // Só contra personagens: conferir contra as solicitações encontraria esta
+    // mesma, que está pendente por definição.
+    const jaOcupado = await this.modeloPersonagem.findOne({
+      where: { username: solicitacao.username },
+    });
+    if (jaOcupado) {
+      throw new ConflictException("Nome de usuário já ocupado por outro personagem.");
+    }
+
+    const usuarioId = await this.servicoUsuarios.criarConta({
+      email: solicitacao.email,
+      username: solicitacao.username,
+      senhaComHash: solicitacao.passwordHash,
       tipo: "player",
     });
 
-    const { error: charError } = await admin.from(PERSONAGEM_TABLE).insert({
-      user_id: userId,
-      username: (req as any).username,
-      name: (req as any).nome.trim(),
-      level: 1,
-      avatar_url: (req as any).avatar_url ?? null,
-      indole_id: (req as any).indole_id ?? null,
-      genero_id: (req as any).genero_id ?? null,
-      aparencia_fisica: (req as any).aparencia_fisica ?? null,
-      historia_texto: (req as any).historia_texto ?? null,
-      historia_doc_url: (req as any).historia_doc_url ?? null,
-      status: 'vivo',
-      campaign_id: (req as any).campaign_id ?? null,
-      data: {},
-    });
-
-    if (charError) {
-      // Rollback: desfaz a conta recém-criada para não deixar órfã.
-      await obterServicoUsuarios().deletar(userId).catch(() => null);
-      throw charError;
+    try {
+      await this.modeloPersonagem.create({
+        userId: usuarioId,
+        username: solicitacao.username,
+        name: solicitacao.nome.trim(),
+        level: 1,
+        avatarUrl: solicitacao.avatarUrl,
+        indoleId: solicitacao.indoleId,
+        generoId: solicitacao.generoId,
+        aparenciaFisica: solicitacao.aparenciaFisica,
+        historiaTexto: solicitacao.historiaTexto,
+        historiaDocUrl: solicitacao.historiaDocUrl,
+        status: "vivo",
+        campaignId: solicitacao.campaignId,
+        data: {},
+      });
+    } catch (erro) {
+      // Desfaz a conta recém-criada para não deixá-la órfã.
+      await this.servicoUsuarios.deletar(usuarioId).catch(() => null);
+      throw erro;
     }
 
-    await admin
-      .from(REQUESTS_TABLE)
-      .update({
-        status: "aprovado",
-        revisado_em: new Date().toISOString(),
-        revisado_por: getUserDisplayEmail(masterUser),
-      })
-      .eq("id", id);
+    solicitacao.status = "aprovado";
+    solicitacao.revisadoEm = new Date();
+    solicitacao.revisadoPor = obterUsuarioAutenticadoDoContexto()?.email ?? "master";
+    await solicitacao.save();
 
     return { success: true };
-  },
+  }
 
-  async rejeitar(id: number, motivo: string, accessToken?: string) {
-    const masterUser = await ensureMasterAccess(accessToken);
-    const admin = getAdminClient();
+  async rejeitar(id: number, motivo?: string): Promise<{ success: boolean }> {
+    const solicitacao = await this.buscarPendenteOuFalhar(id);
 
-    const { data: req, error: fetchError } = await admin
-      .from(REQUESTS_TABLE)
-      .select("id, status")
-      .eq("id", id)
-      .is("deleted_at", null)
-      .single();
+    solicitacao.status = "rejeitado";
+    solicitacao.rejeitadoMotivo = motivo?.trim() || null;
+    solicitacao.revisadoEm = new Date();
+    solicitacao.revisadoPor = obterUsuarioAutenticadoDoContexto()?.email ?? "master";
+    await solicitacao.save();
 
-    if (fetchError || !req) throw new Error("Solicitação não encontrada.");
-    if ((req as any).status !== "pendente") throw new Error("Solicitação já foi processada.");
-
-    const { error } = await admin
-      .from(REQUESTS_TABLE)
-      .update({
-        status: "rejeitado",
-        rejeitado_motivo: motivo?.trim() ?? null,
-        revisado_em: new Date().toISOString(),
-        revisado_por: getUserDisplayEmail(masterUser),
-      })
-      .eq("id", id);
-
-    if (error) throw error;
     return { success: true };
-  },
+  }
 
-  async contarPendentes(): Promise<number> {
-    const { count, error } = await getAdminClient()
-      .from(REQUESTS_TABLE)
-      .select("id", { count: "exact", head: true })
-      .eq("status", "pendente")
-      .is("deleted_at", null);
-    if (error) return 0;
-    return count ?? 0;
-  },
-};
+  // ── Apoio ─────────────────────────────────────────────────────────────────
+
+  private async buscarPendenteOuFalhar(id: number): Promise<SolicitacaoCriacaoModel> {
+    const solicitacao = await this.modeloSolicitacao.findByPk(id);
+    if (!solicitacao) {
+      throw new NotFoundException("Solicitação não encontrada.");
+    }
+    if (solicitacao.status !== "pendente") {
+      throw new ConflictException("Solicitação já foi processada.");
+    }
+    return solicitacao;
+  }
+
+  /**
+   * O email precisa ter sido liberado pelo mestre. Pré-registro hoje é um
+   * usuário com password_hash nulo (migration 065).
+   *
+   * A versão anterior procurava por auth_user_id IS NULL — coluna que a
+   * migration 061 removeu junto com o Supabase Auth. A consulta quebrava, e
+   * com ela toda submissão de solicitação.
+   */
+  private async garantirEmailPreAutorizado(email: string): Promise<void> {
+    const preRegistro = await this.modeloUsuario.findOne({
+      where: { realEmail: email, passwordHash: null },
+    });
+
+    if (!preRegistro) {
+      throw new BadRequestException(
+        "Email não autorizado pelo mestre para criação de personagem.",
+      );
+    }
+  }
+
+  private async garantirUsernameLivre(username: string): Promise<void> {
+    const emSolicitacao = await this.modeloSolicitacao.findOne({
+      where: { username, status: { [Op.in]: ["pendente", "aprovado"] } },
+    });
+    if (emSolicitacao) {
+      throw new ConflictException("Este nome de usuário já está em uso.");
+    }
+
+    const emPersonagem = await this.modeloPersonagem.findOne({ where: { username } });
+    if (emPersonagem) {
+      throw new ConflictException("Este nome de usuário já está em uso.");
+    }
+  }
+
+  private validarSenha(senha: string): void {
+    if (senha.length < 8) {
+      throw new BadRequestException("Senha deve ter no mínimo 8 caracteres.");
+    }
+    if (!/[A-Z]/.test(senha)) {
+      throw new BadRequestException("Senha deve conter ao menos uma letra maiúscula.");
+    }
+    if (!/[0-9]/.test(senha)) {
+      throw new BadRequestException("Senha deve conter ao menos um número.");
+    }
+    if (!/[^a-zA-Z0-9]/.test(senha)) {
+      throw new BadRequestException("Senha deve conter ao menos um caractere especial.");
+    }
+  }
+
+  private validarAparenciaEHistoria(
+    aparencia: string,
+    historiaTexto: string,
+    historiaDoc: string,
+  ): void {
+    const dispensaMinimos =
+      aparencia.includes(FRASE_DE_BYPASS) || historiaTexto.includes(FRASE_DE_BYPASS);
+
+    if (!dispensaMinimos && contarLetras(aparencia) < MINIMO_LETRAS_APARENCIA) {
+      throw new BadRequestException(
+        `Aparência física deve ter no mínimo ${MINIMO_LETRAS_APARENCIA} letras (sem espaços).`,
+      );
+    }
+
+    if (!historiaTexto && !historiaDoc) {
+      throw new BadRequestException("Informe a história do personagem (texto ou arquivo).");
+    }
+
+    if (!dispensaMinimos && historiaTexto && contarLetras(historiaTexto) < MINIMO_LETRAS_HISTORIA) {
+      throw new BadRequestException(
+        `História deve ter no mínimo ${MINIMO_LETRAS_HISTORIA} letras (sem contar espaços e marcação HTML).`,
+      );
+    }
+  }
+}

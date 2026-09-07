@@ -210,15 +210,27 @@ export class UsuariosService {
   async criarConta(dados: {
     email: string;
     username: string;
-    senha: string;
+    /** A senha em texto. Informe isto OU senhaComHash, nunca os dois. */
+    senha?: string;
+    /**
+     * Hash bcrypt já pronto. Serve para a aprovação de solicitação de
+     * personagem, onde a senha foi escolhida (e hasheada) no momento da
+     * submissão e nunca precisa ser recuperada em texto.
+     */
+    senhaComHash?: string;
     tipo?: "gm" | "player";
   }): Promise<number> {
     const email = dados.email.trim().toLowerCase();
     const username = dados.username.trim().toLowerCase();
 
+    if (!dados.senha && !dados.senhaComHash) {
+      throw new BadRequestException("Informe a senha ou o hash da senha.");
+    }
+
     await this.garantirUsernameLivre(username, 0);
 
-    const senhaComHash = await bcrypt.hash(dados.senha, CUSTO_HASH_BCRYPT);
+    const senhaComHash =
+      dados.senhaComHash ?? (await bcrypt.hash(dados.senha!, CUSTO_HASH_BCRYPT));
     const preRegistro = await this.modeloUsuario.findOne({
       where: { realEmail: email, passwordHash: null },
     });
