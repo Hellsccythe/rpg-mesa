@@ -92,6 +92,12 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresMaster: true },
     },
     {
+      path: '/master/receitas',
+      name: 'master-receitas',
+      component: () => import('@/views/MasterReceitasView.vue'),
+      meta: { requiresAuth: true, requiresMaster: true },
+    },
+    {
       path: '/master/itens',
       name: 'master-itens',
       component: () => import('@/views/MasterItensView.vue'),

@@ -51,6 +51,7 @@ A raiz **não é mais o login**: `/` lista as campanhas (mundos) e cada uma leva
 | `/master/skill-overrides` | MasterSkillOverridesView | auth + isMaster |
 | `/master/skill-niveis` | MasterSkillNiveisView | auth + isMaster |
 | `/master/titulos` | MasterTitulosView | auth + isMaster |
+| `/master/receitas` | MasterReceitasView | auth + isMaster |
 | `/master/itens` | MasterItensView | auth + isMaster |
 | `/master/consumiveis` | MasterConsumiveisView | auth + isMaster |
 | `/master/passados` | MasterPassadosView | auth + isMaster |
@@ -118,6 +119,8 @@ A raiz **não é mais o login**: `/` lista as campanhas (mundos) e cada uma leva
 | GET | `/api/tabelas-acessorias/categorias-variados` | público |
 | GET | `/api/tabelas-acessorias/propriedades-variados` | público |
 | GET | `/api/tabelas-acessorias/classes-variados` | público |
+| GET | `/api/receitas` | público |
+| POST/PATCH/DELETE | `/api/receitas/admin[/:id]` | isMaster |
 | GET | `/api/itens` | público |
 | POST/PATCH/DELETE | `/api/itens/admin[/:id]` | isMaster |
 | GET | `/api/itens/categorias` | público |
@@ -251,7 +254,7 @@ Documentação completa em `docs/COMPONENTS.md`.
 
 ## Banco de Dados — Tabelas
 
-Schema completo em `docs/SCHEMA_CURRENT.sql` — **arquivo gerado por `pg_dump --schema-only`, não editado a mão**; regere-o quando mexer no esquema (o comando está no cabeçalho do próprio arquivo). Migrations em `database/migrations/` (001–076). Documentação em PDF, com as ligações entre tabelas e os fluxos: `docs/BANCO_DE_DADOS.pdf`.
+Schema completo em `docs/SCHEMA_CURRENT.sql` — **arquivo gerado por `pg_dump --schema-only`, não editado a mão**; regere-o quando mexer no esquema (o comando está no cabeçalho do próprio arquivo). Migrations em `database/migrations/` (001–077). Documentação em PDF, com as ligações entre tabelas e os fluxos: `docs/BANCO_DE_DADOS.pdf`.
 
 **Não sobrou nenhum UUID no banco.** As migrations 022–023 converteram as PKs para `INTEGER IDENTITY`, e a **061** terminou o serviço nas colunas que ainda referenciavam o Supabase Auth: `characters.user_id` hoje é `INTEGER` apontando para `usuarios.id`, e `characters.campaign_id` é `INTEGER` apontando para `campaigns.id`. A coluna `usuarios.auth_user_id` foi removida.
 
@@ -643,6 +646,29 @@ Todos se comportam igual — um batom e uma barra de mithril não precisam de ta
 `categoria_item`: seed com Ingrediente, Material Precioso, Ferramenta, Exploração, Cosmético. Apagar categoria em uso é recusado pelo serviço.
 
 Tela: `/master/itens` → `MasterItensView.vue`.
+
+### `receitas` e `receita_ingredientes` (migration 077)
+
+O que produz o quê, com o quê. **Não cabe como coluna de nenhuma tabela de item**: é muitos-para-muitos (uma poção usa três ingredientes; um ingrediente serve a cinco poções) e cruza tabelas (uma espada élfica precisa de mithril, que é `itens`, e produz um `equipamentos`).
+
+Daí o par **`<coisa>_tabela` + `<coisa>_id`** nos dois lados, com `CHECK` no banco nos nomes permitidos (`consumiveis`, `itens`, `equipamentos`). Sem o CHECK, `'consumivel'` no singular passaria e o JOIN silenciosamente não acharia nada.
+
+| `receitas` | Tipo | Notas |
+|---|---|---|
+| nome / descricao | VARCHAR(255) / TEXT | |
+| produto_tabela + produto_id | VARCHAR(20) + INTEGER | o que a receita produz |
+| quantidade_produzida | INTEGER | NOT NULL default 1 |
+| tempo_minutos | INTEGER | em minutos, para caber "20 min" e "dois dias" |
+| dificuldade | INTEGER | **solta por enquanto** — vira teste de perícia quando o sistema de habilidades mundanas existir |
+| pericia_id | INTEGER | reservada, sempre nula hoje |
+
+**Sem UNIQUE em (produto_tabela, produto_id)** de propósito: caminhos alternativos para o mesmo produto são desejáveis.
+
+`receita_ingredientes` tem `quantidade` e **`consumido`** — falso para ferramenta, que é exigida mas não some ao usar. Sem essa coluna o jogador perderia o alambique a cada poção. É a única tabela do projeto com **`paranoid: false`**: os ingredientes são detalhe da receita, editados como conjunto (apaga tudo e reinsere), e por isso o índice único pode ser total.
+
+**Margem do crafting:** a API calcula `custo_dos_ingredientes`, `preco_de_compra` e `proporcao_do_preco` a cada leitura. O alvo do projeto é **70–75%** — abaixo disso ninguém compra pronto; acima, fabricar não compensa o risco. A tela mostra a proporção enquanto o mestre edita, colorida por faixa. Só o que é `consumido` entra no custo.
+
+Tela: `/master/receitas` → `MasterReceitasView.vue`.
 
 ### `passados` (migration 032)
 
