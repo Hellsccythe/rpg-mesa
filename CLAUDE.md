@@ -51,6 +51,7 @@ A raiz **não é mais o login**: `/` lista as campanhas (mundos) e cada uma leva
 | `/master/skill-overrides` | MasterSkillOverridesView | auth + isMaster |
 | `/master/skill-niveis` | MasterSkillNiveisView | auth + isMaster |
 | `/master/titulos` | MasterTitulosView | auth + isMaster |
+| `/master/itens` | MasterItensView | auth + isMaster |
 | `/master/consumiveis` | MasterConsumiveisView | auth + isMaster |
 | `/master/passados` | MasterPassadosView | auth + isMaster |
 | `/master/npcs` | MasterNpcsView | auth + isMaster |
@@ -117,6 +118,10 @@ A raiz **não é mais o login**: `/` lista as campanhas (mundos) e cada uma leva
 | GET | `/api/tabelas-acessorias/categorias-variados` | público |
 | GET | `/api/tabelas-acessorias/propriedades-variados` | público |
 | GET | `/api/tabelas-acessorias/classes-variados` | público |
+| GET | `/api/itens` | público |
+| POST/PATCH/DELETE | `/api/itens/admin[/:id]` | isMaster |
+| GET | `/api/itens/categorias` | público |
+| POST/PATCH/DELETE | `/api/itens/categorias/admin[/:item]` | isMaster |
 | GET | `/api/consumiveis` | público |
 | POST/PATCH/DELETE | `/api/consumiveis/admin[/:id]` | isMaster |
 | GET | `/api/consumiveis/categorias` | público |
@@ -246,7 +251,7 @@ Documentação completa em `docs/COMPONENTS.md`.
 
 ## Banco de Dados — Tabelas
 
-Schema completo em `docs/SCHEMA_CURRENT.sql` — **arquivo gerado por `pg_dump --schema-only`, não editado a mão**; regere-o quando mexer no esquema (o comando está no cabeçalho do próprio arquivo). Migrations em `database/migrations/` (001–075). Documentação em PDF, com as ligações entre tabelas e os fluxos: `docs/BANCO_DE_DADOS.pdf`.
+Schema completo em `docs/SCHEMA_CURRENT.sql` — **arquivo gerado por `pg_dump --schema-only`, não editado a mão**; regere-o quando mexer no esquema (o comando está no cabeçalho do próprio arquivo). Migrations em `database/migrations/` (001–076). Documentação em PDF, com as ligações entre tabelas e os fluxos: `docs/BANCO_DE_DADOS.pdf`.
 
 **Não sobrou nenhum UUID no banco.** As migrations 022–023 converteram as PKs para `INTEGER IDENTITY`, e a **061** terminou o serviço nas colunas que ainda referenciavam o Supabase Auth: `characters.user_id` hoje é `INTEGER` apontando para `usuarios.id`, e `characters.campaign_id` é `INTEGER` apontando para `campaigns.id`. A coluna `usuarios.auth_user_id` foi removida.
 
@@ -589,7 +594,7 @@ Primeira das duas tabelas que tiram de `equipamentos` o que nunca foi equipament
 |---|---|---|
 | `equipamentos` | equipa e **fica** equipado | armas, armaduras, escudos |
 | `consumiveis` | usa e **some** | poções, venenos, munição, alimento, pergaminhos |
-| `itens` *(a criar)* | só carrega, vende ou **entrega numa receita** | cosméticos, ferramentas, materiais, ingredientes |
+| `itens` | só carrega, vende ou **entrega numa receita** | cosméticos, ferramentas, materiais, ingredientes |
 
 "Some quando usa?" tem **uma** resposta. "É cosmético ou utilitário?" é opinião, e critério que exige julgamento produz dado inconsistente.
 
@@ -613,6 +618,31 @@ Uma poção fica em `consumiveis`; a erva que a produz fica em `itens`. As duas 
 `categoria_consumivel`: lookup com `item` IDENTITY. Seed: Poção, Veneno, Munição, Alimento, Pergaminho. Apagar categoria em uso é recusado pelo serviço.
 
 Tela: `/master/consumiveis` → `MasterConsumiveisView.vue`.
+
+### `itens` e `categoria_item` (migration 076)
+
+Fecha o corte por comportamento. Aqui mora o que **só se carrega, vende ou entrega numa receita**: cosméticos, ferramentas, equipamento de exploração, materiais preciosos e ingredientes.
+
+Todos se comportam igual — um batom e uma barra de mithril não precisam de tabelas separadas; separá-los compraria duas telas de admin e nada mais.
+
+**Uma erva de alquimia é item, não consumível:** ela não some ao ser usada, ela vira outra coisa. Quem some é a poção que ela produz.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| id | INTEGER PK | IDENTITY |
+| nome | VARCHAR(255) | NOT NULL |
+| descricao | TEXT | nullable |
+| peso | NUMERIC(8,2) | nullable |
+| valor | NUMERIC(12,2) | preço final em prata — mesma regra dos consumíveis |
+| empilhavel | BOOLEAN | NOT NULL default TRUE — ervas e minérios empilham; uma gazua ou um vestido, não |
+| raridade_item | INTEGER | referência a `raridade.item` |
+| categoria_item | INTEGER | referência a `categoria_item.item` |
+
+**Exceção de nomenclatura:** as outras tabelas usam `<lookup>_item` na coluna que referencia (`categoria_consumivel` → `categoria_consumivel_item`). Aqui isso daria `categoria_item_item`. Como o nome do lookup já termina em `_item`, a coluna ficou `itens.categoria_item`.
+
+`categoria_item`: seed com Ingrediente, Material Precioso, Ferramenta, Exploração, Cosmético. Apagar categoria em uso é recusado pelo serviço.
+
+Tela: `/master/itens` → `MasterItensView.vue`.
 
 ### `passados` (migration 032)
 

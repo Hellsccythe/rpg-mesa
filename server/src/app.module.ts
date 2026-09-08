@@ -10,6 +10,7 @@ import { CityMapsModule } from "./modules/city_maps/city-maps.module.js";
 import { IndoleModule } from "./modules/indole/indole.module.js";
 import { RaridadeModule } from "./modules/raridade/raridade.module.js";
 import { ConsumiveisModule } from "./modules/consumiveis/consumiveis.module.js";
+import { ItensModule } from "./modules/itens/itens.module.js";
 import { GeneroModule } from "./modules/genero/genero.module.js";
 import { UsuariosModule } from "./modules/usuarios/usuarios.module.js";
 import { PersonagensConsultaModule } from "./modules/personagem/personagens-consulta.module.js";
@@ -46,6 +47,7 @@ import { LevelProgressionModule } from "./modules/level-progression/level-progre
     IndoleModule,
     RaridadeModule,
     ConsumiveisModule,
+    ItensModule,
     GeneroModule,
     UsuariosModule,
     PersonagensConsultaModule,
