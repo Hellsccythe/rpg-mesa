@@ -128,6 +128,18 @@ export async function escolherDeus(characterId: string | number, deus_id: number
 }
 
 /**
+ * Sobe UM rank de perícia, pagando o custo daquele degrau (rank 3 custa 3).
+ * O backend valida os pontos — o botão desabilitado é só conveniência.
+ */
+export async function subirRankDePericia(
+  characterId: string | number,
+  pericia_id: number,
+): Promise<PersonagemApi> {
+  const { data } = await api.post<PersonagemApi>(`/personagens/${characterId}/subir-pericia`, { pericia_id })
+  return data
+}
+
+/**
  * Rola o dinheiro inicial do passado. Sem corpo de propósito: o que rolar vem
  * do passado do personagem e o sorteio acontece no servidor — rolar aqui
  * deixaria o jogador recarregar a página até tirar o valor máximo.

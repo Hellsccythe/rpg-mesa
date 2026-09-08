@@ -51,6 +51,7 @@ A raiz **não é mais o login**: `/` lista as campanhas (mundos) e cada uma leva
 | `/master/skill-overrides` | MasterSkillOverridesView | auth + isMaster |
 | `/master/skill-niveis` | MasterSkillNiveisView | auth + isMaster |
 | `/master/titulos` | MasterTitulosView | auth + isMaster |
+| `/master/pericias` | MasterPericiasView | auth + isMaster |
 | `/master/receitas` | MasterReceitasView | auth + isMaster |
 | `/master/itens` | MasterItensView | auth + isMaster |
 | `/master/consumiveis` | MasterConsumiveisView | auth + isMaster |
@@ -220,6 +221,18 @@ A raiz **não é mais o login**: `/` lista as campanhas (mundos) e cada uma leva
 | PUT | `/api/player-telas/admin/:characterId` | isMaster (substitui o conjunto inteiro) |
 | GET | `/api/admin/exportar-schema?dialeto=postgresql\|mysql\|sqlite` | isMaster (devolve texto puro como anexo) |
 
+## Economia — a base do projeto
+
+**`docs/ECONOMIA.pdf` é a referência.** A migration 079 adotou os números dele, e preço novo deve ser ancorado nas mesmas âncoras.
+
+- **Moeda:** bronze → prata → ouro, na razão **1:10:100**. Preço se pensa em **prata**.
+- **Âncora:** 2 prata = um dia de trabalho sem qualificação; 5 prata = um dia de artesão; **60 prata = um mês**.
+- **Dinheiro inicial:** média de 22 (Vítima) a 57 (Nobreza) prata. Amplitude 2,6:1 — era 10:1 antes da 079.
+- **Crafting:** os ingredientes devem somar **70–75%** do preço de compra. A API de receitas calcula a proporção a cada leitura e a tela colore por faixa.
+- **`valor` é o preço final.** O `multiplicador_valor` da raridade é referência para o mestre decidir esse número, e **não é aplicado** em cima — aplicar criaria dupla contagem.
+
+**Peso das armaduras (migration 079) é mudança de regra, não de preço.** A capacidade de carga é `2 + força × 2` kg; as armaduras pesavam de 10 a 30 kg, e um personagem de distribuição equilibrada (força 2) carrega 6 kg. **Nenhum personagem novo conseguia vestir armadura**, e a Armadura Completa era impossível até com os 10 pontos em força. Os pesos foram corrigidos para os reais (couro 8 kg, malha 12, placas 25); a fórmula não mudou.
+
 ## Componentes Compartilhados
 
 Documentação completa em `docs/COMPONENTS.md`.
@@ -258,7 +271,7 @@ Documentação completa em `docs/COMPONENTS.md`.
 
 ## Banco de Dados — Tabelas
 
-Schema completo em `docs/SCHEMA_CURRENT.sql` — **arquivo gerado por `pg_dump --schema-only`, não editado a mão**; regere-o quando mexer no esquema (o comando está no cabeçalho do próprio arquivo). Migrations em `database/migrations/` (001–078). Documentação em PDF, com as ligações entre tabelas e os fluxos: `docs/BANCO_DE_DADOS.pdf`.
+Schema completo em `docs/SCHEMA_CURRENT.sql` — **arquivo gerado por `pg_dump --schema-only`, não editado a mão**; regere-o quando mexer no esquema (o comando está no cabeçalho do próprio arquivo). Migrations em `database/migrations/` (001–079). Documentação em PDF, com as ligações entre tabelas e os fluxos: `docs/BANCO_DE_DADOS.pdf`.
 
 **Não sobrou nenhum UUID no banco.** As migrations 022–023 converteram as PKs para `INTEGER IDENTITY`, e a **061** terminou o serviço nas colunas que ainda referenciavam o Supabase Auth: `characters.user_id` hoje é `INTEGER` apontando para `usuarios.id`, e `characters.campaign_id` é `INTEGER` apontando para `campaigns.id`. A coluna `usuarios.auth_user_id` foi removida.
 
@@ -588,6 +601,8 @@ Escala única de raridade para **todas** as tabelas de item — equipamentos, e 
 | cor | VARCHAR(20) | nome de cor do Tailwind, para o frontend não manter um mapa paralelo |
 
 Seed: Comum (×1, dif. 10), Incomum (×3, dif. 15), Raro (×10, dif. 20), Épico (×40, dif. 25), Lendário (o mestre decide).
+
+**A `dificuldade_base` é a DC do teste de perícia** — ver a seção de `pericias`.
 
 Raridade aqui **decide coisas** em vez de ser etiqueta: uma referência responde "o mercador tem isso?", "quanto custa?" e "quão difícil é fabricar?".
 

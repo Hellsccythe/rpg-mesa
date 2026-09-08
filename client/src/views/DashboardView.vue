@@ -396,6 +396,75 @@
                   <p v-if="erroDistribuicao" class="mt-2 text-xs text-red-400">{{ erroDistribuicao }}</p>
                 </div>
 
+                <!-- Perícias Mundanas -->
+                <div v-if="periciasDoPersonagem.length || pontosDePericia > 0" class="dash-card p-5">
+                  <div class="mb-4 flex items-center justify-between">
+                    <h3 class="dash-section-label">Perícias</h3>
+                    <span
+                      v-if="pontosDePericia > 0"
+                      class="rounded-full border border-sky-700/40 bg-sky-900/30 px-2 py-0.5 text-[0.65rem] font-bold text-sky-300"
+                    >{{ pontosDePericia }} ponto{{ pontosDePericia !== 1 ? 's' : '' }}</span>
+                  </div>
+
+                  <p v-if="!periciasDoPersonagem.length" class="text-xs italic text-zinc-600">
+                    Nenhuma perícia ainda. Os pontos podem ser gastos nas perícias do catálogo.
+                  </p>
+
+                  <div v-else class="space-y-2.5">
+                    <div v-for="pericia in periciasDoPersonagem" :key="pericia.periciaId" class="flex items-center gap-3">
+                      <div class="min-w-0 flex-1">
+                        <div class="flex items-baseline gap-2">
+                          <span class="truncate text-xs font-semibold text-zinc-300">{{ pericia.nome }}</span>
+                          <span class="shrink-0 text-[0.6rem] text-zinc-600">
+                            {{ rotuloDoAtributoDaPericia(pericia.periciaId) }}
+                          </span>
+                        </div>
+                        <!-- Cinco pontinhos: o rank se lê de relance -->
+                        <div class="mt-1 flex gap-1">
+                          <span
+                            v-for="degrau in RANK_MAXIMO" :key="degrau"
+                            class="h-1.5 w-4 rounded-full transition-colors"
+                            :class="degrau <= pericia.rank ? 'bg-sky-500' : 'bg-white/[0.08]'"
+                          />
+                        </div>
+                      </div>
+
+                      <span class="shrink-0 text-[0.65rem] font-bold text-sky-300">
+                        +{{ bonusDoTesteDaPericia(pericia) }}
+                      </span>
+
+                      <button
+                        v-if="!authStore.eMestre && pericia.rank < RANK_MAXIMO"
+                        type="button"
+                        :disabled="pontosDePericia < custoDoRank(pericia.rank + 1) || subindoPericia"
+                        class="shrink-0 rounded-lg border border-sky-600/40 px-2 py-1 text-[0.65rem] font-semibold text-sky-300 transition-colors hover:bg-sky-900/30 disabled:opacity-30"
+                        :title="`Subir para o rank ${pericia.rank + 1} custa ${custoDoRank(pericia.rank + 1)} ponto(s)`"
+                        @click="periciaParaSubir = pericia"
+                      >
+                        +{{ custoDoRank(pericia.rank + 1) }}
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Aprender uma perícia nova -->
+                  <div v-if="!authStore.eMestre && pontosDePericia > 0 && periciasDisponiveis.length" class="mt-4 border-t border-white/[0.06] pt-3">
+                    <p class="mb-2 text-[0.65rem] uppercase tracking-widest text-zinc-600">Aprender nova (1 ponto)</p>
+                    <div class="flex flex-wrap gap-1.5">
+                      <button
+                        v-for="pericia in periciasDisponiveis" :key="pericia.id"
+                        type="button"
+                        :disabled="subindoPericia"
+                        class="rounded-full border border-white/10 px-2.5 py-1 text-[0.65rem] text-zinc-400 transition-colors hover:border-sky-600/50 hover:text-sky-300 disabled:opacity-40"
+                        @click="periciaParaSubir = { periciaId: pericia.id, nome: pericia.nome, rank: 0 }"
+                      >
+                        {{ pericia.nome }}
+                      </button>
+                    </div>
+                  </div>
+
+                  <p v-if="erroPericia" class="mt-2 text-xs text-red-400">{{ erroPericia }}</p>
+                </div>
+
                 <!-- Origem: Raça, Passado, Deus -->
                 <div class="dash-card p-5">
                   <h3 class="dash-section-label mb-4">Origem</h3>
@@ -1366,6 +1435,40 @@
 
   <!-- ══ Modal: Confirmar distribuição de atributos ══ -->
   <Modal
+    v-if="periciaParaSubir"
+    panel-class="max-w-sm"
+    tema="escuro"
+    :show-close-button="false"
+    :close-on-backdrop="false"
+    @close="periciaParaSubir = null"
+  >
+    <div class="space-y-4 p-6">
+      <p class="text-base font-bold text-white">
+        {{ periciaParaSubir.rank === 0 ? 'Aprender' : 'Subir' }} {{ periciaParaSubir.nome }}?
+      </p>
+      <p class="text-sm text-zinc-400">
+        Vai para o <strong class="text-sky-300">rank {{ periciaParaSubir.rank + 1 }}</strong>
+        e custa <strong class="text-white">{{ custoDoRank(periciaParaSubir.rank + 1) }}</strong>
+        ponto{{ custoDoRank(periciaParaSubir.rank + 1) !== 1 ? 's' : '' }} dos
+        {{ pontosDePericia }} que você tem.
+      </p>
+      <p class="text-xs text-zinc-600">Pontos gastos não voltam.</p>
+      <div class="flex gap-3">
+        <button type="button" class="flex-1 rounded-xl border border-white/10 py-2 text-sm text-zinc-400 hover:text-white" @click="periciaParaSubir = null">
+          Cancelar
+        </button>
+        <button
+          type="button" :disabled="subindoPericia"
+          class="flex-1 rounded-xl bg-sky-700 py-2 text-sm font-semibold text-white hover:bg-sky-600 disabled:opacity-60"
+          @click="confirmarSubirPericia"
+        >
+          {{ subindoPericia ? 'Salvando...' : 'Confirmar' }}
+        </button>
+      </div>
+    </div>
+  </Modal>
+
+  <Modal
     v-if="modalConfirmarAtributos"
     panel-class="max-w-sm"
     body-class="space-y-4 p-6"
@@ -1525,6 +1628,11 @@ import { useCharactersStore } from '@/stores/characters'
 import { useMasterApprovalsStore } from '@/stores/masterApprovals'
 import { editCharacter, levelarClasse, escolherClasse, distribuirPontosAtributo, escolherSkillDaClasse } from '@/lib/api/personagens.api'
 import { listarClassesParaPlayer, type ClasseApi } from '@/lib/api/classes.api'
+import {
+  listarPericias, custoDoRank, bonusDoTeste, RANK_MAXIMO, ROTULO_ATRIBUTO,
+  type PericiaApi, type PericiaDoPersonagem,
+} from '@/lib/api/pericias.api'
+import { subirRankDePericia } from '@/lib/api/personagens.api'
 import { listarCatalogoSkills, type SkillApi } from '@/lib/api/skills.api'
 import { listLoreNotes } from '@/lib/api/lore-notes.api'
 import { listarMinhasTelas } from '@/lib/api/player-telas.api'
@@ -1989,6 +2097,64 @@ async function confirmarDesbloquearClasse() {
 // ── Distribuição de Pontos de Atributo ────────────────────────────────────────
 const distribuicaoStaged    = ref<Record<string, number>>({})
 const modalConfirmarAtributos = ref(false)
+
+// ── Perícias mundanas ───────────────────────────────────────────────────────
+const catalogoPericias  = ref<PericiaApi[]>([])
+const subindoPericia    = ref(false)
+const erroPericia       = ref('')
+const periciaParaSubir  = ref<PericiaDoPersonagem | null>(null)
+
+const periciasDoPersonagem = computed<PericiaDoPersonagem[]>(() => {
+  const lista = (character.value?.data as any)?.pericias
+  return Array.isArray(lista) ? [...lista].sort((a, b) => b.rank - a.rank || a.nome.localeCompare(b.nome)) : []
+})
+
+const pontosDePericia = computed(() => Number((character.value?.data as any)?.periciaPoints ?? 0))
+
+/** O que o personagem ainda não tem — só aparece se sobrar ponto para o rank 1. */
+const periciasDisponiveis = computed(() => {
+  const jaTem = new Set(periciasDoPersonagem.value.map(p => p.periciaId))
+  return catalogoPericias.value.filter(p => !jaTem.has(p.id))
+})
+
+function periciaDoCatalogo(periciaId: number): PericiaApi | undefined {
+  return catalogoPericias.value.find(p => p.id === periciaId)
+}
+
+function rotuloDoAtributoDaPericia(periciaId: number): string {
+  const pericia = periciaDoCatalogo(periciaId)
+  return pericia ? ROTULO_ATRIBUTO[pericia.atributoBase] : ''
+}
+
+/** `rank × 3 + ⌊atributo ÷ 2⌋` — o bônus que vai no d20. */
+function bonusDoTesteDaPericia(pericia: PericiaDoPersonagem): number {
+  const doCatalogo = periciaDoCatalogo(pericia.periciaId)
+  if (!doCatalogo) return pericia.rank * 3
+  const atributos = (character.value?.data as any)?.atributos ?? {}
+  return bonusDoTeste(pericia.rank, Number(atributos[doCatalogo.atributoBase] ?? 0))
+}
+
+async function confirmarSubirPericia() {
+  if (!periciaParaSubir.value || !character.value) return
+  subindoPericia.value = true
+  erroPericia.value = ''
+  try {
+    const atualizado = await subirRankDePericia(
+      (character.value as any).characterId,
+      periciaParaSubir.value.periciaId,
+    )
+    // A resposta traz o personagem inteiro: o rank e os pontos aparecem por
+    // reatividade, sem cópia local para manter em dia. Mesmo padrão de
+    // `confirmarDistribuicao`.
+    character.value = atualizado
+    periciaParaSubir.value = null
+  } catch (err: any) {
+    erroPericia.value = err?.response?.data?.message ?? err.message ?? 'Erro ao subir a perícia.'
+    periciaParaSubir.value = null
+  } finally {
+    subindoPericia.value = false
+  }
+}
 const distribuindoAtributos = ref(false)
 const erroDistribuicao      = ref('')
 
@@ -2444,7 +2610,16 @@ async function loadCharacter() {
 }
 
 async function retryLoad() { await loadCharacter() }
-onMounted(async () => { await loadCharacter() })
+onMounted(async () => {
+  await loadCharacter()
+  // O catálogo é público e só serve para rotular o rank e calcular o bônus.
+  // Falhar aqui não pode derrubar o dashboard: a seção some, o resto fica.
+  try {
+    catalogoPericias.value = await listarPericias()
+  } catch {
+    catalogoPericias.value = []
+  }
+})
 watch(() => route.query.characterId, async (next, prev) => {
   if (String(next ?? '') === String(prev ?? '')) return
   await loadCharacter()
