@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Condições, Poções e Ingredientes — Caminho Sem Volta</title>
+<style>
+  @page { size: A4 landscape; margin: 12mm 12mm 14mm 12mm; }
+  :root { --tinta:#16181d; --fraca:#5b6270; --linha:#d8dce3; --linha2:#aeb5c0;
+          --alt:#f5f6f9; --dest:#7a3e12; --destbg:#fdf3e7; --alerta:#8c2f2f;
+          --alertabg:#fcf0f0; --ok:#1f5c3d; --okbg:#eef7f1; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:8.8pt/1.45 "Segoe UI","Helvetica Neue",Arial,sans-serif; color:var(--tinta); background:#fff; }
+  h1,h2,h3 { line-height:1.2; margin:0; font-weight:650; }
+  h1 { font-size:26pt; letter-spacing:-0.4pt; }
+  h2 { font-size:15pt; margin:20pt 0 8pt; padding-bottom:4pt; border-bottom:1.6pt solid var(--tinta); break-after:avoid; }
+  h3 { font-size:11pt; margin:14pt 0 4pt; color:var(--dest); break-after:avoid; }
+  h3 .conta { font-size:8.2pt; font-weight:400; color:var(--fraca); }
+  p { margin:0 0 6pt; }
+  table { width:100%; border-collapse:collapse; margin:4pt 0 10pt; font-size:8pt; }
+  th,td { text-align:left; vertical-align:top; padding:3.2pt 5pt; border-bottom:0.6pt solid var(--linha); }
+  th { background:var(--alt); border-bottom:1pt solid var(--linha2); font-weight:650; font-size:7.4pt;
+       text-transform:uppercase; letter-spacing:0.3pt; color:var(--fraca); }
+  tr { break-inside:avoid; }
+  td.num,th.num { text-align:right; white-space:nowrap; }
+  .fraco { color:var(--fraca); }
+  .mono { font-family:"Cascadia Mono",Consolas,monospace; font-size:7.4pt; }
+  .preco { font-weight:650; color:#8a6a1f; }
+  .ok { color:var(--ok); font-weight:650; }
+  .cat { font-weight:600; font-size:7.6pt; }
+  .pagina { break-before:page; }
+  .capa { padding-top:34mm; text-align:center; }
+  .capa .sub { font-size:12pt; color:var(--fraca); margin-top:6pt; }
+  .capa .meta { margin-top:20mm; font-size:8.6pt; color:var(--fraca); border-top:0.6pt solid var(--linha);
+                padding-top:8pt; display:inline-block; min-width:90mm; }
+  .capa .selo0 { display:inline-block; margin-bottom:10pt; padding:3pt 10pt; border:1pt solid var(--linha2);
+                 border-radius:12pt; font-size:8pt; letter-spacing:1.4pt; text-transform:uppercase; color:var(--fraca); }
+  .nota,.aviso,.bom { padding:6pt 9pt; margin:7pt 0 10pt; border-left:2.4pt solid var(--dest);
+                      background:var(--destbg); font-size:8.4pt; break-inside:avoid; }
+  .aviso { border-left-color:var(--alerta); background:var(--alertabg); }
+  .bom { border-left-color:var(--ok); background:var(--okbg); }
+  .nota p:last-child,.aviso p:last-child,.bom p:last-child { margin-bottom:0; }
+  .selo { display:inline-block; padding:0.8pt 5pt; border-radius:2.5pt; font-size:7.2pt; font-weight:650; }
+  .selo-zinc{background:#eceef2;color:#4a505c} .selo-emerald{background:#e6f4ec;color:#1f5c3d}
+  .selo-sky{background:#e4f0fa;color:#1f4d7a}
+  .tipo { display:inline-block; padding:0.6pt 4pt; border-radius:2.5pt; font-size:7pt; font-weight:650; }
+  .tipo-vida{background:#fde8e8;color:#8c2f2f} .tipo-cura{background:#e6f4ec;color:#1f5c3d}
+  .tipo-prevencao{background:#e4f0fa;color:#1f4d7a} .tipo-ampla{background:#f2e9f7;color:#5b3a7a}
+  .alvo { font-size:7.2pt; font-style:italic; }
+  .alvo.cura { color:#1f5c3d; } .alvo.prev { color:#1f4d7a; }
+  figure { margin:8pt 0 12pt; break-inside:avoid; }
+  figcaption { font-size:7.8pt; color:var(--fraca); margin-top:4pt; text-align:center; }
+  svg { display:block; margin:0 auto; max-width:100%; }
+</style>
+</head>
+<body>
+
+<section class="capa">
+  <div class="selo0">Catálogo de Alquimia</div>
+  <h1>Condições, Poções e Ingredientes</h1>
+  <div class="sub">RPG de Mesa — Caminho Sem Volta</div>
+  <div class="meta">
+    19 condições &middot; 28 poções &middot; 18 ingredientes<br>
+    Tiers Comum, Incomum e Raro &middot; 8 de setembro de 2026
+  </div>
+</section>
+
+<section class="pagina">
+  <h2>Como as três camadas se sustentam</h2>
+
+  <p>Este catálogo tem uma ordem de leitura, e ela não é acidental. <strong>A condição vem primeiro</strong> —
+  uma poção que cura Cegueira não significa nada até "Cegueira" existir com regra própria. Depois vem a poção,
+  que é a resposta a ela. Por último o ingrediente, que existe porque uma receita pediu.</p>
+
+  <p>Construir na ordem inversa produziria condições inventadas para justificar poções já batizadas, e
+  ingredientes órfãos que nenhuma receita usa.</p>
+
+  <figure>
+  <svg viewBox="0 0 900 210" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+    <defs><marker id="s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#8a919e"/></marker></defs>
+
+    <rect x="30" y="30" width="230" height="62" rx="5" fill="#fcf0f0" stroke="#d9b3b3"/>
+    <text x="145" y="52" text-anchor="middle" font-size="12" font-weight="650">CONDIÇÃO</text>
+    <text x="145" y="69" text-anchor="middle" font-size="8.5" fill="#5b6270">o que dá errado com o personagem</text>
+    <text x="145" y="83" text-anchor="middle" font-size="8" fill="#8c2f2f">inflige: skill, veneno, armadilha, monstro</text>
+
+    <rect x="335" y="30" width="230" height="62" rx="5" fill="#eef7f1" stroke="#a8c6b3"/>
+    <text x="450" y="52" text-anchor="middle" font-size="12" font-weight="650">POÇÃO</text>
+    <text x="450" y="69" text-anchor="middle" font-size="8.5" fill="#5b6270">a resposta a ela — cura ou previne</text>
+    <text x="450" y="83" text-anchor="middle" font-size="8" fill="#1f5c3d">tier casa com o da condição</text>
+
+    <rect x="640" y="30" width="230" height="62" rx="5" fill="#f5f6f9" stroke="#c3cad4"/>
+    <text x="755" y="52" text-anchor="middle" font-size="12" font-weight="650">INGREDIENTE</text>
+    <text x="755" y="69" text-anchor="middle" font-size="8.5" fill="#5b6270">o que a receita consome</text>
+    <text x="755" y="83" text-anchor="middle" font-size="8" fill="#4a505c">soma 70–75% do preço de compra</text>
+
+    <line x1="266" y1="61" x2="329" y2="61" stroke="#8a919e" stroke-width="1.4" marker-end="url(#s)"/>
+    <text x="297" y="53" text-anchor="middle" font-size="7.5" fill="#5b6270">define</text>
+    <line x1="571" y1="61" x2="634" y2="61" stroke="#8a919e" stroke-width="1.4" marker-end="url(#s)"/>
+    <text x="602" y="53" text-anchor="middle" font-size="7.5" fill="#5b6270">exige</text>
+
+    <rect x="30" y="120" width="840" height="66" rx="4" fill="#fdf3e7" stroke="#d9c3a3"/>
+    <text x="48" y="141" font-size="9" font-weight="650" fill="#7a3e12">A espinha do catálogo: a gravidade da condição É a raridade da cura</text>
+    <text x="48" y="158" font-size="8.4" fill="#5b6270">Uma condição Rara é rara porque o antídoto dela é difícil de achar E de fabricar — as duas coisas dizem a mesma verdade.</text>
+    <text x="48" y="172" font-size="8.4" fill="#5b6270">Isso reaproveita a escala de raridade que já existe no banco, e a `dificuldade_base` dela já era a DC do teste de Alquimia.</text>
+  </svg>
+  <figcaption>As três camadas, e a regra que as amarra.</figcaption>
+  </figure>
+
+  <h3>Resumo por tier</h3>
+  <table>
+    <thead><tr><th style="width:14%">Tier</th><th class="num">Condições</th><th class="num">Poções</th>
+    <th class="num">Ingredientes</th><th class="num">DC do teste</th><th class="num">Faixa de preço (prata)</th></tr></thead>
+    <tbody><tr><td><span class="selo selo-zinc">Comum</span></td><td class="num">6</td><td class="num">7</td><td class="num">7</td><td class="num">10</td><td class="num preco">11 – 60</td></tr>
+<tr><td><span class="selo selo-emerald">Incomum</span></td><td class="num">7</td><td class="num">12</td><td class="num">6</td><td class="num">15</td><td class="num preco">46 – 140</td></tr>
+<tr><td><span class="selo selo-sky">Raro</span></td><td class="num">6</td><td class="num">9</td><td class="num">5</td><td class="num">20</td><td class="num preco">350 – 1250</td></tr></tbody>
+  </table>
+
+  <div class="bom">
+    <p><strong>Toda receita foi verificada por script</strong> contra quatro regras: margem de crafting entre 70 e 75%,
+    tier da poção maior ou igual ao da condição que ela trata, nenhuma poção mais rara que seu ingrediente mais raro,
+    e nenhuma condição sem tratamento. As 28 passam. O documento é gerado dos mesmos dados que o script
+    valida, então não há como uma tabela aqui contradizer a conta.</p>
+  </div>
+
+  <div class="nota">
+    <p><strong>Quatro tipos de poção.</strong>
+    <span class="tipo tipo-vida">Vida</span> <span class="tipo tipo-cura">Cura</span> <span class="tipo tipo-prevencao">Prevenção</span> <span class="tipo tipo-ampla">Ampla</span>
+    &nbsp;— <em>Vida</em> devolve PV e não trata condição; <em>Cura</em> remove uma condição já sofrida;
+    <em>Prevenção</em> dá imunidade por um tempo e se bebe <strong>antes</strong>;
+    <em>Ampla</em> limpa mais de uma condição e é sempre a mais cara do seu tier.</p>
+  </div>
+</section>
+
+<section class="pagina">
+  <h2>1. Condições</h2>
+  <p>O que pode dar errado com um personagem. Não são alvos de poção — são o que skills, venenos, armadilhas e
+  monstros infligem. A poção é só uma das respostas; a perícia <strong>Medicina</strong> é outra, e o tempo é a terceira.</p>
+  <h3>Comum <span class="conta">— 6 condições, DC 10 para fabricar a cura</span></h3>
+<table><thead><tr><th style="width:15%">Condição</th><th style="width:11%">Tipo</th><th style="width:34%">Efeito</th><th style="width:16%">Duração</th><th>Tratada por</th></tr></thead><tbody>
+<tr><td><strong>Sangramento</strong></td><td><span class="cat" style="color:#7a3e12">Física</span></td><td>Perde 1d4 PV no início de cada turno.</td><td class="fraco">Até ser tratada</td><td class="fraco">Emplastro de Sangue Firme</td></tr>
+<tr><td><strong>Atordoado</strong></td><td><span class="cat" style="color:#7a3e12">Física</span></td><td>Perde a ação bônus e age por último na ordem.</td><td class="fraco">1 turno</td><td class="fraco">Tônico do Desperto</td></tr>
+<tr><td><strong>Fadiga</strong></td><td><span class="cat" style="color:#7a3e12">Física</span></td><td>−2 em testes de Força e de Resistência.</td><td class="fraco">Até descansar</td><td class="fraco">Infusão Revigorante</td></tr>
+<tr><td><strong>Náusea</strong></td><td><span class="cat" style="color:#7a3e12">Física</span></td><td>Não consegue usar consumível. −2 em ataques.</td><td class="fraco">1d4 turnos</td><td class="fraco">Chá de Estômago Calmo</td></tr>
+<tr><td><strong>Embriaguez</strong></td><td><span class="cat" style="color:#5b3a7a">Mental</span></td><td>−3 em Destreza e Inteligência, +2 contra medo.</td><td class="fraco">1 hora</td><td class="fraco">Tônico do Desperto</td></tr>
+<tr><td><strong>Ferida Leve</strong></td><td><span class="cat" style="color:#7a3e12">Física</span></td><td>Não recupera PV descansando enquanto durar.</td><td class="fraco">Até ser tratada</td><td class="fraco">Unguento Cicatrizante</td></tr>
+</tbody></table>
+<h3>Incomum <span class="conta">— 7 condições, DC 15 para fabricar a cura</span></h3>
+<table><thead><tr><th style="width:15%">Condição</th><th style="width:11%">Tipo</th><th style="width:34%">Efeito</th><th style="width:16%">Duração</th><th>Tratada por</th></tr></thead><tbody>
+<tr><td><strong>Cegueira</strong></td><td><span class="cat" style="color:#7a3e12">Física</span></td><td>Não enxerga. Ataque à distância falha automaticamente.</td><td class="fraco">Até ser tratada</td><td class="fraco">Colírio de Visão Clara</td></tr>
+<tr><td><strong>Surdez</strong></td><td><span class="cat" style="color:#7a3e12">Física</span></td><td>Não ouve. Falha em Percepção auditiva e em ordem dita em voz.</td><td class="fraco">Até ser tratada</td><td class="fraco">Essência do Ouvido Aberto</td></tr>
+<tr><td><strong>Envenenado</strong></td><td><span class="cat" style="color:#7a3e12">Física</span></td><td>Perde 1d6 PV por turno e sofre −2 em tudo.</td><td class="fraco">Até ser tratada</td><td class="fraco">Antídoto Comum</td></tr>
+<tr><td><strong>Queimadura</strong></td><td><span class="cat" style="color:#7a3e12">Física</span></td><td>Perde 1d6 PV por turno. Dano de fogo conta em dobro.</td><td class="fraco">3 turnos ou até tratada</td><td class="fraco">Bálsamo de Pele Fria</td></tr>
+<tr><td><strong>Enregelado</strong></td><td><span class="cat" style="color:#7a3e12">Física</span></td><td>Metade do movimento. −3 em Destreza.</td><td class="fraco">Até ser tratada</td><td class="fraco">Tônico do Sangue Quente</td></tr>
+<tr><td><strong>Silenciado</strong></td><td><span class="cat" style="color:#1f4d7a">Mágica</span></td><td>Não usa skill que exija palavra falada.</td><td class="fraco">Até ser tratada</td><td class="fraco">Xarope da Voz Livre</td></tr>
+<tr><td><strong>Amedrontado</strong></td><td><span class="cat" style="color:#5b3a7a">Mental</span></td><td>Não pode se aproximar da fonte. Desvantagem contra ela.</td><td class="fraco">1 minuto</td><td class="fraco">Licor da Coragem</td></tr>
+</tbody></table>
+<h3>Raro <span class="conta">— 6 condições, DC 20 para fabricar a cura</span></h3>
+<table><thead><tr><th style="width:15%">Condição</th><th style="width:11%">Tipo</th><th style="width:34%">Efeito</th><th style="width:16%">Duração</th><th>Tratada por</th></tr></thead><tbody>
+<tr><td><strong>Paralisia</strong></td><td><span class="cat" style="color:#7a3e12">Física</span></td><td>Não age nem se move. Ataque corpo a corpo contra ele é crítico.</td><td class="fraco">Até ser tratada</td><td class="fraco">Soro do Corpo Livre</td></tr>
+<tr><td><strong>Petrificação</strong></td><td><span class="cat" style="color:#1f4d7a">Mágica</span></td><td>Vira pedra. Não age, não percebe, não envelhece.</td><td class="fraco">Permanente</td><td class="fraco">Solvente da Carne Viva</td></tr>
+<tr><td><strong>Maldição</strong></td><td><span class="cat" style="color:#1f4d7a">Mágica</span></td><td>−4 permanente num atributo escolhido pelo mestre.</td><td class="fraco">Permanente</td><td class="fraco">Água Benta Destilada</td></tr>
+<tr><td><strong>Enfeitiçado</strong></td><td><span class="cat" style="color:#5b3a7a">Mental</span></td><td>Obedece a quem o enfeitiçou. Trata aliados como inimigos.</td><td class="fraco">Até ser quebrada</td><td class="fraco">Elixir da Mente Própria</td></tr>
+<tr><td><strong>Peste Negra</strong></td><td><span class="cat" style="color:#7a1f2f">Doença</span></td><td>Perde 1d8 PV por hora, dobrando a cada dia sem tratamento.</td><td class="fraco">Até ser tratada</td><td class="fraco">Panaceia da Peste</td></tr>
+<tr><td><strong>Necrose</strong></td><td><span class="cat" style="color:#7a1f2f">Doença</span></td><td>Um membro apodrece e perde o uso. Espalha em 1d4 dias.</td><td class="fraco">Até ser tratada</td><td class="fraco">Unguento de Carne Nova</td></tr>
+</tbody></table>
+
+  <div class="nota">
+    <p><strong>Duração importa tanto quanto o efeito.</strong> "Some sozinha em 1 turno" e "só sai com antídoto"
+    são coisas muito diferentes — é a duração que decide se a poção vale o preço. Repare que nenhuma condição
+    Comum é permanente, e nenhuma Rara passa sozinha.</p>
+  </div>
+</section>
+
+<section class="pagina">
+  <h2>2. Poções</h2>
+  <p>A coluna <strong>Ingr.</strong> é o custo dos ingredientes; <strong>%</strong> é quanto isso representa do preço de
+  compra. Todas ficam entre 70 e 75%, que é a margem do projeto: fabricar economiza, mas o suficiente para
+  compensar tempo e risco — não o bastante para as lojas fecharem.</p>
+  <h3>Comum <span class="conta">— 7 poções · DC 10 · de 11 a 60 prata</span></h3>
+<table><thead><tr><th style="width:19%">Poção</th><th style="width:9%">Tipo</th><th style="width:26%">Efeito</th><th style="width:26%">Receita</th><th class="num" style="width:6%">Ingr.</th><th class="num" style="width:7%">Preço</th><th class="num" style="width:6%">%</th></tr></thead><tbody>
+<tr><td><strong>Poção de Cura Menor</strong></td><td><span class="tipo tipo-vida">Vida</span></td><td>Recupera 2d4 pontos de vida ao ser bebida.</td><td class="fraco mono">2× Erva de Sangue + 2× Água Pura</td><td class="num fraco">18</td><td class="num preco">25</td><td class="num ok">72%</td></tr>
+<tr><td><strong>Chá de Estômago Calmo</strong></td><td><span class="tipo tipo-cura">Cura</span></td><td>Assenta o estômago e devolve a capacidade de beber outra poção.<br><span class="alvo cura">cura Náusea</span></td><td class="fraco mono">2× Folha de Menta Selvagem + 1× Sal Mineral</td><td class="num fraco">8</td><td class="num preco">11</td><td class="num ok">73%</td></tr>
+<tr><td><strong>Emplastro de Sangue Firme</strong></td><td><span class="tipo tipo-cura">Cura</span></td><td>Estanca o sangramento em um turno. Arde como o diabo.<br><span class="alvo cura">cura Sangramento</span></td><td class="fraco mono">1× Erva de Sangue + 2× Sal Mineral</td><td class="num fraco">11</td><td class="num preco">15</td><td class="num ok">73%</td></tr>
+<tr><td><strong>Tônico do Desperto</strong></td><td><span class="tipo tipo-cura">Cura</span></td><td>Limpa a cabeça na hora. O gosto ajuda.<br><span class="alvo cura">cura Atordoado, Embriaguez</span></td><td class="fraco mono">2× Folha de Menta Selvagem + 1× Raiz de Vigor + 1× Água Pura</td><td class="num fraco">13</td><td class="num preco">18</td><td class="num ok">72%</td></tr>
+<tr><td><strong>Infusão Revigorante</strong></td><td><span class="tipo tipo-cura">Cura</span></td><td>Devolve o fôlego a quem andou demais.<br><span class="alvo cura">cura Fadiga</span></td><td class="fraco mono">2× Raiz de Vigor + 2× Água Pura</td><td class="num fraco">14</td><td class="num preco">20</td><td class="num ok">70%</td></tr>
+<tr><td><strong>Unguento Cicatrizante</strong></td><td><span class="tipo tipo-cura">Cura</span></td><td>Fecha o que não fechava. Volta a recuperar PV descansando.<br><span class="alvo cura">cura Ferida Leve</span></td><td class="fraco mono">2× Erva de Sangue + 2× Água Pura</td><td class="num fraco">18</td><td class="num preco">25</td><td class="num ok">72%</td></tr>
+<tr><td><strong>Elixir do Alívio Simples</strong></td><td><span class="tipo tipo-ampla">Ampla</span></td><td>Limpa UMA condição Comum, qualquer que seja. A mais cara das comuns.<br><span class="alvo cura">cura uma condição Comum à escolha</span></td><td class="fraco mono">1× Musgo Luminoso + 2× Erva de Sangue + 2× Água Pura</td><td class="num fraco">43</td><td class="num preco">60</td><td class="num ok">72%</td></tr>
+</tbody></table>
+<h3>Incomum <span class="conta">— 12 poções · DC 15 · de 46 a 140 prata</span></h3>
+<table><thead><tr><th style="width:19%">Poção</th><th style="width:9%">Tipo</th><th style="width:26%">Efeito</th><th style="width:26%">Receita</th><th class="num" style="width:6%">Ingr.</th><th class="num" style="width:7%">Preço</th><th class="num" style="width:6%">%</th></tr></thead><tbody>
+<tr><td><strong>Licor da Coragem</strong></td><td><span class="tipo tipo-cura">Cura</span></td><td>O medo passa. O que causou o medo, não.<br><span class="alvo cura">cura Amedrontado</span></td><td class="fraco mono">2× Mel Silvestre + 1× Raiz de Vigor + 1× Lágrima de Resina</td><td class="num fraco">37</td><td class="num preco">50</td><td class="num ok">74%</td></tr>
+<tr><td><strong>Bálsamo de Pele Fria</strong></td><td><span class="tipo tipo-cura">Cura</span></td><td>Apaga a queimadura e tira o dobro de dano de fogo.<br><span class="alvo cura">cura Queimadura</span></td><td class="fraco mono">1× Escama de Salamandra</td><td class="num fraco">40</td><td class="num preco">55</td><td class="num ok">73%</td></tr>
+<tr><td><strong>Tônico do Sangue Quente</strong></td><td><span class="tipo tipo-cura">Cura</span></td><td>Devolve o movimento a quem congelou.<br><span class="alvo cura">cura Enregelado</span></td><td class="fraco mono">2× Cinza de Carvalho + 1× Raiz de Vigor + 1× Lágrima de Resina</td><td class="num fraco">33</td><td class="num preco">46</td><td class="num ok">72%</td></tr>
+<tr><td><strong>Antídoto Comum</strong></td><td><span class="tipo tipo-cura">Cura</span></td><td>Do próprio veneno se tira o antídoto.<br><span class="alvo cura">cura Envenenado</span></td><td class="fraco mono">1× Glândula de Víbora + 2× Sal Mineral + 2× Água Pura</td><td class="num fraco">43</td><td class="num preco">60</td><td class="num ok">72%</td></tr>
+<tr><td><strong>Essência do Ouvido Aberto</strong></td><td><span class="tipo tipo-cura">Cura</span></td><td>O mundo volta a fazer barulho.<br><span class="alvo cura">cura Surdez</span></td><td class="fraco mono">1× Lágrima de Resina + 1× Cogumelo do Silêncio + 1× Água Pura</td><td class="num fraco">50</td><td class="num preco">69</td><td class="num ok">72%</td></tr>
+<tr><td><strong>Colírio de Visão Clara</strong></td><td><span class="tipo tipo-cura">Cura</span></td><td>Pinga-se no olho. Arde, e enxerga.<br><span class="alvo cura">cura Cegueira</span></td><td class="fraco mono">1× Musgo Luminoso + 1× Lágrima de Resina + 2× Folha de Menta Selvagem</td><td class="num fraco">51</td><td class="num preco">70</td><td class="num ok">73%</td></tr>
+<tr><td><strong>Fôlego do Bravo</strong></td><td><span class="tipo tipo-prevencao">Prevenção</span></td><td>Imune a medo por 10 minutos. Bebe-se ANTES de abrir a porta.<br><span class="alvo prev">previne Amedrontado</span></td><td class="fraco mono">3× Mel Silvestre + 1× Flor da Meia-Noite + 1× Raiz de Vigor</td><td class="num fraco">53</td><td class="num preco">74</td><td class="num ok">72%</td></tr>
+<tr><td><strong>Óleo do Manto Ígneo</strong></td><td><span class="tipo tipo-prevencao">Prevenção</span></td><td>Passa-se na pele. Resiste a fogo por 10 minutos.<br><span class="alvo prev">previne Queimadura</span></td><td class="fraco mono">1× Escama de Salamandra + 2× Cinza de Carvalho + 1× Mel Silvestre</td><td class="num fraco">54</td><td class="num preco">75</td><td class="num ok">72%</td></tr>
+<tr><td><strong>Xarope da Voz Livre</strong></td><td><span class="tipo tipo-cura">Cura</span></td><td>Quebra o silêncio imposto. Serve contra magia, não contra covardia.<br><span class="alvo cura">cura Silenciado</span></td><td class="fraco mono">2× Cogumelo do Silêncio + 1× Mel Silvestre</td><td class="num fraco">62</td><td class="num preco">86</td><td class="num ok">72%</td></tr>
+<tr><td><strong>Profilaxia da Víbora</strong></td><td><span class="tipo tipo-prevencao">Prevenção</span></td><td>Imune a veneno por uma hora. O antídoto que se toma antes.<br><span class="alvo prev">previne Envenenado</span></td><td class="fraco mono">1× Glândula de Víbora + 1× Flor da Meia-Noite + 1× Sal Mineral</td><td class="num fraco">67</td><td class="num preco">93</td><td class="num ok">72%</td></tr>
+<tr><td><strong>Poção de Cura Maior</strong></td><td><span class="tipo tipo-vida">Vida</span></td><td>Recupera 4d4+4 pontos de vida.</td><td class="fraco mono">6× Erva de Sangue + 1× Musgo Luminoso</td><td class="num fraco">67</td><td class="num preco">90</td><td class="num ok">74%</td></tr>
+<tr><td><strong>Elixir do Alívio Comum</strong></td><td><span class="tipo tipo-ampla">Ampla</span></td><td>Limpa TODAS as condições Comuns de uma vez.<br><span class="alvo cura">cura todas as condições Comuns</span></td><td class="fraco mono">1× Flor da Meia-Noite + 1× Musgo Luminoso + 3× Erva de Sangue + 4× Folha de Menta Selvagem + 5× Água Pura</td><td class="num fraco">98</td><td class="num preco">140</td><td class="num ok">70%</td></tr>
+</tbody></table>
+<h3>Raro <span class="conta">— 9 poções · DC 20 · de 350 a 1250 prata</span></h3>
+<table><thead><tr><th style="width:19%">Poção</th><th style="width:9%">Tipo</th><th style="width:26%">Efeito</th><th style="width:26%">Receita</th><th class="num" style="width:6%">Ingr.</th><th class="num" style="width:7%">Preço</th><th class="num" style="width:6%">%</th></tr></thead><tbody>
+<tr><td><strong>Poção de Cura Superior</strong></td><td><span class="tipo tipo-vida">Vida</span></td><td>Recupera 8d4+10 pontos de vida. Traz de volta quem já estava indo.</td><td class="fraco mono">10× Erva de Sangue + 2× Musgo Luminoso + 1× Coração de Mandrágora</td><td class="num fraco">320</td><td class="num preco">445</td><td class="num ok">72%</td></tr>
+<tr><td><strong>Soro do Corpo Livre</strong></td><td><span class="tipo tipo-cura">Cura</span></td><td>Devolve o movimento a quem estava travado.<br><span class="alvo cura">cura Paralisia</span></td><td class="fraco mono">1× Coração de Mandrágora + 4× Raiz de Vigor + 2× Lágrima de Resina</td><td class="num fraco">260</td><td class="num preco">350</td><td class="num ok">74%</td></tr>
+<tr><td><strong>Panaceia da Peste</strong></td><td><span class="tipo tipo-cura">Cura</span></td><td>Corta a peste antes que ela dobre de novo.<br><span class="alvo cura">cura Peste Negra</span></td><td class="fraco mono">1× Óleo Sacro + 4× Flor da Meia-Noite + 2× Musgo Luminoso</td><td class="num fraco">320</td><td class="num preco">445</td><td class="num ok">72%</td></tr>
+<tr><td><strong>Selo da Vontade</strong></td><td><span class="tipo tipo-prevencao">Prevenção</span></td><td>Imune a controle mental e a medo por uma hora.<br><span class="alvo prev">previne Enfeitiçado, Amedrontado</span></td><td class="fraco mono">1× Pó de Estrela Caída + 2× Flor da Meia-Noite + 4× Mel Silvestre</td><td class="num fraco">334</td><td class="num preco">465</td><td class="num ok">72%</td></tr>
+<tr><td><strong>Unguento de Carne Nova</strong></td><td><span class="tipo tipo-cura">Cura</span></td><td>A carne morta cai e a nova cresce. Dói os dois dias inteiros.<br><span class="alvo cura">cura Necrose</span></td><td class="fraco mono">1× Raiz de Carne + 12× Erva de Sangue + 6× Mel Silvestre</td><td class="num fraco">300</td><td class="num preco">420</td><td class="num ok">71%</td></tr>
+<tr><td><strong>Água Benta Destilada</strong></td><td><span class="tipo tipo-cura">Cura</span></td><td>Quebra a maldição — mas só a maldição, não quem a lançou.<br><span class="alvo cura">cura Maldição</span></td><td class="fraco mono">2× Óleo Sacro + 10× Água Pura + 1× Pó de Estrela Caída</td><td class="num fraco">570</td><td class="num preco">790</td><td class="num ok">72%</td></tr>
+<tr><td><strong>Elixir da Mente Própria</strong></td><td><span class="tipo tipo-cura">Cura</span></td><td>Devolve a vontade a quem obedecia outro.<br><span class="alvo cura">cura Enfeitiçado</span></td><td class="fraco mono">1× Pó de Estrela Caída + 1× Coração de Mandrágora + 3× Cogumelo do Silêncio</td><td class="num fraco">534</td><td class="num preco">740</td><td class="num ok">72%</td></tr>
+<tr><td><strong>Solvente da Carne Viva</strong></td><td><span class="tipo tipo-cura">Cura</span></td><td>Desfaz a pedra porque foi o basilisco quem a fez.<br><span class="alvo cura">cura Petrificação</span></td><td class="fraco mono">1× Sangue de Basilisco + 1× Óleo Sacro + 15× Água Pura</td><td class="num fraco">480</td><td class="num preco">665</td><td class="num ok">72%</td></tr>
+<tr><td><strong>Panaceia Verdadeira</strong></td><td><span class="tipo tipo-ampla">Ampla</span></td><td>Limpa QUALQUER condição, até as Raras. O teto do que a alquimia alcança.<br><span class="alvo cura">cura qualquer condição até o tier Raro</span></td><td class="fraco mono">1× Sangue de Basilisco + 1× Pó de Estrela Caída + 1× Coração de Mandrágora + 1× Óleo Sacro</td><td class="num fraco">900</td><td class="num preco">1250</td><td class="num ok">72%</td></tr>
+</tbody></table>
+</section>
+
+<section class="pagina">
+  <h2>3. Ingredientes</h2>
+  <p>A coluna <strong>Receitas</strong> conta em quantas poções o ingrediente aparece. Nenhum foi criado sem uso:
+  cada um existe porque pelo menos uma receita o pediu.</p>
+  <h3>Comum <span class="conta">— 7 ingredientes</span></h3>
+<table><thead><tr><th style="width:20%">Ingrediente</th><th class="num" style="width:8%">Preço</th><th class="num" style="width:9%">Receitas</th><th>Descrição</th></tr></thead><tbody>
+<tr><td><strong>Água Pura</strong></td><td class="num preco">2</td><td class="num fraco">10</td><td class="fraco">Água de nascente, fervida e lacrada. Base de quase toda poção.</td></tr>
+<tr><td><strong>Sal Mineral</strong></td><td class="num preco">2</td><td class="num fraco">4</td><td class="fraco">Raspado de veio de rocha. Conserva e estanca.</td></tr>
+<tr><td><strong>Folha de Menta Selvagem</strong></td><td class="num preco">3</td><td class="num fraco">4</td><td class="fraco">Cresce em beira de trilha. Acorda quem está entorpecido.</td></tr>
+<tr><td><strong>Cinza de Carvalho</strong></td><td class="num preco">4</td><td class="num fraco">2</td><td class="fraco">De árvore atingida por raio, dizem os alquimistas. Absorve.</td></tr>
+<tr><td><strong>Raiz de Vigor</strong></td><td class="num preco">5</td><td class="num fraco">6</td><td class="fraco">Tubérculo amargo. Devolve o fôlego a quem já não tem.</td></tr>
+<tr><td><strong>Mel Silvestre</strong></td><td class="num preco">6</td><td class="num fraco">6</td><td class="fraco">De colmeia brava. Liga o que não liga e disfarça o gosto.</td></tr>
+<tr><td><strong>Erva de Sangue</strong></td><td class="num preco">7</td><td class="num fraco">8</td><td class="fraco">Folha de nervuras vermelhas, comum em beira de rio.</td></tr>
+</tbody></table>
+<h3>Incomum <span class="conta">— 6 ingredientes</span></h3>
+<table><thead><tr><th style="width:20%">Ingrediente</th><th class="num" style="width:8%">Preço</th><th class="num" style="width:9%">Receitas</th><th>Descrição</th></tr></thead><tbody>
+<tr><td><strong>Lágrima de Resina</strong></td><td class="num preco">20</td><td class="num fraco">5</td><td class="fraco">Seiva endurecida de pinheiro antigo. Clarifica a mistura.</td></tr>
+<tr><td><strong>Musgo Luminoso</strong></td><td class="num preco">25</td><td class="num fraco">6</td><td class="fraco">Só cresce onde nunca bate sol. Brilha fraco no escuro.</td></tr>
+<tr><td><strong>Cogumelo do Silêncio</strong></td><td class="num preco">28</td><td class="num fraco">3</td><td class="fraco">Cresce em cripta. Não tem cheiro nenhum, e é isso que assusta.</td></tr>
+<tr><td><strong>Flor da Meia-Noite</strong></td><td class="num preco">30</td><td class="num fraco">5</td><td class="fraco">Abre por três horas, uma vez ao ano.</td></tr>
+<tr><td><strong>Glândula de Víbora</strong></td><td class="num preco">35</td><td class="num fraco">2</td><td class="fraco">Do próprio veneno se tira o antídoto.</td></tr>
+<tr><td><strong>Escama de Salamandra</strong></td><td class="num preco">40</td><td class="num fraco">2</td><td class="fraco">Fria ao toque, mesmo ao lado do fogo.</td></tr>
+</tbody></table>
+<h3>Raro <span class="conta">— 5 ingredientes</span></h3>
+<table><thead><tr><th style="width:20%">Ingrediente</th><th class="num" style="width:8%">Preço</th><th class="num" style="width:9%">Receitas</th><th>Descrição</th></tr></thead><tbody>
+<tr><td><strong>Óleo Sacro</strong></td><td class="num preco">150</td><td class="num fraco">4</td><td class="fraco">Consagrado em altar, e só serve se o foi de verdade.</td></tr>
+<tr><td><strong>Raiz de Carne</strong></td><td class="num preco">180</td><td class="num fraco">1</td><td class="fraco">Cresce em campo de batalha antigo. Ninguém planta.</td></tr>
+<tr><td><strong>Coração de Mandrágora</strong></td><td class="num preco">200</td><td class="num fraco">4</td><td class="fraco">Colhido com o grito abafado, ou o colhedor enlouquece.</td></tr>
+<tr><td><strong>Pó de Estrela Caída</strong></td><td class="num preco">250</td><td class="num fraco">4</td><td class="fraco">O que sobra onde o céu tocou o chão.</td></tr>
+<tr><td><strong>Sangue de Basilisco</strong></td><td class="num preco">300</td><td class="num fraco">2</td><td class="fraco">Desfaz a pedra porque foi ele quem a fez.</td></tr>
+</tbody></table>
+
+  <div class="nota">
+    <p><strong>Poucos ingredientes, muitas combinações.</strong> 18 ingredientes sustentam
+    28 poções. Inventar uma erva exclusiva por poção teria inflado a tabela sem acrescentar decisão
+    nenhuma — o interessante é o jogador precisar da <em>mesma</em> Erva de Sangue para três coisas diferentes e
+    ter que escolher.</p>
+  </div>
+
+  <div class="bom">
+    <p><strong>A terceira via da economia.</strong> Os preços acima são de <em>comprar</em> o ingrediente.
+    Quem colhe a Erva de Sangue na beira do rio paga zero em moeda e paga em tempo — e é isso que faz um
+    personagem coletor valer a pena. Comprar pronto é caro e imediato; comprar insumos e fabricar é ~72% e
+    arriscado; colher e fabricar é lento e quase de graça.</p>
+  </div>
+</section>
+
+<section class="pagina">
+  <h2>4. O que falta para isso rodar</h2>
+
+  <p>Este documento é o desenho. O que existe em banco hoje, e o que não:</p>
+
+  <table>
+    <thead><tr><th class="num" style="width:6%">Estado</th><th>Item</th></tr></thead>
+    <tbody>
+      <tr><td class="num">✔</td><td>Tabelas <code>consumiveis</code>, <code>itens</code>, <code>receitas</code> e <code>raridade</code></td></tr>
+      <tr><td class="num">✔</td><td>Perícia <strong>Alquimia</strong> no catálogo, com Inteligência como atributo base</td></tr>
+      <tr><td class="num">✔</td><td><code>raridade.dificuldade_base</code> — 10/15/20, que já são as DCs deste catálogo</td></tr>
+      <tr><td class="num">✔</td><td>Poção de Cura Menor e seus dois ingredientes, já cadastrados</td></tr>
+      <tr><td class="num">—</td><td><strong>Tabela <code>condicoes</code></strong> — não existe. É o primeiro passo</td></tr>
+      <tr><td class="num">—</td><td>Vínculo <code>consumivel_condicao</code> (o que cada poção cura ou previne)</td></tr>
+      <tr><td class="num">—</td><td>Os outros 27 consumíveis e 16 ingredientes</td></tr>
+      <tr><td class="num">—</td><td><code>receitas.pericia_id</code> apontando para Alquimia — está nulo</td></tr>
+      <tr><td class="num">—</td><td>A ação de fabricar: checar ingredientes, rolar, consumir, entregar</td></tr>
+    </tbody>
+  </table>
+
+  <div class="aviso">
+    <p><strong>A tabela de condições não é só para poções.</strong> Quem inflige condição é skill, veneno,
+    armadilha e monstro. Se ela nascer como "a lista do que as poções curam", vai servir poção e mais nada — e
+    o combate acabará com a própria lista, e as duas vão divergir.</p>
+    <p>A prova de que isso é estrutural: <code>categoria_consumivel</code> já tem <strong>Veneno</strong>.
+    Veneno é o espelho da poção — um inflige, o outro cura. Os dois têm que apontar para a mesma tabela.</p>
+  </div>
+
+  <div class="nota">
+    <p>Documento gerado de <code>pocoes_dados.py</code>, com as quatro regras validadas por script antes da geração.
+    Para mudar um preço ou uma receita, edite os dados e regere — não edite o HTML.</p>
+  </div>
+</section>
+
+</body>
+</html>
