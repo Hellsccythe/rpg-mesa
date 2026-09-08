@@ -30,16 +30,16 @@
           </button>
         </div>
 
-        <!-- ── Tipos de Equipamento ──────────────────────────────────────────── -->
-        <div v-if="abaAtiva === 'tipos'" class="space-y-6">
+        <!-- ── Uso do Equipamento ────────────────────────────────────────────── -->
+        <div v-if="abaAtiva === 'uso'" class="space-y-6">
           <TabelaEditor
-            titulo="Tipos de Equipamento"
+            titulo="Uso do Equipamento"
             subtitulo="Arma, Armadura, Variados — itens base do sistema"
-            :itens="tipos"
-            :carregando="carregando.tipos"
-            @criar="(d) => criarItem('tipos', d)"
-            @editar="(it, d) => editarItem('tipos', it, d)"
-            @deletar="(it) => deletarItem('tipos', it)"
+            :itens="usoEquipamento"
+            :carregando="carregando.uso"
+            @criar="(d) => criarItem('uso', d)"
+            @editar="(it, d) => editarItem('uso', it, d)"
+            @deletar="(it) => deletarItem('uso', it)"
           />
         </div>
 
@@ -168,7 +168,7 @@ import { useRouter } from 'vue-router'
 import TemaDarkLight from '@/components/TemaDarkLight.vue'
 import TabelaEditor from '@/components/TabelaEditor.vue'
 import {
-  tiposApi, categoriasArmaApi, categoriasArmaduraApi, categoriasVariadosApi,
+  usoEquipamentoApi, categoriasArmaApi, categoriasArmaduraApi, categoriasVariadosApi,
   propriedadesArmaApi, classesArmaApi, propriedadesArmaduraApi, classesArmaduraApi,
   propriedadesVariadosApi, classesVariadosApi,
   type TabelaItemApi,
@@ -177,14 +177,14 @@ import {
 const router = useRouter()
 
 const abas = [
-  { id: 'tipos', label: 'Tipos' },
+  { id: 'uso', label: 'Uso' },
   { id: 'arma', label: 'Família Arma' },
   { id: 'armadura', label: 'Família Armadura' },
   { id: 'variados', label: 'Família Variados' },
 ]
-const abaAtiva = ref('tipos')
+const abaAtiva = ref('uso')
 
-const tipos = ref<TabelaItemApi[]>([])
+const usoEquipamento = ref<TabelaItemApi[]>([])
 const categoriasArma = ref<TabelaItemApi[]>([])
 const categoriasArmadura = ref<TabelaItemApi[]>([])
 const categoriasVariados = ref<TabelaItemApi[]>([])
@@ -196,7 +196,7 @@ const propriedadesVariados = ref<TabelaItemApi[]>([])
 const classesVariados = ref<TabelaItemApi[]>([])
 
 const carregando = ref({
-  tipos: false,
+  uso: false,
   categoriasArma: false, categoriasArmadura: false, categoriasVariados: false,
   propriedadesArma: false, classesArma: false,
   propriedadesArmadura: false, classesArmadura: false,
@@ -207,7 +207,7 @@ const feedbackGlobal = ref('')
 const feedbackErro = ref(false)
 
 const apiMap = {
-  tipos: tiposApi,
+  uso: usoEquipamentoApi,
   categoriasArma: categoriasArmaApi,
   categoriasArmadura: categoriasArmaduraApi,
   categoriasVariados: categoriasVariadosApi,
@@ -220,7 +220,7 @@ const apiMap = {
 } as const
 
 const listaMap = {
-  tipos, categoriasArma, categoriasArmadura, categoriasVariados,
+  uso: usoEquipamento, categoriasArma, categoriasArmadura, categoriasVariados,
   propriedadesArma, classesArma, propriedadesArmadura, classesArmadura,
   propriedadesVariados, classesVariados,
 } as const

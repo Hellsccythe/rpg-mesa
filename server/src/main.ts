@@ -11,9 +11,6 @@ import { resolve } from "node:path";
 import type { Sequelize } from "sequelize-typescript";
 import { AppModule } from "./app.module.js";
 import { contextoRequisicaoMiddleware } from "./common/cls/contexto-requisicao.middleware.js";
-import { UsuariosService } from "./modules/usuarios/usuarios.service.js";
-import { registrarServicoUsuarios } from "./modules/usuarios/usuarios.ponte.js";
-import { PersonagensRouter } from "./modules/personagem/personagens.module.js";
 
 async function iniciarAplicacao(): Promise<void> {
   const aplicacao = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -47,21 +44,6 @@ async function iniciarAplicacao(): Promise<void> {
       resposta.status(503).json({ ok: false, banco: "erro", detalhe: erro?.message });
     }
   });
-
-  // Ponte para os módulos Express que ainda precisam criar contas.
-  registrarServicoUsuarios(aplicacao.get(UsuariosService));
-
-  // Registra as rotas do Nest ANTES de montar os routers Express abaixo.
-  // Sem isto, um módulo migrado pela metade perderia para o router antigo:
-  // o Express atende na ordem em que as rotas entram, e o listen() só
-  // registraria as do Nest depois. Importa enquanto /api/personagens tiver
-  // rotas nos dois lados.
-  await aplicacao.init();
-
-  // Módulos ainda não migrados pro Nest continuam servidos pelos routers
-  // Express antigos (que ainda falam com o Supabase). Cada um sai daqui
-  // conforme for migrado — tabelas-acessorias já saiu, por exemplo.
-  aplicacao.use("/api/personagens", PersonagensRouter);
 
   const porta = Number(process.env.PORT ?? 3000);
   await aplicacao.listen(porta);

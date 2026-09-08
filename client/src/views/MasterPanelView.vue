@@ -85,17 +85,17 @@
               :aria-label="`Ver ficha de ${char.name}`"
             >
               <div class="relative aspect-[3/4] overflow-hidden rounded-2xl">
-                <img
-                  v-if="char.avatarUrl"
+                <AvatarPersonagem
                   :src="char.avatarUrl"
                   :alt="char.name"
-                  class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  style="object-position: center 20%"
-                  loading="lazy"
-                />
-                <div v-else class="flex h-full w-full items-center justify-center bg-violet-950/50 text-[0.6rem] font-semibold uppercase text-zinc-500">
-                  Sem Avatar
-                </div>
+                  classe-imagem="transition-transform duration-500 group-hover:scale-110"
+                >
+                  <template #fallback>
+                    <div class="flex h-full w-full items-center justify-center bg-violet-950/50 text-[0.6rem] font-semibold uppercase text-zinc-500">
+                      Sem Avatar
+                    </div>
+                  </template>
+                </AvatarPersonagem>
                 <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
                 <div class="absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/10 transition-all group-hover:ring-amber-500/60 group-hover:shadow-lg group-hover:shadow-amber-500/10" />
                 <!-- Status overlay para morto -->
@@ -311,222 +311,27 @@
           </div>
         </section>
 
-        <!-- ── Quick Links ─────────────────────────────────────────────────── -->
-        <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <button
-            @click="router.push({ name: 'master-characters' })"
-            class="gm-link-card group text-left"
-          >
-            <div class="gm-icon-wrap mb-3 bg-violet-500/10 text-violet-400">
-              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-            </div>
-            <p class="font-semibold text-zinc-100 group-hover:text-white">Imagens dos Personagens</p>
-            <p class="mt-0.5 text-xs text-zinc-500">Ajuste enquadramento e posição da imagem modal</p>
-            <span class="mt-3 inline-block text-xs text-violet-400 group-hover:text-violet-300">Abrir guia →</span>
-          </button>
-
-          <button @click="goMasterGods" class="gm-link-card group text-left">
-            <div class="gm-icon-wrap mb-3 bg-amber-500/10 text-amber-400">
-              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            </div>
-            <p class="font-semibold text-zinc-100 group-hover:text-white">Deuses</p>
-            <p class="mt-0.5 text-xs text-zinc-500">Crie e edite divindades com cards e modal completo</p>
-            <span class="mt-3 inline-block text-xs text-amber-400 group-hover:text-amber-300">Abrir guia →</span>
-          </button>
-
-          <button @click="goMasterMaps" class="gm-link-card group text-left">
-            <div class="gm-icon-wrap mb-3 bg-emerald-500/10 text-emerald-400">
-              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
-            </div>
-            <p class="font-semibold text-zinc-100 group-hover:text-white">Mapas</p>
-            <p class="mt-0.5 text-xs text-zinc-500">Mapas com pontos de interesse interativos</p>
-            <span class="mt-3 inline-block text-xs text-emerald-400 group-hover:text-emerald-300">Abrir guia →</span>
-          </button>
-
-          <button @click="goMasterWeapons" class="gm-link-card group text-left">
-            <div class="gm-icon-wrap mb-3 bg-red-500/10 text-red-400">
-              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-            </div>
-            <p class="font-semibold text-zinc-100 group-hover:text-white">Equipamentos</p>
-            <p class="mt-0.5 text-xs text-zinc-500">Armas, armaduras, ferramentas e itens da campanha</p>
-            <span class="mt-3 inline-block text-xs text-red-400 group-hover:text-red-300">Abrir guia →</span>
-          </button>
-
-          <button @click="goMasterRacas" class="gm-link-card group text-left">
-            <div class="gm-icon-wrap mb-3 bg-violet-500/10 text-violet-400">
-              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            </div>
-            <p class="font-semibold text-zinc-100 group-hover:text-white">Raças</p>
-            <p class="mt-0.5 text-xs text-zinc-500">Gerencie as raças jogáveis da campanha</p>
-            <span class="mt-3 inline-block text-xs text-violet-400 group-hover:text-violet-300">Abrir guia →</span>
-          </button>
-
-          <button @click="router.push({ name: 'master-passados' })" class="gm-link-card group text-left">
-            <div class="gm-icon-wrap mb-3 bg-indigo-500/10 text-indigo-400">
-              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-            </div>
-            <p class="font-semibold text-zinc-100 group-hover:text-white">Passados</p>
-            <p class="mt-0.5 text-xs text-zinc-500">Origens dos personagens com skills e títulos concedidos</p>
-            <span class="mt-3 inline-block text-xs text-indigo-400 group-hover:text-indigo-300">Abrir guia →</span>
-          </button>
-
-          <button @click="goMasterSkills" class="gm-link-card group text-left">
-            <div class="gm-icon-wrap mb-3 bg-emerald-500/10 text-emerald-400">
-              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-            </div>
-            <p class="font-semibold text-zinc-100 group-hover:text-white">Skills</p>
-            <p class="mt-0.5 text-xs text-zinc-500">Crie e edite o catálogo de habilidades da campanha</p>
-            <span class="mt-3 inline-block text-xs text-emerald-400 group-hover:text-emerald-300">Abrir guia →</span>
-          </button>
-
-          <button @click="router.push({ name: 'master-skill-overrides' })" class="gm-link-card group text-left">
-            <div class="gm-icon-wrap mb-3 bg-violet-500/10 text-violet-400">
-              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-            </div>
-            <p class="font-semibold text-zinc-100 group-hover:text-white">Overrides de Skill</p>
-            <p class="mt-0.5 text-xs text-zinc-500">Buff de dano ou multiplicador exclusivo por player</p>
-            <span class="mt-3 inline-block text-xs text-violet-400 group-hover:text-violet-300">Abrir guia →</span>
-          </button>
-
-          <button @click="router.push({ name: 'master-progressao' })" class="gm-link-card group text-left">
-            <div class="gm-icon-wrap mb-3 bg-emerald-500/10 text-emerald-400">
-              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
-            </div>
-            <p class="font-semibold text-zinc-100 group-hover:text-white">Progressão de XP</p>
-            <p class="mt-0.5 text-xs text-zinc-500">Tabela de XP por nível de classe e atribuição de XP</p>
-            <span class="mt-3 inline-block text-xs text-emerald-400 group-hover:text-emerald-300">Abrir guia →</span>
-          </button>
-
-          <button @click="router.push({ name: 'master-skill-niveis' })" class="gm-link-card group text-left">
-            <div class="gm-icon-wrap mb-3 bg-sky-500/10 text-sky-400">
-              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h.01"/><path d="M7 20v-4"/><path d="M12 20v-8"/><path d="M17 20V8"/><path d="M22 4v16"/></svg>
-            </div>
-            <p class="font-semibold text-zinc-100 group-hover:text-white">Níveis de Skill</p>
-            <p class="mt-0.5 text-xs text-zinc-500">Configure os efeitos e overrides das skills nos níveis 2 e 3</p>
-            <span class="mt-3 inline-block text-xs text-sky-400 group-hover:text-sky-300">Abrir guia →</span>
-          </button>
-
-          <button @click="goMasterClasses" class="gm-link-card group text-left">
-            <div class="gm-icon-wrap mb-3 bg-sky-500/10 text-sky-400">
-              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 1.1 2.24 2 5 2s5-.9 5-2v-5"/></svg>
-            </div>
-            <p class="font-semibold text-zinc-100 group-hover:text-white">Classes</p>
-            <p class="mt-0.5 text-xs text-zinc-500">Crie e edite as classes jogáveis da campanha</p>
-            <span class="mt-3 inline-block text-xs text-sky-400 group-hover:text-sky-300">Abrir guia →</span>
-          </button>
-
-          <button @click="router.push({ name: 'master-classes-secretas' })" class="gm-link-card group text-left">
-            <div class="gm-icon-wrap mb-3 bg-red-500/10 text-red-400">
-              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            </div>
-            <p class="font-semibold text-zinc-100 group-hover:text-white">Classes Secretas</p>
-            <p class="mt-0.5 text-xs text-zinc-500">Gerencie revelações exclusivas de classes ocultas</p>
-            <span class="mt-3 inline-block text-xs text-red-400 group-hover:text-red-300">Abrir guia →</span>
-          </button>
-
-          <button @click="router.push({ name: 'master-titulos' })" class="gm-link-card group text-left">
-            <div class="gm-icon-wrap mb-3 bg-amber-500/10 text-amber-400">
-              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-5.82 3.25L7.82 14.14 3 9.27l6.91-1.01L12 2z"/></svg>
-            </div>
-            <p class="font-semibold text-zinc-100 group-hover:text-white">Títulos</p>
-            <p class="mt-0.5 text-xs text-zinc-500">Crie e edite títulos com skills concedidas</p>
-            <span class="mt-3 inline-block text-xs text-amber-400 group-hover:text-amber-300">Abrir guia →</span>
-          </button>
-
-          <button @click="router.push({ name: 'master-npcs' })" class="gm-link-card group text-left">
-            <div class="gm-icon-wrap mb-3 bg-indigo-500/10 text-indigo-400">
-              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            </div>
-            <p class="font-semibold text-zinc-100 group-hover:text-white">NPCs</p>
-            <p class="mt-0.5 text-xs text-zinc-500">Crie NPCs e controle quais players podem vê-los</p>
-            <span class="mt-3 inline-block text-xs text-indigo-400 group-hover:text-indigo-300">Abrir guia →</span>
-          </button>
-
-          <button @click="router.push({ name: 'master-telas' })" class="gm-link-card group text-left">
-            <div class="gm-icon-wrap mb-3 bg-violet-500/10 text-violet-400">
-              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-            </div>
-            <p class="font-semibold text-zinc-100 group-hover:text-white">Controle de Telas</p>
-            <p class="mt-0.5 text-xs text-zinc-500">Configure quais telas do menu cada player pode acessar</p>
-            <span class="mt-3 inline-block text-xs text-violet-400 group-hover:text-violet-300">Abrir guia →</span>
-          </button>
-
-          <button @click="router.push({ name: 'master-logins' })" class="gm-link-card group text-left">
-            <div class="gm-icon-wrap mb-3 bg-violet-500/10 text-violet-400 relative">
-              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              <span v-if="criacaoPendenteCount > 0" class="absolute -right-1 -top-1 min-w-[1rem] rounded-full bg-red-500 px-1 py-px text-center text-[0.55rem] font-bold leading-none text-white">{{ criacaoPendenteCount }}</span>
-            </div>
-            <p class="font-semibold text-zinc-100 group-hover:text-white">Solicitações de Criação</p>
-            <p class="mt-0.5 text-xs text-zinc-500">Aprovar ou rejeitar novos personagens enviados pelos jogadores</p>
-            <span class="mt-3 inline-block text-xs text-violet-400 group-hover:text-violet-300">Abrir guia →</span>
-          </button>
-
-          <button @click="router.push({ name: 'master-usuarios' })" class="gm-link-card group text-left">
-            <div class="gm-icon-wrap mb-3 bg-cyan-500/10 text-cyan-400">
-              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            </div>
-            <p class="font-semibold text-zinc-100 group-hover:text-white">Gerenciar Usuários</p>
-            <p class="mt-0.5 text-xs text-zinc-500">Ver contas GMs e players, resetar senhas e editar dados</p>
-            <span class="mt-3 inline-block text-xs text-cyan-400 group-hover:text-cyan-300">Abrir guia →</span>
-          </button>
-
-          <button @click="router.push({ name: 'master-imagens' })" class="gm-link-card group text-left">
-            <div class="gm-icon-wrap mb-3 bg-fuchsia-500/10 text-fuchsia-400">
-              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-            </div>
-            <p class="font-semibold text-zinc-100 group-hover:text-white">Backup de Imagens</p>
-            <p class="mt-0.5 text-xs text-zinc-500">Baixe todas as imagens do projeto organizadas por seção</p>
-            <span class="mt-3 inline-block text-xs text-fuchsia-400 group-hover:text-fuchsia-300">Abrir guia →</span>
-          </button>
-
-          <button @click="router.push({ name: 'master-campanhas' })" class="gm-link-card group text-left">
-            <div class="gm-icon-wrap mb-3 bg-amber-500/10 text-amber-400">
-              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-            </div>
-            <p class="font-semibold text-zinc-100 group-hover:text-white">Campanhas / Mundos</p>
-            <p class="mt-0.5 text-xs text-zinc-500">Crie e gerencie campanhas, GMs por mundo e exportação de schema</p>
-            <span class="mt-3 inline-block text-xs text-amber-400 group-hover:text-amber-300">Abrir guia →</span>
-          </button>
-        </div>
-
-        <!-- ── Tabelas Acessórias ───────────────────────────────────────────── -->
-        <div>
-          <p class="mb-3 text-xs font-bold tracking-[0.25em] uppercase text-zinc-600">Tabelas Acessórias</p>
+        <!-- ── Atalhos, agrupados pelo que o mestre está fazendo ────────────── -->
+        <div v-for="grupo in gruposDoPainel" :key="grupo.titulo">
+          <p class="mb-3 text-xs font-bold tracking-[0.25em] uppercase text-zinc-600">{{ grupo.titulo }}</p>
           <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <button @click="goTabelasAcessorias" class="gm-link-card group text-left">
-              <div class="gm-icon-wrap mb-3 bg-orange-500/10 text-orange-400">
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+            <button
+              v-for="card in grupo.cards"
+              :key="card.titulo"
+              class="gm-link-card group text-left"
+              @click="card.acao()"
+            >
+              <div class="gm-icon-wrap relative mb-3" :class="card.classeIcone">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="card.icone" />
+                <span
+                  v-if="card.contador && card.contador() > 0"
+                  class="absolute -right-1 -top-1 min-w-[1rem] rounded-full bg-red-500 px-1 py-px text-center text-[0.55rem] font-bold leading-none text-white"
+                >{{ card.contador() }}</span>
               </div>
-              <p class="font-semibold text-zinc-100 group-hover:text-white">Tipos de Equipamento</p>
-              <p class="mt-0.5 text-xs text-zinc-500">Arma, Armadura, Variados e seus tipos filhos</p>
-              <span class="mt-3 inline-block text-xs text-orange-400 group-hover:text-orange-300">Abrir guia →</span>
-            </button>
-
-            <button @click="goTabelasAcessorias" class="gm-link-card group text-left">
-              <div class="gm-icon-wrap mb-3 bg-orange-500/10 text-orange-400">
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
-              </div>
-              <p class="font-semibold text-zinc-100 group-hover:text-white">Categorias</p>
-              <p class="mt-0.5 text-xs text-zinc-500">Categorias de arma, armadura e variados</p>
-              <span class="mt-3 inline-block text-xs text-orange-400 group-hover:text-orange-300">Abrir guia →</span>
-            </button>
-
-            <button @click="goTabelasAcessorias" class="gm-link-card group text-left">
-              <div class="gm-icon-wrap mb-3 bg-orange-500/10 text-orange-400">
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-              </div>
-              <p class="font-semibold text-zinc-100 group-hover:text-white">Propriedades</p>
-              <p class="mt-0.5 text-xs text-zinc-500">Propriedades de cada família de equipamento</p>
-              <span class="mt-3 inline-block text-xs text-orange-400 group-hover:text-orange-300">Abrir guia →</span>
-            </button>
-
-            <button @click="goTabelasAcessorias" class="gm-link-card group text-left">
-              <div class="gm-icon-wrap mb-3 bg-orange-500/10 text-orange-400">
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-              </div>
-              <p class="font-semibold text-zinc-100 group-hover:text-white">Classes</p>
-              <p class="mt-0.5 text-xs text-zinc-500">Classes de cada família de equipamento</p>
-              <span class="mt-3 inline-block text-xs text-orange-400 group-hover:text-orange-300">Abrir guia →</span>
+              <p class="font-semibold text-zinc-100 group-hover:text-white">{{ card.titulo }}</p>
+              <p class="mt-0.5 text-xs text-zinc-500">{{ card.descricao }}</p>
+              <span class="mt-3 inline-block text-xs" :class="card.classeLink">Abrir guia →</span>
             </button>
           </div>
         </div>
@@ -985,6 +790,7 @@
 </template>
 
 <script setup lang="ts">
+import AvatarPersonagem from '@/components/AvatarPersonagem.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
@@ -1003,15 +809,15 @@ import {
 } from '@/lib/api/personagens.api'
 import { contarSolicitacoesPendentes } from '@/lib/api/character-creation-requests.api'
 import { listPublicGods } from '@/lib/api/gods.api'
-import type { GodApi, AprovacaoPendenteApi } from '@/types/supabase'
+import type { GodApi, AprovacaoPendenteApi } from '@/types/api'
 import { adicionarPontosDeClasse, alterarStatusPersonagem as apiAlterarStatus } from '@/lib/api/classes.api'
 import {
   listAllLoreNotes,
   createLoreNote,
   deleteLoreNote as deleteLoreNoteApi,
+  uploadPdfLore,
 } from '@/lib/api/lore-notes.api'
 import type { LoreNoteApi } from '@/lib/api/lore-notes.api'
-import { uploadLorePdf } from '@/lib/supabase/storage'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -1088,7 +894,7 @@ async function criarLoreNote() {
     let pdfUrl: string | null = lorePdfUrl.value
     if (lorePdfFile.value && !pdfUrl) {
       loadingPdf.value = true
-      pdfUrl = await uploadLorePdf(lorePdfFile.value)
+      pdfUrl = (await uploadPdfLore(lorePdfFile.value)).path
       loadingPdf.value = false
     }
     await createLoreNote({
@@ -1680,6 +1486,155 @@ function goMasterClasses() {
 function goTabelasAcessorias() {
   router.push({ name: 'master-tabelas-acessorias' })
 }
+
+/**
+ * Os atalhos do painel, agrupados pelo que o mestre está fazendo — e não pela
+ * tabela que cada tela edita. Antes eram 19 botões numa grade única mais um
+ * bloco de 4 "tabelas acessórias" que levavam **todos ao mesmo lugar**: quatro
+ * portas para a mesma sala.
+ *
+ * As classes de cor vão escritas por extenso porque o Tailwind varre o código
+ * em busca de nomes de classe literais — `bg-${cor}-500/10` seria descartado
+ * no build e o ícone sairia sem cor.
+ *
+ * `icone` guarda o miolo do <svg> como markup. É conteúdo nosso, fixo no
+ * arquivo, nunca vem do usuário — daí o v-html ser seguro aqui.
+ */
+type CardDoPainel = {
+  titulo: string
+  descricao: string
+  icone: string
+  classeIcone: string
+  classeLink: string
+  acao: () => void
+  /** Contagem exibida no canto do ícone. Só aparece quando maior que zero. */
+  contador?: () => number
+}
+
+type GrupoDoPainel = { titulo: string; cards: CardDoPainel[] }
+
+const I = {
+  estrela:    '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
+  mapa:       '<polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/>',
+  globo:      '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
+  pessoa:     '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+  pessoas:    '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  camadas:    '<path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>',
+  raio:       '<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>',
+  lapis:      '<path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>',
+  grafico:    '<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>',
+  barras:     '<path d="M2 20h.01"/><path d="M7 20v-4"/><path d="M12 20v-8"/><path d="M17 20V8"/><path d="M22 4v16"/>',
+  chapeu:     '<path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 1.1 2.24 2 5 2s5-.9 5-2v-5"/>',
+  cadeado:    '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  mochila:    '<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>',
+  bussola:    '<circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>',
+  bigorna:    '<path d="M7 10h10a4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4z"/><path d="M3 10h4"/><path d="M10 14v4"/><path d="M6 21h8l-2-3h-4z"/>',
+  saco:       '<path d="M6 2h12l2 7a8 8 0 0 1-8 13 8 8 0 0 1-8-13z"/><path d="M9 2v4M15 2v4"/>',
+  frasco:     '<path d="M9 3h6v5l4 9a3 3 0 0 1-2.7 4.3H7.7A3 3 0 0 1 5 17l4-9V3z"/><line x1="9" y1="3" x2="15" y2="3"/><path d="M6.5 14h11"/>',
+  grade:      '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>',
+  tela:       '<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>',
+  imagem:     '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>',
+}
+
+const gruposDoPainel: GrupoDoPainel[] = [
+  {
+    titulo: 'Mundo',
+    cards: [
+      { titulo: 'Campanhas / Mundos', descricao: 'Crie e gerencie campanhas, GMs por mundo e exportação de schema',
+        icone: I.globo, classeIcone: 'bg-amber-500/10 text-amber-400', classeLink: 'text-amber-400 group-hover:text-amber-300',
+        acao: () => router.push({ name: 'master-campanhas' }) },
+      { titulo: 'Mapas', descricao: 'Mapas com pontos de interesse interativos',
+        icone: I.mapa, classeIcone: 'bg-emerald-500/10 text-emerald-400', classeLink: 'text-emerald-400 group-hover:text-emerald-300',
+        acao: goMasterMaps },
+      { titulo: 'Deuses', descricao: 'Crie e edite divindades com cards e modal completo',
+        icone: I.estrela, classeIcone: 'bg-amber-500/10 text-amber-400', classeLink: 'text-amber-400 group-hover:text-amber-300',
+        acao: goMasterGods },
+      { titulo: 'NPCs', descricao: 'Crie NPCs e controle quais players podem vê-los',
+        icone: I.pessoa, classeIcone: 'bg-indigo-500/10 text-indigo-400', classeLink: 'text-indigo-400 group-hover:text-indigo-300',
+        acao: () => router.push({ name: 'master-npcs' }) },
+    ],
+  },
+  {
+    titulo: 'Personagem',
+    cards: [
+      { titulo: 'Raças', descricao: 'Gerencie as raças jogáveis da campanha',
+        icone: I.pessoas, classeIcone: 'bg-violet-500/10 text-violet-400', classeLink: 'text-violet-400 group-hover:text-violet-300',
+        acao: goMasterRacas },
+      { titulo: 'Passados', descricao: 'Origens com skills, títulos e dinheiro inicial concedidos',
+        icone: I.camadas, classeIcone: 'bg-indigo-500/10 text-indigo-400', classeLink: 'text-indigo-400 group-hover:text-indigo-300',
+        acao: () => router.push({ name: 'master-passados' }) },
+      { titulo: 'Classes', descricao: 'Crie e edite as classes jogáveis da campanha',
+        icone: I.chapeu, classeIcone: 'bg-sky-500/10 text-sky-400', classeLink: 'text-sky-400 group-hover:text-sky-300',
+        acao: goMasterClasses },
+      { titulo: 'Classes Secretas', descricao: 'Gerencie revelações exclusivas de classes ocultas',
+        icone: I.cadeado, classeIcone: 'bg-red-500/10 text-red-400', classeLink: 'text-red-400 group-hover:text-red-300',
+        acao: () => router.push({ name: 'master-classes-secretas' }) },
+      { titulo: 'Títulos', descricao: 'Crie e edite títulos com skills concedidas',
+        icone: I.estrela, classeIcone: 'bg-amber-500/10 text-amber-400', classeLink: 'text-amber-400 group-hover:text-amber-300',
+        acao: () => router.push({ name: 'master-titulos' }) },
+      { titulo: 'Skills', descricao: 'Crie e edite o catálogo de habilidades da campanha',
+        icone: I.raio, classeIcone: 'bg-emerald-500/10 text-emerald-400', classeLink: 'text-emerald-400 group-hover:text-emerald-300',
+        acao: goMasterSkills },
+      { titulo: 'Níveis de Skill', descricao: 'Configure os efeitos e overrides das skills nos níveis 2 e 3',
+        icone: I.barras, classeIcone: 'bg-sky-500/10 text-sky-400', classeLink: 'text-sky-400 group-hover:text-sky-300',
+        acao: () => router.push({ name: 'master-skill-niveis' }) },
+      { titulo: 'Overrides de Skill', descricao: 'Buff de dano ou multiplicador exclusivo por player',
+        icone: I.lapis, classeIcone: 'bg-violet-500/10 text-violet-400', classeLink: 'text-violet-400 group-hover:text-violet-300',
+        acao: () => router.push({ name: 'master-skill-overrides' }) },
+      { titulo: 'Perícias', descricao: 'Catálogo das perícias mundanas — a trilha fora do combate',
+        icone: I.bussola, classeIcone: 'bg-sky-500/10 text-sky-400', classeLink: 'text-sky-400 group-hover:text-sky-300',
+        acao: () => router.push({ name: 'master-pericias' }) },
+      { titulo: 'Progressão de XP', descricao: 'Tabela de XP por nível de classe e atribuição de XP',
+        icone: I.grafico, classeIcone: 'bg-emerald-500/10 text-emerald-400', classeLink: 'text-emerald-400 group-hover:text-emerald-300',
+        acao: () => router.push({ name: 'master-progressao' }) },
+    ],
+  },
+  {
+    titulo: 'Itens',
+    cards: [
+      { titulo: 'Equipamentos', descricao: 'Armas, armaduras, ferramentas e itens da campanha',
+        icone: I.mochila, classeIcone: 'bg-red-500/10 text-red-400', classeLink: 'text-red-400 group-hover:text-red-300',
+        acao: goMasterWeapons },
+      { titulo: 'Consumíveis', descricao: 'Poções, venenos, munição e alimento — o que se usa e some',
+        icone: I.frasco, classeIcone: 'bg-emerald-500/10 text-emerald-400', classeLink: 'text-emerald-400 group-hover:text-emerald-300',
+        acao: () => router.push({ name: 'master-consumiveis' }) },
+      { titulo: 'Itens', descricao: 'Ingredientes, materiais, ferramentas e cosméticos — o que se carrega e vende',
+        icone: I.saco, classeIcone: 'bg-amber-500/10 text-amber-400', classeLink: 'text-amber-400 group-hover:text-amber-300',
+        acao: () => router.push({ name: 'master-itens' }) },
+      { titulo: 'Receitas', descricao: 'O que produz o quê, com o quê — e a margem do crafting',
+        icone: I.bigorna, classeIcone: 'bg-violet-500/10 text-violet-400', classeLink: 'text-violet-400 group-hover:text-violet-300',
+        acao: () => router.push({ name: 'master-receitas' }) },
+      { titulo: 'Tabelas de Apoio', descricao: 'Uso, categorias, propriedades e classes de equipamento',
+        icone: I.grade, classeIcone: 'bg-orange-500/10 text-orange-400', classeLink: 'text-orange-400 group-hover:text-orange-300',
+        acao: goTabelasAcessorias },
+    ],
+  },
+  {
+    titulo: 'Jogadores',
+    cards: [
+      { titulo: 'Solicitações de Criação', descricao: 'Aprovar ou rejeitar novos personagens enviados pelos jogadores',
+        icone: I.pessoa, classeIcone: 'bg-violet-500/10 text-violet-400', classeLink: 'text-violet-400 group-hover:text-violet-300',
+        acao: () => router.push({ name: 'master-logins' }), contador: () => criacaoPendenteCount.value },
+      { titulo: 'Gerenciar Usuários', descricao: 'Ver contas GMs e players, resetar senhas e editar dados',
+        icone: I.pessoas, classeIcone: 'bg-cyan-500/10 text-cyan-400', classeLink: 'text-cyan-400 group-hover:text-cyan-300',
+        acao: () => router.push({ name: 'master-usuarios' }) },
+      { titulo: 'Controle de Telas', descricao: 'Configure quais telas do menu cada player pode acessar',
+        icone: I.tela, classeIcone: 'bg-violet-500/10 text-violet-400', classeLink: 'text-violet-400 group-hover:text-violet-300',
+        acao: () => router.push({ name: 'master-telas' }) },
+      { titulo: 'Imagens dos Personagens', descricao: 'Ajuste enquadramento e posição da imagem modal',
+        icone: I.imagem, classeIcone: 'bg-violet-500/10 text-violet-400', classeLink: 'text-violet-400 group-hover:text-violet-300',
+        acao: () => router.push({ name: 'master-characters' }) },
+    ],
+  },
+  {
+    titulo: 'Sistema',
+    cards: [
+      { titulo: 'Backup de Imagens', descricao: 'Baixe todas as imagens do projeto organizadas por seção',
+        icone: I.imagem, classeIcone: 'bg-fuchsia-500/10 text-fuchsia-400', classeLink: 'text-fuchsia-400 group-hover:text-fuchsia-300',
+        acao: () => router.push({ name: 'master-imagens' }) },
+    ],
+  },
+]
 
 async function logout() {
   await authStore.sair()

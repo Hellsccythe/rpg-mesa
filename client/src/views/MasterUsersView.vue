@@ -104,7 +104,7 @@
             <!-- Accent bar -->
             <div
               class="absolute inset-y-0 left-0 w-1 rounded-l-2xl"
-              :class="u.auth_user_id === null ? 'bg-emerald-500' : u.tipo === 'gm' ? 'bg-amber-500' : 'bg-cyan-500'"
+              :class="!u.conta_criada ? 'bg-emerald-500' : u.tipo === 'gm' ? 'bg-amber-500' : 'bg-cyan-500'"
             />
 
             <div class="flex flex-col gap-4 pl-3 sm:flex-row sm:items-start sm:justify-between">
@@ -113,13 +113,13 @@
               <div class="flex items-start gap-4">
                 <div
                   class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border text-lg font-bold"
-                  :class="u.auth_user_id === null
+                  :class="!u.conta_criada
                     ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
                     : u.tipo === 'gm'
                       ? 'border-amber-500/30 bg-amber-500/10 text-amber-300'
                       : 'border-cyan-500/30 bg-cyan-500/10 text-cyan-300'"
                 >
-                  {{ u.auth_user_id === null ? '📋' : u.tipo === 'gm' ? '⚔' : (u.personagem?.name?.[0]?.toUpperCase() ?? '?') }}
+                  {{ !u.conta_criada ? '📋' : u.tipo === 'gm' ? '⚔' : (u.personagem?.name?.[0]?.toUpperCase() ?? '?') }}
                 </div>
 
                 <div class="min-w-0 flex-1">
@@ -129,12 +129,12 @@
                     </span>
                     <span
                       class="rounded-full px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-wide"
-                      :class="u.auth_user_id === null
+                      :class="!u.conta_criada
                         ? 'bg-emerald-500/15 text-emerald-400'
                         : u.tipo === 'gm'
                           ? 'bg-amber-500/15 text-amber-400'
                           : 'bg-cyan-500/15 text-cyan-400'"
-                    >{{ u.auth_user_id === null ? 'Pré-Registro' : u.tipo === 'gm' ? 'Game Master' : 'Player' }}</span>
+                    >{{ !u.conta_criada ? 'Pré-Registro' : u.tipo === 'gm' ? 'Game Master' : 'Player' }}</span>
                     <span
                       v-if="!u.ativo"
                       class="rounded-full bg-red-500/15 px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-wide text-red-400"
@@ -145,7 +145,7 @@
                     <span>📧 {{ u.real_email }}</span>
                     <span v-if="u.username">@{{ u.username }}</span>
                     <span v-if="u.personagem">Personagem: <span class="text-zinc-400">{{ u.personagem.name }}</span> (Nv. {{ u.personagem.level }})</span>
-                    <span v-if="u.auth_user_id !== null && u.personagem?.raca_id == null && u.tipo === 'player'" class="text-amber-400/70">⚠ Raça não escolhida</span>
+                    <span v-if="u.conta_criada && u.personagem?.raca_id == null && u.tipo === 'player'" class="text-amber-400/70">⚠ Raça não escolhida</span>
                     <span
                       v-if="u.tipo === 'player' && (u.personagem as any)?.status === 'morto'"
                       class="rounded-full bg-red-500/20 px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-wide text-red-400"
@@ -160,7 +160,7 @@
 
               <!-- Right: actions -->
               <div class="flex shrink-0 flex-wrap items-center gap-2 sm:flex-col sm:items-end">
-                <template v-if="u.auth_user_id === null">
+                <template v-if="!u.conta_criada">
                   <button
                     type="button"
                     class="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-400 transition-colors hover:bg-red-500/20"
@@ -672,10 +672,10 @@ const busca = ref('')
 const filtroTipo = ref('')
 const filtroAtivo = ref('')
 
-const players = computed(() => usuarios.value.filter((u) => u.tipo === 'player' && u.auth_user_id !== null))
-const gms = computed(() => usuarios.value.filter((u) => u.tipo === 'gm' && u.auth_user_id !== null))
-const inativos = computed(() => usuarios.value.filter((u) => !u.ativo && u.auth_user_id !== null))
-const preRegistros = computed(() => usuarios.value.filter((u) => u.auth_user_id === null))
+const players = computed(() => usuarios.value.filter((u) => u.tipo === 'player' && u.conta_criada))
+const gms = computed(() => usuarios.value.filter((u) => u.tipo === 'gm' && u.conta_criada))
+const inativos = computed(() => usuarios.value.filter((u) => !u.ativo && u.conta_criada))
+const preRegistros = computed(() => usuarios.value.filter((u) => !u.conta_criada))
 
 const listaFiltrada = computed(() => {
   return usuarios.value.filter((u) => {

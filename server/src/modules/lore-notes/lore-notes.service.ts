@@ -4,6 +4,7 @@ import { Op } from "sequelize";
 import type { UsuarioAutenticado } from "../../common/cls/usuario-autenticado.interface.js";
 import { PersonagemModel } from "../personagem/models/personagem.model.js";
 import { garantirAcessoAoPersonagem } from "../personagem/personagem-acesso.js";
+import { ArmazenamentoArquivosService } from "../../common/storage/armazenamento-arquivos.service.js";
 import { LoreNoteModel } from "./models/lore-note.model.js";
 import type { CriarLoreNoteDto, EditarLoreNoteDto } from "./lore-notes.dto.js";
 
@@ -35,6 +36,7 @@ export class LoreNotesService {
     private readonly modeloLoreNote: typeof LoreNoteModel,
     @InjectModel(PersonagemModel)
     private readonly modeloPersonagem: typeof PersonagemModel,
+    private readonly armazenamentoArquivos: ArmazenamentoArquivosService,
   ) {}
 
   /**
@@ -93,7 +95,7 @@ export class LoreNotesService {
       subtitle: textoOuNulo(dados.subtitle),
       // content é NOT NULL com default '' — não gravar null.
       content: dados.content ?? "",
-      pdfUrl: textoOuNulo(dados.pdfUrl),
+      pdfUrl: this.armazenamentoArquivos.normalizarParaArmazenamento(dados.pdfUrl),
       ordem: dados.ordem ?? 0,
       characterId: dados.characterId ?? null,
     });
@@ -114,7 +116,9 @@ export class LoreNotesService {
     if (dados.title !== undefined) nota.title = dados.title.trim();
     if (dados.subtitle !== undefined) nota.subtitle = textoOuNulo(dados.subtitle);
     if (dados.content !== undefined) nota.content = dados.content ?? "";
-    if (dados.pdfUrl !== undefined) nota.pdfUrl = textoOuNulo(dados.pdfUrl);
+    if (dados.pdfUrl !== undefined) {
+      nota.pdfUrl = this.armazenamentoArquivos.normalizarParaArmazenamento(dados.pdfUrl);
+    }
     if (dados.ordem !== undefined) nota.ordem = dados.ordem;
     if (dados.characterId !== undefined) nota.characterId = dados.characterId;
 
@@ -143,7 +147,7 @@ export class LoreNotesService {
       title: nota.title,
       subtitle: nota.subtitle,
       content: nota.content,
-      pdf_url: nota.pdfUrl,
+      pdf_url: this.armazenamentoArquivos.montarUrlPublica(nota.pdfUrl) || null,
       ordem: nota.ordem,
       character_id: nota.characterId,
       created_at: formatarData(nota.get("createdAt")),

@@ -62,15 +62,18 @@
               ]"
             >
               <div class="flex-1 relative overflow-hidden">
-                <img
-                  v-if="avatarUrlMestre"
+                <AvatarPersonagem
                   :src="avatarUrlMestre"
-                  class="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-110"
                   alt="Game Master"
-                />
-                <div v-else class="w-full h-full bg-[#2B210A] flex items-center justify-center">
-                  <span class="text-4xl font-bold text-amber-500/80">GM</span>
-                </div>
+                  enquadramento="center"
+                  classe-imagem="transition-transform duration-500 group-hover:scale-110"
+                >
+                  <template #fallback>
+                    <div class="w-full h-full bg-[#2B210A] flex items-center justify-center">
+                      <span class="text-4xl font-bold text-amber-500/80">GM</span>
+                    </div>
+                  </template>
+                </AvatarPersonagem>
                 <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
               </div>
 
@@ -92,20 +95,18 @@
               ]"
             >
               <div class="flex-1 relative overflow-hidden">
-                <img
-                  v-if="char.avatarUrl"
+                <AvatarPersonagem
                   :src="char.avatarUrl"
-                  class="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-110"
                   :alt="char.name"
-                />
-                <div
-                  v-else
-                  class="login-character-fallback w-full h-full flex items-center justify-center"
+                  enquadramento="top"
+                  classe-imagem="transition-transform duration-500 group-hover:scale-110"
                 >
-                  <span class="login-character-fallback-text text-3xl font-semibold"
-                    >SEM AVATAR</span
-                  >
-                </div>
+                  <template #fallback>
+                    <div class="login-character-fallback w-full h-full flex items-center justify-center">
+                      <span class="login-character-fallback-text text-3xl font-semibold">SEM AVATAR</span>
+                    </div>
+                  </template>
+                </AvatarPersonagem>
               </div>
 
               <div class="login-character-footer p-4">
@@ -154,16 +155,17 @@
     >
       <div
         class="login-modal-hero relative h-52 overflow-hidden"
-        :class="{ 'has-avatar': !!personagemSelecionado.avatarUrl }"
+        :class="{ 'has-avatar': !!personagemSelecionado.avatarUrl && !heroFalhou }"
       >
         <img
-          v-if="personagemSelecionado.avatarUrl"
+          v-if="personagemSelecionado.avatarUrl && !heroFalhou"
           ref="heroImgRef"
           :src="personagemSelecionado.avatarUrl"
           class="h-full w-full object-cover transition-[object-position] duration-500"
           :style="{ objectPosition: heroImagePosition }"
           :alt="personagemSelecionado.name"
           @load="analisarHeroImage(heroImgRef)"
+          @error="heroFalhou = true"
         />
         <div
           v-else
@@ -707,6 +709,7 @@
 </template>
 
 <script setup lang="ts">
+import AvatarPersonagem from '@/components/AvatarPersonagem.vue'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Modal from '@/components/Modal.vue'
@@ -721,7 +724,7 @@ import {
 } from '@/lib/api/character-creation-requests.api'
 import { listarIndole } from '@/lib/api/indole.api'
 import { listarGeneros } from '@/lib/api/genero.api'
-import type { IndoleApi, GeneroApi, PersonagemPublicoApi } from '@/types/supabase'
+import type { IndoleApi, GeneroApi, PersonagemPublicoApi } from '@/types/api'
 
 const storePersonagens = useCharactersStore()
 const authStore = useAuthStore()
@@ -741,6 +744,10 @@ const mostrarModalLoginMestre = ref(false)
 const avatarUrlMestre = import.meta.env.VITE_GM_AVATAR_URL || ''
 
 const heroImgRef = ref<HTMLImageElement | null>(null)
+// O hero do modal tem ref e @load para calcular o enquadramento, entao trata a
+// falha aqui em vez de usar o AvatarPersonagem.
+const heroFalhou = ref(false)
+watch(() => personagemSelecionado.value?.avatarUrl, () => { heroFalhou.value = false })
 const { position: heroImageAutoPosition, analyzeImage: analisarHeroImage, reset: resetarHeroFoco } = useSmartImageFocus()
 
 const heroImagePosition = computed(() =>

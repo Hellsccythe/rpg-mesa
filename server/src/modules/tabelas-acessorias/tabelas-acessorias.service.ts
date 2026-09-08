@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/sequelize";
 import { TabelaLookupBaseService } from "../../common/database/tabela-lookup-base.service.js";
-import { EquipamentoTipoModel } from "./models/equipamento-tipo.model.js";
+import { UsoEquipamentoModel } from "./models/uso-equipamento.model.js";
 import { CategoriaArmaModel } from "./models/categoria-arma.model.js";
 import { CategoriaArmaduraModel } from "./models/categoria-armadura.model.js";
 import { CategoriaVariadosModel } from "./models/categoria-variados.model.js";
@@ -19,7 +19,7 @@ import { ClasseVariadosModel } from "./models/classe-variados.model.js";
  */
 @Injectable()
 export class TabelasAcessoriasService {
-  readonly tipos: TabelaLookupBaseService<EquipamentoTipoModel>;
+  readonly tipos: TabelaLookupBaseService<UsoEquipamentoModel>;
   readonly categoriasArma: TabelaLookupBaseService<CategoriaArmaModel>;
   readonly categoriasArmadura: TabelaLookupBaseService<CategoriaArmaduraModel>;
   readonly categoriasVariados: TabelaLookupBaseService<CategoriaVariadosModel>;
@@ -31,7 +31,7 @@ export class TabelasAcessoriasService {
   readonly classesVariados: TabelaLookupBaseService<ClasseVariadosModel>;
 
   constructor(
-    @InjectModel(EquipamentoTipoModel) modeloTipo: typeof EquipamentoTipoModel,
+    @InjectModel(UsoEquipamentoModel) modeloTipo: typeof UsoEquipamentoModel,
     @InjectModel(CategoriaArmaModel) modeloCategoriaArma: typeof CategoriaArmaModel,
     @InjectModel(CategoriaArmaduraModel) modeloCategoriaArmadura: typeof CategoriaArmaduraModel,
     @InjectModel(CategoriaVariadosModel) modeloCategoriaVariados: typeof CategoriaVariadosModel,

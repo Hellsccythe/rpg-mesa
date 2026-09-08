@@ -3,7 +3,11 @@ import { InjectModel } from "@nestjs/sequelize";
 import { QueryTypes } from "sequelize";
 import { Sequelize } from "sequelize-typescript";
 import { ArmazenamentoArquivosService } from "../../common/storage/armazenamento-arquivos.service.js";
-import { PassadoModel, type AtributoBonus } from "./models/passado.model.js";
+import {
+  PassadoModel,
+  type AtributoBonus,
+  type RolagemDeDinheiro,
+} from "./models/passado.model.js";
 import type { CriarPassadoDto, EditarPassadoDto } from "./passados.dto.js";
 
 export type SkillResumo = { id: number; name: string };
@@ -19,6 +23,10 @@ export type PassadoApi = {
   skills: SkillResumo[];
   titulos: TituloResumo[];
   atributo_bonus: AtributoBonus | null;
+  dinheiro_inicial: RolagemDeDinheiro[];
+  pericias_iniciais: Array<{ periciaId: number; rank: number }>;
+  /** Nome de cada perícia inicial, resolvido no JOIN para a tela não precisar buscar. */
+  pericias: Array<{ id: number; nome: string; rank: number }>;
   created_at: string;
   updated_at: string;
 };
@@ -43,11 +51,28 @@ const SQL_LISTAR_PASSADOS = `
     passados.skill_ids,
     passados.titulo_ids,
     passados.atributo_bonus,
+    passados.dinheiro_inicial,
+    passados.pericias_iniciais,
+    COALESCE(pericias_do_passado.lista, '[]'::json) AS pericias,
     passados.created_at,
     passados.updated_at,
     COALESCE(skills_do_passado.lista, '[]'::json) AS skills,
     COALESCE(titulos_do_passado.lista, '[]'::json) AS titulos
   FROM passados
+  LEFT JOIN LATERAL (
+    SELECT json_agg(
+             json_build_object(
+               'id', pericias.id,
+               'nome', COALESCE(pericias.nome, 'Perícia #' || (inicial.valor->>'periciaId')),
+               'rank', (inicial.valor->>'rank')::int
+             ) ORDER BY inicial.posicao
+           ) AS lista
+    FROM jsonb_array_elements(COALESCE(passados.pericias_iniciais, '[]'::jsonb))
+         WITH ORDINALITY AS inicial(valor, posicao)
+    LEFT JOIN pericias
+      ON pericias.id = (inicial.valor->>'periciaId')::int
+     AND pericias.deleted_at IS NULL
+  ) AS pericias_do_passado ON TRUE
   LEFT JOIN LATERAL (
     SELECT json_agg(
              json_build_object(
@@ -138,6 +163,8 @@ export class PassadosService {
       skillIds: dados.skill_ids ?? [],
       tituloIds: dados.titulo_ids ?? [],
       atributoBonus: dados.atributo_bonus ?? null,
+      dinheiroInicial: dados.dinheiro_inicial ?? [],
+      periciasIniciais: dados.pericias_iniciais ?? [],
     });
 
     return this.buscarEnriquecidoOuFalhar(criado.id);
@@ -157,6 +184,8 @@ export class PassadosService {
     if (dados.skill_ids !== undefined) registro.skillIds = dados.skill_ids;
     if (dados.titulo_ids !== undefined) registro.tituloIds = dados.titulo_ids;
     if (dados.atributo_bonus !== undefined) registro.atributoBonus = dados.atributo_bonus ?? null;
+    if (dados.dinheiro_inicial !== undefined) registro.dinheiroInicial = dados.dinheiro_inicial;
+    if (dados.pericias_iniciais !== undefined) registro.periciasIniciais = dados.pericias_iniciais;
 
     await registro.save();
     return this.buscarEnriquecidoOuFalhar(id);

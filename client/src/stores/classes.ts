@@ -11,7 +11,7 @@ import {
   type ClasseApi,
   type LevelProgressionApi,
 } from '@/lib/api/classes.api'
-import type { PersonagemApi } from '@/types/supabase'
+import type { PersonagemApi } from '@/types/api'
 
 export const useClassesStore = defineStore('classes', () => {
   const classes = ref<ClasseApi[]>([])

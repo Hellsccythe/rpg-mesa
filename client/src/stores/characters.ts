@@ -1,10 +1,10 @@
 // src/stores/characters.ts
 import { defineStore } from 'pinia'
 import { useAuthStore } from '@/stores/auth'
-import { uploadAvatar, uploadHistoryDocument } from '@/lib/supabase/storage'
 import {
-  createCharacter as createCharacterApi,
   editCharacter as editCharacterApi,
+  uploadAvatarPersonagem,
+  uploadHistoriaPersonagem,
   getCharacterById,
   getPaginaInicial,
   listMyCharacters,
@@ -19,7 +19,7 @@ import type {
   PersonagemPublicoApi,
   SalvarPersonagemDto,
   SolicitarAlteracaoPersonagemDto,
-} from '@/types/supabase'
+} from '@/types/api'
 
 export const useCharactersStore = defineStore('characters', {
   state: () => ({
@@ -83,48 +83,6 @@ export const useCharactersStore = defineStore('characters', {
       }
     },
 
-    async createCharacter(payload: SalvarPersonagemDto, avatarFile?: File, historyDocFile?: File) {
-      this.loading = true
-      this.error = null
-      try {
-        const authStore = useAuthStore()
-        const userId = authStore.usuario?.id
-        if (!userId) throw new Error('Usuário não autenticado')
-
-        const dataPayload: Record<string, Json | undefined> =
-          payload.data && typeof payload.data === 'object' && !Array.isArray(payload.data)
-            ? { ...(payload.data as Record<string, Json | undefined>) }
-            : {}
-
-        let avatarUrl = payload.avatarUrl
-        if (avatarFile) {
-          avatarUrl = await uploadAvatar(avatarFile, String(userId))
-        }
-
-        if (historyDocFile) {
-          const uploadedDoc = await uploadHistoryDocument(historyDocFile, String(userId))
-          dataPayload.historyDocumentPath = uploadedDoc.path
-          dataPayload.historyDocumentName = uploadedDoc.name
-          dataPayload.historyDocumentMimeType = uploadedDoc.mimeType
-        }
-
-        const data = await createCharacterApi({
-          ...payload,
-          avatarUrl,
-          data: dataPayload,
-        })
-        this.myCharacters.unshift(data)
-        return data
-      } catch (err: any) {
-        const message = err?.response?.data?.message || err?.message || 'Erro ao criar personagem'
-        this.error = message
-        console.error('Erro createCharacter:', err)
-        throw new Error(message)
-      } finally {
-        this.loading = false
-      }
-    },
-
     async editCharacter(characterId: string | number, payload: EditarPersonagemDto) {
       this.loading = true
       this.error = null
@@ -168,21 +126,19 @@ export const useCharactersStore = defineStore('characters', {
       this.loading = true
       this.error = null
       try {
-        const authStore = useAuthStore()
-        const userId = authStore.usuario?.id
-        if (!userId) throw new Error('Usuário não autenticado')
-
         const finalPayload: SolicitarAlteracaoPersonagemDto = { ...payload }
 
+        // Os arquivos sobem pelo backend, que confere se o personagem é de
+        // quem está enviando. Grava-se o caminho relativo.
         if (avatarFile) {
-          finalPayload.avatarUrl = await uploadAvatar(avatarFile, String(userId))
+          finalPayload.avatarUrl = (await uploadAvatarPersonagem(characterId, avatarFile)).path
         }
 
         if (historyDocFile) {
-          const uploadedDoc = await uploadHistoryDocument(historyDocFile, String(userId))
-          finalPayload.historyDocumentPath = uploadedDoc.path
-          finalPayload.historyDocumentName = uploadedDoc.name
-          finalPayload.historyDocumentMimeType = uploadedDoc.mimeType ?? undefined
+          const documento = await uploadHistoriaPersonagem(characterId, historyDocFile)
+          finalPayload.historyDocumentPath = documento.path
+          finalPayload.historyDocumentName = documento.name
+          finalPayload.historyDocumentMimeType = documento.mimeType ?? undefined
         }
 
         const data = await requestCharacterChangeApi(characterId, finalPayload)

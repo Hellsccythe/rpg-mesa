@@ -50,6 +50,18 @@ export class PersonagensOnboardingController {
     return this.servicoOnboarding.escolherSkillInicial(personagemId, dados, usuario);
   }
 
+  /**
+   * Sem corpo: o que rolar vem do passado do personagem, e o resultado é
+   * sorteado no servidor. Nada aqui aceita valor vindo do cliente.
+   */
+  @Post(":characterId/rolar-dinheiro-inicial")
+  rolarDinheiroInicial(
+    @Param("characterId", ParseIntPipe) personagemId: number,
+    @UsuarioLogado() usuario: UsuarioAutenticado,
+  ) {
+    return this.servicoOnboarding.rolarDinheiroInicial(personagemId, usuario);
+  }
+
   @Patch(":characterId/escolher-passado")
   escolherPassado(
     @Param("characterId", ParseIntPipe) personagemId: number,

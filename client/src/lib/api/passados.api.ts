@@ -11,6 +11,23 @@ export type AtributoBonus = {
 
 export type TituloResumo = { id: number; name: string; skills: SkillResumo[]; bonuses?: AtributoBonus | null }
 
+/** As moedas do jogo, da menor para a maior. Espelha MOEDAS no backend. */
+export const MOEDAS = ['bronze', 'prata', 'ouro'] as const
+export type Moeda = (typeof MOEDAS)[number]
+
+/** `2d100` de prata é `{ quantidade: 2, faces: 100, moeda: 'prata' }`. */
+export type RolagemDeDinheiro = {
+  quantidade: number
+  faces: number
+  moeda: Moeda
+}
+
+/** Escreve uma lista de rolagens como "1d100 de prata + 1d4 de ouro". */
+export function descreverDinheiro(rolagens: RolagemDeDinheiro[] | null | undefined): string {
+  if (!rolagens?.length) return 'Nenhum'
+  return rolagens.map(r => `${r.quantidade}d${r.faces} de ${r.moeda}`).join(' + ')
+}
+
 export type PassadoApi = {
   id: number
   nome: string
@@ -21,6 +38,7 @@ export type PassadoApi = {
   skills: SkillResumo[]
   titulos: TituloResumo[]
   atributo_bonus: AtributoBonus | null
+  dinheiro_inicial: RolagemDeDinheiro[]
   created_at: string
   updated_at: string
 }
@@ -32,6 +50,7 @@ export type PassadoPayload = {
   skill_ids?: number[]
   titulo_ids?: number[]
   atributo_bonus?: AtributoBonus | null
+  dinheiro_inicial?: RolagemDeDinheiro[]
 }
 
 export async function listarPassados(): Promise<PassadoApi[]> {

@@ -4,23 +4,32 @@ Sistema de gestão de sessões de RPG de mesa. Monorepo com Yarn 4 Workspaces.
 
 ## Stack
 
-- **Frontend (`client/`):** Vue 3 + Vite + Pinia + Vue Router + Axios + Tailwind CSS + Supabase JS
-- **Backend (`server/`):** Express 5 + TypeScript + Supabase JS + class-validator/class-transformer
-- **Auth/DB/Storage:** Supabase (auth, PostgreSQL, storage de arquivos)
+- **Frontend (`client/`):** Vue 3 + Vite + Pinia + Vue Router + Axios + Tailwind CSS
+- **Backend (`server/`):** NestJS 12 + TypeScript + Sequelize (`sequelize-typescript`) + class-validator/class-transformer
+- **Auth:** JWT próprio (bcrypt em `usuarios.password_hash`) — ver "Fluxo de Auth"
+- **DB:** PostgreSQL 18 em Docker (`docker-compose.yml`), porta 5433
+- **Storage:** disco local em `uploads/`, servido em `/uploads/`
 - **Deploy:** Frontend no Vercel (`vercel.json`), backend separado
 
 ## Env Vars
 
-**Client:** `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_API_BASE_URL`, `VITE_AVATAR_BUCKET`, `VITE_HISTORY_BUCKET`, `VITE_GM_AVATAR_URL`
+**Client:** `VITE_API_BASE_URL`, `VITE_GM_AVATAR_URL`
 
-**Server:** `PORT`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `MASTER_EMAILS` (comma-separated), `ALLOWED_ORIGIN`, `ENCRYPTION_KEY`
+**Server:** `PORT`, `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRES_IN_SEGUNDOS`, `UPLOADS_DIR`, `PUBLIC_BASE_URL`, `ALLOWED_ORIGIN`
+
+As variáveis do Supabase e `MASTER_EMAILS` saíram: não há mais nenhum código que as leia.
 
 ## Rotas do Frontend
 
+A raiz **não é mais o login**: `/` lista as campanhas (mundos) e cada uma leva ao seu próprio login em `/mundo/:slug`. `/login` continua existindo como entrada direta, sem campanha.
+
 | Rota | View | Auth |
 |---|---|---|
-| `/` | LoginView | pública |
+| `/` | WorldsView | pública |
+| `/mundo/:slug` | LoginView | pública |
+| `/login` | LoginView | pública |
 | `/dashboard?characterId=` | DashboardView | auth |
+| `/onboarding?characterId=` | OnboardingView | auth (player) |
 | `/deuses` | DeusesView | pública |
 | `/cidade` | CidadeView | auth |
 | `/classes` | ClassesView | auth |
@@ -28,6 +37,7 @@ Sistema de gestão de sessões de RPG de mesa. Monorepo com Yarn 4 Workspaces.
 | `/titulos` | TitulosView | auth |
 | `/racas` | RacasView | auth |
 | `/equipamentos` | EquipamentosView | auth |
+| `/npcs` | NpcsView | auth |
 | `/notas` | NotasView | auth |
 | `/master` | MasterPanelView | auth + isMaster |
 | `/master/deuses` | MasterGodsView | auth + isMaster |
@@ -35,15 +45,25 @@ Sistema de gestão de sessões de RPG de mesa. Monorepo com Yarn 4 Workspaces.
 | `/master/personagens` | MasterCharactersView | auth + isMaster |
 | `/master/equipamentos` | MasterWeaponsView | auth + isMaster |
 | `/master/racas` | MasterRacasView | auth + isMaster |
+| `/master/classes` | MasterClassesView | auth + isMaster |
+| `/master/classes-secretas` | MasterClassesSecretasView | auth + isMaster |
 | `/master/skills` | MasterSkillsView | auth + isMaster |
+| `/master/skill-overrides` | MasterSkillOverridesView | auth + isMaster |
+| `/master/skill-niveis` | MasterSkillNiveisView | auth + isMaster |
+| `/master/titulos` | MasterTitulosView | auth + isMaster |
+| `/master/pericias` | MasterPericiasView | auth + isMaster |
+| `/master/receitas` | MasterReceitasView | auth + isMaster |
+| `/master/itens` | MasterItensView | auth + isMaster |
+| `/master/consumiveis` | MasterConsumiveisView | auth + isMaster |
+| `/master/passados` | MasterPassadosView | auth + isMaster |
+| `/master/npcs` | MasterNpcsView | auth + isMaster |
+| `/master/progressao` | MasterProgressaoView | auth + isMaster |
+| `/master/campanhas` | MasterCampanhasView | auth + isMaster |
+| `/master/telas` | MasterTelasView | auth + isMaster |
 | `/master/tabelas-acessorias` | MasterTabelasAcessoriasView | auth + isMaster |
 | `/master/logins` | MasterLoginRequestsView | auth + isMaster |
 | `/master/usuarios` | MasterUsersView | auth + isMaster |
 | `/master/imagens` | MasterImagesView | auth + isMaster |
-| `/master/passados` | MasterPassadosView | auth + isMaster |
-| `/master/classes-secretas` | MasterClassesSecretasView | auth + isMaster |
-| `/master/skill-overrides` | MasterSkillOverridesView | auth + isMaster |
-| `/onboarding?characterId=` | OnboardingView | auth (player) |
 
 ## API Endpoints do Backend
 
@@ -89,7 +109,8 @@ Sistema de gestão de sessões de RPG de mesa. Monorepo com Yarn 4 Workspaces.
 | PATCH | `/api/skills/admin/niveis/:id` | isMaster |
 | DELETE | `/api/skills/admin/niveis/:id` | isMaster (**hard delete** — UNIQUE total) |
 | POST | `/api/skills/admin/personagens/:characterId` | isMaster (concede skill avulsa a um personagem) |
-| GET | `/api/tabelas-acessorias/tipos` | público |
+| GET | `/api/tabelas-acessorias/uso-equipamento` | público (Arma \| Armadura \| Variados) |
+| POST/PATCH/DELETE | `/api/tabelas-acessorias/uso-equipamento/admin[/:item]` | isMaster |
 | GET | `/api/tabelas-acessorias/categorias-arma` | público |
 | GET | `/api/tabelas-acessorias/propriedades-arma` | público |
 | GET | `/api/tabelas-acessorias/classes-arma` | público |
@@ -99,6 +120,22 @@ Sistema de gestão de sessões de RPG de mesa. Monorepo com Yarn 4 Workspaces.
 | GET | `/api/tabelas-acessorias/categorias-variados` | público |
 | GET | `/api/tabelas-acessorias/propriedades-variados` | público |
 | GET | `/api/tabelas-acessorias/classes-variados` | público |
+| GET | `/api/pericias` | público |
+| POST/PATCH/DELETE | `/api/pericias/admin[/:id]` | isMaster |
+| POST | `/api/personagens/admin/:id/pontos-pericia` | isMaster (downtime) |
+| POST | `/api/personagens/:id/subir-pericia` | auth — dono ou mestre |
+| GET | `/api/receitas` | público |
+| POST/PATCH/DELETE | `/api/receitas/admin[/:id]` | isMaster |
+| GET | `/api/itens` | público |
+| POST/PATCH/DELETE | `/api/itens/admin[/:id]` | isMaster |
+| GET | `/api/itens/categorias` | público |
+| POST/PATCH/DELETE | `/api/itens/categorias/admin[/:item]` | isMaster |
+| GET | `/api/consumiveis` | público |
+| POST/PATCH/DELETE | `/api/consumiveis/admin[/:id]` | isMaster |
+| GET | `/api/consumiveis/categorias` | público |
+| POST/PATCH/DELETE | `/api/consumiveis/categorias/admin[/:item]` | isMaster |
+| GET | `/api/raridades` | público |
+| POST/PATCH/DELETE | `/api/raridades/admin[/:item]` | isMaster |
 | GET | `/api/indole` | público |
 | GET | `/api/genero` | público |
 | POST | `/api/character-creation-requests` | público |
@@ -137,6 +174,24 @@ Sistema de gestão de sessões de RPG de mesa. Monorepo com Yarn 4 Workspaces.
 | GET | `/api/classes/secretas/admin` | isMaster (lista classes secretas com titular atual) |
 | POST | `/api/classes/secretas/admin/revelar` | isMaster (revela classe secreta a um personagem) |
 | DELETE | `/api/classes/secretas/admin/revogar/:classeId` | isMaster (revoga acesso) |
+| POST | `/api/personagens/:id/escolher-classe` | auth (adquire classe nova, gasta 1 ponto de classe) |
+| POST | `/api/personagens/:id/levar-classe` | auth (converte 1 ponto de classe em 1 ponto de skill) |
+| PATCH | `/api/personagens/:id/distribuir-pontos-atributo` | auth |
+| PATCH | `/api/personagens/:id` | auth — dono ou mestre |
+| PATCH | `/api/personagens/:id/solicitacao` | auth (pede alteração que o mestre revisa) |
+| GET | `/api/personagens/admin/solicitacoes` | isMaster |
+| POST | `/api/personagens/admin/solicitacoes/:id/revisar` | isMaster |
+| POST | `/api/personagens/admin/:id/class-points` | isMaster |
+| POST | `/api/personagens/admin/:id/skill-points-classe` | isMaster |
+| POST | `/api/personagens/admin/:id/atribuir-pontos-atributo` | isMaster |
+| POST | `/api/personagens/admin/:id/resetar-pontos-atributo` | isMaster |
+| PATCH | `/api/personagens/admin/:id/atribuir-xp` | isMaster (XP numa classe) |
+| PATCH | `/api/personagens/admin/:id/atribuir-xp-personagem` | isMaster (XP do personagem) |
+| PATCH | `/api/personagens/admin/:id/god-info/:godId` | isMaster |
+| PATCH | `/api/personagens/admin/:id/avatar-focal-point` | isMaster |
+| PATCH | `/api/personagens/admin/:id/modal-hero-position` | isMaster |
+| POST | `/api/personagens/admin/personagens/:id/notas` | isMaster (nota de aventura) |
+| DELETE | `/api/personagens/admin/:id` | isMaster (soft delete + apaga o avatar do disco) |
 | PATCH | `/api/personagens/admin/:id/status` | isMaster (vivo \| morto; morte libera classe secreta) |
 | GET | `/api/campanhas` | público (só as ativas) |
 | GET | `/api/campanhas/:slug` | público |
@@ -165,6 +220,18 @@ Sistema de gestão de sessões de RPG de mesa. Monorepo com Yarn 4 Workspaces.
 | GET | `/api/player-telas/admin/:characterId` | isMaster |
 | PUT | `/api/player-telas/admin/:characterId` | isMaster (substitui o conjunto inteiro) |
 | GET | `/api/admin/exportar-schema?dialeto=postgresql\|mysql\|sqlite` | isMaster (devolve texto puro como anexo) |
+
+## Economia — a base do projeto
+
+**`docs/ECONOMIA.pdf` é a referência.** A migration 079 adotou os números dele, e preço novo deve ser ancorado nas mesmas âncoras.
+
+- **Moeda:** bronze → prata → ouro, na razão **1:10:100**. Preço se pensa em **prata**.
+- **Âncora:** 2 prata = um dia de trabalho sem qualificação; 5 prata = um dia de artesão; **60 prata = um mês**.
+- **Dinheiro inicial:** média de 22 (Vítima) a 57 (Nobreza) prata. Amplitude 2,6:1 — era 10:1 antes da 079.
+- **Crafting:** os ingredientes devem somar **70–75%** do preço de compra. A API de receitas calcula a proporção a cada leitura e a tela colore por faixa.
+- **`valor` é o preço final.** O `multiplicador_valor` da raridade é referência para o mestre decidir esse número, e **não é aplicado** em cima — aplicar criaria dupla contagem.
+
+**Peso das armaduras (migration 079) é mudança de regra, não de preço.** A capacidade de carga é `2 + força × 2` kg; as armaduras pesavam de 10 a 30 kg, e um personagem de distribuição equilibrada (força 2) carrega 6 kg. **Nenhum personagem novo conseguia vestir armadura**, e a Armadura Completa era impossível até com os 10 pontos em força. Os pesos foram corrigidos para os reais (couro 8 kg, malha 12, placas 25); a fórmula não mudou.
 
 ## Componentes Compartilhados
 
@@ -204,13 +271,15 @@ Documentação completa em `docs/COMPONENTS.md`.
 
 ## Banco de Dados — Tabelas
 
-Schema completo em `docs/SCHEMA_CURRENT.sql`. Migrations em `database/migrations/` (001–045).
+Schema completo em `docs/SCHEMA_CURRENT.sql` — **arquivo gerado por `pg_dump --schema-only`, não editado a mão**; regere-o quando mexer no esquema (o comando está no cabeçalho do próprio arquivo). Migrations em `database/migrations/` (001–079). Documentação em PDF, com as ligações entre tabelas e os fluxos: `docs/BANCO_DE_DADOS.pdf`.
 
-**IMPORTANTE:** Migrations 022–023 converteram todas as PKs de UUID → INTEGER IDENTITY. Todas as tabelas de entidade usam `id INTEGER` como PK. `user_id` (referência a `auth.users`) permanece UUID.
+**Não sobrou nenhum UUID no banco.** As migrations 022–023 converteram as PKs para `INTEGER IDENTITY`, e a **061** terminou o serviço nas colunas que ainda referenciavam o Supabase Auth: `characters.user_id` hoje é `INTEGER` apontando para `usuarios.id`, e `characters.campaign_id` é `INTEGER` apontando para `campaigns.id`. A coluna `usuarios.auth_user_id` foi removida.
 
-**Migration 027:** `created_by`, `updated_by`, `deleted_by` foram convertidos de UUID → TEXT em todas as tabelas. Agora armazenam o **email do usuário** que realizou a ação (ex: `gm@exemplo.com`). Use sempre `getUserDisplayEmail(user)` nos serviços.
+**Migration 027:** `created_by`, `updated_by`, `deleted_by` viraram TEXT e guardam o **email** de quem fez a ação. Não há helper a chamar — os **hooks globais do Sequelize** (`server/src/common/database/auditoria.hooks.ts`) preenchem sozinhos, lendo o usuário autenticado do `AsyncLocalStorage`. Isso vale para escrita pelo ORM; `sequelize.query` cru **não** dispara hook nenhum, então quem escreve em SQL passa o autor na mão.
 
-**Referências entre tabelas são sempre por convenção de inteiro — nunca usar FOREIGN KEY constraints no banco.**
+**Migration 070:** a 027 trocou o tipo da coluna mas não converteu os dados — 214 linhas seguiam com o UUID do `auth.users`. A 070 fez o de-para para email. Sobrou um UUID em `characters.deleted_by` que nunca teve conta correspondente.
+
+**Referências entre tabelas são sempre por convenção de inteiro — nunca usar FOREIGN KEY constraints no banco.** O preço disso é que nada impede um órfão: apagar um registro referenciado não dá erro, deixa a referência apontando para o vazio. Quem apaga é responsável por limpar (ver "Integridade de Dados").
 
 ### `usuarios` (migration 027)
 
@@ -219,13 +288,18 @@ Contas de acesso ao sistema. Criada ao aprovar uma solicitação (players) ou se
 | Coluna | Tipo | Notas |
 |---|---|---|
 | id | INTEGER PK | IDENTITY |
-| auth_user_id | UUID | referência a `auth.users(id)` por convenção |
-| real_email | TEXT | email real do jogador ou GM |
-| username | TEXT | nullable — login handle |
-| tipo | TEXT | `'gm'` \| `'player'` |
-| ativo | BOOLEAN | default TRUE |
+| real_email | TEXT | NOT NULL — email real do jogador ou GM |
+| username | TEXT | nullable — login handle do jogador; GM entra pelo email |
+| tipo | TEXT | NOT NULL, default `'player'` — CHECK `'gm'` \| `'player'` |
+| ativo | BOOLEAN | NOT NULL, default TRUE — o login recusa quem está inativo |
+| password_hash | TEXT | bcrypt. **Nulo = pré-registro** (migration 065) |
+| requires_password_change | BOOLEAN | NOT NULL, default FALSE — força o modal de troca no próximo login |
 | created_at / updated_at | timestamptz | |
 | deleted_at / deleted_by | timestamptz / TEXT | soft delete |
+
+`auth_user_id` foi removida na migration 061. `password_hash` chegou na 062, quando o backup do Supabase veio sem o cofre de senhas do Auth: as 7 contas existentes receberam `12345` com `requires_password_change = true`.
+
+**Não há UNIQUE em `username` nem em `real_email`** — a unicidade é garantida só no código (`garantirUsernameLivre`). Duas inserções simultâneas passariam.
 
 Endpoints: `GET/PATCH /api/usuarios/admin`, `PATCH /api/usuarios/admin/:id/resetar-senha`, `PATCH /api/usuarios/admin/:id/ativo`.
 Tela: `/master/usuarios` → `MasterUsersView.vue`.
@@ -235,24 +309,47 @@ Tela: `/master/usuarios` → `MasterUsersView.vue`.
 | Coluna | Tipo | Notas |
 |---|---|---|
 | id | INTEGER PK | IDENTITY (migration 022) |
-| user_id | UUID | referência a auth.users |
-| campaign_id | UUID | nullable |
-| name | text | |
-| username | text | login handle, único |
-| level | integer | >= 1 |
-| data | jsonb | pendingChangeRequest, historyDocumentPath, adventureNotes, skills, titles, avatarFocalPoint, classPoints, **atributos**, **equipamentos_iniciais**, **deusEtapaConcluida** |
-| avatar_url | text | nullable |
+| user_id | INTEGER | NOT NULL — referência a `usuarios.id` (migration 061, antes UUID de `auth.users`) |
+| campaign_id | INTEGER | nullable — referência a `campaigns.id` |
+| name | text | NOT NULL |
+| username | text | cópia do `usuarios.username`, para exibição. UNIQUE **parcial** (`WHERE deleted_at IS NULL`) |
+| level | integer | NOT NULL, default 1 |
+| data | jsonb | NOT NULL, default `{}` — ver abaixo |
+| avatar_url | text | nullable — **caminho relativo** (`personagens/inari.png`) |
 | raca_id | INTEGER | referência a `racas.id` — null até escolha no onboarding |
+| classe_id | INTEGER | referência a `classes.id` — a classe inicial; as demais ficam em `data.classes` |
 | passado_id | INTEGER | referência a `passados.id` — null até escolha no onboarding |
-| deus_id | INTEGER | referência a `gods.id` — null se player pulou etapa |
-| status | TEXT | `'vivo'` \| `'morto'` — default `'vivo'` (migration 043) |
+| deus_id | INTEGER | referência a `gods.id` — null se o player pulou a etapa |
+| onboarding_completo | BOOLEAN | NOT NULL, default FALSE — falso redireciona para `/onboarding` |
+| status | TEXT | NOT NULL, default `'vivo'` — CHECK `'vivo'` \| `'morto'` (migration 043) |
 | indole_id | INTEGER | referência a `indole.id` (migration 024) |
 | genero_id | INTEGER | referência a `genero.id` (migration 025) |
 | aparencia_fisica | text | nullable |
 | historia_texto | text | nullable |
-| historia_doc_url | text | nullable |
+| historia_doc_url | text | nullable — caminho relativo |
 | deleted_at / deleted_by | timestamptz / TEXT | soft delete (migration 027: deleted_by agora é TEXT/email) |
 | created_by / updated_by | TEXT | email do autor (migration 027, antes UUID) |
+
+**O `data` é onde mora metade da ficha.** Não tem esquema declarado em lugar nenhum, então vale listar o que se grava lá:
+
+| Chave | O que é |
+|---|---|
+| `atributos` | a soma usada em jogo (base + bônus do passado) |
+| `atributos_base` | o que o jogador distribuiu no onboarding |
+| `atributos_bonus_passado` | a parcela vinda do passado |
+| `classes` | `[{name, nivel, xp, skillPoints}]` — a progressão por classe |
+| `classPoints` | pontos de classe não gastos |
+| `skills` / `titles` | skills e títulos concedidos ao personagem |
+| `equipamentos_iniciais` | escolha da etapa 6, com peso |
+| `inventario` | itens livres, sem peso |
+| `adventureNotes` | notas de aventura escritas pelo mestre |
+| `pendingChangeRequest` | pedido de alteração aguardando revisão (índice parcial em cima) |
+| `avatarFocalPoint` / `modalHeroPosition` | enquadramento da imagem, ajustado pelo mestre |
+| `xp` | XP do personagem (distinto do XP por classe) |
+| `dinheiro_inicial` | resultado da rolagem da etapa 6: `{tentativas, resultado, descartado}` |
+| `deusEtapaConcluida` | marca a etapa 5 como vista, mesmo se pulada |
+
+**Cuidado:** `PATCH /api/personagens/:id` **substitui o `data` inteiro**. Mandar um objeto parcial apaga o resto sem aviso.
 
 ### `indole` (migration 024)
 
@@ -288,12 +385,12 @@ Solicitações de criação de personagem submetidas por jogadores, pendentes de
 | username | TEXT | login handle desejado, único |
 | password_hash | TEXT | **hash bcrypt**. Era AES-256-CBC reversível porque o texto puro era necessário para criar a conta no Supabase Auth; hoje a conta nasce no próprio backend e o hash é só transferido para `usuarios.password_hash` na aprovação — a senha deixou de ser recuperável a partir do banco |
 | nome | TEXT | nome completo do personagem |
-| avatar_url | TEXT | nullable — path no bucket `character-avatars` |
+| avatar_url | TEXT | nullable — caminho relativo em `uploads/pendentes/` |
 | indole_id | INTEGER | referência a `indole.id` |
 | genero_id | INTEGER | referência a `genero.id` |
 | aparencia_fisica | TEXT | mínimo 30 letras sem espaços |
 | historia_texto | TEXT | nullable — mínimo 100 letras ou doc obrigatório |
-| historia_doc_url | TEXT | nullable — path no bucket `character-history` |
+| historia_doc_url | TEXT | nullable — caminho relativo em `uploads/pendentes/` |
 | status | TEXT | 'pendente' \| 'aprovado' \| 'rejeitado' |
 | rejeitado_motivo | TEXT | nullable |
 | revisado_em / revisado_por | timestamptz / TEXT | auditoria de revisão (email do mestre) |
@@ -324,9 +421,11 @@ O email precisa estar **pré-registrado**: um `usuarios` com `password_hash` nul
 | classe_equipamento_item | INTEGER[] | array de referências a `classe_equipamento.item` (NOT NULL, default `'{}'`) |
 | tipo_equipamento_item | INTEGER[] | array de referências a `tipo_equipamento.item` |
 | propriedade_equipamento_item | INTEGER[] | array de referências a `propriedade_equipamento.item` |
-| deleted_at / deleted_by | timestamptz / UUID | soft delete |
+| deleted_at / deleted_by | timestamptz / TEXT | soft delete |
 | created_at / updated_at | timestamptz | |
-| created_by / updated_by | UUID | auditoria |
+| created_by / updated_by | TEXT | auditoria (email) |
+
+`dano` é **NOT NULL**: item que não é arma grava string vazia, nunca null.
 
 **Cuidado com a assimetria:** categoria é **uma só** (coluna `integer`), enquanto classe, tipo e propriedade são **listas** (`integer[]`). É fácil inverter — esta documentação descrevia o contrário até a migração do módulo.
 
@@ -383,9 +482,9 @@ Cuidado ao escrever essa checagem: uma sequence nunca usada (`is_called = false`
 
 42 tabelas estão com `ROW LEVEL SECURITY` ligado, herança do Supabase, mas quase todas sem policy nenhuma. O app só funciona porque `rpg_app_user` tem `BYPASSRLS`. Com a autorização agora nos guards do Nest, o RLS não é mais a camada de segurança — mas continua sendo uma armadilha: qualquer conexão com um papel sem `BYPASSRLS` veria a maioria das tabelas vazia e não conseguiria escrever.
 
-### `character_creation_whitelist`
+### `character_creation_whitelist` — **morta**
 
-E-mails autorizados a submeter solicitação de criação. Soft delete + auditoria completa.
+Era a lista de e-mails autorizados a submeter solicitação de criação. **Nenhum código lê ou escreve nela.** A autorização virou o pré-registro em `usuarios` (linha com `password_hash` nulo), checado por `garantirEmailPreAutorizado`. As 5 linhas continuam no banco e a tabela ainda aparece nos tipos do frontend; a mensagem de erro do `LoginView` ainda fala em "whitelist". Candidata a remoção.
 
 ### `skills`
 
@@ -474,10 +573,10 @@ Hierarquia de lookup para equipamentos. Todas seguem padrão `item INTEGER PK` +
 
 | Tabela | Pai | Notas |
 |---|---|---|
-| `equipamento_tipo` | — | Seed: 1=Arma, 2=Armadura, 3=Variados |
-| `categoria_arma` | `equipamento_tipo_item=1` fixo | Categorias de arma |
-| `categoria_armadura` | `equipamento_tipo_item=2` fixo | Categorias de armadura |
-| `categoria_variados` | `equipamento_tipo_item=3` fixo | Categorias de variados |
+| `uso_equipamento` | — | Para que serve: Arma, Armadura, Variados. Era `equipamento_tipo` até a migration 072 |
+| `categoria_arma` | `uso_equipamento_item` | Categorias de arma |
+| `categoria_armadura` | `uso_equipamento_item` | Categorias de armadura |
+| `categoria_variados` | `uso_equipamento_item` | Categorias de variados |
 | `propriedade_arma` | `categoria_arma_item` opcional | Propriedades de arma |
 | `classe_arma` | `categoria_arma_item` opcional | Classes de arma |
 | `propriedade_armadura` | `categoria_armadura_item` opcional | Propriedades de armadura |
@@ -486,6 +585,156 @@ Hierarquia de lookup para equipamentos. Todas seguem padrão `item INTEGER PK` +
 | `classe_variados` | `categoria_variados_item` opcional | Classes de variados |
 
 Gerenciadas em `/master/tabelas-acessorias`. Backend em `server/src/modules/tabelas-acessorias/`.
+
+### `raridade` (migration 073)
+
+Escala única de raridade para **todas** as tabelas de item — equipamentos, e mais tarde consumíveis e itens. Uma poção Rara e uma espada Rara são igualmente difíceis de achar; escala comum permite comparar entre categorias.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| item | INTEGER PK | **IDENTITY de verdade** — o banco gera. As outras lookups escolhem a chave com `MAX(item)+1`, que foi o que causou a migration 067 |
+| descricao | VARCHAR(100) | Comum, Incomum, Raro, Épico, Lendário. UNIQUE **parcial** entre as ativas |
+| ordem | INTEGER | posição na escala. **É por ela que se ordena, não pelo `item`** — uma raridade nova entre Raro e Épico receberia o item 6 e iria para o fim da lista |
+| multiplicador_valor | NUMERIC(6,2) | quanto o preço-base é multiplicado |
+| dificuldade_base | INTEGER | dificuldade do teste para fabricar. **Nulo em Lendário**: o mestre decide caso a caso |
+| disponibilidade | TEXT | onde o item é encontrado à venda |
+| cor | VARCHAR(20) | nome de cor do Tailwind, para o frontend não manter um mapa paralelo |
+
+Seed: Comum (×1, dif. 10), Incomum (×3, dif. 15), Raro (×10, dif. 20), Épico (×40, dif. 25), Lendário (o mestre decide).
+
+**A `dificuldade_base` é a DC do teste de perícia** — ver a seção de `pericias`.
+
+Raridade aqui **decide coisas** em vez de ser etiqueta: uma referência responde "o mercador tem isso?", "quanto custa?" e "quão difícil é fabricar?".
+
+`equipamentos.raridade_item` aponta para cá; os 14 registros existentes nasceram Comum. Deletar uma raridade em uso é **recusado pelo serviço** — sem FOREIGN KEY, nada impediria no banco, e o item ficaria apontando para o vazio sem erro nenhum.
+
+### `consumiveis` e `categoria_consumivel` (migration 075)
+
+Primeira das duas tabelas que tiram de `equipamentos` o que nunca foi equipamento. **O corte é por comportamento, não por tema** — a pergunta que decide a tabela é *"o que acontece quando o jogador usa isso?"*:
+
+| Tabela | Regra | O que entra |
+|---|---|---|
+| `equipamentos` | equipa e **fica** equipado | armas, armaduras, escudos |
+| `consumiveis` | usa e **some** | poções, venenos, munição, alimento, pergaminhos |
+| `itens` | só carrega, vende ou **entrega numa receita** | cosméticos, ferramentas, materiais, ingredientes |
+
+"Some quando usa?" tem **uma** resposta. "É cosmético ou utilitário?" é opinião, e critério que exige julgamento produz dado inconsistente.
+
+Uma poção fica em `consumiveis`; a erva que a produz fica em `itens`. As duas se ligam pela tabela de receitas — receita é **muitos-para-muitos e cruza tabelas**, então não cabe como coluna de nenhuma das duas.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| id | INTEGER PK | IDENTITY |
+| nome | VARCHAR(255) | NOT NULL |
+| descricao | TEXT | nullable |
+| efeito | TEXT | **NOT NULL** default `''` — o que acontece ao usar. Grava string vazia, nunca null |
+| usos | INTEGER | NOT NULL default 1 — poção tem 1, kit de primeiros socorros vários |
+| duracao | VARCHAR(60) | "Instantâneo", "3 turnos". Texto livre: a mesa fala em turnos e em horas |
+| peso | NUMERIC(8,2) | nullable |
+| valor | NUMERIC(12,2) | **preço final** em prata — ver abaixo |
+| raridade_item | INTEGER | referência a `raridade.item` |
+| categoria_consumivel_item | INTEGER | referência a `categoria_consumivel.item` |
+
+**`valor` é o preço final, não uma base.** O `multiplicador_valor` da raridade é **referência para o mestre decidir** esse número e **não é aplicado** em cima dele. Aplicar automaticamente criaria dupla contagem: quem já pensou o preço de um item Raro veria ele multiplicado por 10 ao salvar. A tela mostra o multiplicador ao lado do campo, como apoio.
+
+`categoria_consumivel`: lookup com `item` IDENTITY. Seed: Poção, Veneno, Munição, Alimento, Pergaminho. Apagar categoria em uso é recusado pelo serviço.
+
+Tela: `/master/consumiveis` → `MasterConsumiveisView.vue`.
+
+### `itens` e `categoria_item` (migration 076)
+
+Fecha o corte por comportamento. Aqui mora o que **só se carrega, vende ou entrega numa receita**: cosméticos, ferramentas, equipamento de exploração, materiais preciosos e ingredientes.
+
+Todos se comportam igual — um batom e uma barra de mithril não precisam de tabelas separadas; separá-los compraria duas telas de admin e nada mais.
+
+**Uma erva de alquimia é item, não consumível:** ela não some ao ser usada, ela vira outra coisa. Quem some é a poção que ela produz.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| id | INTEGER PK | IDENTITY |
+| nome | VARCHAR(255) | NOT NULL |
+| descricao | TEXT | nullable |
+| peso | NUMERIC(8,2) | nullable |
+| valor | NUMERIC(12,2) | preço final em prata — mesma regra dos consumíveis |
+| empilhavel | BOOLEAN | NOT NULL default TRUE — ervas e minérios empilham; uma gazua ou um vestido, não |
+| raridade_item | INTEGER | referência a `raridade.item` |
+| categoria_item | INTEGER | referência a `categoria_item.item` |
+
+**Exceção de nomenclatura:** as outras tabelas usam `<lookup>_item` na coluna que referencia (`categoria_consumivel` → `categoria_consumivel_item`). Aqui isso daria `categoria_item_item`. Como o nome do lookup já termina em `_item`, a coluna ficou `itens.categoria_item`.
+
+`categoria_item`: seed com Ingrediente, Material Precioso, Ferramenta, Exploração, Cosmético. Apagar categoria em uso é recusado pelo serviço.
+
+Tela: `/master/itens` → `MasterItensView.vue`.
+
+### `receitas` e `receita_ingredientes` (migration 077)
+
+O que produz o quê, com o quê. **Não cabe como coluna de nenhuma tabela de item**: é muitos-para-muitos (uma poção usa três ingredientes; um ingrediente serve a cinco poções) e cruza tabelas (uma espada élfica precisa de mithril, que é `itens`, e produz um `equipamentos`).
+
+Daí o par **`<coisa>_tabela` + `<coisa>_id`** nos dois lados, com `CHECK` no banco nos nomes permitidos (`consumiveis`, `itens`, `equipamentos`). Sem o CHECK, `'consumivel'` no singular passaria e o JOIN silenciosamente não acharia nada.
+
+| `receitas` | Tipo | Notas |
+|---|---|---|
+| nome / descricao | VARCHAR(255) / TEXT | |
+| produto_tabela + produto_id | VARCHAR(20) + INTEGER | o que a receita produz |
+| quantidade_produzida | INTEGER | NOT NULL default 1 |
+| tempo_minutos | INTEGER | em minutos, para caber "20 min" e "dois dias" |
+| dificuldade | INTEGER | **solta por enquanto** — vira teste de perícia quando o sistema de habilidades mundanas existir |
+| pericia_id | INTEGER | reservada, sempre nula hoje |
+
+**Sem UNIQUE em (produto_tabela, produto_id)** de propósito: caminhos alternativos para o mesmo produto são desejáveis.
+
+`receita_ingredientes` tem `quantidade` e **`consumido`** — falso para ferramenta, que é exigida mas não some ao usar. Sem essa coluna o jogador perderia o alambique a cada poção. É a única tabela do projeto com **`paranoid: false`**: os ingredientes são detalhe da receita, editados como conjunto (apaga tudo e reinsere), e por isso o índice único pode ser total.
+
+**Margem do crafting:** a API calcula `custo_dos_ingredientes`, `preco_de_compra` e `proporcao_do_preco` a cada leitura. O alvo do projeto é **70–75%** — abaixo disso ninguém compra pronto; acima, fabricar não compensa o risco. A tela mostra a proporção enquanto o mestre edita, colorida por faixa. Só o que é `consumido` entra no custo.
+
+Tela: `/master/receitas` → `MasterReceitasView.vue`.
+
+### `pericias` (migration 078)
+
+A **terceira trilha de progressão**, ao lado do nível de personagem e do nível de classe:
+
+| Trilha | Concede | De onde vem |
+|---|---|---|
+| Nível de personagem | atributos (status) | XP, concedido pelo mestre |
+| Nível de classe | pontos de classe → skills | pontos concedidos pelo mestre |
+| **Perícia** | ranks, e o teste de d20 que os usa | passado + downtime + marco de nível |
+
+Existe separada porque as outras não servem: ninguém fica melhor em cozinhar matando goblins, e se o ponto de perícia saísse da mesma fonte do nível as duas seriam a mesma progressão com nomes diferentes.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| nome | VARCHAR(100) | UNIQUE parcial entre as ativas |
+| descricao | TEXT | NOT NULL default `''` |
+| atributo_base | VARCHAR(20) | CHECK nos 5 atributos — qual entra no teste |
+| categoria | VARCHAR(20) | CHECK: Ofício, Social, Corpo, Saber |
+
+CHECK em vez de tabela de lookup nos dois casos: os cinco atributos são estruturais do sistema, e as quatro categorias são rótulos que não carregam dado nenhum.
+
+**21 perícias no seed.** Crafting não é uma perícia só — um alquimista não é um ferreiro, e `receitas.pericia_id` aponta para a específica.
+
+#### O teste
+
+```
+d20 + (rank × 3) + ⌊atributo_base ÷ 2⌋   vs   dificuldade
+```
+
+O atributo entra **pela metade** de propósito: com 10 pontos no onboarding mais o bônus do passado, um atributo focado chega a 13 e engoliria o rank; dividido, o rank (até +15) domina — que é o certo para uma perícia.
+
+**Rank 0 é "não treinado" e não pode tentar.** Sem isso, quem tem Inteligência alta fabrica poções sem nunca ter estudado alquimia.
+
+A `dificuldade_base` de `raridade` (10/15/20/25) **é a DC do teste**: fabricar algo Comum é DC 10, Épico é DC 25. As duas tabelas já conversavam sem precisar de coluna nova.
+
+#### De onde vêm os pontos
+
+1. **Passado** — `passados.pericias_iniciais`, lista de `{periciaId, rank}`. São ranks de graça, copiados para `data.pericias` ao escolher o passado. Copiados, e não lidos do catálogo como skills e títulos, porque o jogador compra ranks **por cima** destes — sem a cópia não haveria como separar origem de compra. Copiar é seguro porque o passado é permanente.
+2. **Downtime** — `POST /personagens/admin/:id/pontos-pericia`. A fonte principal, e de propósito sem automação: representa tempo de jogo, não XP de combate.
+3. **Marco de nível** — 1 ponto por marco atravessado, em `atribuirXpAoPersonagem`. **É a única coisa que subir de nível concede sozinho neste projeto.** Conta marcos e não níveis: a tabela tem 27 marcos para 100 níveis, e pular de 5 para 10 é um marco, não cinco.
+
+#### Custo dos ranks
+
+Crescente: rank N custa N pontos. Rank 5 numa perícia custa 1+2+3+4+5 = **15**; rank 1 em cinco perícias custa **5**. Especialista e generalista viram escolhas com peso.
+
+Os ranks do personagem vivem em `data.pericias` (`[{periciaId, nome, rank, rankInicial?}]`) e os pontos em `data.periciaPoints`, seguindo o padrão de `data.classes` e `data.skills`.
 
 ### `passados` (migration 032)
 
@@ -499,9 +748,20 @@ Origens/históricos dos personagens, gerenciados pelo mestre. Cada passado pode 
 | foto_url | TEXT | nullable — URL de imagem de capa |
 | skill_ids | INTEGER[] | array de `skills.id` — skills concedidas |
 | titulo_ids | INTEGER[] | array de `titles.id` — títulos concedidos |
+| atributo_bonus | JSONB | bônus somado aos atributos no onboarding |
+| dinheiro_inicial | JSONB | **NOT NULL**, default `[]` (migration 071) — ver abaixo |
 | created_at / updated_at | timestamptz | |
 | created_by / updated_by | TEXT | email do autor |
 | deleted_at / deleted_by | timestamptz / TEXT | soft delete |
+
+**`dinheiro_inicial` é uma LISTA de rolagens**, não um valor:
+
+```json
+[{"quantidade": 1, "faces": 100, "moeda": "prata"},
+ {"quantidade": 1, "faces": 4,   "moeda": "ouro"}]
+```
+
+Lista porque um passado pode conceder mais de um dado e em mais de uma moeda — é o caso do Aventureiro. Moedas: `bronze`, `prata`, `ouro`. Até a migration 071 isso vivia escrito em português no fim da `descricao`, onde nada conseguia rolar. A migration extraiu os valores e **removeu a linha da descrição**, para os dois não discordarem depois.
 
 Backend retorna passado enriquecido: além dos IDs, inclui `skills: [{id,name}]` e `titulos: [{id,name}]`.
 Tela: `/master/passados` → `MasterPassadosView.vue`.
@@ -514,6 +774,67 @@ Notas de lore que o mestre publica. Ver migrations 009–011; PK convertida para
 `character_id INTEGER` nulo significa nota **global** (todos veem); preenchido, a nota só aparece para aquele personagem. A coluna existia como `uuid` desde a migration 010, sumiu durante a conversão de PKs para INTEGER, e **o backend continuou filtrando e gravando por ela** — o que deixou todas as rotas do módulo quebradas contra o esquema real até a migration 068 devolvê-la. Não apareceu antes porque a tabela está vazia.
 
 `content` é NOT NULL com default `''`.
+
+### `campaigns` e `campaign_gms` (migrations 056–059)
+
+Campanhas — os "mundos" da tela inicial. Cada personagem pertence a uma (`characters.campaign_id`).
+
+`campaigns`: `id`, `slug` (**UNIQUE** — é o que aparece em `/mundo/:slug`), `name`, `description`, `cover_image_url` (caminho relativo), `is_active` (só as ativas aparecem no `GET /api/campanhas` público) + soft delete e auditoria.
+
+`campaign_gms`: liga um `campaign_id` a um `email` de mestre. Sem UNIQUE — nada impede duplicar o mesmo mestre na mesma campanha.
+
+A migration 058 criou a campanha padrão `caminho-sem-volta` e a 059 ligou as solicitações de criação a ela.
+
+### `npcs` e `npc_acesso_player` (migrations posteriores à 059)
+
+`npcs`: `id`, `nome`, `raca_id` (→ `racas.id`), `descricao`, `foto_url` (caminho relativo) + soft delete e auditoria.
+
+`npc_acesso_player`: quais personagens enxergam quais NPCs. `UNIQUE(npc_id, character_id)` **total** — por isso o revogar é **hard delete**, igual a `classe_secreta_revelada`. O player só vê o que estiver listado aqui; o mestre vê tudo.
+
+Telas: `/master/npcs` (gestão + aba de acessos) e `/npcs` (visão do jogador, exige `characterId`).
+
+### `player_telas`
+
+Quais telas do menu cada personagem pode abrir. `UNIQUE(character_id, tela)`.
+
+A lista de telas liberáveis é **fixa no código**, em `TELAS_DISPONIVEIS` (`server/src/modules/player-telas/player-telas.service.ts`), não no banco: `cidade`, `classes`, `deuses`, `equipamentos`, `notas`, `npcs`, `racas`, `skills`, `titulos`. Valor desconhecido é descartado silenciosamente na gravação.
+
+`PUT /api/player-telas/admin/:characterId` **substitui o conjunto inteiro** — apaga tudo e reinsere. Mestre sempre recebe todas as telas, sem consultar a tabela.
+
+Tela: `/master/telas` → `MasterTelasView.vue`.
+
+### `level_progression` (migration 054) e `class_level_progression` (migration 053)
+
+Duas tabelas de XP, com propósitos diferentes — é fácil trocar uma pela outra.
+
+**`level_progression`** é a do **personagem**: `level` (**UNIQUE**), `tier`, `multiplier`, `xp_required_next` e `xp_total_accumulated`. 27 níveis cadastrados. É a tabela que `atribuirXpAoPersonagem` percorre para decidir o nível a partir do XP acumulado. O código-fonte da migração anterior consultava colunas que não existem aqui (`nivel`, `xp_necessario`), então **o XP nunca subia o nível de ninguém** até isso ser corrigido.
+
+**`class_level_progression`** é a do **par classe/nível**: `classe_id`, `nivel`, `xp_necessario`, com `UNIQUE(classe_id, nivel)`. Alimenta a progressão dentro de cada classe em `data.classes[].xp`.
+
+Nas duas o UNIQUE é total, então **soft delete não se aplica** — apagar um nível é hard delete (mesma armadilha descrita em `classe_secreta_revelada`).
+
+Tela: `/master/progressao` → `MasterProgressaoView.vue`.
+
+### `skill_natureza` (migrations 050 e 066)
+
+Lookup de natureza da skill: 1=Ativa, 2=Passiva, 3=Assinatura. Referenciada por `skills.skill_natureza_item`. Padrão `item INTEGER PK` + `descricao`. A 066 converteu o `item` para IDENTITY.
+
+### `skill_niveis` (migration 052)
+
+Evoluções de nível 2 e 3 de uma skill. `UNIQUE(skill_id, nivel)` **total** → o DELETE é **hard**.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| id | INTEGER PK | IDENTITY |
+| skill_id | INTEGER | referência a `skills.id` |
+| nivel | INTEGER | 2 ou 3 |
+| damage_multiplier_pct | INTEGER | nullable — bônus percentual de dano |
+| nome_override | VARCHAR(100) | nullable — cada campo `*_override` substitui o da skill base quando preenchido |
+| damage_base_override | TEXT | nullable |
+| multiplicador_override | VARCHAR | nullable |
+| effect_description_override | VARCHAR(500) | nullable |
+
+Tela: `/master/skill-niveis` → `MasterSkillNiveisView.vue`.
 
 ## Integridade de Dados — Deleção em Cascata
 
@@ -533,10 +854,11 @@ Antes da confirmação, o frontend (`MasterSkillsView`) chama `GET /api/skills/a
 ## Padrões de Código
 
 - Código e comentários em **português brasileiro (pt-BR)**
-- Backend usa **admin client** (ignora RLS) para escritas; **anon client** para leituras públicas
+- Backend fala com o Postgres pelo Sequelize. **Leituras com JOIN em SQL cru** (`sequelize.query`); **escritas pelo ORM**, para os hooks de auditoria dispararem
 - Soft delete padrão: `deleted_at IS NULL` para registros ativos
 - DTOs com `class-validator` no backend; tipos TypeScript no frontend
-- **A validação só roda nos módulos já migrados para o Nest**, via `ValidationPipe` global. Nos módulos Express que restam os decorators são decorativos — nada chama `validate()`, o router passa `req.body` direto para o service. Ao migrar um módulo, reveja as regras herdadas: elas nunca foram executadas e podem estar erradas (foi o caso do `@IsUrl` em `racas.foto_url`, que passaria a recusar os caminhos relativos que hoje se gravam)
+- A validação roda em **todo** o backend, pelo `ValidationPipe` global (`transform: true, whitelist: true`) — não há mais módulo Express. Historicamente os decorators eram decorativos (nada chamava `validate()`), então **regras herdadas daquela época já nasceram sem nunca ter sido executadas** e algumas estavam erradas: o `@IsUrl` em `racas.foto_url` recusaria os caminhos relativos que hoje se gravam. Ao mexer num DTO antigo, confira se a regra faz sentido em vez de confiar nela
+- **URL de arquivo:** o banco guarda caminho relativo; toda resposta que expõe uma imagem precisa passar por `montarUrlPublica`. Esquecer disso não dá erro — devolve o caminho cru e o navegador busca no host errado
 - Componentes compartilhados: `Modal.vue`, `DataTable.vue`, `HamburgerDrawerMenu.vue`, `TemaDarkLight.vue`, `SuperficieTema.vue`, `VSelect.vue`
 - **`DataTable.vue` é o padrão de tabela do projeto** — toda listagem CRUD admin deve usar este componente (ver `docs/COMPONENTS.md`)
 - **Nunca usar FOREIGN KEY constraints no banco** — referências entre tabelas são por convenção de inteiro apenas
@@ -557,21 +879,24 @@ Antes da confirmação, o frontend (`MasterSkillsView`) chama `GET /api/skills/a
 - **Jogador (tipo `player`):** autenticado, acessa apenas seu personagem no dashboard. Login pelo username.
 - **Mestre (tipo `gm`):** acessa `/master`, pode abrir qualquer personagem, gerencia catálogos. Login pelo email real.
 
-Quem é mestre vem de `usuarios.tipo = 'gm'`, que viaja dentro do JWT e é checado pelo `MasterGuard`. A env var `MASTER_EMAILS` só sobrevive nos módulos Express ainda não migrados e sai junto com eles.
+Quem é mestre vem de `usuarios.tipo = 'gm'`, que viaja dentro do JWT e é checado pelo `MasterGuard`. A env var `MASTER_EMAILS` **não existe mais** — era uma lista de e-mails em variável de ambiente, o que espalhava a definição de "quem é mestre" por dezenas de arquivos e obrigava a redeploy para promover alguém.
 
 Ambos os tipos têm registro na tabela `usuarios`. Players são criados automaticamente na aprovação.
+
+**Acesso a um personagem** é decidido em um lugar só, `garantirAcessoAoPersonagem` (`server/src/modules/personagem/personagem-acesso.ts`): mestre passa sempre, dono passa, o resto leva `ForbiddenException`. Toda rota que recebe `characterId` do cliente precisa chamá-la — foi assim que quatro rotas que aceitavam qualquer id foram fechadas na migração.
 
 ## Gerenciamento de Usuários
 
 - Tela: `/master/usuarios` → `MasterUsersView.vue`
-- Funções: listar todos, filtrar por tipo/status, editar username/tipo/nome do personagem, reset de senha, ativar/desativar conta, liberar/remover pré-registros, **deletar** (remove auth + personagem + avatar storage)
-- Username change atualiza: `usuarios.username` + `characters.username` + email Supabase Auth (`{novo}@rpg.internal`) + `user_metadata.display_name`
-- Desativar: aplica `ban_duration: "876600h"` via Supabase Admin API — bloqueia login
-- **Definir Senha GM** (botão violet): modal manual com input + validação de regras (mín 8, maiúscula, número, especial)
-- **Reset Padrão** (botão orange, disponível para GM e player): seta senha para `12345` + `user_metadata.requires_password_change = true`; no próximo login é exibido modal obrigatório para troca de senha seguindo as regras; após confirmar grava `requires_password_change: false` via `supabase.auth.updateUser`
-  - **Player**: modal de troca aparece no `DashboardView`
-  - **GM**: modal de troca aparece no `MasterPanelView` (verificado no `onMounted`)
-- **Supabase Auth display_name**: todo usuário criado recebe `user_metadata.display_name = username` para identificação no dashboard Supabase. Migration 031 preencheu os existentes.
+- Funções: listar todos, filtrar por tipo/status, editar username/tipo/nome do personagem, definir ou resetar senha, ativar/desativar conta, liberar/remover pré-registros, deletar
+- **Username change** atualiza `usuarios.username` e a cópia em `characters.username`. Não existe mais email sintético `{username}@rpg.internal`: o login usa o próprio username
+- **Desativar**: vira `usuarios.ativo = false`. O login já recusa quem está inativo, então a coluna sozinha basta — substituiu o `ban_duration` que era aplicado no Supabase Auth
+- **Deletar**: é **soft delete**, no usuário e no personagem. A documentação antiga dizia "hard delete: auth + personagem + storage"; hoje nada é apagado de verdade e **o avatar em disco é preservado**, justamente porque a exclusão é reversível
+- **Contas GM são protegidas**: `alterarAtivo` e `deletar` recusam quem tem `tipo = 'gm'`. Só dá para desativar ou apagar player pelo painel
+- **Definir Senha GM** (botão violet): modal com input + validação (mín 8, maiúscula, número, especial). Grava o bcrypt e deixa `requires_password_change = false`
+- **Reset Padrão** (botão orange, GM e player): senha vira `12345` e `requires_password_change = true`. No próximo login o modal obrigatório de troca aparece
+  - **Player**: modal no `DashboardView`
+  - **GM**: modal no `MasterPanelView` (verificado no `onMounted`)
 
 ## Fluxo de Auth
 
@@ -588,16 +913,20 @@ JWT próprio, emitido pelo backend. Supabase Auth saiu de cena.
 
 ## Fluxo de Criação de Personagem
 
-1. Jogador acessa `/` (LoginView) e abre modal "Criar Novo Personagem"
-2. Preenche: avatar (obrigatório, comprimido canvas + sharp), nome + sobrenome, email (deve estar na whitelist), username (3-20 chars, a-z0-9_-), senha (mín 8, maiúscula, número, especial), gênero (VSelect → `genero`), índole (VSelect → `indole`), aparência física (**mín 100 letras** sem espaços), história (**mín 1000 letras** OU arquivo Word/PDF)
-3. **Bypass de teste**: incluir o texto `"mas a bicicleta e azul"` na aparência ou história pula as validações de tamanho mínimo (frontend + backend)
-4. Frontend faz upload do avatar para `character-avatars/pending/` via `POST /upload-avatar` (público)
-5. Frontend submete `POST /character-creation-requests` — sem auth, backend valida whitelist + unicidade de username + regras
+**Pré-requisito:** o mestre precisa ter **pré-registrado o email** em `/master/usuarios` (`POST /api/usuarios/admin/pre-registrar`), o que cria uma linha em `usuarios` com `password_hash` nulo. Sem isso a submissão é recusada.
+
+1. Jogador acessa `/` (WorldsView), escolhe o mundo, cai em `/mundo/:slug` (LoginView) e abre o modal "Criar Novo Personagem"
+2. Preenche: avatar (obrigatório, comprimido no canvas + sharp no servidor), nome + sobrenome, email (precisa estar pré-registrado), username (3-20 chars, `a-z0-9_-`), senha (mín 8, maiúscula, número, especial), gênero (VSelect → `genero`), índole (VSelect → `indole`), aparência física (**mín 100 letras** sem espaços), história (**mín 1000 letras** OU arquivo Word/PDF)
+3. **Bypass de teste**: incluir o texto `"mas a bicicleta e azul"` na aparência ou na história pula as validações de tamanho mínimo (frontend + backend)
+4. Frontend sobe o avatar por `POST /api/character-creation-requests/upload-avatar` (público) → grava em `uploads/pendentes/` e devolve a URL
+5. Frontend submete `POST /api/character-creation-requests` — sem auth. O backend confere o pré-registro, a unicidade do username e as regras, e **guarda a senha já em bcrypt**
    - **Atenção:** a API `submeterSolicitacaoCriacao` mapeia camelCase → snake_case antes de enviar (ex: `aparenciaFisica → aparencia_fisica`)
-6. Jogador vê tela "Aguardando aprovação do mestre" — **sem login automático**
-7. Mestre vê bell com contagem em `/master` e acessa `/master/logins`
-8. Mestre aprova: backend cria usuário Supabase Auth (`{username}@rpg.internal`) + `display_name = username` + registro em `characters` + registro em `usuarios`
-9. Mestre rejeita: preenche motivo (opcional)
+6. Jogador vê "Aguardando aprovação do mestre" — **sem login automático**
+7. Mestre vê o sino com a contagem em `/master` e abre `/master/logins`
+8. Mestre aprova: o backend preenche o pré-registro em `usuarios` **transferindo o hash** já pronto e cria o registro em `characters`. Se a criação do personagem falhar, a conta é desfeita para não ficar órfã
+9. Mestre rejeita: preenche o motivo (opcional). O username volta a ficar livre — o índice único é parcial e só cobre `pendente`/`aprovado` (migration 069)
+
+**A senha nunca é recuperável a partir do banco.** Antes era AES-256-CBC reversível, porque o texto puro era necessário para criar a conta no Supabase Auth. Como a conta agora nasce aqui, basta transferir o hash.
 
 ## Fluxo de Onboarding (primeiro login do player)
 
@@ -614,9 +943,14 @@ Todas as 6 etapas estão implementadas em `OnboardingView.vue`.
 | 3 — Passado | `PATCH /api/personagens/:id/escolher-passado` | Sim | Atualiza `characters.passado_id`. As skills e títulos do passado **não** são copiados para o personagem — o dashboard os lê do catálogo de passados na hora de exibir |
 | 4 — Atributos | `PATCH /api/personagens/:id/definir-atributos` | Sim | Salva em `data.atributos` |
 | 5 — Deus | `PATCH /api/personagens/:id/escolher-deus` | Sim | Atualiza `characters.deus_id`; pode ser pulado |
+| 6a — Dinheiro | `POST /api/personagens/:id/rolar-dinheiro-inicial` | Sim | Rola o `dinheiro_inicial` do passado; grava em `data.dinheiro_inicial` |
 | 6 — Equipamentos | `PATCH /api/personagens/:id/concluir-onboarding` | — | Salva `data.equipamentos_iniciais`; seta `onboarding_completo = true` |
 
-**Navegação entre etapas:** o player pode transitar livremente entre as etapas já concluídas usando o stepper no topo. `etapaMaxima` controla quais etapas são clicáveis. Ao concluir a etapa 6, é redirecionado para `/dashboard`.
+**Navegação entre etapas:** o player transita livremente entre as etapas já concluídas — pelo stepper do topo (clicável) ou pelos botões **Voltar / Avançar** no rodapé. `etapaMaxima` guarda a etapa mais longe já alcançada e limita os dois. Ao concluir a etapa 6, é redirecionado para `/dashboard`.
+
+**Dinheiro inicial (etapa 6):** o jogador rola os dados que o passado dá. São **duas tentativas no máximo**; a segunda substitui a primeira mesmo se vier pior, e o valor descartado fica gravado em `data.dinheiro_inicial.descartado`.
+
+**O dado é rolado no servidor**, nunca no navegador — no cliente bastaria recarregar a página até sair o valor máximo, e a regra das duas tentativas não significaria nada. A rota não aceita corpo: o que rolar vem do passado do personagem.
 
 **Capacidade de carga (etapa 6):** `pesoMaximo = 2 + atributos.forca * 2`, onde `forca` já inclui o bônus do passado. Backend valida na conclusão do onboarding.
 
@@ -665,10 +999,15 @@ O dashboard do player exibe todas as informações selecionadas no onboarding:
 - **Barra de capacidade de carga**: verde < 70%, âmbar 70–90%, vermelho ≥ 90%. Fórmula: `Força × 2`
 - Inventário geral (itens livres, sem peso) com mochila rápida (dropdown)
 
-## Storage (Supabase)
+## Storage (disco local)
 
-- Avatar: bucket `character-avatars` (`VITE_AVATAR_BUCKET`) — uploads pendentes em `pending/`, aprovados movidos para raiz
-- História: bucket `character-history` (`VITE_HISTORY_BUCKET`)
+Arquivos ficam em `uploads/<subpasta>/<nome>.<ext>` e são servidos em `/uploads/...`. **O banco guarda o caminho relativo** (`gods/pharasma.png`); a URL completa é montada na resposta a partir de `PUBLIC_BASE_URL`.
+
+Subpastas: `gods`, `maps`, `racas`, `passados`, `npcs`, `campanhas`, `lore` (PDF de nota), `personagens` (avatar e história anexados a um pedido de alteração) e `pendentes` (avatar e história de solicitação de criação).
+
+Cada módulo expõe a própria rota de upload — todas exigem mestre, exceto as de `character-creation-requests` (públicas, porque quem submete ainda não tem conta) e as de `personagens/:id/*`, que exigem ser dono do personagem.
+
+Nomes de arquivo são higienizados e recebem sufixo numérico só em colisão real com conteúdo diferente — arquivo idêntico reaproveita o mesmo nome.
 
 ## Backup de Imagens
 

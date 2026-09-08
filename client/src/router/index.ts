@@ -92,6 +92,30 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresMaster: true },
     },
     {
+      path: '/master/pericias',
+      name: 'master-pericias',
+      component: () => import('@/views/MasterPericiasView.vue'),
+      meta: { requiresAuth: true, requiresMaster: true },
+    },
+    {
+      path: '/master/receitas',
+      name: 'master-receitas',
+      component: () => import('@/views/MasterReceitasView.vue'),
+      meta: { requiresAuth: true, requiresMaster: true },
+    },
+    {
+      path: '/master/itens',
+      name: 'master-itens',
+      component: () => import('@/views/MasterItensView.vue'),
+      meta: { requiresAuth: true, requiresMaster: true },
+    },
+    {
+      path: '/master/consumiveis',
+      name: 'master-consumiveis',
+      component: () => import('@/views/MasterConsumiveisView.vue'),
+      meta: { requiresAuth: true, requiresMaster: true },
+    },
+    {
       path: '/master/equipamentos',
       name: 'master-equipamentos',
       component: () => import('@/views/MasterWeaponsView.vue'),

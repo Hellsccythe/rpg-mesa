@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import type { AprovacaoPendenteApi, PersonagemApi } from '@/types/supabase'
+import type { AprovacaoPendenteApi, PersonagemApi } from '@/types/api'
 import {
   listPendingApprovals,
   reviewPendingApproval as reviewPendingApprovalApi,

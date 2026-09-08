@@ -376,7 +376,7 @@ import TemaDarkLight from '@/components/TemaDarkLight.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useMasterCatalogStore } from '@/stores/masterCatalog'
 import { uploadCityMapImage } from '@/lib/api/city-maps.api'
-import type { CityMapApi, PointOfInterestApi } from '@/types/supabase'
+import type { CityMapApi, PointOfInterestApi } from '@/types/api'
 import hamletMap from '@/assets/maps/hamlet.png'
 
 type Tab = 'existing' | 'create-city' | 'create-child'

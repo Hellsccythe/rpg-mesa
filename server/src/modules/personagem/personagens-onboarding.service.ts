@@ -6,6 +6,7 @@ import type { UsuarioAutenticado } from "../../common/cls/usuario-autenticado.in
 import { PersonagemModel } from "./models/personagem.model.js";
 import { garantirAcessoAoPersonagem } from "./personagem-acesso.js";
 import { mapearPersonagemParaApi, type PersonagemApi } from "./personagem-api.mapper.js";
+import { PericiasService } from "../pericias/pericias.service.js";
 import type {
   ConcluirOnboardingDto,
   DefinirAtributosDto,
@@ -18,6 +19,34 @@ const TOTAL_PONTOS_ATRIBUTO = 10;
 
 /** Pontos de skill que a classe inicial concede ao ser escolhida. */
 const PONTOS_SKILL_CLASSE_INICIAL = 2;
+
+/**
+ * Quantas vezes o jogador pode rolar o dinheiro inicial. A segunda é a aposta:
+ * substitui a primeira mesmo se sair pior.
+ */
+const MAXIMO_TENTATIVAS_DINHEIRO = 2;
+
+/** Uma linha do dinheiro que o passado concede, ex. `2d100` de prata. */
+type RolagemDeDinheiro = {
+  quantidade: number;
+  faces: number;
+  moeda: string;
+};
+
+type ResultadoDeDinheiro = {
+  detalhes: Array<RolagemDeDinheiro & { dados: number[]; soma: number }>;
+  /** Soma por moeda: `{ prata: 73, ouro: 2 }`. */
+  total: Record<string, number>;
+  roladoEm: string;
+};
+
+/** O que fica em `characters.data.dinheiro_inicial`. */
+type DinheiroInicialGravado = {
+  tentativas: number;
+  resultado: ResultadoDeDinheiro;
+  /** O que a segunda rolagem descartou. Nulo enquanto só houve uma. */
+  descartado: ResultadoDeDinheiro | null;
+};
 
 type Atributos = {
   aura: number;
@@ -61,6 +90,7 @@ export class PersonagensOnboardingService {
     @InjectModel(PersonagemModel)
     private readonly modeloPersonagem: typeof PersonagemModel,
     private readonly sequelize: Sequelize,
+    private readonly servicoPericias: PericiasService,
   ) {}
 
   // ── Etapa 1: raça ─────────────────────────────────────────────────────────
@@ -198,9 +228,38 @@ export class PersonagensOnboardingService {
     }
     await this.garantirRegistroAtivo("passados", passadoId, "Passado não encontrado.");
 
+    // As perícias do passado são COPIADAS para o personagem, ao contrário das
+    // skills e títulos (que o dashboard lê do catálogo na hora de exibir). A
+    // diferença é que o jogador vai comprar ranks por cima destes: sem a cópia
+    // não haveria como separar o que veio de origem do que foi comprado.
+    //
+    // Copiar é seguro porque o passado é permanente — não há o caso de trocar
+    // depois e ficar com rank de um passado que não é mais o seu.
+    const periciasIniciais = await this.buscarPericiasDoPassado(passadoId);
+    const dados = this.lerDados(personagem);
+    const periciasDoPersonagem = await this.servicoPericias.aplicarPericiasDoPassado(
+      this.servicoPericias.lerPericias(dados),
+      periciasIniciais,
+    );
+
     personagem.passadoId = passadoId;
+    personagem.data = { ...dados, pericias: periciasDoPersonagem };
     await personagem.save();
     return mapearPersonagemParaApi(personagem);
+  }
+
+  private async buscarPericiasDoPassado(
+    passadoId: number,
+  ): Promise<Array<{ periciaId: number; rank: number }>> {
+    const encontrados = await this.sequelize.query<{
+      pericias_iniciais: Array<{ periciaId: number; rank: number }> | null;
+    }>(`SELECT pericias_iniciais FROM passados WHERE id = :passadoId LIMIT 1`, {
+      replacements: { passadoId },
+      type: QueryTypes.SELECT,
+    });
+
+    const lista = encontrados[0]?.pericias_iniciais;
+    return Array.isArray(lista) ? lista : [];
   }
 
   // ── Etapa 4: atributos ────────────────────────────────────────────────────
@@ -279,6 +338,102 @@ export class PersonagensOnboardingService {
     personagem.data = { ...dados, deusEtapaConcluida: true };
     await personagem.save();
     return mapearPersonagemParaApi(personagem);
+  }
+
+  // ── Etapa 6: dinheiro inicial ─────────────────────────────────────────────
+
+  /**
+   * Rola o dinheiro que o passado concede. **O dado é rolado aqui, no
+   * servidor, e não no navegador** — no cliente bastaria recarregar a página
+   * (ou abrir o console) até sair 100 num d100, e a regra das duas tentativas
+   * não significaria nada.
+   *
+   * São no máximo duas tentativas. A segunda substitui a primeira mesmo se
+   * vier pior: é o risco que o jogador aceita ao pedir para rolar de novo. O
+   * valor descartado fica guardado para ele ver o que abriu mão, e para o
+   * mestre poder conferir.
+   */
+  async rolarDinheiroInicial(
+    personagemId: number,
+    usuario: UsuarioAutenticado,
+  ): Promise<PersonagemApi> {
+    const personagem = await this.buscarPermitidoOuFalhar(personagemId, usuario);
+
+    if (personagem.onboardingCompleto) {
+      throw new ConflictException("Onboarding já foi concluído.");
+    }
+    if (personagem.passadoId === null) {
+      throw new BadRequestException("Escolha um passado antes de rolar o dinheiro inicial.");
+    }
+
+    const rolagensDoPassado = await this.buscarDinheiroDoPassado(personagem.passadoId);
+    if (rolagensDoPassado.length === 0) {
+      throw new BadRequestException("O passado escolhido não concede dinheiro inicial.");
+    }
+
+    const dados = this.lerDados(personagem);
+    const anterior = dados.dinheiro_inicial as DinheiroInicialGravado | undefined;
+    const tentativasFeitas = anterior?.tentativas ?? 0;
+
+    if (tentativasFeitas >= MAXIMO_TENTATIVAS_DINHEIRO) {
+      throw new ConflictException(
+        `O dinheiro inicial já foi rolado ${MAXIMO_TENTATIVAS_DINHEIRO} vezes.`,
+      );
+    }
+
+    const resultado = this.rolarDados(rolagensDoPassado);
+
+    personagem.data = {
+      ...dados,
+      dinheiro_inicial: {
+        tentativas: tentativasFeitas + 1,
+        resultado,
+        // Só existe a partir da segunda tentativa.
+        descartado: tentativasFeitas === 0 ? null : (anterior?.resultado ?? null),
+      } satisfies DinheiroInicialGravado,
+    };
+    await personagem.save();
+    return mapearPersonagemParaApi(personagem);
+  }
+
+  /**
+   * `Math.random` basta aqui: o resultado é gravado no servidor e o jogador
+   * não escolhe quando rolar de um jeito que dê para prever a semente. Não é
+   * sorteio com valor em dinheiro real.
+   */
+  private rolarDados(rolagens: RolagemDeDinheiro[]): ResultadoDeDinheiro {
+    const detalhes = rolagens.map((rolagem) => {
+      const dados: number[] = [];
+      for (let i = 0; i < rolagem.quantidade; i += 1) {
+        dados.push(Math.floor(Math.random() * rolagem.faces) + 1);
+      }
+      return {
+        quantidade: rolagem.quantidade,
+        faces: rolagem.faces,
+        moeda: rolagem.moeda,
+        dados,
+        soma: dados.reduce((total, valor) => total + valor, 0),
+      };
+    });
+
+    const total: Record<string, number> = {};
+    for (const detalhe of detalhes) {
+      total[detalhe.moeda] = (total[detalhe.moeda] ?? 0) + detalhe.soma;
+    }
+
+    return { detalhes, total, roladoEm: new Date().toISOString() };
+  }
+
+  private async buscarDinheiroDoPassado(passadoId: number): Promise<RolagemDeDinheiro[]> {
+    const encontrados = await this.sequelize.query<{
+      dinheiro_inicial: RolagemDeDinheiro[] | null;
+    }>(`SELECT dinheiro_inicial FROM passados WHERE id = :passadoId LIMIT 1`, {
+      replacements: { passadoId },
+      type: QueryTypes.SELECT,
+    });
+
+    const rolagens = encontrados[0]?.dinheiro_inicial;
+    return Array.isArray(rolagens) ? rolagens : [];
   }
 
   // ── Etapa 6: equipamentos iniciais e conclusão ────────────────────────────

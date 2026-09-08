@@ -29,22 +29,22 @@ import {
   EditarFilhoVariadosDto,
 } from "./tabelas-acessorias.dto.js";
 
-const ITEM_EQUIPAMENTO_TIPO_ARMA = 1;
-const ITEM_EQUIPAMENTO_TIPO_ARMADURA = 2;
-const ITEM_EQUIPAMENTO_TIPO_VARIADOS = 3;
+const ITEM_USO_EQUIPAMENTO_ARMA = 1;
+const ITEM_USO_EQUIPAMENTO_ARMADURA = 2;
+const ITEM_USO_EQUIPAMENTO_VARIADOS = 3;
 
 @Controller("tabelas-acessorias")
 export class TabelasAcessoriasController {
   constructor(private readonly servicoTabelasAcessorias: TabelasAcessoriasService) {}
 
-  // ── equipamento_tipo ──────────────────────────────────────────────────────
-  @Get("tipos")
+  // ── uso_equipamento ──────────────────────────────────────────────────────
+  @Get("uso-equipamento")
   listarTipos() {
     return this.servicoTabelasAcessorias.tipos.listar();
   }
 
   @UseGuards(JwtAuthGuard, MasterGuard)
-  @Post("tipos/admin")
+  @Post("uso-equipamento/admin")
   criarTipo(@Body() dadosCriacao: CriarTipoEquipamentoDto) {
     return this.servicoTabelasAcessorias.tipos.criar({
       descricao: dadosCriacao.descricao.trim(),
@@ -52,7 +52,7 @@ export class TabelasAcessoriasController {
   }
 
   @UseGuards(JwtAuthGuard, MasterGuard)
-  @Patch("tipos/admin/:item")
+  @Patch("uso-equipamento/admin/:item")
   editarTipo(
     @Param("item", ParseIntPipe) item: number,
     @Body() dadosEdicao: EditarTipoEquipamentoDto,
@@ -63,7 +63,7 @@ export class TabelasAcessoriasController {
   }
 
   @UseGuards(JwtAuthGuard, MasterGuard)
-  @Delete("tipos/admin/:item")
+  @Delete("uso-equipamento/admin/:item")
   deletarTipo(@Param("item", ParseIntPipe) item: number) {
     return this.servicoTabelasAcessorias.tipos.deletar(item);
   }
@@ -79,7 +79,7 @@ export class TabelasAcessoriasController {
   criarCategoriaArma(@Body() dadosCriacao: CriarCategoriaArmaDto) {
     return this.servicoTabelasAcessorias.categoriasArma.criar({
       descricao: dadosCriacao.descricao.trim(),
-      equipamentoTipoItem: ITEM_EQUIPAMENTO_TIPO_ARMA,
+      usoEquipamentoItem: ITEM_USO_EQUIPAMENTO_ARMA,
     });
   }
 
@@ -111,7 +111,7 @@ export class TabelasAcessoriasController {
   criarCategoriaArmadura(@Body() dadosCriacao: CriarCategoriaArmaduraDto) {
     return this.servicoTabelasAcessorias.categoriasArmadura.criar({
       descricao: dadosCriacao.descricao.trim(),
-      equipamentoTipoItem: ITEM_EQUIPAMENTO_TIPO_ARMADURA,
+      usoEquipamentoItem: ITEM_USO_EQUIPAMENTO_ARMADURA,
     });
   }
 
@@ -143,7 +143,7 @@ export class TabelasAcessoriasController {
   criarCategoriaVariados(@Body() dadosCriacao: CriarCategoriaVariadosDto) {
     return this.servicoTabelasAcessorias.categoriasVariados.criar({
       descricao: dadosCriacao.descricao.trim(),
-      equipamentoTipoItem: ITEM_EQUIPAMENTO_TIPO_VARIADOS,
+      usoEquipamentoItem: ITEM_USO_EQUIPAMENTO_VARIADOS,
     });
   }
 

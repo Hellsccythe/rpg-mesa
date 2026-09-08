@@ -57,8 +57,11 @@
               <!-- Titular atual -->
               <div v-if="cls.revelada && cls.titular" class="mt-3 flex items-center gap-2.5">
                 <div class="h-8 w-8 overflow-hidden rounded-full border border-amber-500/30 bg-black/30">
-                  <img v-if="cls.titular.avatar_url" :src="cls.titular.avatar_url" class="h-full w-full object-cover" />
-                  <div v-else class="flex h-full items-center justify-center text-xs text-zinc-600">{{ cls.titular.name?.[0] }}</div>
+                  <AvatarPersonagem :src="cls.titular.avatar_url" :alt="cls.titular.name" enquadramento="center">
+                    <template #fallback>
+                      <div class="flex h-full w-full items-center justify-center text-xs text-zinc-600">{{ cls.titular.name?.[0] }}</div>
+                    </template>
+                  </AvatarPersonagem>
                 </div>
                 <div>
                   <p class="text-sm font-semibold text-amber-300">{{ cls.titular.name }}</p>
@@ -128,8 +131,11 @@
             @click="personagemSelecionado = p.id"
           >
             <div class="h-8 w-8 overflow-hidden rounded-full border border-white/10 bg-black/30 shrink-0">
-              <img v-if="p.avatar_url" :src="p.avatar_url" class="h-full w-full object-cover" />
-              <div v-else class="flex h-full items-center justify-center text-xs text-zinc-600">{{ p.name?.[0] }}</div>
+              <AvatarPersonagem :src="p.avatar_url" :alt="p.name" enquadramento="center">
+                <template #fallback>
+                  <div class="flex h-full w-full items-center justify-center text-xs text-zinc-600">{{ p.name?.[0] }}</div>
+                </template>
+              </AvatarPersonagem>
             </div>
             <div class="flex-1 min-w-0">
               <p class="text-sm font-medium truncate" :class="personagemSelecionado === p.id ? 'text-amber-200' : 'text-zinc-300'">{{ p.name }}</p>
@@ -157,6 +163,7 @@
 </template>
 
 <script setup lang="ts">
+import AvatarPersonagem from '@/components/AvatarPersonagem.vue'
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import Modal from '@/components/Modal.vue'

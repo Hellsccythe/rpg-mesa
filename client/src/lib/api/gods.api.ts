@@ -1,5 +1,5 @@
 import { api } from '@/plugins/axios'
-import type { GodApi } from '@/types/supabase'
+import type { GodApi } from '@/types/api'
 
 export interface SaveGodPayload {
   name: string

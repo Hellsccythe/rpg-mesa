@@ -3,6 +3,7 @@ import { InjectModel } from "@nestjs/sequelize";
 import { Op, QueryTypes } from "sequelize";
 import { Sequelize } from "sequelize-typescript";
 import type { UsuarioAutenticado } from "../../common/cls/usuario-autenticado.interface.js";
+import { montarUrlPublica } from "../../common/storage/armazenamento-arquivos.service.js";
 import { PersonagemModel } from "../personagem/models/personagem.model.js";
 import { garantirAcessoAoPersonagem } from "../personagem/personagem-acesso.js";
 import { ClasseModel, type RequisitosDeClasse } from "./models/classe.model.js";
@@ -274,7 +275,7 @@ export class ClassesService {
               id: linha.titular_id,
               name: linha.titular_name,
               username: linha.titular_username,
-              avatar_url: linha.titular_avatar_url,
+              avatar_url: montarUrlPublica(linha.titular_avatar_url) || null,
               status: linha.titular_status,
             },
       revealed_at: formatarData(linha.revealed_at),

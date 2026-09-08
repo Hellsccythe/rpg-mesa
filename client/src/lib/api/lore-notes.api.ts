@@ -51,3 +51,14 @@ export async function updateLoreNote(
 export async function deleteLoreNote(id: number): Promise<void> {
   await api.delete(`/lore-notes/admin/${id}`)
 }
+
+/** PDF anexado a uma nota de lore. Devolve o caminho relativo a gravar. */
+export async function uploadPdfLore(file: File): Promise<{ path: string; publicUrl: string }> {
+  const form = new FormData()
+  form.append('file', file)
+  const { data } = await api.post<{ path: string; publicUrl: string }>(
+    '/lore-notes/admin/upload-pdf',
+    form,
+  )
+  return data
+}

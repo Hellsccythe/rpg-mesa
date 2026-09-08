@@ -1,5 +1,5 @@
 import { api } from '@/plugins/axios'
-import type { CharacterCreationRequestApi } from '@/types/supabase'
+import type { CharacterCreationRequestApi } from '@/types/api'
 
 export interface SubmeterCriacaoPayload {
   nome: string

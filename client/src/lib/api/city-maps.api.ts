@@ -1,5 +1,5 @@
 import { api } from '@/plugins/axios'
-import type { CityMapApi, PointOfInterestApi } from '@/types/supabase'
+import type { CityMapApi, PointOfInterestApi } from '@/types/api'
 
 export interface SaveCityMapPayload {
   name: string

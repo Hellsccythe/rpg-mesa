@@ -169,8 +169,11 @@
       <div class="mb-10 flex flex-col items-center gap-4 text-center">
         <div class="relative">
           <div class="h-20 w-20 overflow-hidden rounded-full border-2 border-white/20 bg-black/40 ring-4 ring-indigo-500/20">
-            <img v-if="personagem?.avatarUrl" :src="personagem.avatarUrl" :alt="personagem.name" class="h-full w-full object-cover" />
-            <div v-else class="flex h-full items-center justify-center text-3xl text-zinc-600">{{ personagem?.name?.[0]?.toUpperCase() ?? '?' }}</div>
+            <AvatarPersonagem :src="personagem?.avatarUrl" :alt="personagem?.name" enquadramento="center">
+              <template #fallback>
+                <div class="flex h-full w-full items-center justify-center text-3xl text-zinc-600">{{ personagem?.name?.[0]?.toUpperCase() ?? '?' }}</div>
+              </template>
+            </AvatarPersonagem>
           </div>
           <div class="absolute -bottom-1 -right-1 rounded-full bg-indigo-500 p-1.5">
             <svg class="h-3 w-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
@@ -195,9 +198,15 @@
               :disabled="step.etapa > etapaMaxima"
               @click="navegarParaEtapa(step.etapa as 1|2|3|4|5|6)"
             >
+              <!--
+                Concluída é `step.etapa < etapaMaxima`, e não `etapa > step.etapa`:
+                comparar com a etapa atual fazia as etapas já feitas perderem o
+                check verde assim que o jogador voltava, como se ele tivesse
+                perdido o progresso.
+              -->
               <div class="h-6 w-6 rounded-full flex items-center justify-center text-[0.6rem] font-bold"
-                :class="etapa > step.etapa ? 'bg-green-600 text-white' : etapa === step.etapa ? `${step.bgColor} text-white` : 'border border-white/20 text-zinc-500'">
-                <svg v-if="etapa > step.etapa" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>
+                :class="etapa === step.etapa ? `${step.bgColor} text-white` : step.etapa < etapaMaxima ? 'bg-green-600 text-white' : 'border border-white/20 text-zinc-500'">
+                <svg v-if="etapa !== step.etapa && step.etapa < etapaMaxima" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>
                 <span v-else>{{ step.etapa }}</span>
               </div>
               <span :class="etapa === step.etapa ? `font-semibold ${step.textColor}` : 'text-zinc-600'">{{ step.label }}</span>
@@ -457,21 +466,34 @@
             class="onboarding-card group relative overflow-hidden rounded-3xl border text-left transition-all duration-300"
             :class="hover === deus.id ? 'border-amber-500/50 bg-amber-500/10 shadow-[0_0_40px_rgb(245_158_11/0.12)]' : 'border-white/[0.06] bg-white/[0.02] hover:border-white/15'"
             @mouseenter="hover = deus.id" @mouseleave="hover = null" @click="confirmarDeus(Number(deus.id))">
-            <div class="relative h-44 overflow-hidden">
-              <img v-if="deus.imageUrl" :src="deus.imageUrl" :alt="deus.name" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+            <!--
+              A imagem ocupa o card inteiro e o texto flutua sobre ela. Antes a
+              faixa de imagem tinha altura fixa e o texto vinha abaixo, em bloco
+              opaco: as artes dos deuses são retratos verticais, então o recorte
+              central cortava a cabeça e o resto ficava escondido atrás do texto.
+
+              object-top ancora o recorte no topo (mostra o rosto), e o degradê
+              escurece só o necessário para o texto ler — o contorno da arte
+              continua visível por trás.
+            -->
+            <div class="relative h-72 overflow-hidden">
+              <img v-if="deus.imageUrl" :src="deus.imageUrl" :alt="deus.name" class="h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-105" />
               <div v-else class="flex h-full w-full items-center justify-center bg-gradient-to-br from-amber-900/40 to-orange-900/40 text-6xl">⚡</div>
-              <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-              <div v-if="deus.indole" class="absolute bottom-3 left-3">
-                <span class="rounded-full border border-amber-500/40 bg-amber-950/70 px-2.5 py-0.5 text-[0.65rem] font-semibold text-amber-300">{{ deus.indole }}</span>
+
+              <div class="pointer-events-none absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t from-black/90 via-black/55 to-transparent" />
+
+              <div v-if="deus.indole" class="absolute left-3 top-3">
+                <span class="rounded-full border border-amber-500/40 bg-amber-950/80 px-2.5 py-0.5 text-[0.65rem] font-semibold text-amber-300 backdrop-blur-sm">{{ deus.indole }}</span>
               </div>
-            </div>
-            <div class="p-5">
-              <h3 class="mb-0.5 text-base font-bold text-zinc-100 group-hover:text-white">{{ deus.name }}</h3>
-              <p v-if="deus.title" class="mb-2 text-xs text-amber-400/70 italic">{{ deus.title }}</p>
-              <p v-if="deus.shortDescription" class="line-clamp-2 text-xs leading-relaxed text-zinc-500 group-hover:text-zinc-400">{{ deus.shortDescription }}</p>
-              <div class="mt-3 flex items-center justify-between text-xs font-semibold" :class="hover === deus.id ? 'text-amber-300' : 'text-zinc-600'">
-                <span>Escolher este deus</span>
-                <svg class="h-4 w-4 group-hover:translate-x-1 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+
+              <div class="absolute inset-x-0 bottom-0 p-5">
+                <h3 class="mb-0.5 text-base font-bold text-white drop-shadow">{{ deus.name }}</h3>
+                <p v-if="deus.title" class="mb-2 text-xs italic text-amber-300/90">{{ deus.title }}</p>
+                <p v-if="deus.shortDescription" class="line-clamp-2 text-xs leading-relaxed text-zinc-300/90 group-hover:text-zinc-200">{{ deus.shortDescription }}</p>
+                <div class="mt-3 flex items-center justify-between text-xs font-semibold" :class="hover === deus.id ? 'text-amber-300' : 'text-zinc-400'">
+                  <span>Escolher este deus</span>
+                  <svg class="h-4 w-4 transition-transform group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </div>
               </div>
             </div>
           </button>
@@ -490,6 +512,72 @@
       <!-- ═══ Etapa 6: Equipamentos ═══ -->
       <template v-else-if="etapa === 6">
         <div class="mx-auto max-w-2xl space-y-5">
+
+          <!-- ─── Dinheiro inicial ─── -->
+          <div v-if="dinheiroDoPassado.length" class="rounded-2xl border border-amber-500/20 bg-amber-950/10 p-5 space-y-4">
+            <div class="flex items-baseline justify-between gap-3">
+              <p class="text-sm font-semibold text-amber-200">Dinheiro Inicial</p>
+              <p class="text-xs text-amber-500/70">{{ descreverDinheiro(dinheiroDoPassado) }}</p>
+            </div>
+
+            <!-- Ainda não rolou -->
+            <template v-if="!dinheiroRolado">
+              <p class="text-xs text-zinc-500">
+                Seu passado ({{ passadoSelecionado?.nome }}) concede este dinheiro. Role os dados para
+                descobrir com quanto você começa.
+              </p>
+              <button
+                type="button" :disabled="rolandoDinheiro"
+                class="w-full rounded-2xl bg-amber-700 py-3 text-sm font-bold text-white transition-colors hover:bg-amber-600 disabled:opacity-50"
+                @click="rolarDinheiro"
+              >
+                {{ rolandoDinheiro ? 'Rolando...' : 'Rolar os dados' }}
+              </button>
+            </template>
+
+            <!-- Já rolou -->
+            <template v-else>
+              <div class="flex flex-wrap gap-2">
+                <div
+                  v-for="(detalhe, i) in dinheiroRolado.resultado.detalhes" :key="i"
+                  class="flex-1 min-w-[8rem] rounded-xl border border-amber-500/20 bg-black/20 px-3 py-2.5"
+                >
+                  <p class="text-[0.6rem] uppercase tracking-widest text-amber-500/60">
+                    {{ detalhe.quantidade }}d{{ detalhe.faces }} {{ detalhe.moeda }}
+                  </p>
+                  <p class="text-xl font-bold text-amber-200">{{ detalhe.soma }}</p>
+                  <p v-if="detalhe.dados.length > 1" class="text-[0.65rem] text-zinc-600">
+                    {{ detalhe.dados.join(' + ') }}
+                  </p>
+                </div>
+              </div>
+
+              <p v-if="dinheiroRolado.descartado" class="text-[0.7rem] text-zinc-600">
+                Rolagem descartada: {{ descreverTotal(dinheiroRolado.descartado.total) }}
+              </p>
+
+              <!-- Segunda chance -->
+              <div v-if="dinheiroRolado.tentativas < 2" class="space-y-2 border-t border-amber-500/15 pt-3">
+                <p class="text-xs text-zinc-500">
+                  Você pode rolar <strong class="text-amber-300">mais uma vez</strong> para tentar um valor
+                  maior — mas o resultado da segunda rolagem substitui este, mesmo se vier pior.
+                </p>
+                <button
+                  type="button" :disabled="rolandoDinheiro"
+                  class="w-full rounded-2xl border border-amber-500/40 py-2.5 text-sm font-semibold text-amber-300 transition-colors hover:bg-amber-500/10 disabled:opacity-50"
+                  @click="confirmandoRerolagem = true"
+                >
+                  {{ rolandoDinheiro ? 'Rolando...' : 'Arriscar uma segunda rolagem' }}
+                </button>
+              </div>
+              <p v-else class="border-t border-amber-500/15 pt-3 text-[0.7rem] text-zinc-600">
+                As duas rolagens foram usadas. Este é o seu dinheiro inicial.
+              </p>
+            </template>
+
+            <p v-if="erroDinheiro" class="text-xs text-red-400">{{ erroDinheiro }}</p>
+          </div>
+
           <!-- Barra de peso -->
           <div class="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-5 space-y-3">
             <div class="flex items-center justify-between">
@@ -564,26 +652,109 @@
         </div>
       </template>
 
+      <!-- Confirmação da segunda rolagem — é irreversível, então pergunta antes -->
+      <Modal
+        v-if="confirmandoRerolagem"
+        panel-class="max-w-sm"
+        tema="escuro"
+        :show-close-button="false"
+        :close-on-backdrop="false"
+        @close="confirmandoRerolagem = false"
+      >
+        <div class="space-y-4 p-6">
+          <p class="text-base font-bold text-white">Arriscar a segunda rolagem?</p>
+          <p class="text-sm text-zinc-400">
+            Você tem
+            <strong v-if="dinheiroRolado" class="text-amber-300">
+              {{ descreverTotal(dinheiroRolado.resultado.total) }}
+            </strong>.
+            Rolar de novo <strong class="text-white">descarta esse valor</strong> e fica com o novo,
+            seja ele maior ou menor. Não dá para voltar.
+          </p>
+          <div class="flex gap-3">
+            <button
+              type="button"
+              class="flex-1 rounded-2xl border border-white/10 py-2.5 text-sm font-semibold text-zinc-400 transition-colors hover:text-white"
+              @click="confirmandoRerolagem = false"
+            >
+              Ficar com este
+            </button>
+            <button
+              type="button" :disabled="rolandoDinheiro"
+              class="flex-1 rounded-2xl bg-amber-700 py-2.5 text-sm font-bold text-white transition-colors hover:bg-amber-600 disabled:opacity-50"
+              @click="rolarDinheiro"
+            >
+              {{ rolandoDinheiro ? 'Rolando...' : 'Arriscar' }}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <!-- ═══ Navegação entre etapas ═══ -->
+      <!--
+        O stepper do topo já era clicável, mas ninguém adivinha isso olhando
+        para ele. Estes dois botões dizem em voz alta o que dá para fazer.
+        Avançar só chega até a etapa mais longe já alcançada: passar dali
+        depende de fazer a escolha da etapa atual.
+      -->
+      <div class="mt-10 flex items-center justify-between gap-4 border-t border-white/[0.06] pt-6">
+        <button
+          type="button"
+          :disabled="!podeVoltar"
+          class="flex items-center gap-2 rounded-2xl border border-white/10 px-5 py-2.5 text-sm font-semibold text-zinc-300 transition-colors hover:border-white/25 hover:text-white disabled:pointer-events-none disabled:opacity-30"
+          @click="voltarEtapa"
+        >
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          Voltar
+        </button>
+
+        <p class="text-center text-xs text-zinc-600">
+          Etapa {{ etapa }} de 6
+          <span v-if="!podeAvancar && etapa === etapaMaxima" class="mt-0.5 block text-zinc-700">
+            Faça sua escolha para continuar
+          </span>
+        </p>
+
+        <button
+          type="button"
+          :disabled="!podeAvancar"
+          class="flex items-center gap-2 rounded-2xl border border-white/10 px-5 py-2.5 text-sm font-semibold text-zinc-300 transition-colors hover:border-white/25 hover:text-white disabled:pointer-events-none disabled:opacity-30"
+          @click="avancarEtapa"
+        >
+          Avançar
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+      </div>
+
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import AvatarPersonagem from '@/components/AvatarPersonagem.vue'
+import Modal from '@/components/Modal.vue'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { listarRacasPublicas, type RacaApi } from '@/lib/api/racas.api'
 import { listarClasses, type ClasseApi } from '@/lib/api/classes.api'
-import { listarPassados, type PassadoApi, type AtributoBonus } from '@/lib/api/passados.api'
+import {
+  listarPassados, descreverDinheiro,
+  type PassadoApi, type AtributoBonus, type RolagemDeDinheiro,
+} from '@/lib/api/passados.api'
 import { listPublicGods } from '@/lib/api/gods.api'
 import { listarArmasPublicas, type ArmaApi } from '@/lib/api/armas.api'
 import {
   escolherRaca, escolherClasseInicial, escolherPassado,
   definirAtributos, escolherDeus, concluirOnboarding,
-  getCharacterById,
+  rolarDinheiroInicial, getCharacterById,
 } from '@/lib/api/personagens.api'
 import { escolherSkillInicial } from '@/lib/api/classes.api'
 import { obterMetaAuthLocal, useAuthStore } from '@/stores/auth'
-import type { PersonagemApi, GodApi } from '@/types/supabase'
+import type { PersonagemApi, GodApi } from '@/types/api'
 
 const router    = useRouter()
 const route     = useRoute()
@@ -812,7 +983,7 @@ function selecionarPassado(passado: PassadoApi) {
   erroEscolha.value        = ''
 }
 
-// ── Confirmações ──────────────────────────────────────────────────────────────
+// ── Navegação entre etapas ────────────────────────────────────────────────────
 function navegarParaEtapa(e: 1|2|3|4|5|6) {
   if (e > etapaMaxima.value) return
   confirmando.value = false
@@ -821,6 +992,68 @@ function navegarParaEtapa(e: 1|2|3|4|5|6) {
   erroEscolha.value = ''
   etapa.value = e
 }
+
+const podeVoltar  = computed(() => etapa.value > 1)
+const podeAvancar = computed(() => etapa.value < etapaMaxima.value)
+
+// ── Dinheiro inicial (etapa 6) ────────────────────────────────────────────────
+type ResultadoDeDinheiro = {
+  detalhes: Array<RolagemDeDinheiro & { dados: number[]; soma: number }>
+  total: Record<string, number>
+  roladoEm: string
+}
+type DinheiroGravado = {
+  tentativas: number
+  resultado: ResultadoDeDinheiro
+  descartado: ResultadoDeDinheiro | null
+}
+
+const rolandoDinheiro     = ref(false)
+const erroDinheiro        = ref('')
+const confirmandoRerolagem = ref(false)
+
+/** O que o passado escolhido concede. Vazio = passado sem dinheiro. */
+const dinheiroDoPassado = computed<RolagemDeDinheiro[]>(
+  () => passadoSelecionado.value?.dinheiro_inicial ?? [],
+)
+
+/** O que já foi rolado, lido do personagem. Nulo enquanto ninguém rolou. */
+const dinheiroRolado = computed<DinheiroGravado | null>(() => {
+  const gravado = (personagem.value as any)?.data?.dinheiro_inicial
+  return gravado?.resultado ? (gravado as DinheiroGravado) : null
+})
+
+/** "40 de prata, 2 de ouro" a partir do total por moeda. */
+function descreverTotal(total: Record<string, number>): string {
+  const partes = Object.entries(total).map(([moeda, valor]) => `${valor} de ${moeda}`)
+  return partes.length ? partes.join(', ') : 'nada'
+}
+
+async function rolarDinheiro() {
+  if (!personagem.value || rolandoDinheiro.value) return
+  rolandoDinheiro.value = true
+  erroDinheiro.value = ''
+  try {
+    // A resposta traz o personagem inteiro atualizado, então o resultado
+    // aparece por reatividade — não há cópia local do valor a manter em dia.
+    personagem.value = await rolarDinheiroInicial((personagem.value as any).characterId)
+    confirmandoRerolagem.value = false
+  } catch (err: any) {
+    erroDinheiro.value = err?.response?.data?.message ?? err.message ?? 'Erro ao rolar os dados.'
+    confirmandoRerolagem.value = false
+  } finally {
+    rolandoDinheiro.value = false
+  }
+}
+
+function voltarEtapa() {
+  if (podeVoltar.value) navegarParaEtapa((etapa.value - 1) as 1|2|3|4|5|6)
+}
+function avancarEtapa() {
+  if (podeAvancar.value) navegarParaEtapa((etapa.value + 1) as 1|2|3|4|5|6)
+}
+
+// ── Confirmações ──────────────────────────────────────────────────────────────
 
 async function sairOnboarding() {
   showGearMenu.value = false

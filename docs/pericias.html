@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Perícias Mundanas — Caminho Sem Volta</title>
+<style>
+  @page { size: A4; margin: 16mm 14mm 18mm 14mm; }
+  :root {
+    --tinta:#16181d; --tinta-fraca:#5b6270; --linha:#d8dce3; --linha-forte:#aeb5c0;
+    --fundo-alt:#f5f6f9; --destaque:#7a3e12; --destaque-bg:#fdf3e7;
+    --alerta:#8c2f2f; --alerta-bg:#fcf0f0; --ok:#1f5c3d; --ok-bg:#eef7f1;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font:9.6pt/1.5 "Segoe UI","Helvetica Neue",Arial,sans-serif; color:var(--tinta); background:#fff; }
+  h1,h2,h3,h4 { line-height:1.22; margin:0; font-weight:650; }
+  h1 { font-size:25pt; letter-spacing:-0.4pt; }
+  h2 { font-size:15pt; margin:22pt 0 9pt; padding-bottom:4pt; border-bottom:1.6pt solid var(--tinta); break-after:avoid; }
+  h3 { font-size:11.4pt; margin:15pt 0 5pt; color:var(--destaque); break-after:avoid; }
+  h4 { font-size:9.8pt; margin:11pt 0 3pt; break-after:avoid; }
+  p { margin:0 0 7pt; }
+  ul,ol { margin:0 0 8pt; padding-left:15pt; } li { margin-bottom:2.5pt; }
+  code { font-family:"Cascadia Mono",Consolas,monospace; font-size:0.88em; background:var(--fundo-alt); padding:0.5pt 2.5pt; border-radius:2pt; }
+  table { width:100%; border-collapse:collapse; margin:5pt 0 11pt; font-size:8.5pt; }
+  th,td { text-align:left; vertical-align:top; padding:3.4pt 5pt; border-bottom:0.6pt solid var(--linha); }
+  th { background:var(--fundo-alt); border-bottom:1pt solid var(--linha-forte); font-weight:650; font-size:8pt; text-transform:uppercase; letter-spacing:0.35pt; color:var(--tinta-fraca); }
+  tr { break-inside:avoid; }
+  td.num,th.num { text-align:right; white-space:nowrap; }
+  td.c,th.c { text-align:center; white-space:nowrap; }
+  .pagina { break-before:page; }
+  .capa { padding-top:42mm; text-align:center; }
+  .capa .sub { font-size:12pt; color:var(--tinta-fraca); margin-top:6pt; }
+  .capa .meta { margin-top:26mm; font-size:8.6pt; color:var(--tinta-fraca); border-top:0.6pt solid var(--linha); padding-top:8pt; display:inline-block; min-width:80mm; }
+  .capa .selo { display:inline-block; margin-bottom:10pt; padding:3pt 10pt; border:1pt solid var(--linha-forte); border-radius:12pt; font-size:8pt; letter-spacing:1.4pt; text-transform:uppercase; color:var(--tinta-fraca); }
+  .nota,.aviso,.bom { padding:7pt 10pt; margin:8pt 0 11pt; border-left:2.6pt solid var(--destaque); background:var(--destaque-bg); font-size:8.8pt; break-inside:avoid; }
+  .aviso { border-left-color:var(--alerta); background:var(--alerta-bg); }
+  .bom { border-left-color:var(--ok); background:var(--ok-bg); }
+  .nota p:last-child,.aviso p:last-child,.bom p:last-child { margin-bottom:0; }
+  .formula { text-align:center; font-family:"Cascadia Mono",Consolas,monospace; font-size:12pt; background:var(--fundo-alt); border:0.7pt solid var(--linha); border-radius:4pt; padding:12pt 8pt; margin:10pt 0 12pt; break-inside:avoid; }
+  .formula small { display:block; font-family:inherit; font-size:8pt; color:var(--tinta-fraca); margin-top:6pt; letter-spacing:0; }
+  .grade2 { display:grid; grid-template-columns:1fr 1fr; gap:0 14pt; }
+  figure { margin:10pt 0 14pt; break-inside:avoid; }
+  figcaption { font-size:8pt; color:var(--tinta-fraca); margin-top:5pt; text-align:center; }
+  svg { display:block; margin:0 auto; max-width:100%; }
+  .sumario ol { list-style:none; padding:0; counter-reset:sec; font-size:9.4pt; }
+  .sumario > ol > li { counter-increment:sec; margin-bottom:4pt; border-bottom:0.5pt dotted var(--linha); padding-bottom:3pt; }
+  .sumario > ol > li::before { content:counter(sec) ". "; font-weight:650; color:var(--tinta-fraca); }
+  .sumario .filhos { font-size:8.4pt; color:var(--tinta-fraca); padding-left:12pt; margin-top:2pt; }
+</style>
+</head>
+<body>
+
+<section class="capa">
+  <div class="selo">Regras do Sistema</div>
+  <h1>Perícias Mundanas</h1>
+  <div class="sub">RPG de Mesa — Caminho Sem Volta</div>
+  <div class="meta">
+    21 perícias &middot; 5 ranks &middot; três fontes de ponto<br>
+    7 de setembro de 2026
+  </div>
+</section>
+
+<section class="pagina sumario">
+  <h2>Sumário</h2>
+  <ol>
+    <li>Por que uma terceira trilha
+      <div class="filhos">O que nível de personagem e nível de classe já fazem — e o que não fazem</div></li>
+    <li>O teste
+      <div class="filhos">A fórmula, por que o atributo entra pela metade, o rank 0</div></li>
+    <li>Ranks e custo
+      <div class="filhos">Especialista contra generalista</div></li>
+    <li>De onde vêm os pontos
+      <div class="filhos">Passado &middot; downtime &middot; marco de nível</div></li>
+    <li>O catálogo
+      <div class="filhos">As 21 perícias por categoria e atributo</div></li>
+    <li>Perícias iniciais de cada passado</li>
+    <li>Como isso liga no crafting
+      <div class="filhos">A dificuldade que já estava na raridade</div></li>
+    <li>Onde cada coisa mora
+      <div class="filhos">Tabelas, rotas e o que ainda falta construir</div></li>
+  </ol>
+</section>
+
+<!-- ══════════ 1 ══════════ -->
+<section class="pagina">
+  <h2>1. Por que uma terceira trilha</h2>
+
+  <p>O sistema já tinha duas progressões quando as perícias entraram:</p>
+
+  <figure>
+  <svg viewBox="0 0 720 250" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+    <defs>
+      <marker id="s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#8a919e"/>
+      </marker>
+    </defs>
+
+    <rect x="20" y="30" width="200" height="72" rx="5" fill="#f5f6f9" stroke="#c3cad4"/>
+    <text x="120" y="52" text-anchor="middle" font-size="11" font-weight="650">Nível de personagem</text>
+    <text x="120" y="70" text-anchor="middle" font-size="8.5" fill="#5b6270">XP de aventura → 100 níveis</text>
+    <text x="120" y="88" text-anchor="middle" font-size="9" fill="#1f5c3d">concede status (atributos)</text>
+
+    <rect x="260" y="30" width="200" height="72" rx="5" fill="#f5f6f9" stroke="#c3cad4"/>
+    <text x="360" y="52" text-anchor="middle" font-size="11" font-weight="650">Nível de classe</text>
+    <text x="360" y="70" text-anchor="middle" font-size="8.5" fill="#5b6270">pontos de classe</text>
+    <text x="360" y="88" text-anchor="middle" font-size="9" fill="#1f5c3d">concede skills de combate</text>
+
+    <rect x="500" y="30" width="200" height="72" rx="5" fill="#eef7f1" stroke="#a8c6b3" stroke-width="1.5"/>
+    <text x="600" y="52" text-anchor="middle" font-size="11" font-weight="650">Perícia mundana</text>
+    <text x="600" y="70" text-anchor="middle" font-size="8.5" fill="#5b6270">passado + downtime + marco</text>
+    <text x="600" y="88" text-anchor="middle" font-size="9" fill="#1f5c3d">concede ranks e o teste</text>
+
+    <text x="120" y="140" text-anchor="middle" font-size="8.5" fill="#5b6270">o que você aguenta</text>
+    <text x="360" y="140" text-anchor="middle" font-size="8.5" fill="#5b6270">o que você faz em combate</text>
+    <text x="600" y="140" text-anchor="middle" font-size="8.5" fill="#5b6270">o que você sabe fazer</text>
+
+    <line x1="120" y1="102" x2="120" y2="130" stroke="#8a919e" stroke-width="1" marker-end="url(#s)"/>
+    <line x1="360" y1="102" x2="360" y2="130" stroke="#8a919e" stroke-width="1" marker-end="url(#s)"/>
+    <line x1="600" y1="102" x2="600" y2="130" stroke="#8a919e" stroke-width="1" marker-end="url(#s)"/>
+
+    <rect x="20" y="175" width="680" height="52" rx="4" fill="#fdf3e7" stroke="#d9c3a3"/>
+    <text x="36" y="196" font-size="9" font-weight="650" fill="#7a3e12">Por que não sai do XP de aventura</text>
+    <text x="36" y="213" font-size="8.5" fill="#5b6270">Ninguém fica melhor em cozinhar matando goblins. Se o ponto de perícia viesse da mesma fonte do nível,</text>
+    <text x="36" y="224" font-size="8.5" fill="#5b6270">as duas seriam a mesma progressão com nomes diferentes — e escolher entre elas não seria escolha nenhuma.</text>
+  </svg>
+  <figcaption>As três trilhas respondem a perguntas diferentes sobre o mesmo personagem.</figcaption>
+  </figure>
+
+  <div class="nota">
+    <p><strong>Uma descoberta do caminho:</strong> até esta mudança, <strong>subir de nível não concedia nada automaticamente.</strong> O código gravava o número do nível e parava aí — atributos e pontos de classe sempre foram concedidos pelo mestre à mão. O ponto de perícia por marco é a primeira coisa que o level-up entrega sozinho.</p>
+  </div>
+</section>
+
+<!-- ══════════ 2 ══════════ -->
+<section class="pagina">
+  <h2>2. O teste</h2>
+
+  <div class="formula">
+    d20 &nbsp;+&nbsp; (rank × 3) &nbsp;+&nbsp; ⌊atributo ÷ 2⌋ &nbsp;&nbsp;vs&nbsp;&nbsp; dificuldade
+    <small>o atributo é o da coluna "atributo base" da perícia, arredondado para baixo</small>
+  </div>
+
+  <h3>Por que o atributo entra pela metade</h3>
+  <p>No onboarding o jogador distribui 10 pontos, e o passado soma até 6 num único atributo. Um personagem focado chega a <strong>13</strong> antes da primeira sessão. Somado inteiro, esse número engoliria o rank e a perícia viraria decoração — quem tem Inteligência alta seria bom em alquimia, medicina e história sem nunca ter estudado nada.</p>
+
+  <p>Dividido, o atributo contribui no máximo <strong>+6</strong>, contra <strong>+15</strong> do rank cheio. O treino domina — que é o certo para uma <em>perícia</em>. O atributo continua importando, mas como talento de fundo, não como substituto do aprendizado.</p>
+
+  <h3>Rank 0 não pode tentar</h3>
+  <div class="aviso">
+    <p>Sem perícia, <strong>não há rolagem</strong>. Não é penalidade, é impedimento.</p>
+    <p>Se o não treinado pudesse tentar com só o atributo, um personagem com Inteligência 12 tiraria d20+6 contra DC 10 e acertaria 85% das vezes — fabricando poções sem ter aberto um livro. A perícia só significa alguma coisa se a falta dela fechar a porta.</p>
+  </div>
+  <p>Isso vale para o que <em>exige treino</em>: fabricar, medicar, forjar. O mestre continua livre para pedir um teste de atributo puro quando a situação for de talento bruto — arrombar uma porta é Força, não Ferraria.</p>
+
+  <h3>A conta na prática</h3>
+  <table>
+    <thead><tr><th>Personagem</th><th class="c">Rank</th><th class="c">Atributo</th><th class="c">Bônus</th><th class="c">vs DC 10</th><th class="c">vs DC 15</th><th class="c">vs DC 20</th></tr></thead>
+    <tbody>
+      <tr><td>Não treinado</td><td class="c">0</td><td class="c">qualquer</td><td class="c">—</td><td class="c">não pode</td><td class="c">não pode</td><td class="c">não pode</td></tr>
+      <tr><td>Aprendiz recém-formado</td><td class="c">1</td><td class="c">4</td><td class="c">+5</td><td class="c">80%</td><td class="c">55%</td><td class="c">30%</td></tr>
+      <tr><td>Artesão dedicado</td><td class="c">3</td><td class="c">6</td><td class="c">+12</td><td class="c">100%</td><td class="c">90%</td><td class="c">65%</td></tr>
+      <tr><td>Mestre do ofício</td><td class="c">5</td><td class="c">10</td><td class="c">+20</td><td class="c">100%</td><td class="c">100%</td><td class="c">100%</td></tr>
+    </tbody>
+  </table>
+
+  <div class="bom">
+    <p>Repare que o mestre do ofício <strong>não erra</strong> um trabalho Raro (DC 20). É de propósito: rank 5 custa 15 pontos e representa uma vida dedicada. O desafio dele passa a ser o Épico (DC 25), onde ainda falha em 20% das vezes — e onde o ingrediente é o gargalo real, não o teste.</p>
+  </div>
+</section>
+
+<!-- ══════════ 3 ══════════ -->
+<section class="pagina">
+  <h2>3. Ranks e custo</h2>
+
+  <p>Cinco ranks. Subir para o rank <strong>N</strong> custa <strong>N pontos</strong>.</p>
+
+  <table>
+    <thead><tr><th class="c">Rank</th><th class="c">Custo do degrau</th><th class="c">Acumulado</th><th class="c">Bônus no teste</th><th>O que significa</th></tr></thead>
+    <tbody>
+      <tr><td class="c">1</td><td class="c">1</td><td class="c">1</td><td class="c">+3</td><td>aprendeu o básico com alguém</td></tr>
+      <tr><td class="c">2</td><td class="c">2</td><td class="c">3</td><td class="c">+6</td><td>pratica com regularidade</td></tr>
+      <tr><td class="c">3</td><td class="c">3</td><td class="c">6</td><td class="c">+9</td><td>vive disso, e vive bem</td></tr>
+      <tr><td class="c">4</td><td class="c">4</td><td class="c">10</td><td class="c">+12</td><td>é procurado pelo nome</td></tr>
+      <tr><td class="c">5</td><td class="c">5</td><td class="c">15</td><td class="c">+15</td><td>poucos no reino chegam aqui</td></tr>
+    </tbody>
+  </table>
+
+  <h3>A escolha que o custo crescente cria</h3>
+  <div class="grade2">
+    <div>
+      <h4>Com 15 pontos, o especialista</h4>
+      <p style="font-size:8.8pt">Rank 5 em <strong>uma</strong> perícia. Bônus +15, e ele resolve trabalhos Épicos que ninguém mais encosta.</p>
+      <p style="font-size:8.8pt">Fora daquela perícia, ele é não treinado — e não treinado não tenta.</p>
+    </div>
+    <div>
+      <h4>Com 15 pontos, o generalista</h4>
+      <p style="font-size:8.8pt">Rank 2 em <strong>cinco</strong> perícias (3 pontos cada). Bônus +6 em cada uma.</p>
+      <p style="font-size:8.8pt">Resolve o cotidiano em cinco frentes, e nunca o que é difícil.</p>
+    </div>
+  </div>
+
+  <p>Nenhum dos dois é a resposta certa. O especialista é indispensável e frágil; o generalista é útil sempre e nunca decisivo. Com custo <em>linear</em>, o generalista dominaria — 15 pontos comprariam rank 1 em quinze perícias, e não haveria motivo para se aprofundar em nada.</p>
+
+  <div class="nota">
+    <p><strong>Os ranks do passado são de graça.</strong> Não custam pontos e não entram nessa conta — são a bagagem com que o personagem chega. Um Varejista começa com Negociação 2 (que custaria 3 pontos) sem ter gasto nada.</p>
+  </div>
+</section>
+
+<!-- ══════════ 4 ══════════ -->
+<section class="pagina">
+  <h2>4. De onde vêm os pontos</h2>
+
+  <p>Três fontes, em ordem de importância.</p>
+
+  <h3>1. Passado — a bagagem inicial</h3>
+  <p>Cada passado concede 2 ou 3 ranks, gravados no cadastro do passado e copiados para o personagem quando ele escolhe a origem no onboarding. Valem de 3 a 4 pontos, iguais para todos, para nenhum passado sair na frente.</p>
+  <p>Isso finalmente dá <strong>identidade mecânica</strong> aos passados além do bônus de atributo — e resolve o caso do Varejista, que até então era o único sem dinheiro inicial <em>e</em> sem nada que o distinguisse.</p>
+
+  <h3>2. Downtime — a fonte principal</h3>
+  <p>O mestre concede pontos por <strong>tempo narrado</strong>: um mês de estudo entre aventuras, um aprendizado com um artesão, uma temporada trabalhando na forja da cidade.</p>
+  <p>É de propósito que isso <strong>não tenha automação</strong>. A perícia representa tempo vivido, e é o mestre quem sabe quanto tempo passou e o que o personagem fez com ele. Automatizar transformaria "praticar" em mais uma barra que enche sozinha.</p>
+  <p>Como referência, uma escala que funciona: <strong>1 ponto por semana</strong> de dedicação exclusiva a um ofício, <strong>2 a 3</strong> por um mês de aprendizado formal com um mestre da área.</p>
+
+  <h3>3. Marco de nível — o fio automático</h3>
+  <p><strong>1 ponto por marco de nível atravessado.</strong> Garante que ninguém fique parado em zero por azar de roteiro, e é a única parte automática do sistema.</p>
+  <div class="nota">
+    <p>A tabela de progressão tem <strong>27 marcos para 100 níveis</strong> — os níveis saltam entre eles. Pular do 5 para o 10 é <strong>um</strong> marco, não cinco. Ao longo de uma campanha inteira, essa fonte entrega 27 pontos: o bastante para um rank 5 mais um rank 4, ou para rank 2 em nove perícias.</p>
+  </div>
+
+  <h3>Quanto isso soma numa campanha</h3>
+  <table>
+    <thead><tr><th>Fonte</th><th class="c">Início</th><th class="c">Campanha longa</th><th>Ritmo</th></tr></thead>
+    <tbody>
+      <tr><td>Passado</td><td class="c">3–4</td><td class="c">3–4</td><td>uma vez só, na criação</td></tr>
+      <tr><td>Marco de nível</td><td class="c">0</td><td class="c">até 27</td><td>automático, lento</td></tr>
+      <tr><td>Downtime</td><td class="c">0</td><td class="c">o que o mestre der</td><td>a alavanca principal</td></tr>
+    </tbody>
+  </table>
+  <p>Sem downtime nenhum, um personagem chega ao fim da campanha com ~30 pontos — dois especialistas ou um punhado de competências médias. O downtime é o que permite ao mestre premiar quem <em>escolhe</em> passar o inverno estudando em vez de caçar recompensa.</p>
+</section>
+
+<!-- ══════════ 5 ══════════ -->
+<section class="pagina">
+  <h2>5. O catálogo</h2>
+
+  <p>21 perícias em quatro categorias. A categoria serve só para organizar a tela; quem decide o teste é o <strong>atributo base</strong>.</p>
+
+  <h3>Ofício — fabricar coisas</h3>
+  <table>
+    <thead><tr><th style="width:18%">Perícia</th><th style="width:16%">Atributo</th><th>O que cobre</th></tr></thead>
+    <tbody>
+      <tr><td>Alquimia</td><td>Inteligência</td><td>Extrair, macerar e destilar. Base das poções e dos venenos</td></tr>
+      <tr><td>Ferraria</td><td>Força</td><td>Trabalhar metal quente: lâminas, armaduras e o que se conserta delas</td></tr>
+      <tr><td>Carpintaria</td><td>Força</td><td>Madeira, do arco à roda de carroça</td></tr>
+      <tr><td>Joalheria</td><td>Destreza</td><td>Lapidar pedra e engastar metal precioso</td></tr>
+      <tr><td>Costura</td><td>Destreza</td><td>Tecido e couro, do remendo ao traje de corte</td></tr>
+      <tr><td>Cozinha</td><td>Inteligência</td><td>Alimentar bem — e reconhecer o que não se deve comer</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Social</h3>
+  <table>
+    <thead><tr><th style="width:18%">Perícia</th><th style="width:16%">Atributo</th><th>O que cobre</th></tr></thead>
+    <tbody>
+      <tr><td>Diplomacia</td><td>Aura</td><td>Conduzir uma conversa difícil sem que ela vire briga</td></tr>
+      <tr><td>Negociação</td><td>Aura</td><td>Comprar barato, vender caro, saber quando o outro mente</td></tr>
+      <tr><td>Atuação</td><td>Aura</td><td>Sustentar um personagem que não é o seu diante de quem duvida</td></tr>
+      <tr><td>Lábia</td><td>Aura</td><td>Fazer soar razoável o que não é</td></tr>
+      <tr><td>Intimidação</td><td>Força</td><td>Deixar claro o que acontece se a conversa não terminar bem</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Corpo</h3>
+  <table>
+    <thead><tr><th style="width:18%">Perícia</th><th style="width:16%">Atributo</th><th>O que cobre</th></tr></thead>
+    <tbody>
+      <tr><td>Dança</td><td>Destreza</td><td>Mover-se no ritmo — e ler o corpo de quem se move junto</td></tr>
+      <tr><td>Instrumentos</td><td>Aura</td><td>Tocar de forma que alguém queira ouvir de novo</td></tr>
+      <tr><td>Acrobacia</td><td>Destreza</td><td>Cair sem quebrar, passar por onde não caberia</td></tr>
+      <tr><td>Furtividade</td><td>Destreza</td><td>Não ser visto, não ser ouvido, não ser lembrado</td></tr>
+      <tr><td>Atletismo</td><td>Força</td><td>Escalar, nadar, carregar, aguentar</td></tr>
+      <tr><td>Cavalgar</td><td>Destreza</td><td>Montar, e fazer o animal obedecer sob pressão</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Saber</h3>
+  <table>
+    <thead><tr><th style="width:18%">Perícia</th><th style="width:16%">Atributo</th><th>O que cobre</th></tr></thead>
+    <tbody>
+      <tr><td>Medicina</td><td>Inteligência</td><td>Estancar, imobilizar, reconhecer a febre certa</td></tr>
+      <tr><td>Sobrevivência</td><td>Resistência</td><td>Achar água, abrigo e rumo onde não há estrada</td></tr>
+      <tr><td>Percepção</td><td>Inteligência</td><td>Notar o que estava ali o tempo todo</td></tr>
+      <tr><td>História</td><td>Inteligência</td><td>Saber de quem era o brasão, e por que aquilo importa hoje</td></tr>
+    </tbody>
+  </table>
+
+  <div class="nota">
+    <p><strong>Crafting não é uma perícia só.</strong> Um alquimista não é um ferreiro. Cada receita aponta para a sua perícia específica, e é isso que faz a especialização significar alguma coisa — o grupo precisa de mais de um artesão, ou de comprar o que não sabe fazer.</p>
+  </div>
+</section>
+
+<!-- ══════════ 6 ══════════ -->
+<section class="pagina">
+  <h2>6. Perícias iniciais de cada passado</h2>
+
+  <table>
+    <thead><tr><th style="width:16%">Passado</th><th style="width:34%">Perícias</th><th class="c">Vale</th><th>Por quê</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Nobreza</strong></td>
+        <td>Diplomacia 2 &middot; História 1</td><td class="c">4</td>
+        <td>cresceu entre negociações e brasões</td>
+      </tr>
+      <tr>
+        <td><strong>Aventureiro</strong></td>
+        <td>Sobrevivência 1 &middot; Atletismo 1 &middot; Percepção 1</td><td class="c">3</td>
+        <td>um pouco de tudo o que a estrada cobra</td>
+      </tr>
+      <tr>
+        <td><strong>Andarilho</strong></td>
+        <td>Sobrevivência 2 &middot; Percepção 1</td><td class="c">4</td>
+        <td>viveu fora de estrada tempo demais</td>
+      </tr>
+      <tr>
+        <td><strong>Guarda</strong></td>
+        <td>Percepção 2 &middot; Intimidação 1</td><td class="c">4</td>
+        <td>o ofício é ver primeiro e convencer sem bater</td>
+      </tr>
+      <tr>
+        <td><strong>Mercenário</strong></td>
+        <td>Intimidação 1 &middot; Furtividade 1 &middot; Atletismo 1</td><td class="c">3</td>
+        <td>chega, resolve, some</td>
+      </tr>
+      <tr>
+        <td><strong>Varejista</strong></td>
+        <td>Negociação 2 &middot; Lábia 1</td><td class="c">4</td>
+        <td>o balcão ensina as duas juntas</td>
+      </tr>
+      <tr>
+        <td><strong>Vítima</strong></td>
+        <td>Furtividade 1 &middot; Percepção 1 &middot; Lábia 1</td><td class="c">3</td>
+        <td>o que se aprende para escapar</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>Todos valem 3 ou 4 pontos. Os que concentram num rank 2 (Nobreza, Andarilho, Guarda, Varejista) começam competentes numa coisa; os que espalham em três rank 1 (Aventureiro, Mercenário, Vítima) começam com mais portas abertas e nenhuma profundidade — a mesma tensão do especialista contra o generalista, já na criação.</p>
+
+  <div class="nota">
+    <p><strong>Nenhum passado concede perícia de Ofício.</strong> É deliberado: fabricar é algo que se aprende por escolha, gastando pontos ou downtime, e não algo que se herda da origem. Quem quiser ser alquimista precisa <em>decidir</em> ser.</p>
+  </div>
+</section>
+
+<!-- ══════════ 7 ══════════ -->
+<section class="pagina">
+  <h2>7. Como isso liga no crafting</h2>
+
+  <p>A peça que faltava para o sistema de receitas funcionar. E o encaixe veio de graça: a <strong>dificuldade de fabricação já estava cadastrada na raridade</strong>, desde antes das perícias existirem.</p>
+
+  <table>
+    <thead><tr><th>Raridade do produto</th><th class="c">DC do teste</th><th class="c">Rank mínimo viável</th><th>Quem consegue</th></tr></thead>
+    <tbody>
+      <tr><td>Comum</td><td class="c">10</td><td class="c">1</td><td>qualquer aprendiz acerta 4 em 5 vezes</td></tr>
+      <tr><td>Incomum</td><td class="c">15</td><td class="c">2</td><td>quem pratica com regularidade</td></tr>
+      <tr><td>Raro</td><td class="c">20</td><td class="c">3–4</td><td>quem vive do ofício</td></tr>
+      <tr><td>Épico</td><td class="c">25</td><td class="c">5</td><td>e mesmo assim falha 1 em 5</td></tr>
+      <tr><td>Lendário</td><td class="c">—</td><td class="c">—</td><td>o mestre decide caso a caso</td></tr>
+    </tbody>
+  </table>
+
+  <h3>A sequência completa de uma fabricação</h3>
+  <ol>
+    <li>A receita diz <strong>qual perícia</strong> exige e qual a dificuldade</li>
+    <li>Se o personagem tem <strong>rank 0</strong> naquela perícia, não pode tentar</li>
+    <li>Confere se os <strong>ingredientes</strong> estão no inventário, nas quantidades da receita</li>
+    <li>Passa o <strong>tempo</strong> que a receita pede</li>
+    <li>Rola <code>d20 + rank×3 + atributo÷2</code> contra a dificuldade</li>
+    <li>O resultado decide o que sai — e o que se perde</li>
+  </ol>
+
+  <div class="aviso">
+    <p><strong>Os passos 3 a 6 ainda não existem em código.</strong> O banco e as regras estão prontos; a ação de fabricar é o próximo passo. Este documento descreve o sistema como ele foi desenhado, e a seção 8 diz exatamente o que já roda.</p>
+  </div>
+
+  <h3>A escada de qualidade (desenhada, não implementada)</h3>
+  <p>Fabricar não é só passar ou falhar. A ideia acordada:</p>
+  <table>
+    <thead><tr><th style="width:26%">Resultado do teste</th><th>O que sai</th></tr></thead>
+    <tbody>
+      <tr><td>Falha crítica</td><td>perde os ingredientes, sem produto</td></tr>
+      <tr><td>Falha</td><td>perde parte dos ingredientes, sem produto</td></tr>
+      <tr><td>Sucesso</td><td>o item normal</td></tr>
+      <tr><td>Sucesso folgado</td><td>o item normal, com um bônus pequeno</td></tr>
+      <tr><td>Sucesso crítico</td><td><strong>qualidade superior</strong> — melhor que o comprado</td></tr>
+    </tbody>
+  </table>
+  <div class="bom">
+    <p><strong>O crítico é o que dá razão de existir ao artesão:</strong> ele não economiza dinheiro, ele <em>acessa</em> algo que não está à venda.</p>
+    <p>Com um teto: <strong>o crítico não pode subir acima do ingrediente mais raro da receita.</strong> Sem isso, um artesão de rank alto transformaria material Comum em item Épico com frequência, e a economia acabaria. Com ele, fabricar algo Épico exige <em>encontrar</em> um ingrediente Épico — e o gargalo vira exploração, não rolagem.</p>
+  </div>
+</section>
+
+<!-- ══════════ 8 ══════════ -->
+<section class="pagina">
+  <h2>8. Onde cada coisa mora</h2>
+
+  <h3>No banco</h3>
+  <table>
+    <thead><tr><th style="width:30%">Onde</th><th>O que guarda</th></tr></thead>
+    <tbody>
+      <tr><td><code>pericias</code></td><td>o catálogo: nome, descrição, atributo base, categoria</td></tr>
+      <tr><td><code>passados.pericias_iniciais</code></td><td>lista de <code>{periciaId, rank}</code> concedidos de graça</td></tr>
+      <tr><td><code>characters.data.pericias</code></td><td><code>[{periciaId, nome, rank, rankInicial}]</code> — os ranks do personagem</td></tr>
+      <tr><td><code>characters.data.periciaPoints</code></td><td>pontos ainda não gastos</td></tr>
+      <tr><td><code>receitas.pericia_id</code></td><td>qual perícia a receita exige (coluna reservada, ainda não preenchida)</td></tr>
+      <tr><td><code>raridade.dificuldade_base</code></td><td>a DC do teste, por raridade do produto</td></tr>
+    </tbody>
+  </table>
+
+  <p><code>rankInicial</code> registra quanto veio do passado, separado do que foi comprado. Não muda nenhuma regra hoje — existe para o dia em que alguém precise saber a diferença, e porque recuperar isso depois seria impossível.</p>
+
+  <h3>Nas rotas</h3>
+  <table>
+    <thead><tr><th style="width:46%">Rota</th><th style="width:16%">Acesso</th><th>O que faz</th></tr></thead>
+    <tbody>
+      <tr><td><code>GET /api/pericias</code></td><td>público</td><td>o catálogo</td></tr>
+      <tr><td><code>POST|PATCH|DELETE /api/pericias/admin</code></td><td>mestre</td><td>manter o catálogo</td></tr>
+      <tr><td><code>POST /personagens/admin/:id/pontos-pericia</code></td><td>mestre</td><td>conceder pontos por downtime</td></tr>
+      <tr><td><code>POST /personagens/:id/subir-pericia</code></td><td>dono ou mestre</td><td>gastar pontos num rank</td></tr>
+    </tbody>
+  </table>
+
+  <h3>O que já roda e o que falta</h3>
+  <table>
+    <thead><tr><th class="c" style="width:8%">Estado</th><th>Item</th></tr></thead>
+    <tbody>
+      <tr><td class="c">✔</td><td>Tabela <code>pericias</code> com as 21 do catálogo</td></tr>
+      <tr><td class="c">✔</td><td>Perícias iniciais nos 7 passados, aplicadas ao escolher a origem</td></tr>
+      <tr><td class="c">✔</td><td>Ponto por marco de nível, no cálculo de XP</td></tr>
+      <tr><td class="c">✔</td><td>Rota de downtime e rota de subir rank, com o custo crescente</td></tr>
+      <tr><td class="c">✔</td><td>API pública do catálogo</td></tr>
+      <tr><td class="c">—</td><td><strong>Tela do mestre</strong> para manter o catálogo de perícias</td></tr>
+      <tr><td class="c">—</td><td><strong>Tela do jogador</strong> para gastar pontos e ver os ranks no dashboard</td></tr>
+      <tr><td class="c">—</td><td><strong>Editor de perícias iniciais</strong> no cadastro de passados</td></tr>
+      <tr><td class="c">—</td><td><strong>A ação de fabricar</strong> — checar ingredientes, rolar, consumir, entregar</td></tr>
+      <tr><td class="c">—</td><td>Preencher <code>receitas.pericia_id</code> nas receitas existentes</td></tr>
+    </tbody>
+  </table>
+
+  <div class="nota" style="margin-top:16pt">
+    <p>Documento gerado a partir do estado real do banco em 7 de setembro de 2026. Fonte deste arquivo: <code>docs/pericias.html</code>. Para regerar o PDF, renderize esse HTML com o navegador em modo headless.</p>
+  </div>
+</section>
+
+</body>
+</html>

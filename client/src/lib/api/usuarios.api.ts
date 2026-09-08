@@ -11,7 +11,8 @@ export type UsuarioPersonagem = {
 
 export type Usuario = {
   id: number
-  auth_user_id: string | null
+  /** false = pré-registro: o mestre liberou o email, mas a conta ainda não existe. */
+  conta_criada: boolean
   real_email: string
   username: string | null
   tipo: 'gm' | 'player'

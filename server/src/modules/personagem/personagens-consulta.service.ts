@@ -3,6 +3,7 @@ import { InjectModel } from "@nestjs/sequelize";
 import { Op, QueryTypes, type WhereOptions } from "sequelize";
 import { Sequelize } from "sequelize-typescript";
 import type { UsuarioAutenticado } from "../../common/cls/usuario-autenticado.interface.js";
+import { montarUrlPublica } from "../../common/storage/armazenamento-arquivos.service.js";
 import { PersonagemModel } from "./models/personagem.model.js";
 import { garantirAcessoAoPersonagem } from "./personagem-acesso.js";
 import { mapearPersonagemParaApi, type PersonagemApi } from "./personagem-api.mapper.js";
@@ -108,7 +109,7 @@ export class PersonagensConsultaService {
         characterId: linha.id,
         name: linha.name,
         level: linha.level,
-        avatarUrl: linha.avatar_url,
+        avatarUrl: montarUrlPublica(linha.avatar_url) || null,
         classe: classeEmData ?? linha.classe_nome ?? null,
         avatarFocalPoint: (dados.avatarFocalPoint as string | undefined) ?? null,
         modalHeroPosition: (dados.modalHeroPosition as string | undefined) ?? null,

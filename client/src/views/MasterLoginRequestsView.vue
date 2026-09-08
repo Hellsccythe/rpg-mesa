@@ -78,13 +78,11 @@
               <!-- Cabeçalho do card -->
               <div class="flex items-start gap-4">
                 <div class="h-20 w-20 flex-none overflow-hidden rounded-2xl border border-white/10 bg-zinc-900">
-                  <img
-                    v-if="req.avatar_url"
-                    :src="req.avatar_url"
-                    :alt="req.nome"
-                    class="h-full w-full object-cover"
-                  />
-                  <div v-else class="flex h-full w-full items-center justify-center text-2xl text-zinc-600">?</div>
+                  <AvatarPersonagem :src="req.avatar_url" :alt="req.nome" enquadramento="center">
+                    <template #fallback>
+                      <div class="flex h-full w-full items-center justify-center text-2xl text-zinc-600">?</div>
+                    </template>
+                  </AvatarPersonagem>
                 </div>
 
                 <div class="flex-1 min-w-0">
@@ -239,6 +237,7 @@
 </template>
 
 <script setup lang="ts">
+import AvatarPersonagem from '@/components/AvatarPersonagem.vue'
 import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import Modal from '@/components/Modal.vue'
@@ -249,7 +248,7 @@ import {
   rejeitarSolicitacao,
   contarSolicitacoesPendentes,
 } from '@/lib/api/character-creation-requests.api'
-import type { CharacterCreationRequestApi } from '@/types/supabase'
+import type { CharacterCreationRequestApi } from '@/types/api'
 
 const router = useRouter()
 

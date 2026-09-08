@@ -224,7 +224,7 @@ import {
   listarOverridesPersonagem, criarOverride, editarOverride, deletarOverride,
   type SkillOverrideApi,
 } from '@/lib/api/skills.api'
-import type { PersonagemApi } from '@/types/supabase'
+import type { PersonagemApi } from '@/types/api'
 
 const router = useRouter()
 

@@ -8,10 +8,19 @@ import { PassadosModule } from "./modules/passados/passados.module.js";
 import { GodsModule } from "./modules/god/god.module.js";
 import { CityMapsModule } from "./modules/city_maps/city-maps.module.js";
 import { IndoleModule } from "./modules/indole/indole.module.js";
+import { RaridadeModule } from "./modules/raridade/raridade.module.js";
+import { ConsumiveisModule } from "./modules/consumiveis/consumiveis.module.js";
+import { ItensModule } from "./modules/itens/itens.module.js";
+import { ReceitasModule } from "./modules/receitas/receitas.module.js";
+import { PericiasModule } from "./modules/pericias/pericias.module.js";
 import { GeneroModule } from "./modules/genero/genero.module.js";
 import { UsuariosModule } from "./modules/usuarios/usuarios.module.js";
 import { PersonagensConsultaModule } from "./modules/personagem/personagens-consulta.module.js";
 import { PersonagensOnboardingModule } from "./modules/personagem/personagens-onboarding.module.js";
+import { PersonagensCrudModule } from "./modules/personagem/personagens-crud.module.js";
+import { PersonagensProgressaoModule } from "./modules/personagem/personagens-progressao.module.js";
+import { PersonagensMestreModule } from "./modules/personagem/personagens-mestre.module.js";
+import { PersonagensSolicitacoesModule } from "./modules/personagem/personagens-solicitacoes.module.js";
 import { RacasModule } from "./modules/racas/raca.module.js";
 import { ClassesModule } from "./modules/classes/classes.module.js";
 import { ArmasModule } from "./modules/armas/arma.module.js";
@@ -31,17 +40,26 @@ import { LevelProgressionModule } from "./modules/level-progression/level-progre
     AuthGuardsModule,
     ArmazenamentoArquivosModule,
     AuthModule,
-    // Cada módulo migrado do Express/Supabase entra aqui. Os que ainda não
-    // migraram continuam servidos pelos routers antigos, montados em main.ts.
+    // Todos os módulos da aplicação. Não há mais router Express: o último
+    // (/api/personagens) saiu junto com a migração do módulo de personagem.
     TabelasAcessoriasModule,
     PassadosModule,
     GodsModule,
     CityMapsModule,
     IndoleModule,
+    RaridadeModule,
+    ConsumiveisModule,
+    ItensModule,
+    ReceitasModule,
+    PericiasModule,
     GeneroModule,
     UsuariosModule,
     PersonagensConsultaModule,
     PersonagensOnboardingModule,
+    PersonagensCrudModule,
+    PersonagensProgressaoModule,
+    PersonagensMestreModule,
+    PersonagensSolicitacoesModule,
     LevelProgressionModule,
     RacasModule,
     ClassesModule,
