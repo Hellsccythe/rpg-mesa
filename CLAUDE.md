@@ -119,6 +119,10 @@ A raiz **não é mais o login**: `/` lista as campanhas (mundos) e cada uma leva
 | GET | `/api/tabelas-acessorias/categorias-variados` | público |
 | GET | `/api/tabelas-acessorias/propriedades-variados` | público |
 | GET | `/api/tabelas-acessorias/classes-variados` | público |
+| GET | `/api/pericias` | público |
+| POST/PATCH/DELETE | `/api/pericias/admin[/:id]` | isMaster |
+| POST | `/api/personagens/admin/:id/pontos-pericia` | isMaster (downtime) |
+| POST | `/api/personagens/:id/subir-pericia` | auth — dono ou mestre |
 | GET | `/api/receitas` | público |
 | POST/PATCH/DELETE | `/api/receitas/admin[/:id]` | isMaster |
 | GET | `/api/itens` | público |
@@ -254,7 +258,7 @@ Documentação completa em `docs/COMPONENTS.md`.
 
 ## Banco de Dados — Tabelas
 
-Schema completo em `docs/SCHEMA_CURRENT.sql` — **arquivo gerado por `pg_dump --schema-only`, não editado a mão**; regere-o quando mexer no esquema (o comando está no cabeçalho do próprio arquivo). Migrations em `database/migrations/` (001–077). Documentação em PDF, com as ligações entre tabelas e os fluxos: `docs/BANCO_DE_DADOS.pdf`.
+Schema completo em `docs/SCHEMA_CURRENT.sql` — **arquivo gerado por `pg_dump --schema-only`, não editado a mão**; regere-o quando mexer no esquema (o comando está no cabeçalho do próprio arquivo). Migrations em `database/migrations/` (001–078). Documentação em PDF, com as ligações entre tabelas e os fluxos: `docs/BANCO_DE_DADOS.pdf`.
 
 **Não sobrou nenhum UUID no banco.** As migrations 022–023 converteram as PKs para `INTEGER IDENTITY`, e a **061** terminou o serviço nas colunas que ainda referenciavam o Supabase Auth: `characters.user_id` hoje é `INTEGER` apontando para `usuarios.id`, e `characters.campaign_id` é `INTEGER` apontando para `campaigns.id`. A coluna `usuarios.auth_user_id` foi removida.
 
@@ -669,6 +673,53 @@ Daí o par **`<coisa>_tabela` + `<coisa>_id`** nos dois lados, com `CHECK` no ba
 **Margem do crafting:** a API calcula `custo_dos_ingredientes`, `preco_de_compra` e `proporcao_do_preco` a cada leitura. O alvo do projeto é **70–75%** — abaixo disso ninguém compra pronto; acima, fabricar não compensa o risco. A tela mostra a proporção enquanto o mestre edita, colorida por faixa. Só o que é `consumido` entra no custo.
 
 Tela: `/master/receitas` → `MasterReceitasView.vue`.
+
+### `pericias` (migration 078)
+
+A **terceira trilha de progressão**, ao lado do nível de personagem e do nível de classe:
+
+| Trilha | Concede | De onde vem |
+|---|---|---|
+| Nível de personagem | atributos (status) | XP, concedido pelo mestre |
+| Nível de classe | pontos de classe → skills | pontos concedidos pelo mestre |
+| **Perícia** | ranks, e o teste de d20 que os usa | passado + downtime + marco de nível |
+
+Existe separada porque as outras não servem: ninguém fica melhor em cozinhar matando goblins, e se o ponto de perícia saísse da mesma fonte do nível as duas seriam a mesma progressão com nomes diferentes.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| nome | VARCHAR(100) | UNIQUE parcial entre as ativas |
+| descricao | TEXT | NOT NULL default `''` |
+| atributo_base | VARCHAR(20) | CHECK nos 5 atributos — qual entra no teste |
+| categoria | VARCHAR(20) | CHECK: Ofício, Social, Corpo, Saber |
+
+CHECK em vez de tabela de lookup nos dois casos: os cinco atributos são estruturais do sistema, e as quatro categorias são rótulos que não carregam dado nenhum.
+
+**21 perícias no seed.** Crafting não é uma perícia só — um alquimista não é um ferreiro, e `receitas.pericia_id` aponta para a específica.
+
+#### O teste
+
+```
+d20 + (rank × 3) + ⌊atributo_base ÷ 2⌋   vs   dificuldade
+```
+
+O atributo entra **pela metade** de propósito: com 10 pontos no onboarding mais o bônus do passado, um atributo focado chega a 13 e engoliria o rank; dividido, o rank (até +15) domina — que é o certo para uma perícia.
+
+**Rank 0 é "não treinado" e não pode tentar.** Sem isso, quem tem Inteligência alta fabrica poções sem nunca ter estudado alquimia.
+
+A `dificuldade_base` de `raridade` (10/15/20/25) **é a DC do teste**: fabricar algo Comum é DC 10, Épico é DC 25. As duas tabelas já conversavam sem precisar de coluna nova.
+
+#### De onde vêm os pontos
+
+1. **Passado** — `passados.pericias_iniciais`, lista de `{periciaId, rank}`. São ranks de graça, copiados para `data.pericias` ao escolher o passado. Copiados, e não lidos do catálogo como skills e títulos, porque o jogador compra ranks **por cima** destes — sem a cópia não haveria como separar origem de compra. Copiar é seguro porque o passado é permanente.
+2. **Downtime** — `POST /personagens/admin/:id/pontos-pericia`. A fonte principal, e de propósito sem automação: representa tempo de jogo, não XP de combate.
+3. **Marco de nível** — 1 ponto por marco atravessado, em `atribuirXpAoPersonagem`. **É a única coisa que subir de nível concede sozinho neste projeto.** Conta marcos e não níveis: a tabela tem 27 marcos para 100 níveis, e pular de 5 para 10 é um marco, não cinco.
+
+#### Custo dos ranks
+
+Crescente: rank N custa N pontos. Rank 5 numa perícia custa 1+2+3+4+5 = **15**; rank 1 em cinco perícias custa **5**. Especialista e generalista viram escolhas com peso.
+
+Os ranks do personagem vivem em `data.pericias` (`[{periciaId, nome, rank, rankInicial?}]`) e os pontos em `data.periciaPoints`, seguindo o padrão de `data.classes` e `data.skills`.
 
 ### `passados` (migration 032)
 

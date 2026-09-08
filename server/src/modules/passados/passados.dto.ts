@@ -44,6 +44,14 @@ export class RolagemDeDinheiroDto {
   moeda!: Moeda;
 }
 
+export class PericiaInicialDto {
+  @IsInt() @Min(1)
+  periciaId!: number;
+
+  @IsInt() @Min(1) @Max(5)
+  rank!: number;
+}
+
 export class CriarPassadoDto {
   @IsString()
   @MinLength(1, { message: "Campo 'nome' é obrigatório." })
@@ -67,6 +75,9 @@ export class CriarPassadoDto {
 
   @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => RolagemDeDinheiroDto)
   dinheiro_inicial?: RolagemDeDinheiroDto[];
+
+  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => PericiaInicialDto)
+  pericias_iniciais?: PericiaInicialDto[];
 }
 
 export class EditarPassadoDto {
@@ -90,4 +101,7 @@ export class EditarPassadoDto {
 
   @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => RolagemDeDinheiroDto)
   dinheiro_inicial?: RolagemDeDinheiroDto[];
+
+  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => PericiaInicialDto)
+  pericias_iniciais?: PericiaInicialDto[];
 }

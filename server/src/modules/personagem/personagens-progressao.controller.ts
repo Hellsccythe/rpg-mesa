@@ -4,6 +4,7 @@ import { MasterGuard } from "../../common/auth/master.guard.js";
 import { UsuarioLogado } from "../../common/auth/usuario-logado.decorator.js";
 import type { UsuarioAutenticado } from "../../common/cls/usuario-autenticado.interface.js";
 import { PersonagensProgressaoService } from "./personagens-progressao.service.js";
+import { ConcederPontosPericiaDto, SubirPericiaDto } from "../pericias/pericias.dto.js";
 import {
   AtribuirXpDeClasseDto,
   AtribuirXpDto,
@@ -68,6 +69,16 @@ export class PersonagensProgressaoController {
   }
 
   @UseGuards(JwtAuthGuard, MasterGuard)
+  /** Downtime: pontos de perícia por tempo narrado. */
+  @UseGuards(JwtAuthGuard, MasterGuard)
+  @Post("admin/:characterId/pontos-pericia")
+  concederPontosDePericia(
+    @Param("characterId", ParseIntPipe) personagemId: number,
+    @Body() dados: ConcederPontosPericiaDto,
+  ) {
+    return this.servicoProgressao.concederPontosDePericia(personagemId, dados.pontos);
+  }
+
   @Patch("admin/:characterId/atribuir-xp-personagem")
   atribuirXpAoPersonagem(
     @Param("characterId", ParseIntPipe) personagemId: number,
@@ -77,6 +88,20 @@ export class PersonagensProgressaoController {
   }
 
   // ── Ações do jogador ──────────────────────────────────────────────────────
+
+  /**
+   * Sobe um rank de perícia, pagando o custo do degrau. Sem MasterGuard: quem
+   * pode mexer em qual personagem é o service que decide (dono ou mestre).
+   */
+  @UseGuards(JwtAuthGuard)
+  @Post(":characterId/subir-pericia")
+  subirRankDePericia(
+    @Param("characterId", ParseIntPipe) personagemId: number,
+    @Body() dados: SubirPericiaDto,
+    @UsuarioLogado() usuario: UsuarioAutenticado,
+  ) {
+    return this.servicoProgressao.subirRankDePericia(personagemId, dados.pericia_id, usuario);
+  }
 
   @UseGuards(JwtAuthGuard)
   @Post(":characterId/escolher-classe")

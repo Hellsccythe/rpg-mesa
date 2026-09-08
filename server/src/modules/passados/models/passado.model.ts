@@ -48,6 +48,10 @@ export class PassadoModel extends Model {
   @Column({ type: DataType.JSONB, defaultValue: [] })
   declare dinheiroInicial: RolagemDeDinheiro[];
 
+  /** Ranks de perícia que o passado concede de graça, no onboarding. */
+  @Column({ type: DataType.JSONB, defaultValue: [] })
+  declare periciasIniciais: Array<{ periciaId: number; rank: number }>;
+
   @Column({ type: DataType.TEXT, allowNull: true })
   declare createdBy: string | null;
 

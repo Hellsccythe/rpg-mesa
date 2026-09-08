@@ -6,6 +6,7 @@ import type { UsuarioAutenticado } from "../../common/cls/usuario-autenticado.in
 import { PersonagemModel } from "./models/personagem.model.js";
 import { garantirAcessoAoPersonagem } from "./personagem-acesso.js";
 import { mapearPersonagemParaApi, type PersonagemApi } from "./personagem-api.mapper.js";
+import { PericiasService } from "../pericias/pericias.service.js";
 import type {
   AtribuirXpDeClasseDto,
   AtribuirXpDto,
@@ -46,6 +47,7 @@ export class PersonagensProgressaoService {
     @InjectModel(PersonagemModel)
     private readonly modeloPersonagem: typeof PersonagemModel,
     private readonly sequelize: Sequelize,
+    private readonly servicoPericias: PericiasService,
   ) {}
 
   // ── Ações do jogador ──────────────────────────────────────────────────────
@@ -295,8 +297,66 @@ export class PersonagensProgressaoService {
       if (xpTotal >= marco.xpAcumulado) nivel = Math.max(nivel, marco.level);
     }
 
+    // Cada marco atravessado concede 1 ponto de perícia. É a ÚNICA coisa que
+    // subir de nível concede sozinho neste projeto — até aqui o level-up só
+    // gravava o número, e todo o resto (atributo, ponto de classe) continua
+    // sendo concedido pelo mestre à mão.
+    //
+    // Conta marcos, e não níveis: a tabela tem 27 marcos para 100 níveis, e
+    // pular de 5 para 10 é UM marco, não cinco.
+    const nivelAnterior = personagem.level || 1;
+    const marcosAtravessados = marcos.filter(
+      (marco) => marco.level > nivelAnterior && marco.level <= nivel,
+    ).length;
+
+    const pontosDePericia =
+      this.lerNumero(dadosPersonagem.periciaPoints) + marcosAtravessados;
+
     personagem.level = nivel;
-    personagem.data = { ...dadosPersonagem, xp: xpTotal };
+    personagem.data = { ...dadosPersonagem, xp: xpTotal, periciaPoints: pontosDePericia };
+    await personagem.save();
+    return mapearPersonagemParaApi(personagem);
+  }
+
+  /**
+   * Downtime: o mestre concede pontos por tempo narrado — um mês de estudo,
+   * um aprendizado com mestre, uma temporada na forja. É a fonte principal de
+   * perícia, e de propósito não tem automação: ela representa tempo de jogo,
+   * não XP de combate.
+   */
+  async concederPontosDePericia(personagemId: number, pontos: number): Promise<PersonagemApi> {
+    const personagem = await this.buscarOuFalhar(personagemId);
+    const dadosPersonagem = this.lerDados(personagem);
+
+    personagem.data = {
+      ...dadosPersonagem,
+      periciaPoints: this.lerNumero(dadosPersonagem.periciaPoints) + pontos,
+    };
+    await personagem.save();
+    return mapearPersonagemParaApi(personagem);
+  }
+
+  /**
+   * O jogador sobe UM rank, pagando o custo daquele degrau (rank 3 custa 3).
+   * O custo crescente é o que faz especialista e generalista serem escolhas
+   * com peso: rank 5 numa perícia custa 15 pontos; rank 1 em cinco custa 5.
+   */
+  async subirRankDePericia(
+    personagemId: number,
+    periciaId: number,
+    usuario: UsuarioAutenticado,
+  ): Promise<PersonagemApi> {
+    const personagem = await this.buscarPermitidoOuFalhar(personagemId, usuario);
+    const pericia = await this.servicoPericias.buscarOuFalhar(periciaId);
+
+    const dadosPersonagem = this.lerDados(personagem);
+    const { pericias, pontosRestantes } = this.servicoPericias.subirUmRank(
+      this.servicoPericias.lerPericias(dadosPersonagem),
+      this.lerNumero(dadosPersonagem.periciaPoints),
+      pericia,
+    );
+
+    personagem.data = { ...dadosPersonagem, pericias, periciaPoints: pontosRestantes };
     await personagem.save();
     return mapearPersonagemParaApi(personagem);
   }

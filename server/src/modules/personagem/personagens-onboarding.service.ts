@@ -6,6 +6,7 @@ import type { UsuarioAutenticado } from "../../common/cls/usuario-autenticado.in
 import { PersonagemModel } from "./models/personagem.model.js";
 import { garantirAcessoAoPersonagem } from "./personagem-acesso.js";
 import { mapearPersonagemParaApi, type PersonagemApi } from "./personagem-api.mapper.js";
+import { PericiasService } from "../pericias/pericias.service.js";
 import type {
   ConcluirOnboardingDto,
   DefinirAtributosDto,
@@ -89,6 +90,7 @@ export class PersonagensOnboardingService {
     @InjectModel(PersonagemModel)
     private readonly modeloPersonagem: typeof PersonagemModel,
     private readonly sequelize: Sequelize,
+    private readonly servicoPericias: PericiasService,
   ) {}
 
   // ── Etapa 1: raça ─────────────────────────────────────────────────────────
@@ -226,9 +228,38 @@ export class PersonagensOnboardingService {
     }
     await this.garantirRegistroAtivo("passados", passadoId, "Passado não encontrado.");
 
+    // As perícias do passado são COPIADAS para o personagem, ao contrário das
+    // skills e títulos (que o dashboard lê do catálogo na hora de exibir). A
+    // diferença é que o jogador vai comprar ranks por cima destes: sem a cópia
+    // não haveria como separar o que veio de origem do que foi comprado.
+    //
+    // Copiar é seguro porque o passado é permanente — não há o caso de trocar
+    // depois e ficar com rank de um passado que não é mais o seu.
+    const periciasIniciais = await this.buscarPericiasDoPassado(passadoId);
+    const dados = this.lerDados(personagem);
+    const periciasDoPersonagem = await this.servicoPericias.aplicarPericiasDoPassado(
+      this.servicoPericias.lerPericias(dados),
+      periciasIniciais,
+    );
+
     personagem.passadoId = passadoId;
+    personagem.data = { ...dados, pericias: periciasDoPersonagem };
     await personagem.save();
     return mapearPersonagemParaApi(personagem);
+  }
+
+  private async buscarPericiasDoPassado(
+    passadoId: number,
+  ): Promise<Array<{ periciaId: number; rank: number }>> {
+    const encontrados = await this.sequelize.query<{
+      pericias_iniciais: Array<{ periciaId: number; rank: number }> | null;
+    }>(`SELECT pericias_iniciais FROM passados WHERE id = :passadoId LIMIT 1`, {
+      replacements: { passadoId },
+      type: QueryTypes.SELECT,
+    });
+
+    const lista = encontrados[0]?.pericias_iniciais;
+    return Array.isArray(lista) ? lista : [];
   }
 
   // ── Etapa 4: atributos ────────────────────────────────────────────────────
