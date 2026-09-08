@@ -51,6 +51,7 @@ A raiz **não é mais o login**: `/` lista as campanhas (mundos) e cada uma leva
 | `/master/skill-overrides` | MasterSkillOverridesView | auth + isMaster |
 | `/master/skill-niveis` | MasterSkillNiveisView | auth + isMaster |
 | `/master/titulos` | MasterTitulosView | auth + isMaster |
+| `/master/consumiveis` | MasterConsumiveisView | auth + isMaster |
 | `/master/passados` | MasterPassadosView | auth + isMaster |
 | `/master/npcs` | MasterNpcsView | auth + isMaster |
 | `/master/progressao` | MasterProgressaoView | auth + isMaster |
@@ -116,6 +117,10 @@ A raiz **não é mais o login**: `/` lista as campanhas (mundos) e cada uma leva
 | GET | `/api/tabelas-acessorias/categorias-variados` | público |
 | GET | `/api/tabelas-acessorias/propriedades-variados` | público |
 | GET | `/api/tabelas-acessorias/classes-variados` | público |
+| GET | `/api/consumiveis` | público |
+| POST/PATCH/DELETE | `/api/consumiveis/admin[/:id]` | isMaster |
+| GET | `/api/consumiveis/categorias` | público |
+| POST/PATCH/DELETE | `/api/consumiveis/categorias/admin[/:item]` | isMaster |
 | GET | `/api/raridades` | público |
 | POST/PATCH/DELETE | `/api/raridades/admin[/:item]` | isMaster |
 | GET | `/api/indole` | público |
@@ -241,7 +246,7 @@ Documentação completa em `docs/COMPONENTS.md`.
 
 ## Banco de Dados — Tabelas
 
-Schema completo em `docs/SCHEMA_CURRENT.sql` — **arquivo gerado por `pg_dump --schema-only`, não editado a mão**; regere-o quando mexer no esquema (o comando está no cabeçalho do próprio arquivo). Migrations em `database/migrations/` (001–073). Documentação em PDF, com as ligações entre tabelas e os fluxos: `docs/BANCO_DE_DADOS.pdf`.
+Schema completo em `docs/SCHEMA_CURRENT.sql` — **arquivo gerado por `pg_dump --schema-only`, não editado a mão**; regere-o quando mexer no esquema (o comando está no cabeçalho do próprio arquivo). Migrations em `database/migrations/` (001–075). Documentação em PDF, com as ligações entre tabelas e os fluxos: `docs/BANCO_DE_DADOS.pdf`.
 
 **Não sobrou nenhum UUID no banco.** As migrations 022–023 converteram as PKs para `INTEGER IDENTITY`, e a **061** terminou o serviço nas colunas que ainda referenciavam o Supabase Auth: `characters.user_id` hoje é `INTEGER` apontando para `usuarios.id`, e `characters.campaign_id` é `INTEGER` apontando para `campaigns.id`. A coluna `usuarios.auth_user_id` foi removida.
 
@@ -575,6 +580,39 @@ Seed: Comum (×1, dif. 10), Incomum (×3, dif. 15), Raro (×10, dif. 20), Épico
 Raridade aqui **decide coisas** em vez de ser etiqueta: uma referência responde "o mercador tem isso?", "quanto custa?" e "quão difícil é fabricar?".
 
 `equipamentos.raridade_item` aponta para cá; os 14 registros existentes nasceram Comum. Deletar uma raridade em uso é **recusado pelo serviço** — sem FOREIGN KEY, nada impediria no banco, e o item ficaria apontando para o vazio sem erro nenhum.
+
+### `consumiveis` e `categoria_consumivel` (migration 075)
+
+Primeira das duas tabelas que tiram de `equipamentos` o que nunca foi equipamento. **O corte é por comportamento, não por tema** — a pergunta que decide a tabela é *"o que acontece quando o jogador usa isso?"*:
+
+| Tabela | Regra | O que entra |
+|---|---|---|
+| `equipamentos` | equipa e **fica** equipado | armas, armaduras, escudos |
+| `consumiveis` | usa e **some** | poções, venenos, munição, alimento, pergaminhos |
+| `itens` *(a criar)* | só carrega, vende ou **entrega numa receita** | cosméticos, ferramentas, materiais, ingredientes |
+
+"Some quando usa?" tem **uma** resposta. "É cosmético ou utilitário?" é opinião, e critério que exige julgamento produz dado inconsistente.
+
+Uma poção fica em `consumiveis`; a erva que a produz fica em `itens`. As duas se ligam pela tabela de receitas — receita é **muitos-para-muitos e cruza tabelas**, então não cabe como coluna de nenhuma das duas.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| id | INTEGER PK | IDENTITY |
+| nome | VARCHAR(255) | NOT NULL |
+| descricao | TEXT | nullable |
+| efeito | TEXT | **NOT NULL** default `''` — o que acontece ao usar. Grava string vazia, nunca null |
+| usos | INTEGER | NOT NULL default 1 — poção tem 1, kit de primeiros socorros vários |
+| duracao | VARCHAR(60) | "Instantâneo", "3 turnos". Texto livre: a mesa fala em turnos e em horas |
+| peso | NUMERIC(8,2) | nullable |
+| valor | NUMERIC(12,2) | **preço final** em prata — ver abaixo |
+| raridade_item | INTEGER | referência a `raridade.item` |
+| categoria_consumivel_item | INTEGER | referência a `categoria_consumivel.item` |
+
+**`valor` é o preço final, não uma base.** O `multiplicador_valor` da raridade é **referência para o mestre decidir** esse número e **não é aplicado** em cima dele. Aplicar automaticamente criaria dupla contagem: quem já pensou o preço de um item Raro veria ele multiplicado por 10 ao salvar. A tela mostra o multiplicador ao lado do campo, como apoio.
+
+`categoria_consumivel`: lookup com `item` IDENTITY. Seed: Poção, Veneno, Munição, Alimento, Pergaminho. Apagar categoria em uso é recusado pelo serviço.
+
+Tela: `/master/consumiveis` → `MasterConsumiveisView.vue`.
 
 ### `passados` (migration 032)
 

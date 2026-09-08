@@ -92,6 +92,12 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresMaster: true },
     },
     {
+      path: '/master/consumiveis',
+      name: 'master-consumiveis',
+      component: () => import('@/views/MasterConsumiveisView.vue'),
+      meta: { requiresAuth: true, requiresMaster: true },
+    },
+    {
       path: '/master/equipamentos',
       name: 'master-equipamentos',
       component: () => import('@/views/MasterWeaponsView.vue'),
