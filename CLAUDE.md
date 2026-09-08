@@ -116,6 +116,8 @@ A raiz **não é mais o login**: `/` lista as campanhas (mundos) e cada uma leva
 | GET | `/api/tabelas-acessorias/categorias-variados` | público |
 | GET | `/api/tabelas-acessorias/propriedades-variados` | público |
 | GET | `/api/tabelas-acessorias/classes-variados` | público |
+| GET | `/api/raridades` | público |
+| POST/PATCH/DELETE | `/api/raridades/admin[/:item]` | isMaster |
 | GET | `/api/indole` | público |
 | GET | `/api/genero` | público |
 | POST | `/api/character-creation-requests` | público |
@@ -239,7 +241,7 @@ Documentação completa em `docs/COMPONENTS.md`.
 
 ## Banco de Dados — Tabelas
 
-Schema completo em `docs/SCHEMA_CURRENT.sql` — **arquivo gerado por `pg_dump --schema-only`, não editado a mão**; regere-o quando mexer no esquema (o comando está no cabeçalho do próprio arquivo). Migrations em `database/migrations/` (001–072). Documentação em PDF, com as ligações entre tabelas e os fluxos: `docs/BANCO_DE_DADOS.pdf`.
+Schema completo em `docs/SCHEMA_CURRENT.sql` — **arquivo gerado por `pg_dump --schema-only`, não editado a mão**; regere-o quando mexer no esquema (o comando está no cabeçalho do próprio arquivo). Migrations em `database/migrations/` (001–073). Documentação em PDF, com as ligações entre tabelas e os fluxos: `docs/BANCO_DE_DADOS.pdf`.
 
 **Não sobrou nenhum UUID no banco.** As migrations 022–023 converteram as PKs para `INTEGER IDENTITY`, e a **061** terminou o serviço nas colunas que ainda referenciavam o Supabase Auth: `characters.user_id` hoje é `INTEGER` apontando para `usuarios.id`, e `characters.campaign_id` é `INTEGER` apontando para `campaigns.id`. A coluna `usuarios.auth_user_id` foi removida.
 
@@ -553,6 +555,26 @@ Hierarquia de lookup para equipamentos. Todas seguem padrão `item INTEGER PK` +
 | `classe_variados` | `categoria_variados_item` opcional | Classes de variados |
 
 Gerenciadas em `/master/tabelas-acessorias`. Backend em `server/src/modules/tabelas-acessorias/`.
+
+### `raridade` (migration 073)
+
+Escala única de raridade para **todas** as tabelas de item — equipamentos, e mais tarde consumíveis e itens. Uma poção Rara e uma espada Rara são igualmente difíceis de achar; escala comum permite comparar entre categorias.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| item | INTEGER PK | **IDENTITY de verdade** — o banco gera. As outras lookups escolhem a chave com `MAX(item)+1`, que foi o que causou a migration 067 |
+| descricao | VARCHAR(100) | Comum, Incomum, Raro, Épico, Lendário. UNIQUE **parcial** entre as ativas |
+| ordem | INTEGER | posição na escala. **É por ela que se ordena, não pelo `item`** — uma raridade nova entre Raro e Épico receberia o item 6 e iria para o fim da lista |
+| multiplicador_valor | NUMERIC(6,2) | quanto o preço-base é multiplicado |
+| dificuldade_base | INTEGER | dificuldade do teste para fabricar. **Nulo em Lendário**: o mestre decide caso a caso |
+| disponibilidade | TEXT | onde o item é encontrado à venda |
+| cor | VARCHAR(20) | nome de cor do Tailwind, para o frontend não manter um mapa paralelo |
+
+Seed: Comum (×1, dif. 10), Incomum (×3, dif. 15), Raro (×10, dif. 20), Épico (×40, dif. 25), Lendário (o mestre decide).
+
+Raridade aqui **decide coisas** em vez de ser etiqueta: uma referência responde "o mercador tem isso?", "quanto custa?" e "quão difícil é fabricar?".
+
+`equipamentos.raridade_item` aponta para cá; os 14 registros existentes nasceram Comum. Deletar uma raridade em uso é **recusado pelo serviço** — sem FOREIGN KEY, nada impediria no banco, e o item ficaria apontando para o vazio sem erro nenhum.
 
 ### `passados` (migration 032)
 
