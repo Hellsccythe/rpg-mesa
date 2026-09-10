@@ -55,6 +55,25 @@ export function custoDoRank(rank: number): number {
   return rank;
 }
 
+/**
+ * Quanto o atributo contribui no teste: metade dele, **limitado ao dobro do
+ * rank**. Espelha `bonusDoAtributo` do frontend.
+ *
+ * A metade já era para o atributo não engolir o rank. A trava resolve o outro
+ * lado: com os atributos crescendo ao longo da campanha, rank 1 com
+ * Inteligência 20 chegava a +13 e passava 70% dos testes Raros — treino mínimo
+ * vencendo por talento bruto. Com a trava cai para 30%, e o profissional
+ * (rank 3) e o mestre (rank 5) não perdem nada.
+ */
+export function bonusDoAtributo(rank: number, valorDoAtributo: number): number {
+  return Math.min(Math.floor(valorDoAtributo / 2), rank * 2);
+}
+
+/** O bônus total no teste: `rank × 3 + min(⌊atributo ÷ 2⌋, rank × 2)`. */
+export function bonusDoTeste(rank: number, valorDoAtributo: number): number {
+  return rank * 3 + bonusDoAtributo(rank, valorDoAtributo);
+}
+
 /** Custo acumulado de sair do zero até `rank`. */
 export function custoAcumulado(rank: number): number {
   let total = 0;

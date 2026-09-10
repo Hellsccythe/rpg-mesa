@@ -71,13 +71,24 @@ export function bonusDoRank(rank: number): number {
 }
 
 /**
- * O bônus total no teste: `rank × 3 + ⌊atributo ÷ 2⌋`.
+ * Quanto o atributo contribui no teste: metade dele, **limitado ao dobro do
+ * rank**.
  *
- * O atributo entra pela metade de propósito — com 10 pontos no onboarding mais
- * o bônus do passado, um atributo focado chega a 13 e engoliria o rank.
+ * A metade já era para o atributo não engolir o rank. A trava resolve o outro
+ * lado: com os atributos crescendo ao longo da campanha, um personagem de
+ * rank 1 e Inteligência 20 chegava a +13 e passava 70% dos testes Raros —
+ * treino mínimo vencendo por talento bruto.
+ *
+ * Com a trava ele cai para 30%, e o profissional (rank 3) e o mestre (rank 5)
+ * não perdem nada. Talento deixa de substituir treino sem deixar de importar.
  */
+export function bonusDoAtributo(rank: number, valorDoAtributo: number): number {
+  return Math.min(Math.floor(valorDoAtributo / 2), rank * 2)
+}
+
+/** O bônus total no teste: `rank × 3 + min(⌊atributo ÷ 2⌋, rank × 2)`. */
 export function bonusDoTeste(rank: number, valorDoAtributo: number): number {
-  return bonusDoRank(rank) + Math.floor(valorDoAtributo / 2)
+  return bonusDoRank(rank) + bonusDoAtributo(rank, valorDoAtributo)
 }
 
 export const CLASSE_POR_CATEGORIA: Record<CategoriaPericia, string> = {
