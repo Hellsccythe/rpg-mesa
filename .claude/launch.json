@@ -10,11 +10,9 @@
     {
       "name": "dev",
       "runtimeExecutable": "yarn",
-      "runtimeArgs": [
-        "run",
-        "dev"
-      ],
-      "port": 3000
+      "runtimeArgs": ["run", "dev:server"],
+      "port": 3000,
+      "autoPort": false
     }
   ]
 }
