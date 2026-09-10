@@ -48,16 +48,18 @@ CONDICOES = [
     ("Enfeitiçado",  "Raro",    "Mental", "Obedece a quem o enfeitiçou. Trata aliados como inimigos.",        "Até ser quebrada"),
     ("Peste Negra",  "Raro",    "Doença", "Perde 1d8 PV por hora, dobrando a cada dia sem tratamento.",       "Até ser tratada"),
     ("Necrose",      "Raro",    "Doença", "Um membro apodrece e perde o uso. Espalha em 1d4 dias.",           "Até ser tratada"),
+    ("Saturação Alquímica", "Comum", "Alquímica",
+     "Cada poção de cura bebida aplica 1 acúmulo. Com 2, poção de cura não faz mais efeito.", "1 semana"),
 ]
 
 # ── Poções: nome, tier, tipo, preço, cura[], previne[], efeito, receita ───
 # tipo: vida | cura | prevencao | ampla
 POCOES = [
     ("Poção de Cura Menor", "Comum", "vida", 25, [], [],
-     "Recupera 2d4 pontos de vida ao ser bebida.",
+     "Recupera 1d4 + 20% do PV máximo. Aplica 1 acúmulo de Saturação Alquímica.",
      [("Erva de Sangue", 2), ("Água Pura", 2)]),
-    ("Chá de Estômago Calmo", "Comum", "cura", 11, ["Náusea"], [],
-     "Assenta o estômago e devolve a capacidade de beber outra poção.",
+    ("Chá de Estômago Calmo", "Comum", "cura", 11, ["Náusea", "Saturação Alquímica"], [],
+     "Limpa a Saturação Alquímica e a Náusea. Uma vez por semana, e só.",
      [("Folha de Menta Selvagem", 2), ("Sal Mineral", 1)]),
     ("Emplastro de Sangue Firme", "Comum", "cura", 15, ["Sangramento"], [],
      "Estanca o sangramento em um turno. Arde como o diabo.",
@@ -106,7 +108,7 @@ POCOES = [
      "Imune a veneno por uma hora. O antídoto que se toma antes.",
      [("Glândula de Víbora", 1), ("Flor da Meia-Noite", 1), ("Sal Mineral", 1)]),
     ("Poção de Cura Maior", "Incomum", "vida", 90, [], [],
-     "Recupera 4d4+4 pontos de vida.",
+     "Recupera 1d6 + 40% do PV máximo. Aplica 1 acúmulo de Saturação Alquímica.",
      [("Erva de Sangue", 6), ("Musgo Luminoso", 1)]),
     ("Elixir do Alívio Comum", "Incomum", "ampla", 140, ["todas as condições Comuns"], [],
      "Limpa TODAS as condições Comuns de uma vez.",
@@ -114,7 +116,7 @@ POCOES = [
       ("Folha de Menta Selvagem", 4), ("Água Pura", 5)]),
 
     ("Poção de Cura Superior", "Raro", "vida", 445, [], [],
-     "Recupera 8d4+10 pontos de vida. Traz de volta quem já estava indo.",
+     "Recupera 1d10 + 60% do PV máximo. Aplica 1 acúmulo de Saturação Alquímica.",
      [("Erva de Sangue", 10), ("Musgo Luminoso", 2), ("Coração de Mandrágora", 1)]),
     ("Soro do Corpo Livre", "Raro", "cura", 350, ["Paralisia"], [],
      "Devolve o movimento a quem estava travado.",

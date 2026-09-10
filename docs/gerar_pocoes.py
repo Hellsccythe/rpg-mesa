@@ -14,7 +14,8 @@ SAIDA = ("C:/Users/Hellsccythe/Documents/PROJETOS/rpg-mesa/"
          ".claude/worktrees/postgres-db-access-951e7e/docs/pocoes.html")
 
 COR_TIER = {"Comum": "zinc", "Incomum": "emerald", "Raro": "sky"}
-COR_CATEGORIA = {"Física": "#7a3e12", "Mental": "#5b3a7a", "Mágica": "#1f4d7a", "Doença": "#7a1f2f"}
+COR_CATEGORIA = {"Física": "#7a3e12", "Mental": "#5b3a7a", "Mágica": "#1f4d7a",
+                 "Doença": "#7a1f2f", "Alquímica": "#1f5c3d"}
 ROTULO_TIPO = {"vida": "Vida", "cura": "Cura", "prevencao": "Prevenção", "ampla": "Ampla"}
 
 
