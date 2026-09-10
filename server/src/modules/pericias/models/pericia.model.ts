@@ -3,7 +3,11 @@ import { Column, DataType, Model, Table } from "sequelize-typescript";
 export const ATRIBUTOS = ["aura", "forca", "destreza", "resistencia", "inteligencia"] as const;
 export type Atributo = (typeof ATRIBUTOS)[number];
 
-export const CATEGORIAS_PERICIA = ["Ofício", "Social", "Corpo", "Saber"] as const;
+// "Virtude" entrou na migration 081 junto com o grupo de combate. O CHECK do
+// banco foi estendido lá; esta constante ficou para trás, e com isso o DTO
+// recusava criar ou editar qualquer perícia de Virtude pela API — as cinco
+// existentes só entraram porque a migration escreveu em SQL puro.
+export const CATEGORIAS_PERICIA = ["Ofício", "Social", "Corpo", "Saber", "Virtude"] as const;
 export type CategoriaPericia = (typeof CATEGORIAS_PERICIA)[number];
 
 /** Rank máximo. Com custo crescente, chegar lá custa 1+2+3+4+5 = 15 pontos. */

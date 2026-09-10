@@ -1,5 +1,5 @@
 -- Schema completo do banco RPG de Mesa
--- Gerado em: 2026-09-07 por pg_dump --schema-only, direto do banco em Docker (porta 5433).
+-- Gerado em: 2026-09-10 por pg_dump --schema-only, direto do banco em Docker (porta 5433).
 --
 -- Para aplicar do zero:        psql -d rpg_mesa -f docs/SCHEMA_CURRENT.sql
 -- Para atualizar um existente: rode as migrations em database/migrations/ em ordem.
@@ -10,7 +10,10 @@
 --
 -- PostgreSQL database dump
 --
+-- PostgreSQL database dump
+--
 
+\restrict P6IjtKnUXS3eacHPsgJlChvaQYJeaPOT3WVvHyWoGRcdih6zsizafvJaOspd9qc
 
 -- Dumped from database version 18.6 (Debian 18.6-1.pgdg13+2)
 -- Dumped by pg_dump version 18.6 (Debian 18.6-1.pgdg13+2)
@@ -403,7 +406,7 @@ ALTER TABLE public.campaigns ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
 CREATE TABLE public.categoria_arma (
     item integer NOT NULL,
     descricao character varying(100) NOT NULL,
-    equipamento_tipo_item integer,
+    uso_equipamento_item integer,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     created_by text,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
@@ -439,7 +442,7 @@ ALTER SEQUENCE public.categoria_arma_item_seq OWNED BY public.categoria_arma.ite
 CREATE TABLE public.categoria_armadura (
     item integer NOT NULL,
     descricao character varying(100) NOT NULL,
-    equipamento_tipo_item integer,
+    uso_equipamento_item integer,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     created_by text,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
@@ -466,6 +469,37 @@ CREATE SEQUENCE public.categoria_armadura_item_seq
 --
 
 ALTER SEQUENCE public.categoria_armadura_item_seq OWNED BY public.categoria_armadura.item;
+
+
+--
+-- Name: categoria_consumivel; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.categoria_consumivel (
+    item integer NOT NULL,
+    descricao character varying(100) NOT NULL,
+    icone character varying(100),
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by text,
+    updated_by text,
+    deleted_at timestamp with time zone,
+    deleted_by text
+);
+
+
+--
+-- Name: categoria_consumivel_item_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.categoria_consumivel ALTER COLUMN item ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.categoria_consumivel_item_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
 
 
 --
@@ -506,13 +540,44 @@ ALTER SEQUENCE public.categoria_equipamento_item_seq OWNED BY public.categoria_e
 
 
 --
+-- Name: categoria_item; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.categoria_item (
+    item integer NOT NULL,
+    descricao character varying(100) NOT NULL,
+    icone character varying(100),
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by text,
+    updated_by text,
+    deleted_at timestamp with time zone,
+    deleted_by text
+);
+
+
+--
+-- Name: categoria_item_item_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.categoria_item ALTER COLUMN item ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.categoria_item_item_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
 -- Name: categoria_variados; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.categoria_variados (
     item integer NOT NULL,
     descricao character varying(100) NOT NULL,
-    equipamento_tipo_item integer,
+    uso_equipamento_item integer,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     created_by text,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
@@ -847,6 +912,38 @@ ALTER SEQUENCE public.classe_equipamento_item_seq OWNED BY public.classe_equipam
 
 
 --
+-- Name: classe_marco_virtude; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.classe_marco_virtude (
+    id integer NOT NULL,
+    classe_id integer NOT NULL,
+    nivel integer NOT NULL,
+    pontos integer NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by text,
+    updated_by text,
+    CONSTRAINT classe_marco_virtude_nivel_check CHECK ((nivel = ANY (ARRAY[5, 10, 15, 20]))),
+    CONSTRAINT classe_marco_virtude_pontos_check CHECK (((pontos >= 0) AND (pontos <= 10)))
+);
+
+
+--
+-- Name: classe_marco_virtude_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.classe_marco_virtude ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.classe_marco_virtude_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
 -- Name: classe_secreta_revelada; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -964,15 +1061,121 @@ ALTER SEQUENCE public.classes_id_seq OWNED BY public.classes.id;
 
 
 --
--- Name: equipamento_tipo; Type: TABLE; Schema: public; Owner: -
+-- Name: condicoes; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.equipamento_tipo (
-    item integer NOT NULL,
-    descricao character varying(100) NOT NULL,
+CREATE TABLE public.condicoes (
+    id integer NOT NULL,
+    nome character varying(100) NOT NULL,
+    descricao text DEFAULT ''::text NOT NULL,
+    efeito text DEFAULT ''::text NOT NULL,
+    categoria character varying(20) NOT NULL,
+    raridade_item integer,
+    duracao character varying(60) DEFAULT ''::character varying NOT NULL,
+    janela_de_cura character varying(60),
+    se_nao_tratada text,
+    acumulativa boolean DEFAULT false NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by text,
+    updated_by text,
+    deleted_at timestamp with time zone,
+    deleted_by text,
+    CONSTRAINT condicoes_categoria_check CHECK (((categoria)::text = ANY ((ARRAY['Física'::character varying, 'Mental'::character varying, 'Mágica'::character varying, 'Doença'::character varying, 'Alquímica'::character varying])::text[])))
+);
+
+
+--
+-- Name: condicoes_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.condicoes ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.condicoes_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: consumiveis; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.consumiveis (
+    id integer NOT NULL,
+    nome character varying(255) NOT NULL,
+    descricao text,
+    efeito text DEFAULT ''::text NOT NULL,
+    usos integer DEFAULT 1 NOT NULL,
+    duracao character varying(60),
+    peso numeric(8,2),
+    valor numeric(12,2),
+    raridade_item integer,
+    categoria_consumivel_item integer,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by text,
+    updated_by text,
+    deleted_at timestamp with time zone,
+    deleted_by text
+);
+
+
+--
+-- Name: consumiveis_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.consumiveis ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.consumiveis_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: consumivel_condicao; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.consumivel_condicao (
+    id integer NOT NULL,
+    consumivel_id integer NOT NULL,
+    condicao_id integer NOT NULL,
+    acao character varying(10) NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     created_by text,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT consumivel_condicao_acao_check CHECK (((acao)::text = ANY ((ARRAY['cura'::character varying, 'previne'::character varying])::text[])))
+);
+
+
+--
+-- Name: consumivel_condicao_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.consumivel_condicao ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.consumivel_condicao_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: uso_equipamento; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.uso_equipamento (
+    item integer CONSTRAINT equipamento_tipo_item_not_null NOT NULL,
+    descricao character varying(100) CONSTRAINT equipamento_tipo_descricao_not_null NOT NULL,
+    created_at timestamp with time zone DEFAULT now() CONSTRAINT equipamento_tipo_created_at_not_null NOT NULL,
+    created_by text,
+    updated_at timestamp with time zone DEFAULT now() CONSTRAINT equipamento_tipo_updated_at_not_null NOT NULL,
     updated_by text,
     deleted_at timestamp with time zone,
     deleted_by text
@@ -995,7 +1198,7 @@ CREATE SEQUENCE public.equipamento_tipo_item_seq
 -- Name: equipamento_tipo_item_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.equipamento_tipo_item_seq OWNED BY public.equipamento_tipo.item;
+ALTER SEQUENCE public.equipamento_tipo_item_seq OWNED BY public.uso_equipamento.item;
 
 
 --
@@ -1019,7 +1222,16 @@ CREATE TABLE public.equipamentos (
     propriedade_equipamento_item integer[] DEFAULT '{}'::integer[] NOT NULL,
     categoria_equipamento_item integer,
     classe_equipamento_item integer[] DEFAULT '{}'::integer[] NOT NULL,
-    id integer NOT NULL
+    id integer NOT NULL,
+    raridade_item integer,
+    dano_alternativo character varying(20),
+    multiplicador_critico integer,
+    tipo_dano_item integer,
+    defesa_fisica integer,
+    defesa_magica integer,
+    pericia_id integer,
+    alcance_ideal integer,
+    alcance_maximo integer
 );
 
 
@@ -1139,6 +1351,42 @@ CREATE TABLE public.indole (
 
 ALTER TABLE public.indole ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
     SEQUENCE NAME public.indole_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: itens; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.itens (
+    id integer NOT NULL,
+    nome character varying(255) NOT NULL,
+    descricao text,
+    peso numeric(8,2),
+    valor numeric(12,2),
+    empilhavel boolean DEFAULT true NOT NULL,
+    raridade_item integer,
+    categoria_item integer,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by text,
+    updated_by text,
+    deleted_at timestamp with time zone,
+    deleted_by text
+);
+
+
+--
+-- Name: itens_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.itens ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.itens_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -1303,7 +1551,9 @@ CREATE TABLE public.passados (
     updated_by text,
     deleted_at timestamp with time zone,
     deleted_by text,
-    atributo_bonus jsonb
+    atributo_bonus jsonb,
+    dinheiro_inicial jsonb DEFAULT '[]'::jsonb NOT NULL,
+    pericias_iniciais jsonb DEFAULT '[]'::jsonb NOT NULL
 );
 
 
@@ -1313,6 +1563,45 @@ CREATE TABLE public.passados (
 
 ALTER TABLE public.passados ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
     SEQUENCE NAME public.passados_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: pericias; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.pericias (
+    id integer NOT NULL,
+    nome character varying(100) NOT NULL,
+    descricao text DEFAULT ''::text NOT NULL,
+    atributo_base character varying(20) NOT NULL,
+    categoria character varying(20) NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by text,
+    updated_by text,
+    deleted_at timestamp with time zone,
+    deleted_by text,
+    bolsa character varying(10) DEFAULT 'mundana'::character varying NOT NULL,
+    capacidade_rank5_nome character varying(60),
+    capacidade_rank5 text,
+    CONSTRAINT pericias_atributo_check CHECK (((atributo_base)::text = ANY ((ARRAY['aura'::character varying, 'forca'::character varying, 'destreza'::character varying, 'resistencia'::character varying, 'inteligencia'::character varying])::text[]))),
+    CONSTRAINT pericias_bolsa_check CHECK (((bolsa)::text = ANY ((ARRAY['mundana'::character varying, 'virtude'::character varying])::text[]))),
+    CONSTRAINT pericias_categoria_check CHECK (((categoria)::text = ANY ((ARRAY['Ofício'::character varying, 'Social'::character varying, 'Corpo'::character varying, 'Saber'::character varying, 'Virtude'::character varying])::text[])))
+);
+
+
+--
+-- Name: pericias_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.pericias ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.pericias_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -1529,6 +1818,126 @@ ALTER TABLE public.racas ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
     NO MINVALUE
     NO MAXVALUE
     CACHE 1
+);
+
+
+--
+-- Name: raridade; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.raridade (
+    item integer NOT NULL,
+    descricao character varying(100) NOT NULL,
+    ordem integer NOT NULL,
+    multiplicador_valor numeric(6,2) DEFAULT 1 NOT NULL,
+    dificuldade_base integer,
+    disponibilidade text DEFAULT ''::text NOT NULL,
+    cor character varying(20) DEFAULT 'zinc'::character varying NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by text,
+    updated_by text,
+    deleted_at timestamp with time zone,
+    deleted_by text
+);
+
+
+--
+-- Name: raridade_item_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.raridade ALTER COLUMN item ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.raridade_item_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: receita_ingredientes; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.receita_ingredientes (
+    id integer NOT NULL,
+    receita_id integer NOT NULL,
+    ingrediente_tabela character varying(20) NOT NULL,
+    ingrediente_id integer NOT NULL,
+    quantidade integer DEFAULT 1 NOT NULL,
+    consumido boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by text,
+    updated_by text,
+    CONSTRAINT receita_ingredientes_tabela_check CHECK (((ingrediente_tabela)::text = ANY ((ARRAY['consumiveis'::character varying, 'itens'::character varying, 'equipamentos'::character varying])::text[])))
+);
+
+
+--
+-- Name: receita_ingredientes_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.receita_ingredientes ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.receita_ingredientes_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: receitas; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.receitas (
+    id integer NOT NULL,
+    nome character varying(255) NOT NULL,
+    descricao text,
+    produto_tabela character varying(20) NOT NULL,
+    produto_id integer NOT NULL,
+    quantidade_produzida integer DEFAULT 1 NOT NULL,
+    tempo_minutos integer DEFAULT 60 NOT NULL,
+    dificuldade integer DEFAULT 10 NOT NULL,
+    pericia_id integer,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by text,
+    updated_by text,
+    deleted_at timestamp with time zone,
+    deleted_by text,
+    CONSTRAINT receitas_produto_tabela_check CHECK (((produto_tabela)::text = ANY ((ARRAY['consumiveis'::character varying, 'itens'::character varying, 'equipamentos'::character varying])::text[])))
+);
+
+
+--
+-- Name: receitas_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.receitas ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.receitas_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: regras_do_sistema; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.regras_do_sistema (
+    chave character varying(60) NOT NULL,
+    valor text NOT NULL,
+    descricao text DEFAULT ''::text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_by text
 );
 
 
@@ -1988,13 +2397,6 @@ ALTER TABLE ONLY public.classes ALTER COLUMN id SET DEFAULT nextval('public.clas
 
 
 --
--- Name: equipamento_tipo item; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.equipamento_tipo ALTER COLUMN item SET DEFAULT nextval('public.equipamento_tipo_item_seq'::regclass);
-
-
---
 -- Name: gods id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -2079,6 +2481,13 @@ ALTER TABLE ONLY public.titles ALTER COLUMN id SET DEFAULT nextval('public.title
 
 
 --
+-- Name: uso_equipamento item; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.uso_equipamento ALTER COLUMN item SET DEFAULT nextval('public.equipamento_tipo_item_seq'::regclass);
+
+
+--
 -- Name: campaign_gms campaign_gms_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2119,11 +2528,27 @@ ALTER TABLE ONLY public.categoria_armadura
 
 
 --
+-- Name: categoria_consumivel categoria_consumivel_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.categoria_consumivel
+    ADD CONSTRAINT categoria_consumivel_pkey PRIMARY KEY (item);
+
+
+--
 -- Name: categoria_equipamento categoria_equipamento_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.categoria_equipamento
     ADD CONSTRAINT categoria_equipamento_pkey PRIMARY KEY (item);
+
+
+--
+-- Name: categoria_item categoria_item_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.categoria_item
+    ADD CONSTRAINT categoria_item_pkey PRIMARY KEY (item);
 
 
 --
@@ -2223,6 +2648,14 @@ ALTER TABLE ONLY public.classe_equipamento
 
 
 --
+-- Name: classe_marco_virtude classe_marco_virtude_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.classe_marco_virtude
+    ADD CONSTRAINT classe_marco_virtude_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: classe_secreta_revelada classe_secreta_revelada_classe_id_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2263,10 +2696,34 @@ ALTER TABLE ONLY public.classes
 
 
 --
--- Name: equipamento_tipo equipamento_tipo_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: condicoes condicoes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.equipamento_tipo
+ALTER TABLE ONLY public.condicoes
+    ADD CONSTRAINT condicoes_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: consumiveis consumiveis_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.consumiveis
+    ADD CONSTRAINT consumiveis_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: consumivel_condicao consumivel_condicao_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.consumivel_condicao
+    ADD CONSTRAINT consumivel_condicao_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: uso_equipamento equipamento_tipo_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.uso_equipamento
     ADD CONSTRAINT equipamento_tipo_pkey PRIMARY KEY (item);
 
 
@@ -2327,6 +2784,14 @@ ALTER TABLE ONLY public.indole
 
 
 --
+-- Name: itens itens_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.itens
+    ADD CONSTRAINT itens_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: level_progression level_progression_level_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2383,6 +2848,14 @@ ALTER TABLE ONLY public.passados
 
 
 --
+-- Name: pericias pericias_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.pericias
+    ADD CONSTRAINT pericias_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: player_telas player_telas_character_id_tela_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2436,6 +2909,38 @@ ALTER TABLE ONLY public.propriedade_variados
 
 ALTER TABLE ONLY public.racas
     ADD CONSTRAINT racas_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: raridade raridade_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.raridade
+    ADD CONSTRAINT raridade_pkey PRIMARY KEY (item);
+
+
+--
+-- Name: receita_ingredientes receita_ingredientes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.receita_ingredientes
+    ADD CONSTRAINT receita_ingredientes_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: receitas receitas_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.receitas
+    ADD CONSTRAINT receitas_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: regras_do_sistema regras_do_sistema_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.regras_do_sistema
+    ADD CONSTRAINT regras_do_sistema_pkey PRIMARY KEY (chave);
 
 
 --
@@ -2565,10 +3070,24 @@ CREATE INDEX equipamentos_nome_idx ON public.equipamentos USING btree (nome);
 
 
 --
+-- Name: idx_categoria_consumivel_descricao_ativa; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_categoria_consumivel_descricao_ativa ON public.categoria_consumivel USING btree (descricao) WHERE (deleted_at IS NULL);
+
+
+--
 -- Name: idx_categoria_equipamento_classe; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_categoria_equipamento_classe ON public.categoria_equipamento USING btree (classe_item) WHERE ((classe_item IS NOT NULL) AND (deleted_at IS NULL));
+
+
+--
+-- Name: idx_categoria_item_descricao_ativa; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_categoria_item_descricao_ativa ON public.categoria_item USING btree (descricao) WHERE (deleted_at IS NULL);
 
 
 --
@@ -2691,6 +3210,13 @@ CREATE INDEX idx_city_maps_deleted_at ON public.city_maps USING btree (deleted_a
 
 
 --
+-- Name: idx_classe_marco_virtude_unico; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_classe_marco_virtude_unico ON public.classe_marco_virtude USING btree (classe_id, nivel);
+
+
+--
 -- Name: idx_classes_deleted_at; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2712,6 +3238,62 @@ CREATE INDEX idx_classes_tier ON public.classes USING btree (tier) WHERE (delete
 
 
 --
+-- Name: idx_condicoes_nome_ativa; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_condicoes_nome_ativa ON public.condicoes USING btree (nome) WHERE (deleted_at IS NULL);
+
+
+--
+-- Name: idx_condicoes_raridade; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_condicoes_raridade ON public.condicoes USING btree (raridade_item) WHERE (deleted_at IS NULL);
+
+
+--
+-- Name: idx_consumiveis_ativos; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_consumiveis_ativos ON public.consumiveis USING btree (deleted_at) WHERE (deleted_at IS NULL);
+
+
+--
+-- Name: idx_consumiveis_categoria; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_consumiveis_categoria ON public.consumiveis USING btree (categoria_consumivel_item) WHERE (deleted_at IS NULL);
+
+
+--
+-- Name: idx_consumiveis_raridade; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_consumiveis_raridade ON public.consumiveis USING btree (raridade_item) WHERE (deleted_at IS NULL);
+
+
+--
+-- Name: idx_consumivel_condicao_condicao; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_consumivel_condicao_condicao ON public.consumivel_condicao USING btree (condicao_id);
+
+
+--
+-- Name: idx_consumivel_condicao_consumivel; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_consumivel_condicao_consumivel ON public.consumivel_condicao USING btree (consumivel_id);
+
+
+--
+-- Name: idx_consumivel_condicao_unico; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_consumivel_condicao_unico ON public.consumivel_condicao USING btree (consumivel_id, condicao_id, acao);
+
+
+--
 -- Name: idx_equipamentos_categoria_single; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2730,6 +3312,13 @@ CREATE INDEX idx_equipamentos_classe_array ON public.equipamentos USING gin (cla
 --
 
 CREATE INDEX idx_equipamentos_propriedade_item ON public.equipamentos USING gin (propriedade_equipamento_item);
+
+
+--
+-- Name: idx_equipamentos_raridade; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_equipamentos_raridade ON public.equipamentos USING btree (raridade_item) WHERE (deleted_at IS NULL);
 
 
 --
@@ -2761,6 +3350,27 @@ CREATE INDEX idx_gods_name ON public.gods USING btree (name) WHERE (deleted_at I
 
 
 --
+-- Name: idx_itens_ativos; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_itens_ativos ON public.itens USING btree (deleted_at) WHERE (deleted_at IS NULL);
+
+
+--
+-- Name: idx_itens_categoria; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_itens_categoria ON public.itens USING btree (categoria_item) WHERE (deleted_at IS NULL);
+
+
+--
+-- Name: idx_itens_raridade; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_itens_raridade ON public.itens USING btree (raridade_item) WHERE (deleted_at IS NULL);
+
+
+--
 -- Name: idx_level_progression_deleted_at; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2789,6 +3399,13 @@ CREATE INDEX idx_lore_notes_character ON public.lore_notes USING btree (characte
 
 
 --
+-- Name: idx_pericias_nome_ativa; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_pericias_nome_ativa ON public.pericias USING btree (nome) WHERE (deleted_at IS NULL);
+
+
+--
 -- Name: idx_propriedade_equipamento_categoria; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2800,6 +3417,34 @@ CREATE INDEX idx_propriedade_equipamento_categoria ON public.propriedade_equipam
 --
 
 CREATE INDEX idx_racas_deleted_at ON public.racas USING btree (deleted_at) WHERE (deleted_at IS NULL);
+
+
+--
+-- Name: idx_raridade_descricao_ativa; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_raridade_descricao_ativa ON public.raridade USING btree (descricao) WHERE (deleted_at IS NULL);
+
+
+--
+-- Name: idx_receita_ingrediente_unico; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_receita_ingrediente_unico ON public.receita_ingredientes USING btree (receita_id, ingrediente_tabela, ingrediente_id);
+
+
+--
+-- Name: idx_receita_ingredientes_receita; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_receita_ingredientes_receita ON public.receita_ingredientes USING btree (receita_id);
+
+
+--
+-- Name: idx_receitas_produto; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_receitas_produto ON public.receitas USING btree (produto_tabela, produto_id) WHERE (deleted_at IS NULL);
 
 
 --
@@ -2964,10 +3609,10 @@ CREATE TRIGGER trg_classes_updated_at BEFORE UPDATE ON public.classes FOR EACH R
 
 
 --
--- Name: equipamento_tipo trg_equipamento_tipo_updated_at; Type: TRIGGER; Schema: public; Owner: -
+-- Name: uso_equipamento trg_equipamento_tipo_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE TRIGGER trg_equipamento_tipo_updated_at BEFORE UPDATE ON public.equipamento_tipo FOR EACH ROW EXECUTE FUNCTION public.set_timestamp_updated_at();
+CREATE TRIGGER trg_equipamento_tipo_updated_at BEFORE UPDATE ON public.uso_equipamento FOR EACH ROW EXECUTE FUNCTION public.set_timestamp_updated_at();
 
 
 --
@@ -3214,12 +3859,6 @@ ALTER TABLE public.classe_variados ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.classes ENABLE ROW LEVEL SECURITY;
 
 --
--- Name: equipamento_tipo; Type: ROW SECURITY; Schema: public; Owner: -
---
-
-ALTER TABLE public.equipamento_tipo ENABLE ROW LEVEL SECURITY;
-
---
 -- Name: equipamentos; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -3385,6 +4024,12 @@ ALTER TABLE public.tipo_equipamento ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.titles ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: uso_equipamento; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.uso_equipamento ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: usuarios; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -3394,4 +4039,5 @@ ALTER TABLE public.usuarios ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
+\unrestrict P6IjtKnUXS3eacHPsgJlChvaQYJeaPOT3WVvHyWoGRcdih6zsizafvJaOspd9qc
 

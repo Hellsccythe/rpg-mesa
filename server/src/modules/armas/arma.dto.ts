@@ -51,6 +51,35 @@ export class CriarEquipamentoDto {
 
   @IsOptional() @IsString() @MaxLength(300)
   pre_requisitos?: string | null;
+
+  @IsOptional() @IsString() @MaxLength(20)
+  dano_alternativo?: string | null;
+
+  /** 2 ou 3 hoje. O teto de 10 é só para barrar digitação absurda. */
+  @IsOptional() @IsInt() @Min(1) @Max(10)
+  multiplicador_critico?: number | null;
+
+  @IsOptional() @IsInt() @Min(1)
+  tipo_dano_item?: number | null;
+
+  @IsOptional() @IsInt() @Min(0) @Max(999)
+  defesa_fisica?: number | null;
+
+  @IsOptional() @IsInt() @Min(0) @Max(999)
+  defesa_magica?: number | null;
+
+  @IsOptional() @IsInt() @Min(1)
+  pericia_id?: number | null;
+
+  /** Em metros. O teto cobre o mosquete (80m) com folga larga. */
+  @IsOptional() @IsInt() @Min(0) @Max(10000)
+  alcance_ideal?: number | null;
+
+  @IsOptional() @IsInt() @Min(0) @Max(10000)
+  alcance_maximo?: number | null;
+
+  @IsOptional() @IsInt() @Min(1)
+  raridade_item?: number | null;
 }
 
 export class EditarEquipamentoDto {
@@ -83,6 +112,35 @@ export class EditarEquipamentoDto {
 
   @IsOptional() @IsString() @MaxLength(300)
   pre_requisitos?: string | null;
+
+  @IsOptional() @IsString() @MaxLength(20)
+  dano_alternativo?: string | null;
+
+  /** 2 ou 3 hoje. O teto de 10 é só para barrar digitação absurda. */
+  @IsOptional() @IsInt() @Min(1) @Max(10)
+  multiplicador_critico?: number | null;
+
+  @IsOptional() @IsInt() @Min(1)
+  tipo_dano_item?: number | null;
+
+  @IsOptional() @IsInt() @Min(0) @Max(999)
+  defesa_fisica?: number | null;
+
+  @IsOptional() @IsInt() @Min(0) @Max(999)
+  defesa_magica?: number | null;
+
+  @IsOptional() @IsInt() @Min(1)
+  pericia_id?: number | null;
+
+  /** Em metros. O teto cobre o mosquete (80m) com folga larga. */
+  @IsOptional() @IsInt() @Min(0) @Max(10000)
+  alcance_ideal?: number | null;
+
+  @IsOptional() @IsInt() @Min(0) @Max(10000)
+  alcance_maximo?: number | null;
+
+  @IsOptional() @IsInt() @Min(1)
+  raridade_item?: number | null;
 }
 
 // ── Tabelas de apoio ────────────────────────────────────────────────────────

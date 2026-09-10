@@ -3,7 +3,7 @@ import { api } from '@/plugins/axios'
 export const ATRIBUTOS = ['aura', 'forca', 'destreza', 'resistencia', 'inteligencia'] as const
 export type Atributo = (typeof ATRIBUTOS)[number]
 
-export const CATEGORIAS_PERICIA = ['Ofício', 'Social', 'Corpo', 'Saber'] as const
+export const CATEGORIAS_PERICIA = ['Ofício', 'Social', 'Corpo', 'Saber', 'Virtude'] as const
 export type CategoriaPericia = (typeof CATEGORIAS_PERICIA)[number]
 
 /** Rank máximo. Com custo crescente, chegar lá custa 1+2+3+4+5 = 15 pontos. */
@@ -17,12 +17,18 @@ export const ROTULO_ATRIBUTO: Record<Atributo, string> = {
   inteligencia: 'Inteligência',
 }
 
+/** As duas bolsas de pontos. Ver `CAMPO_DA_BOLSA` no servidor. */
+export const BOLSAS = ['mundana', 'virtude'] as const
+export type BolsaDePericia = (typeof BOLSAS)[number]
+
 export type PericiaApi = {
   id: number
   nome: string
   descricao: string
   atributoBase: Atributo
   categoria: CategoriaPericia
+  /** Qual bolsa o rank gasta: `periciaPoints` ou `periciaPointsVirtude`. */
+  bolsa: BolsaDePericia
 }
 
 export type PericiaPayload = {
@@ -96,4 +102,5 @@ export const CLASSE_POR_CATEGORIA: Record<CategoriaPericia, string> = {
   'Social': 'border-violet-500/25 bg-violet-950/40 text-violet-300',
   'Corpo': 'border-emerald-500/25 bg-emerald-950/40 text-emerald-300',
   'Saber': 'border-sky-500/25 bg-sky-950/40 text-sky-300',
+  'Virtude': 'border-red-500/25 bg-red-950/40 text-red-300',
 }
