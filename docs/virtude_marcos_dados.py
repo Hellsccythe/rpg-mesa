@@ -40,7 +40,11 @@ BASE = {
     "Ladrão":    "misto",
     "Sacerdote": "misto",
     "Bruxo":     "misto",
-    "Mago":      "conjurador",
+    # O Mago era o unico "conjurador" e ficava em 6, sozinho na faixa mais
+    # baixa. Igualado ao Sacerdote por decisao do mestre: os dois conjuram, os
+    # dois valem 8. O perfil "conjurador" fica sem membros, mantido para o caso
+    # de entrar uma classe que o justifique.
+    "Mago":      "misto",
 }
 
 # Raízes das híbridas, inferidas pelos nomes.
