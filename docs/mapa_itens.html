@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8">
+<title>Mapa dos Itens — o que falta — Caminho Sem Volta</title>
+<style>
+  @page { size: A4; margin: 15mm 13mm 17mm 13mm; }
+  :root { --tinta:#16181d; --fraca:#5b6270; --linha:#d8dce3; --linha2:#aeb5c0;
+          --alt:#f5f6f9; --dest:#7a3e12; --destbg:#fdf3e7; --alerta:#8c2f2f;
+          --alertabg:#fcf0f0; --ok:#1f5c3d; --okbg:#eef7f1; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:9.3pt/1.46 "Segoe UI","Helvetica Neue",Arial,sans-serif; color:var(--tinta); background:#fff; }
+  h1,h2,h3,h4 { line-height:1.2; margin:0; font-weight:650; }
+  h1 { font-size:24pt; letter-spacing:-0.4pt; }
+  h2 { font-size:14.5pt; margin:20pt 0 8pt; padding-bottom:4pt; border-bottom:1.6pt solid var(--tinta); break-after:avoid; }
+  h3 { font-size:11pt; margin:14pt 0 5pt; color:var(--dest); break-after:avoid; }
+  h4 { font-size:9.6pt; margin:10pt 0 3pt; break-after:avoid; }
+  p { margin:0 0 6pt; }
+  ul,ol { margin:0 0 7pt; padding-left:15pt; } li { margin-bottom:3pt; }
+  code { font-family:"Cascadia Mono",Consolas,monospace; font-size:0.88em; background:var(--alt); padding:0.5pt 2.5pt; border-radius:2pt; }
+  table { width:100%; border-collapse:collapse; margin:5pt 0 10pt; font-size:8.3pt; }
+  th,td { text-align:left; vertical-align:top; padding:3.2pt 5pt; border-bottom:0.6pt solid var(--linha); }
+  th { background:var(--alt); border-bottom:1pt solid var(--linha2); font-weight:650; font-size:7.6pt;
+       text-transform:uppercase; letter-spacing:0.3pt; color:var(--fraca); }
+  tr { break-inside:avoid; }
+  td.c,th.c { text-align:center; white-space:nowrap; }
+  .fraco { color:var(--fraca); } .small { font-size:7.8pt; }
+  .cheio { background:#eef7f1; color:#1f5c3d; font-weight:650; }
+  .vazio { color:#b9bec7; }
+  .pagina { break-before:page; }
+  .capa { padding-top:40mm; text-align:center; }
+  .capa .sub { font-size:12pt; color:var(--fraca); margin-top:6pt; }
+  .capa .meta { margin-top:24mm; font-size:8.6pt; color:var(--fraca); border-top:0.6pt solid var(--linha);
+                padding-top:8pt; display:inline-block; min-width:84mm; }
+  .capa .selo { display:inline-block; margin-bottom:10pt; padding:3pt 10pt; border:1pt solid var(--linha2);
+                border-radius:12pt; font-size:8pt; letter-spacing:1.4pt; text-transform:uppercase; color:var(--fraca); }
+  .nota,.aviso,.bom { padding:6pt 9pt; margin:7pt 0 10pt; border-left:2.4pt solid var(--dest);
+                      background:var(--destbg); font-size:8.4pt; break-inside:avoid; }
+  .aviso { border-left-color:var(--alerta); background:var(--alertabg); }
+  .bom { border-left-color:var(--ok); background:var(--okbg); }
+  .nota p:last-child,.aviso p:last-child,.bom p:last-child { margin-bottom:0; }
+  .passo { display:flex; gap:9pt; margin-bottom:9pt; break-inside:avoid; }
+  .passo .n { flex:0 0 22pt; height:22pt; border-radius:50%; background:var(--tinta); color:#fff;
+              font-size:9.5pt; font-weight:650; display:flex; align-items:center; justify-content:center; }
+  .passo .txt { flex:1; }
+  .passo h4 { margin-top:2pt; }
+  .etq { display:inline-block; padding:0.6pt 5pt; border-radius:2.5pt; font-size:7pt; font-weight:650;
+         text-transform:uppercase; letter-spacing:0.3pt; vertical-align:1.5pt; }
+  .e-bloq { background:#f2dede; color:#8c2f2f; }
+  .e-rapid { background:#e6f4ec; color:#1f5c3d; }
+  .e-medio { background:#f7f0e0; color:#7a5a12; }
+  .e-grande { background:#e4e7f2; color:#3a4670; }
+  figure { margin:9pt 0 12pt; break-inside:avoid; }
+  figcaption { font-size:7.8pt; color:var(--fraca); margin-top:4pt; text-align:center; }
+  svg { display:block; margin:0 auto; max-width:100%; }
+</style></head>
+<body>
+
+<section class="capa">
+  <div class="selo">Mapa de Trabalho</div>
+  <h1>Os Itens: o que falta</h1>
+  <div class="sub">Armas, armaduras, cosméticos e o resto do catálogo</div>
+  <div class="meta">
+    Estado real do banco &middot; 9 de setembro de 2026
+  </div>
+</section>
+
+<section class="pagina">
+  <h2>1. Onde estamos</h2>
+
+  <p>As três tabelas de item existem e o corte por comportamento está de pé. O que varia é o quanto cada uma
+  foi preenchida:</p>
+
+  <table>
+    <thead><tr><th style="width:20%">Tabela</th><th style="width:22%">Categoria</th>
+    <th class="c" style="width:12%">Registros</th><th>Situação</th></tr></thead>
+    <tbody>
+      <tr><td rowspan="5"><strong>consumiveis</strong><br><span class="fraco small">usa e some</span></td>
+          <td>Poção</td><td class="c cheio">28</td><td>completo — catálogo inteiro, com receitas e vínculos</td></tr>
+      <tr><td>Veneno</td><td class="c vazio">0</td><td>o espelho da poção; a máquina toda já existe</td></tr>
+      <tr><td>Munição</td><td class="c vazio">0</td><td>flechas, virotes, pólvora, balas</td></tr>
+      <tr><td>Alimento</td><td class="c vazio">0</td><td>rações, e o que cura fadiga</td></tr>
+      <tr><td>Pergaminho</td><td class="c vazio">0</td><td>magia de uso único</td></tr>
+
+      <tr><td rowspan="5"><strong>itens</strong><br><span class="fraco small">carrega, vende, entrega</span></td>
+          <td>Ingrediente</td><td class="c cheio">18</td><td>completo — os que as 28 receitas consomem</td></tr>
+      <tr><td>Cosmético</td><td class="c vazio">0</td><td>roupas, batom, hairpin, vestidos</td></tr>
+      <tr><td>Ferramenta</td><td class="c vazio">0</td><td>alambique, bigorna, gazua — e o crafting vai exigi-las</td></tr>
+      <tr><td>Exploração</td><td class="c vazio">0</td><td>corda, tocha, pé-de-cabra, saco de dormir</td></tr>
+      <tr><td>Material Precioso</td><td class="c vazio">0</td><td>mithril, ouro em barra, gemas</td></tr>
+
+      <tr><td rowspan="3"><strong>equipamentos</strong><br><span class="fraco small">equipa e fica</span></td>
+          <td>Armas</td><td class="c cheio">9</td><td>precificadas, mas sem faixa e sem perícia</td></tr>
+      <tr><td>Armadura</td><td class="c cheio">5</td><td>a resistência é <strong>texto</strong> — ver seção 2</td></tr>
+      <tr><td class="fraco">Arma, Cosmético, Cura,<br>Exploração, Utilitário, Versátil</td>
+          <td class="c vazio">0</td><td><strong>sobras</strong> — esses itens moram nas outras duas tabelas agora</td></tr>
+    </tbody>
+  </table>
+
+  <div class="nota">
+    <p><strong>As seis categorias vazias de <code>equipamentos</code> são lixo do corte.</strong> "Cura",
+    "Cosmético", "Exploração" e "Utilitário" faziam sentido quando a tabela guardava tudo; hoje esses itens
+    pertencem a <code>consumiveis</code> e <code>itens</code>. "Arma" e "Versátil" são duplicatas antigas de
+    "Armas". Deixá-las abertas convida alguém a cadastrar no lugar errado.</p>
+  </div>
+</section>
+
+<section class="pagina">
+  <h2>2. O bloqueio: uma coluna com dois significados</h2>
+
+  <p>É o mesmo defeito que já corrigimos três vezes neste projeto, e desta vez ele está no meio das armas.</p>
+
+  <table>
+    <thead><tr><th style="width:30%">Registro</th><th style="width:22%"><code>dano</code></th><th>O que o valor quer dizer</th></tr></thead>
+    <tbody>
+      <tr><td>Espada Longa</td><td><code>1d8</code></td><td>quanto ela <strong>causa</strong></td></tr>
+      <tr><td>Arco Longo</td><td><code>1d10/x3</code></td><td>quanto causa, e a margem de crítico</td></tr>
+      <tr><td>Machado de Batalha</td><td><code>1d8/1d6</code></td><td>dois modos de uso</td></tr>
+      <tr><td>Armadura Completa</td><td><code>10 Físico</code></td><td>quanto ela <strong>absorve</strong></td></tr>
+      <tr><td>Manto Reforçado</td><td><code>1 Físico / 2 Mágico</code></td><td>absorve dois tipos diferentes</td></tr>
+    </tbody>
+  </table>
+
+  <div class="aviso">
+    <p><strong>A mesma coluna guarda dano de arma e defesa de armadura</strong>, em cinco formatos de texto
+    diferentes. Nada disso é somável, comparável ou consultável — só legível por um humano.</p>
+    <p>E isso <strong>já quebrou uma regra que acabamos de escrever</strong>: a capacidade de rank 5 de Luta,
+    <em>Golpe que Atravessa</em>, diz que o ataque ignora a resistência física do alvo. A resistência física é
+    o "10" dentro da string <code>'10 Físico'</code>. A regra existe no papel e não tem como ser calculada.</p>
+  </div>
+
+  <h3>O que a separação destrava</h3>
+  <table>
+    <thead><tr><th style="width:32%">Coluna nova</th><th>O que passa a ser possível</th></tr></thead>
+    <tbody>
+      <tr><td><code>dano</code> (só arma)</td><td>somar dano de arma com bônus de perícia e de skill</td></tr>
+      <tr><td><code>margem_critico</code></td><td>tirar o <code>/x3</code> de dentro do texto</td></tr>
+      <tr><td><code>defesa_fisica</code> INTEGER</td><td><em>Golpe que Atravessa</em> passa a ser computável</td></tr>
+      <tr><td><code>defesa_magica</code> INTEGER</td><td>separar o que o Manto faz contra magia</td></tr>
+      <tr><td><code>faixa_ideal</code></td><td>a penalidade de distância das armas de fogo, e o buff de Pontaria 5</td></tr>
+      <tr><td><code>pericia_id</code></td><td>a arma diz se usa Luta ou Pontaria</td></tr>
+    </tbody>
+  </table>
+
+  <div class="bom">
+    <p><strong>As duas últimas fecham o ciclo com o que acabamos de fazer.</strong> Sem <code>pericia_id</code>,
+    nada liga uma espada a Luta nem um arco a Pontaria — o grupo Virtude fica solto do equipamento. E sem
+    <code>faixa_ideal</code>, a capacidade de Pontaria 5 não tem penalidade nenhuma para ignorar.</p>
+  </div>
+</section>
+
+<section class="pagina">
+  <h2>3. O que falta, por bloco</h2>
+
+  <div class="passo"><div class="n">1</div><div class="txt">
+    <h4>Separar <code>dano</code> <span class="etq e-bloq">bloqueia o resto</span></h4>
+    <p>Uma migration que cria <code>defesa_fisica</code>, <code>defesa_magica</code> e
+    <code>margem_critico</code>, converte os 14 registros existentes e limpa as seis categorias sobrando.
+    Nada sobre armas ou armaduras se sustenta antes disso.</p>
+  </div></div>
+
+  <div class="passo"><div class="n">2</div><div class="txt">
+    <h4>Armas: faixa e perícia <span class="etq e-rapid">rápido</span></h4>
+    <p><code>faixa_ideal</code> e <code>pericia_id</code> nas 9 armas existentes, e a regra do dado que desce
+    um passo fora da faixa. É o que conecta o equipamento ao grupo Virtude.</p>
+  </div></div>
+
+  <div class="passo"><div class="n">3</div><div class="txt">
+    <h4>Armas de fogo <span class="etq e-medio">médio</span></h4>
+    <p>Pistola de Pederneira, Arcabuz, Mosquete, Bacamarte e o Par de Pistolas de Duelo, com os danos que
+    combinamos: atiram todo turno, com faixa ideal e penalidade fora dela, e caem para 1d4 sem multiplicador
+    em corpo a corpo. O catálogo atual não tem uma única arma de fogo.</p>
+  </div></div>
+
+  <div class="passo"><div class="n">4</div><div class="txt">
+    <h4>Armaduras: o modelo de defesa <span class="etq e-medio">médio</span></h4>
+    <p>Com a coluna separada, decidir como a defesa entra na conta — subtrai do dano, aumenta a dificuldade de
+    acertar, ou as duas. Isso é regra de jogo, não migration, e vale um documento próprio como fizemos com
+    perícias.</p>
+  </div></div>
+
+  <div class="passo"><div class="n">5</div><div class="txt">
+    <h4>Venenos <span class="etq e-rapid">rápido</span></h4>
+    <p>O espelho das poções, e a máquina já está pronta: <code>consumivel_condicao</code> só precisa aceitar
+    <code>acao = 'inflige'</code> além de curar e prevenir. Um veneno que aplica Envenenado é a mesma linha de
+    dado que um antídoto que o remove, com o sinal trocado.</p>
+  </div></div>
+
+  <div class="passo"><div class="n">6</div><div class="txt">
+    <h4>Cosméticos, ferramentas, exploração e materiais <span class="etq e-rapid">rápido</span></h4>
+    <p>Catálogo puro, sem mecânica nova — as quatro categorias de <code>itens</code> estão criadas e vazias.
+    As <strong>ferramentas</strong> têm pressa maior que as outras: a tabela de receitas já distingue insumo
+    de ferramenta pelo campo <code>consumido</code>, e não existe uma única ferramenta cadastrada.</p>
+  </div></div>
+
+  <div class="passo"><div class="n">7</div><div class="txt">
+    <h4>Munição, alimento e pergaminhos <span class="etq e-medio">médio</span></h4>
+    <p>Munição amarra com as armas de fogo do passo 3. Alimento conversa com Fadiga, que já é uma condição.
+    Pergaminho precisa decidir se conjura sozinho ou exige Magia.</p>
+  </div></div>
+
+  <div class="passo"><div class="n">8</div><div class="txt">
+    <h4>A ação de fabricar <span class="etq e-grande">grande</span></h4>
+    <p>Checar ingredientes no inventário, rolar Alquimia contra a dificuldade, consumir os insumos, entregar o
+    produto — e a escada de qualidade, com o teto travado pelo ingrediente mais raro. É a maior peça que falta,
+    e a única que precisa de tela nova.</p>
+  </div></div>
+</section>
+
+<section class="pagina">
+  <h2>4. Fora dos itens: o que ficou pendente</h2>
+
+  <p>Três coisas que não são de item mas estão paradas no meio do caminho:</p>
+
+  <table>
+    <thead><tr><th style="width:34%">Pendência</th><th>Por que importa</th></tr></thead>
+    <tbody>
+      <tr><td><code>data.periciaPointsVirtude</code></td>
+          <td>a segunda bolsa não existe. Hoje subir Luta gasta do orçamento mundano, e a separação que
+          justificou o grupo Virtude não acontece na prática</td></tr>
+      <tr><td>Marcos de classe creditando</td>
+          <td>a proposta dos marcos está desenhada e verificada, mas nada credita ponto ao cruzar nível 5, 10,
+          15 ou 20 de uma classe</td></tr>
+      <tr><td>Telas de condição e de vínculo</td>
+          <td>as 20 condições e os 25 vínculos poção→condição existem no banco e não aparecem em tela nenhuma</td></tr>
+    </tbody>
+  </table>
+
+  <h3>A ordem que eu sugiro</h3>
+
+  <figure>
+  <svg viewBox="0 0 760 150" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+    <defs><marker id="s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#8a919e"/></marker></defs>
+
+    <rect x="14" y="34" width="168" height="52" rx="5" fill="#fcf0f0" stroke="#d9b3b3" stroke-width="1.4"/>
+    <text x="98" y="55" text-anchor="middle" font-size="10" font-weight="650">1. Separar o `dano`</text>
+    <text x="98" y="70" text-anchor="middle" font-size="8" fill="#8c2f2f">destrava tudo o que vem depois</text>
+
+    <line x1="188" y1="60" x2="212" y2="60" stroke="#8a919e" stroke-width="1.3" marker-end="url(#s)"/>
+
+    <rect x="218" y="34" width="168" height="52" rx="5" fill="#eef7f1" stroke="#a8c6b3"/>
+    <text x="302" y="55" text-anchor="middle" font-size="10" font-weight="650">2. Faixa e perícia</text>
+    <text x="302" y="70" text-anchor="middle" font-size="8" fill="#5b6270">liga a arma ao grupo Virtude</text>
+
+    <line x1="392" y1="60" x2="416" y2="60" stroke="#8a919e" stroke-width="1.3" marker-end="url(#s)"/>
+
+    <rect x="422" y="34" width="168" height="52" rx="5" fill="#f7f0e0" stroke="#d9c3a3"/>
+    <text x="506" y="55" text-anchor="middle" font-size="10" font-weight="650">3. Armas de fogo</text>
+    <text x="506" y="70" text-anchor="middle" font-size="8" fill="#5b6270">e o modelo de armadura</text>
+
+    <line x1="596" y1="60" x2="620" y2="60" stroke="#8a919e" stroke-width="1.3" marker-end="url(#s)"/>
+
+    <rect x="626" y="34" width="120" height="52" rx="5" fill="#f5f6f9" stroke="#c3cad4"/>
+    <text x="686" y="55" text-anchor="middle" font-size="10" font-weight="650">4. Catálogo</text>
+    <text x="686" y="70" text-anchor="middle" font-size="8" fill="#5b6270">venenos, cosméticos,</text>
+    <text x="686" y="81" text-anchor="middle" font-size="8" fill="#5b6270">ferramentas</text>
+
+    <text x="380" y="120" text-anchor="middle" font-size="8.5" fill="#5b6270">A segunda bolsa de Virtude e a ação de fabricar correm por fora — não dependem de nenhum destes.</text>
+  </svg>
+  </figure>
+
+  <div class="bom">
+    <p><strong>Comece pelo passo 1.</strong> É uma migration de tamanho médio, mexe em 14 registros, e depois
+    dela armas, armaduras e as regras que acabamos de escrever passam a ser computáveis em vez de textuais.
+    Enquanto ela não acontece, qualquer coisa nova sobre equipamento vai ser construída em cima de uma coluna
+    que significa duas coisas.</p>
+  </div>
+
+  <div class="nota">
+    <p>Levantado do estado real do banco em 9 de setembro de 2026. Fonte: <code>docs/mapa_itens.html</code>.</p>
+  </div>
+</section>
+
+</body></html>
