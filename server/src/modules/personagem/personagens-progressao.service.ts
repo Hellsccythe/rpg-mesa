@@ -7,6 +7,7 @@ import { PersonagemModel } from "./models/personagem.model.js";
 import { garantirAcessoAoPersonagem } from "./personagem-acesso.js";
 import { mapearPersonagemParaApi, type PersonagemApi } from "./personagem-api.mapper.js";
 import { PericiasService } from "../pericias/pericias.service.js";
+import { CAMPO_DA_BOLSA, type BolsaDePericia } from "../pericias/models/pericia.model.js";
 import type {
   AtribuirXpDeClasseDto,
   AtribuirXpDto,
@@ -248,6 +249,11 @@ export class PersonagensProgressaoService {
     let nivel = this.lerNumero(classes[posicao].level) || 1;
     let pontosDeSkill = this.lerNumero(classes[posicao].skillPoints);
 
+    // Guardado ANTES do laço. Ler depois funcionaria hoje, porque
+    // `classes[posicao]` só é reatribuído mais abaixo — mas passaria a dar
+    // zero em silêncio se alguém movesse aquela linha para cima.
+    const nivelInicial = nivel;
+
     while (nivel < NIVEL_MAXIMO_DE_CLASSE) {
       const custoDoProximo = xpPorNivel.get(nivel + 1);
       if (custoDoProximo === undefined || xp < custoDoProximo) break;
@@ -257,8 +263,19 @@ export class PersonagensProgressaoService {
       pontosDeSkill += Math.ceil(nivel / 2) - Math.ceil(nivelAnterior / 2);
     }
 
+    // Cada marco de classe atravessado (5, 10, 15, 20) concede ponto de
+    // Virtude, no valor daquela classe.
+    const pontosDeVirtude = Number.isNaN(classeId)
+      ? 0
+      : await this.pontosDeMarcosAtravessados(classeId, nivelInicial, nivel);
+
     classes[posicao] = { ...classes[posicao], xp, level: nivel, skillPoints: pontosDeSkill };
-    personagem.data = { ...dadosPersonagem, classes };
+    personagem.data = {
+      ...dadosPersonagem,
+      classes,
+      [CAMPO_DA_BOLSA.virtude]:
+        this.lerNumero(dadosPersonagem[CAMPO_DA_BOLSA.virtude]) + pontosDeVirtude,
+    };
     await personagem.save();
     return mapearPersonagemParaApi(personagem);
   }
@@ -324,16 +341,50 @@ export class PersonagensProgressaoService {
    * perícia, e de propósito não tem automação: ela representa tempo de jogo,
    * não XP de combate.
    */
-  async concederPontosDePericia(personagemId: number, pontos: number): Promise<PersonagemApi> {
+  async concederPontosDePericia(
+    personagemId: number,
+    pontos: number,
+    bolsa: BolsaDePericia = "mundana",
+  ): Promise<PersonagemApi> {
     const personagem = await this.buscarOuFalhar(personagemId);
     const dadosPersonagem = this.lerDados(personagem);
+    const campo = CAMPO_DA_BOLSA[bolsa];
 
     personagem.data = {
       ...dadosPersonagem,
-      periciaPoints: this.lerNumero(dadosPersonagem.periciaPoints) + pontos,
+      [campo]: this.lerNumero(dadosPersonagem[campo]) + pontos,
     };
     await personagem.save();
     return mapearPersonagemParaApi(personagem);
+  }
+
+  /**
+   * Credita os pontos de Virtude dos marcos atravessados numa classe.
+   *
+   * Os marcos são os níveis 5, 10, 15 e 20 DA CLASSE, e o valor de cada um
+   * varia por classe. Como 100 níveis dão 20 marcos independentemente de como
+   * sejam divididos, o orçamento não multiplica com o número de classes — que
+   * era o defeito da versão por nível.
+   *
+   * Devolve quantos pontos foram creditados; quem chama grava.
+   */
+  private async pontosDeMarcosAtravessados(
+    classeId: number,
+    nivelAnterior: number,
+    nivelNovo: number,
+  ): Promise<number> {
+    if (nivelNovo <= nivelAnterior) return 0;
+
+    const linhas = await this.sequelize.query<{ pontos: number }>(
+      `SELECT pontos FROM classe_marco_virtude
+        WHERE classe_id = :classeId AND nivel > :anterior AND nivel <= :novo`,
+      {
+        replacements: { classeId, anterior: nivelAnterior, novo: nivelNovo },
+        type: QueryTypes.SELECT,
+      },
+    );
+
+    return linhas.reduce((total, linha) => total + Number(linha.pontos), 0);
   }
 
   /**
@@ -350,13 +401,18 @@ export class PersonagensProgressaoService {
     const pericia = await this.servicoPericias.buscarOuFalhar(periciaId);
 
     const dadosPersonagem = this.lerDados(personagem);
+
+    // A bolsa sai da própria perícia: Virtude gasta periciaPointsVirtude, o
+    // resto gasta periciaPoints. Sem isso, subir Luta comeria o orçamento que
+    // o Alquimista usa em Alquimia.
+    const campo = this.servicoPericias.campoDaBolsa(pericia);
     const { pericias, pontosRestantes } = this.servicoPericias.subirUmRank(
       this.servicoPericias.lerPericias(dadosPersonagem),
-      this.lerNumero(dadosPersonagem.periciaPoints),
+      this.lerNumero(dadosPersonagem[campo]),
       pericia,
     );
 
-    personagem.data = { ...dadosPersonagem, pericias, periciaPoints: pontosRestantes };
+    personagem.data = { ...dadosPersonagem, pericias, [campo]: pontosRestantes };
     await personagem.save();
     return mapearPersonagemParaApi(personagem);
   }

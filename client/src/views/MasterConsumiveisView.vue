@@ -70,6 +70,10 @@
             <p v-if="(item as ConsumivelApi).usos > 1" class="text-[0.65rem] text-zinc-600">
               {{ (item as ConsumivelApi).usos }} usos
             </p>
+            <p
+              v-if="(item as ConsumivelApi).condicoes.length"
+              class="truncate text-[0.65rem] text-emerald-400/80"
+            >{{ resumoDosVinculos(item as ConsumivelApi) }}</p>
           </div>
 
           <span class="hidden truncate text-xs text-zinc-500 sm:block">
@@ -166,6 +170,63 @@
             <label class="block text-xs font-semibold uppercase tracking-wide text-zinc-500">Raridade</label>
             <VSelect v-model="form.raridade_item" :options="opcoesRaridade" />
           </div>
+        </div>
+
+        <!-- ── Condições ───────────────────────────────────────────────────
+             É o que dá razão de existir a uma poção que não cura vida. Sem
+             vínculo, "Elixir de Olhos Claros" é só um nome bonito. -->
+        <div class="space-y-2 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+          <label class="block text-xs font-semibold uppercase tracking-wide text-sky-400/80">
+            Condições que resolve
+          </label>
+          <p class="text-[0.65rem] text-zinc-600">
+            Curar remove o que já se sofreu; prevenir imuniza por um tempo.
+          </p>
+
+          <div v-if="form.condicoes.length" class="flex flex-wrap gap-1.5">
+            <span
+              v-for="vinculo in form.condicoes"
+              :key="`${vinculo.condicao_id}-${vinculo.acao}`"
+              class="flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs"
+              :class="vinculo.acao === 'cura'
+                ? 'border-emerald-500/25 bg-emerald-950/30 text-emerald-300'
+                : 'border-sky-500/25 bg-sky-950/30 text-sky-300'"
+            >
+              {{ nomeDaCondicao(vinculo.condicao_id) }}
+              <span class="text-[0.6rem] opacity-70">{{ vinculo.acao }}</span>
+              <button
+                type="button"
+                class="text-zinc-500 hover:text-red-400"
+                @click="removerVinculo(vinculo)"
+              >&times;</button>
+            </span>
+          </div>
+          <p v-else class="text-xs text-zinc-600">Nenhuma — é um consumível de outro tipo.</p>
+
+          <div class="flex flex-wrap gap-2">
+            <div class="min-w-[9rem] flex-1">
+              <VSelect v-model="condicaoParaAdicionar" :options="opcoesCondicao" />
+            </div>
+            <button
+              type="button"
+              class="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-zinc-400 hover:text-white"
+              @click="acaoParaAdicionar = acaoParaAdicionar === 'cura' ? 'previne' : 'cura'"
+            >{{ acaoParaAdicionar === 'cura' ? 'Cura' : 'Previne' }}</button>
+            <button
+              type="button"
+              :disabled="condicaoParaAdicionar === ''"
+              class="rounded-xl bg-sky-700 px-3 py-2 text-xs font-semibold text-white hover:bg-sky-600 disabled:opacity-40"
+              @click="adicionarVinculo"
+            >Vincular</button>
+          </div>
+
+          <!-- Aviso, não bloqueio: a regra do catálogo é que a poção alcance a
+               gravidade da condição, mas quem decide a exceção é o mestre. -->
+          <p v-if="vinculosAcimaDaRaridade.length" class="text-[0.7rem] text-amber-400">
+            {{ vinculosAcimaDaRaridade.join(', ') }} —
+            gravidade acima da raridade deste consumível. Pelo catálogo, o antídoto
+            precisa alcançar a condição.
+          </p>
         </div>
 
         <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -273,14 +334,20 @@ import {
   listarConsumiveis, criarConsumivel, editarConsumivel, deletarConsumivel,
   listarCategoriasConsumivel,
   type ConsumivelApi, type CategoriaConsumivelApi,
+  type AcaoSobreCondicao,
 } from '@/lib/api/consumiveis.api'
 import { listarRaridades, classeDaRaridade, type RaridadeApi } from '@/lib/api/raridades.api'
+import { listarCondicoes, type CondicaoApi } from '@/lib/api/condicoes.api'
+
+/** Um vínculo em edição no formulário. */
+type VinculoEmEdicao = { condicao_id: number; acao: AcaoSobreCondicao }
 
 const router = useRouter()
 
 const consumiveis = ref<ConsumivelApi[]>([])
 const categorias  = ref<CategoriaConsumivelApi[]>([])
 const raridades   = ref<RaridadeApi[]>([])
+const condicoes   = ref<CondicaoApi[]>([])
 const carregando  = ref(true)
 
 const busca           = ref('')
@@ -303,8 +370,12 @@ const formVazio = () => ({
   valor: null as number | null,
   raridade_item: '' as string | number,
   categoria_consumivel_item: '' as string | number,
+  condicoes: [] as VinculoEmEdicao[],
 })
 const form = ref(formVazio())
+
+const condicaoParaAdicionar = ref<string | number>('')
+const acaoParaAdicionar = ref<AcaoSobreCondicao>('cura')
 
 const opcoesCategoria = computed(() =>
   categorias.value.map(c => ({ value: c.item, label: c.descricao })),
@@ -325,6 +396,66 @@ const raridadeEscolhida = computed(() =>
   raridades.value.find(r => r.item === Number(form.value.raridade_item)) ?? null,
 )
 
+/** Só as ainda não vinculadas com a ação escolhida — evita repetir o par. */
+const opcoesCondicao = computed(() => {
+  const jaTem = new Set(form.value.condicoes.map(v => `${v.condicao_id}:${v.acao}`))
+  return [
+    { value: '', label: 'Escolha uma condição...' },
+    ...condicoes.value
+      .filter(c => !jaTem.has(`${c.id}:${acaoParaAdicionar.value}`))
+      .map(c => ({ value: c.id, label: c.raridade ? `${c.nome} (${c.raridade.descricao})` : c.nome })),
+  ]
+})
+
+function nomeDaCondicao(id: number): string {
+  return condicoes.value.find(c => c.id === id)?.nome ?? `#${id}`
+}
+
+/** Posição na escala de raridade, para comparar gravidade com raridade. */
+function ordemDaRaridade(item: number | null): number | null {
+  if (item === null) return null
+  return raridades.value.find(r => r.item === item)?.ordem ?? null
+}
+
+const vinculosAcimaDaRaridade = computed(() => {
+  const ordemDoConsumivel = ordemDaRaridade(
+    form.value.raridade_item === '' ? null : Number(form.value.raridade_item),
+  )
+  if (ordemDoConsumivel === null) return []
+  return form.value.condicoes
+    .filter(vinculo => {
+      const condicao = condicoes.value.find(c => c.id === vinculo.condicao_id)
+      const ordemDaCondicao = ordemDaRaridade(condicao?.raridade_item ?? null)
+      return ordemDaCondicao !== null && ordemDaCondicao > ordemDoConsumivel
+    })
+    .map(vinculo => nomeDaCondicao(vinculo.condicao_id))
+})
+
+function adicionarVinculo() {
+  if (condicaoParaAdicionar.value === '') return
+  form.value.condicoes.push({
+    condicao_id: Number(condicaoParaAdicionar.value),
+    acao: acaoParaAdicionar.value,
+  })
+  condicaoParaAdicionar.value = ''
+}
+
+function removerVinculo(alvo: VinculoEmEdicao) {
+  form.value.condicoes = form.value.condicoes.filter(
+    v => !(v.condicao_id === alvo.condicao_id && v.acao === alvo.acao),
+  )
+}
+
+/** Texto curto para a listagem: "cura Cegueira, Surdez". */
+function resumoDosVinculos(item: ConsumivelApi): string {
+  const cura = item.condicoes.filter(v => v.acao === 'cura').map(v => v.nome)
+  const previne = item.condicoes.filter(v => v.acao === 'previne').map(v => v.nome)
+  const partes: string[] = []
+  if (cura.length) partes.push(`cura ${cura.join(', ')}`)
+  if (previne.length) partes.push(`previne ${previne.join(', ')}`)
+  return partes.join(' · ')
+}
+
 const listaFiltrada = computed(() => {
   const termo = busca.value.trim().toLowerCase()
   return consumiveis.value.filter(c => {
@@ -340,12 +471,13 @@ async function carregar() {
   try {
     // allSettled: uma lista de apoio que falhe não pode apagar a tela inteira.
     // Foi o que aconteceu em MasterProgressaoView e ClassesView com Promise.all.
-    const [lista, cats, rars] = await Promise.allSettled([
-      listarConsumiveis(), listarCategoriasConsumivel(), listarRaridades(),
+    const [lista, cats, rars, conds] = await Promise.allSettled([
+      listarConsumiveis(), listarCategoriasConsumivel(), listarRaridades(), listarCondicoes(),
     ])
     if (lista.status === 'fulfilled') consumiveis.value = lista.value
     if (cats.status  === 'fulfilled') categorias.value  = cats.value
     if (rars.status  === 'fulfilled') raridades.value   = rars.value
+    if (conds.status === 'fulfilled') condicoes.value   = conds.value
   } finally {
     carregando.value = false
   }
@@ -365,8 +497,11 @@ function abrirForm(item: ConsumivelApi | null) {
         valor: item.valor,
         raridade_item: item.raridade_item ?? '',
         categoria_consumivel_item: item.categoria_consumivel_item ?? '',
+        condicoes: item.condicoes.map(v => ({ condicao_id: v.condicao_id, acao: v.acao })),
       }
     : formVazio()
+  condicaoParaAdicionar.value = ''
+  acaoParaAdicionar.value = 'cura'
   modalAberto.value = true
 }
 
@@ -386,6 +521,9 @@ async function salvar() {
       raridade_item: form.value.raridade_item === '' ? null : Number(form.value.raridade_item),
       categoria_consumivel_item:
         form.value.categoria_consumivel_item === '' ? null : Number(form.value.categoria_consumivel_item),
+      // Sempre enviado: aqui o formulário É a verdade sobre os vínculos, e
+      // omitir faria o backend preservar os antigos (ver o DTO no servidor).
+      condicoes: form.value.condicoes,
     }
 
     if (editando.value) {

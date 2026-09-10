@@ -116,6 +116,12 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresMaster: true },
     },
     {
+      path: '/master/condicoes',
+      name: 'master-condicoes',
+      component: () => import('@/views/MasterCondicoesView.vue'),
+      meta: { requiresAuth: true, requiresMaster: true },
+    },
+    {
       path: '/master/equipamentos',
       name: 'master-equipamentos',
       component: () => import('@/views/MasterWeaponsView.vue'),

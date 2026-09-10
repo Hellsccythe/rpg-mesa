@@ -1,7 +1,7 @@
 import { IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength } from "class-validator";
 import {
-  ATRIBUTOS, CATEGORIAS_PERICIA, RANK_MAXIMO,
-  type Atributo, type CategoriaPericia,
+  ATRIBUTOS, BOLSAS, CATEGORIAS_PERICIA, RANK_MAXIMO,
+  type Atributo, type BolsaDePericia, type CategoriaPericia,
 } from "./models/pericia.model.js";
 
 export class CriarPericiaDto {
@@ -41,6 +41,10 @@ export class SubirPericiaDto {
 export class ConcederPontosPericiaDto {
   @IsInt() @Min(1) @Max(999)
   pontos!: number;
+
+  /** Qual bolsa recebe. Omitido, vai para a mundana (o caso do downtime). */
+  @IsOptional() @IsIn(BOLSAS, { message: `bolsa deve ser uma de: ${BOLSAS.join(", ")}.` })
+  bolsa?: BolsaDePericia;
 }
 
 /** O mestre pode fixar um rank direto, sem passar por pontos. */

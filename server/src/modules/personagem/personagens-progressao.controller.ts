@@ -76,7 +76,7 @@ export class PersonagensProgressaoController {
     @Param("characterId", ParseIntPipe) personagemId: number,
     @Body() dados: ConcederPontosPericiaDto,
   ) {
-    return this.servicoProgressao.concederPontosDePericia(personagemId, dados.pontos);
+    return this.servicoProgressao.concederPontosDePericia(personagemId, dados.pontos, dados.bolsa);
   }
 
   @Patch("admin/:characterId/atribuir-xp-personagem")

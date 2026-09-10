@@ -1,4 +1,7 @@
+import { Type } from "class-transformer";
 import {
+  IsArray,
+  IsIn,
   IsInt,
   IsNumber,
   IsOptional,
@@ -7,7 +10,18 @@ import {
   MaxLength,
   Min,
   MinLength,
+  ValidateNested,
 } from "class-validator";
+import { ACOES_SOBRE_CONDICAO, type AcaoSobreCondicao } from "./models/consumivel-condicao.model.js";
+
+/** Um vínculo consumível → condição, como chega do formulário. */
+export class VinculoDeCondicaoDto {
+  @IsInt() @Min(1)
+  condicao_id!: number;
+
+  @IsIn(ACOES_SOBRE_CONDICAO as unknown as string[])
+  acao!: AcaoSobreCondicao;
+}
 
 export class CriarConsumivelDto {
   @IsString()
@@ -38,6 +52,14 @@ export class CriarConsumivelDto {
 
   @IsOptional() @IsInt() @Min(1)
   categoria_consumivel_item?: number | null;
+
+  /**
+   * Ausente significa "não mexa nos vínculos"; array vazio significa "apague
+   * todos". A distinção importa: um PATCH que só muda o preço não pode
+   * desvincular as condições sem querer.
+   */
+  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => VinculoDeCondicaoDto)
+  condicoes?: VinculoDeCondicaoDto[];
 }
 
 export class EditarConsumivelDto {
@@ -67,6 +89,14 @@ export class EditarConsumivelDto {
 
   @IsOptional() @IsInt() @Min(1)
   categoria_consumivel_item?: number | null;
+
+  /**
+   * Ausente significa "não mexa nos vínculos"; array vazio significa "apague
+   * todos". A distinção importa: um PATCH que só muda o preço não pode
+   * desvincular as condições sem querer.
+   */
+  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => VinculoDeCondicaoDto)
+  condicoes?: VinculoDeCondicaoDto[];
 }
 
 export class CriarCategoriaConsumivelDto {

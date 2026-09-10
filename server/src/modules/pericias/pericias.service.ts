@@ -1,6 +1,11 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/sequelize";
-import { PericiaModel, RANK_MAXIMO, custoDoRank } from "./models/pericia.model.js";
+import {
+  CAMPO_DA_BOLSA,
+  PericiaModel,
+  RANK_MAXIMO,
+  custoDoRank,
+} from "./models/pericia.model.js";
 import type { CriarPericiaDto, EditarPericiaDto } from "./pericias.dto.js";
 
 /** Uma perícia do personagem, como fica gravada em `data.pericias`. */
@@ -64,6 +69,11 @@ export class PericiasService {
    * Sobe um rank, cobrando o custo daquele degrau. Devolve a lista nova e os
    * pontos restantes — quem chama grava.
    */
+  /** Onde estão os pontos que esta perícia consome, dentro de `data`. */
+  campoDaBolsa(pericia: PericiaModel): string {
+    return CAMPO_DA_BOLSA[pericia.bolsa] ?? CAMPO_DA_BOLSA.mundana;
+  }
+
   subirUmRank(
     pericias: PericiaDoPersonagem[],
     pontosDisponiveis: number,
@@ -81,8 +91,11 @@ export class PericiasService {
     const rankNovo = rankAtual + 1;
     const custo = custoDoRank(rankNovo);
     if (pontosDisponiveis < custo) {
+      // Dizer a bolsa importa: o jogador pode ter 12 pontos mundanos e zero de
+      // virtude, e "você tem 0" sem contexto pareceria um bug.
+      const nomeDaBolsa = pericia.bolsa === "virtude" ? "de Virtude" : "de perícia";
       throw new BadRequestException(
-        `Subir ${pericia.nome} para o rank ${rankNovo} custa ${custo} ponto(s), e você tem ${pontosDisponiveis}.`,
+        `Subir ${pericia.nome} para o rank ${rankNovo} custa ${custo} ponto(s) ${nomeDaBolsa}, e você tem ${pontosDisponiveis}.`,
       );
     }
 

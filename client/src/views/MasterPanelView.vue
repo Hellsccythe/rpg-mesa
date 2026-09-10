@@ -1534,6 +1534,7 @@ const I = {
   grade:      '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>',
   tela:       '<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>',
   imagem:     '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>',
+  caveira:    '<circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><path d="M8 20v2h8v-2"/><path d="m12.5 17-.5-1-.5 1h1z"/><path d="M16 20a2 2 0 0 0 1.56-3.25 8 8 0 1 0-11.12 0A2 2 0 0 0 8 20"/>',
 }
 
 const gruposDoPainel: GrupoDoPainel[] = [
@@ -1598,6 +1599,9 @@ const gruposDoPainel: GrupoDoPainel[] = [
       { titulo: 'Consumíveis', descricao: 'Poções, venenos, munição e alimento — o que se usa e some',
         icone: I.frasco, classeIcone: 'bg-emerald-500/10 text-emerald-400', classeLink: 'text-emerald-400 group-hover:text-emerald-300',
         acao: () => router.push({ name: 'master-consumiveis' }) },
+      { titulo: 'Condições', descricao: 'Cegueira, veneno, maldição — e qual poção responde a cada uma',
+        icone: I.caveira, classeIcone: 'bg-red-500/10 text-red-400', classeLink: 'text-red-400 group-hover:text-red-300',
+        acao: () => router.push({ name: 'master-condicoes' }) },
       { titulo: 'Itens', descricao: 'Ingredientes, materiais, ferramentas e cosméticos — o que se carrega e vende',
         icone: I.saco, classeIcone: 'bg-amber-500/10 text-amber-400', classeLink: 'text-amber-400 group-hover:text-amber-300',
         acao: () => router.push({ name: 'master-itens' }) },

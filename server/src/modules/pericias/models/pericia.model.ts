@@ -9,6 +9,15 @@ export type CategoriaPericia = (typeof CATEGORIAS_PERICIA)[number];
 /** Rank máximo. Com custo crescente, chegar lá custa 1+2+3+4+5 = 15 pontos. */
 export const RANK_MAXIMO = 5;
 
+export const BOLSAS = ["mundana", "virtude"] as const;
+export type BolsaDePericia = (typeof BOLSAS)[number];
+
+/** Onde cada bolsa guarda os pontos, dentro de `characters.data`. */
+export const CAMPO_DA_BOLSA: Record<BolsaDePericia, string> = {
+  mundana: "periciaPoints",
+  virtude: "periciaPointsVirtude",
+};
+
 /**
  * Perícia mundana — a terceira trilha de progressão, ao lado do nível de
  * personagem (que dá atributo) e do nível de classe (que dá skill).
@@ -35,6 +44,28 @@ export class PericiaModel extends Model {
 
   @Column(DataType.STRING(20))
   declare categoria: CategoriaPericia;
+
+  /**
+   * Qual bolsa paga o rank: `mundana` ou `virtude`.
+   *
+   * São separadas porque o jogador já paga combate por pontos de classe. Se
+   * Luta saísse da bolsa mundana, o Guerreiro pagaria duas vezes pela mesma
+   * competência, com o mesmo dinheiro que o Alquimista usa no ofício.
+   */
+  @Column(DataType.STRING(10))
+  declare bolsa: BolsaDePericia;
+
+  /** Nome da capacidade destravada no rank 5. */
+  @Column({ type: DataType.STRING(60), allowNull: true })
+  declare capacidadeRank5Nome: string | null;
+
+  /**
+   * O que o rank 5 destrava. É uma CAPACIDADE e não um bônus maior: no rank 5
+   * a rolagem já passa 100% contra DC 20 e 90% contra DC 25, então mais um
+   * número não mudaria nada.
+   */
+  @Column({ type: DataType.TEXT, allowNull: true })
+  declare capacidadeRank5: string | null;
 
   @Column({ type: DataType.TEXT, allowNull: true })
   declare createdBy: string | null;

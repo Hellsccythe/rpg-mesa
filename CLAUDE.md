@@ -55,6 +55,7 @@ A raiz **não é mais o login**: `/` lista as campanhas (mundos) e cada uma leva
 | `/master/receitas` | MasterReceitasView | auth + isMaster |
 | `/master/itens` | MasterItensView | auth + isMaster |
 | `/master/consumiveis` | MasterConsumiveisView | auth + isMaster |
+| `/master/condicoes` | MasterCondicoesView | auth + isMaster |
 | `/master/passados` | MasterPassadosView | auth + isMaster |
 | `/master/npcs` | MasterNpcsView | auth + isMaster |
 | `/master/progressao` | MasterProgressaoView | auth + isMaster |
@@ -134,6 +135,8 @@ A raiz **não é mais o login**: `/` lista as campanhas (mundos) e cada uma leva
 | POST/PATCH/DELETE | `/api/consumiveis/admin[/:id]` | isMaster |
 | GET | `/api/consumiveis/categorias` | público |
 | POST/PATCH/DELETE | `/api/consumiveis/categorias/admin[/:item]` | isMaster |
+| GET | `/api/condicoes` | público |
+| POST/PATCH/DELETE | `/api/condicoes/admin[/:id]` | isMaster |
 | GET | `/api/raridades` | público |
 | POST/PATCH/DELETE | `/api/raridades/admin[/:item]` | isMaster |
 | GET | `/api/indole` | público |
@@ -641,6 +644,45 @@ Uma poção fica em `consumiveis`; a erva que a produz fica em `itens`. As duas 
 
 Tela: `/master/consumiveis` → `MasterConsumiveisView.vue`.
 
+### `condicoes` e `consumivel_condicao` (migrations 080 e 083)
+
+O que dá errado com um personagem: Cegueira, Envenenado, Maldição, Petrificação. **20 no seed.**
+
+Vieram **antes** do catálogo de poções, e não depois, por uma razão de ordem: uma poção que cura Cegueira não significa nada enquanto Cegueira não existir. E condição não é alvo de poção — é o que skill, veneno, armadilha e monstro infligem; a poção é só uma das respostas, ao lado de Medicina e do tempo.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| id | INTEGER PK | IDENTITY |
+| nome | VARCHAR(100) | |
+| efeito | TEXT | NOT NULL default `''` — o que acontece na prática. É o que a mesa lê |
+| categoria | VARCHAR(20) | CHECK: Física, Mental, Mágica, Doença, Alquímica |
+| raridade_item | INTEGER | **gravidade** — referência a `raridade.item` |
+| duracao | VARCHAR(60) | texto livre |
+| janela_de_cura | VARCHAR(60) | nullable — por quanto tempo a cura ainda funciona. Null = sem prazo |
+| se_nao_tratada | TEXT | nullable — o que acontece passada a janela |
+| acumulativa | BOOLEAN | se empilha de fontes diferentes |
+
+**`raridade_item` é gravidade, e gravidade é a raridade da cura.** Uma condição Rara exige antídoto Raro, e a `dificuldade_base` da mesma linha de `raridade` é a DC para fabricá-lo. Uma escala serve aos dois lados sem coluna nova.
+
+**`janela_de_cura` existe para Cegueira e Surdez.** Cicatrizada, nenhuma poção alcança — e sem um prazo gravado no dado, essa regra viveria só na cabeça do mestre.
+
+#### O vínculo
+
+`consumivel_condicao` liga os dois lados: `consumivel_id`, `condicao_id` e `acao` (CHECK `'cura'` | `'previne'`). **25 vínculos no seed.**
+
+`cura` remove o que já se sofreu; `previne` imuniza por um tempo. São ações diferentes o bastante para o par (condição, ação) ser a chave — Selo da Vontade previne duas condições distintas sem curar nenhuma.
+
+`paranoid: false` e sem `updated_at`: o vínculo é detalhe do consumível, editado **como conjunto** (apaga tudo e reinsere), então nunca há o que atualizar numa linha e soft delete só acumularia lixo. É por isso que o índice único é **total**, não parcial.
+
+**O que sustenta a integridade, já que não há FOREIGN KEY:**
+
+- `ConsumiveisService.criar`/`editar` rodam **numa transação** — a validação das condições pode recusar o pedido, e sem transação o consumível ficava criado e sem vínculo
+- `condicoes.condicoes[]` ausente no PATCH significa "não mexa"; array vazio significa "apague todos". Um PATCH que só muda o preço não pode desvincular sem querer
+- apagar consumível apaga os vínculos de verdade (o consumível é soft delete, os vínculos não)
+- apagar condição é **recusado** enquanto algum consumível **vivo** a tratar
+
+Telas: `/master/condicoes` → `MasterCondicoesView.vue` (lista as condições com quem as trata); o vínculo se **edita** em `/master/consumiveis`, que é onde o mestre decide o que a poção faz.
+
 ### `itens` e `categoria_item` (migration 076)
 
 Fecha o corte por comportamento. Aqui mora o que **só se carrega, vende ou entrega numa receita**: cosméticos, ferramentas, equipamento de exploração, materiais preciosos e ingredientes.
@@ -715,10 +757,12 @@ CHECK em vez de tabela de lookup nos dois casos: os cinco atributos são estrutu
 #### O teste
 
 ```
-d20 + (rank × 3) + ⌊atributo_base ÷ 2⌋   vs   dificuldade
+d20 + (rank × 3) + min(⌊atributo_base ÷ 2⌋, rank × 2)   vs   dificuldade
 ```
 
 O atributo entra **pela metade** de propósito: com 10 pontos no onboarding mais o bônus do passado, um atributo focado chega a 13 e engoliria o rank; dividido, o rank (até +15) domina — que é o certo para uma perícia.
+
+**O `min` é o teto (migration 081).** Sem ele, um personagem de fim de campanha com Inteligência alta passava em quase tudo com rank 1 em toda perícia — o atributo pagava o que o treino deveria pagar. Amarrado a `rank × 2`, o atributo só contribui até onde o treino já chegou: rank 1 aproveita no máximo +2 do atributo, rank 5 aproveita até +10. A mesma conta vive em `client/src/lib/api/pericias.api.ts` e em `server/.../pericia.model.ts` — se mudar, mude nos dois.
 
 **Rank 0 é "não treinado" e não pode tentar.** Sem isso, quem tem Inteligência alta fabrica poções sem nunca ter estudado alquimia.
 
@@ -734,7 +778,28 @@ A `dificuldade_base` de `raridade` (10/15/20/25) **é a DC do teste**: fabricar 
 
 Crescente: rank N custa N pontos. Rank 5 numa perícia custa 1+2+3+4+5 = **15**; rank 1 em cinco perícias custa **5**. Especialista e generalista viram escolhas com peso.
 
-Os ranks do personagem vivem em `data.pericias` (`[{periciaId, nome, rank, rankInicial?}]`) e os pontos em `data.periciaPoints`, seguindo o padrão de `data.classes` e `data.skills`.
+Os ranks do personagem vivem em `data.pericias` (`[{periciaId, nome, rank, rankInicial?}]`) e os pontos em **duas bolsas**, seguindo o padrão de `data.classes` e `data.skills`.
+
+#### Virtude, e as duas bolsas (migrations 081, 084, 085 e 086)
+
+`pericias.bolsa` divide o catálogo em `mundana` e `virtude`. A de Virtude tem cinco perícias — **Luta, Magia, Reflexo, Fortitude, Pontaria** — e gasta uma bolsa própria:
+
+| Bolsa | Campo em `characters.data` | De onde vem |
+|---|---|---|
+| `mundana` | `periciaPoints` | passado, downtime, marco de nível de personagem |
+| `virtude` | `periciaPointsVirtude` | **marcos de nível de classe** |
+
+**Bolsas separadas porque uma só faria o guerreiro pagar duas vezes.** Competência em combate já custa pontos de classe; se Luta saísse da mesma bolsa de Alquimia, o guerreiro compraria o que já comprou usando o dinheiro do alquimista. `CAMPO_DA_BOLSA` (em `pericia.model.ts`) é o mapa que o serviço de progressão consulta ao debitar.
+
+`classe_marco_virtude` guarda quantos pontos cada classe concede nos níveis **5, 10, 15 e 20** — 116 linhas, as 29 classes. Crescente de propósito (o marco 20 vale mais que o 5), o que premia levar a classe até o fim em vez de colecionar começos.
+
+**Por marco de classe, e não por nível de classe.** Um jogador pode ter até 5 classes, ou seja 100 níveis; a 2 pontos por nível o teto chegaria no nível 37 de 100 e o resto da campanha não acrescentaria nada. Já **100 níveis dão 20 marcos não importa como sejam divididos** — cinco classes até 20, dez até 10, vinte até 5. O orçamento parou de multiplicar com o número de classes. Melhor cenário 50 pontos, pior 40; maximizar as cinco perícias custaria 75, então **nunca satura**.
+
+O crédito acontece em `atribuirXpDeClasse`, somando os marcos **atravessados** entre o nível anterior e o novo. `nivelInicial` é capturado **antes** do laço de level-up — lido depois, seria igual ao nível novo e a conta devolveria zero em silêncio.
+
+**Rank 5 concede uma capacidade, não um número maior** (migration 084). Medido: no rank 5 o personagem já passa DC 20 em 100% das rolagens, então qualquer bônus numérico a mais não compra nada. Ex.: Luta rank 5 faz os ataques ignorarem a resistência física do alvo.
+
+`class_level_progression` precisa estar **populada** para tudo isso funcionar: `atribuirXpDeClasse` consulta a tabela para saber o custo do próximo nível, e com ela vazia o XP entrava e o nível não subia — sem erro nenhum, deixando o crédito de marcos como código morto. A migration 086 semeia `120 × nível` para as 29 classes, como ponto de partida editável em `/master/progressao`.
 
 ### `passados` (migration 032)
 

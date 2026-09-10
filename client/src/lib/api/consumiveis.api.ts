@@ -11,6 +11,19 @@ import { api } from '@/plugins/axios'
 export type RaridadeResumo = { item: number; descricao: string; cor: string; ordem: number }
 export type CategoriaConsumivelApi = { item: number; descricao: string; icone: string | null }
 
+/** `cura` remove o que já se sofreu; `previne` imuniza por um tempo. */
+export const ACOES_SOBRE_CONDICAO = ['cura', 'previne'] as const
+export type AcaoSobreCondicao = (typeof ACOES_SOBRE_CONDICAO)[number]
+
+/** A condição que este consumível resolve, e de que jeito. */
+export type CondicaoVinculada = {
+  condicao_id: number
+  nome: string
+  acao: AcaoSobreCondicao
+  /** Gravidade da condição — a regra é que a poção alcance a raridade dela. */
+  raridade_item: number | null
+}
+
 export type ConsumivelApi = {
   id: number
   nome: string
@@ -27,6 +40,8 @@ export type ConsumivelApi = {
   raridade: RaridadeResumo | null
   categoria_consumivel_item: number | null
   categoria: { item: number; descricao: string } | null
+  /** Vazio significa consumível que não responde a nenhuma condição. */
+  condicoes: CondicaoVinculada[]
 }
 
 export type ConsumivelPayload = {
@@ -39,6 +54,11 @@ export type ConsumivelPayload = {
   valor?: number | null
   raridade_item?: number | null
   categoria_consumivel_item?: number | null
+  /**
+   * Omitir mantém os vínculos como estão; array vazio apaga todos. Mandar
+   * sempre, no formulário, é o certo — é lá que o mestre decide.
+   */
+  condicoes?: { condicao_id: number; acao: AcaoSobreCondicao }[]
 }
 
 export async function listarConsumiveis(): Promise<ConsumivelApi[]> {
