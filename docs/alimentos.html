@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Alimentos e Cozinha — Caminho Sem Volta</title>
+<style>
+  @page { size: A4 landscape; margin: 12mm 12mm 14mm 12mm; }
+  :root { --tinta:#16181d; --fraca:#5b6270; --linha:#d8dce3; --linha2:#aeb5c0;
+          --alt:#f5f6f9; --dest:#6b4a12; --destbg:#fdf6e9; --alerta:#8c2f2f;
+          --alertabg:#fcf0f0; --ok:#1f5c3d; --okbg:#eef7f1; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:8.8pt/1.45 "Segoe UI","Helvetica Neue",Arial,sans-serif; color:var(--tinta); background:#fff; }
+  h1,h2,h3 { line-height:1.2; margin:0; font-weight:650; }
+  h1 { font-size:26pt; letter-spacing:-0.4pt; }
+  h2 { font-size:15pt; margin:20pt 0 8pt; padding-bottom:4pt; border-bottom:1.6pt solid var(--tinta); break-after:avoid; }
+  h3 { font-size:11pt; margin:14pt 0 4pt; color:var(--dest); break-after:avoid; }
+  h3 .conta { font-size:8.2pt; font-weight:400; color:var(--fraca); }
+  p { margin:0 0 6pt; }
+  table { width:100%; border-collapse:collapse; margin:4pt 0 10pt; font-size:8pt; }
+  th,td { text-align:left; vertical-align:top; padding:3.2pt 5pt; border-bottom:0.6pt solid var(--linha); }
+  th { background:var(--alt); border-bottom:1pt solid var(--linha2); font-weight:650; font-size:7.4pt;
+       text-transform:uppercase; letter-spacing:0.3pt; color:var(--fraca); }
+  tr { break-inside:avoid; }
+  td.num,th.num { text-align:right; white-space:nowrap; }
+  .fraco { color:var(--fraca); }
+  .mono { font-family:"Cascadia Mono",Consolas,monospace; font-size:7.2pt; margin-top:2pt; }
+  .preco { font-weight:650; color:#8a6a1f; }
+  .ok { color:var(--ok); font-weight:650; }
+  .social { display:inline-block; padding:0.8pt 5pt; border-radius:2.5pt; font-size:7.2pt;
+            font-weight:650; background:#f2e9f7; color:#5b3a7a; }
+  .pagina { break-before:page; }
+  .capa { padding-top:34mm; text-align:center; }
+  .capa .sub { font-size:12pt; color:var(--fraca); margin-top:6pt; }
+  .capa .meta { margin-top:20mm; font-size:8.6pt; color:var(--fraca); border-top:0.6pt solid var(--linha);
+                padding-top:8pt; display:inline-block; min-width:90mm; }
+  .capa .selo0 { display:inline-block; margin-bottom:10pt; padding:3pt 10pt; border:1pt solid var(--linha2);
+                 border-radius:12pt; font-size:8pt; letter-spacing:1.4pt; text-transform:uppercase; color:var(--fraca); }
+  .nota,.aviso,.bom { padding:6pt 9pt; margin:7pt 0 10pt; border-left:2.4pt solid var(--dest);
+                      background:var(--destbg); font-size:8.4pt; break-inside:avoid; }
+  .aviso { border-left-color:var(--alerta); background:var(--alertabg); }
+  .bom { border-left-color:var(--ok); background:var(--okbg); }
+  .nota p:last-child,.aviso p:last-child,.bom p:last-child { margin-bottom:0; }
+  .selo { display:inline-block; padding:0.8pt 5pt; border-radius:2.5pt; font-size:7.2pt; font-weight:650; }
+  .selo-zinc{background:#eceef2;color:#4a505c} .selo-emerald{background:#e6f4ec;color:#1f5c3d}
+  .selo-sky{background:#e4f0fa;color:#1f4d7a}
+  code { font-family:"Cascadia Mono",Consolas,monospace; font-size:7.6pt; background:var(--alt); padding:0.5pt 3pt; border-radius:2pt; }
+</style>
+</head>
+<body>
+
+<section class="capa">
+  <div class="selo0">Catálogo de Cozinha</div>
+  <h1>Alimentos</h1>
+  <div class="sub">A cura que não cabe numa luta</div>
+  <div class="meta">
+    12 pratos &middot; 9 vegetais &middot; 9 carnes<br>
+    RPG de Mesa — Caminho Sem Volta &middot; setembro de 2026
+  </div>
+</section>
+
+<section class="pagina">
+  <h2>1. Por que comida precisa existir</h2>
+
+  <p>Poção de cura aplica <strong>Saturação Alquímica</strong>. Dois acúmulos e a terceira poção não
+  faz mais efeito — <em>por uma semana</em>. Essa condição está no banco desde a migration 080 e até
+  agora não tinha resposta nenhuma: o personagem saturado simplesmente ficava sem cura.</p>
+
+  <div class="bom">
+    <p><strong>Alimento não satura.</strong> É a única cura que continua funcionando depois da segunda
+    poção, e é isso que faz cozinhar deixar de ser enfeite. O grupo que gastou os frascos na masmorra
+    precisa de uma noite e de um cozinheiro para voltar inteiro.</p>
+  </div>
+
+  <p>O preço disso é o tempo. A refeição leva de 10 a 30 minutos — mais que qualquer combate —, então
+  comida <strong>nunca</strong> é usada em luta. Poção é para a emergência e custa caro por ponto de vida;
+  comida é para o interlúdio e custa pouco. As duas não competem.</p>
+
+  <h3>O que já existe e não precisou ser criado</h3>
+  <table>
+    <thead><tr><th class="num" style="width:6%">Estado</th><th>Item</th></tr></thead>
+    <tbody>
+      <tr><td class="num">✔</td><td>Perícia <strong>Cozinha</strong> (Ofício, Inteligência), id 6 no catálogo</td></tr>
+      <tr><td class="num">✔</td><td><code>categoria_consumivel</code> já tem <strong>Alimento</strong> (migration 075), vazia</td></tr>
+      <tr><td class="num">✔</td><td><code>receitas</code> tem <code>tempo_minutos</code>, <code>dificuldade</code> e <code>pericia_id</code></td></tr>
+      <tr><td class="num">✔</td><td>Condição <strong>Saturação Alquímica</strong>, que dá razão ao sistema</td></tr>
+      <tr><td class="num">✔</td><td><code>raridade.dificuldade_base</code> — 10/15/20, que são as DCs deste catálogo</td></tr>
+      <tr><td class="num">—</td><td>Colunas de cura mal feito / bem feito, e o efeito social</td></tr>
+      <tr><td class="num">—</td><td>Os 12 pratos e os 18 ingredientes</td></tr>
+    </tbody>
+  </table>
+
+  <div class="nota">
+    <p><code>receitas.pericia_id</code> está no banco desde a migration 077, reservado e <strong>nulo em
+    todas as 28 linhas</strong>. Cozinha é o primeiro caso a usá-lo — foi exatamente para isto que a coluna
+    foi criada.</p>
+  </div>
+
+  <h2>2. A escada de qualidade</h2>
+  <p>O preparo é um teste de <strong>Cozinha contra a DC do tier do prato</strong>. Duas saídas, e a
+  distância entre elas é o sistema inteiro:</p>
+
+  <table>
+    <thead><tr><th style="width:11%">Tier</th><th class="num" style="width:8%">DC</th>
+    <th style="width:13%">Mal feito</th><th style="width:15%">Bem feito</th>
+    <th class="num" style="width:11%">Cura média</th>
+    <th class="num" style="width:11%">Preparo</th><th class="num" style="width:11%">Refeição</th></tr></thead>
+    <tbody><tr><td><span class="selo selo-zinc">Comum</span></td><td class="num">10</td><td class="mono fraco">1d4</td><td class="mono ok">1d6 + 20%</td><td class="num">13.5 PV</td><td class="num fraco">30 min</td><td class="num fraco">10 min</td></tr>
+<tr><td><span class="selo selo-emerald">Incomum</span></td><td class="num">15</td><td class="mono fraco">1d4</td><td class="mono ok">1d8 + 35%</td><td class="num">22.0 PV</td><td class="num fraco">60 min</td><td class="num fraco">15 min</td></tr>
+<tr><td><span class="selo selo-sky">Raro</span></td><td class="num">20</td><td class="mono fraco">1d4</td><td class="mono ok">1d10 + 55%</td><td class="num">33.0 PV</td><td class="num fraco">120 min</td><td class="num fraco">30 min</td></tr></tbody>
+  </table>
+
+  <div class="aviso">
+    <p><strong>Mal feito cura 1d4 e nada mais, não importa o que foi para a panela.</strong>
+    Estragar um coelho custa 11 prata; estragar um Peito de Fênix Menor custa 240 — e os dois curam a mesma
+    coisa. É o que faz um cozinheiro ruim não encostar em ingrediente raro, e o que dá peso a treinar Cozinha
+    até o rank que vence a DC 20.</p>
+  </div>
+
+  <div class="nota">
+    <p><strong>O tier do prato é o do ingrediente mais raro da receita</strong>, e não um número digitado à
+    mão — o script recusa o catálogo se os dois discordarem. É assim que "mais nutritivo conforme a raridade"
+    vira conta em vez de intenção: colocar carne de grifo num ensopado sobe a cura <em>e</em> a DC junto.</p>
+    <p>A DC sai de <code>raridade.dificuldade_base</code>, a mesma coluna que já diz a dificuldade de
+    fabricar poção e a de resistir a veneno. Uma escala servindo aos três.</p>
+  </div>
+</section>
+
+<section class="pagina">
+  <h2>3. Os pratos</h2>
+  <p class="fraco">Preço em prata. A coluna <em>pr por PV</em> usa a cura média do tier num personagem de
+  nível 20 (50 PV máx). A linha em monoespaçado é a receita e a proporção
+  do preço que ela representa — o alvo do projeto é 70–75%.</p>
+  <h3>Comum <span class="conta">— 4 pratos · bem feito cura 1d6 + 20% · Cozinha DC 10</span></h3>
+<table><thead><tr><th style="width:19%">Prato</th><th class="num" style="width:7%">Preço</th><th class="num" style="width:8%">pr por PV</th><th style="width:17%">Se bem feito, também</th><th>Descrição e receita</th></tr></thead><tbody>
+<tr><td><strong>Caldo de Nabo e Cevada</strong></td><td class="num preco">10</td><td class="num fraco">0.74</td><td><span class="fraco">—</span></td><td>O que se serve quando não há mais nada. Quente, e isso já é alguma coisa.<div class="mono fraco">3× Nabo do Campo + 2× Cevada Rústica = 7 pr (70%)</div></td></tr>
+<tr><td><strong>Coelho Assado</strong></td><td class="num preco">11</td><td class="num fraco">0.81</td><td><span class="fraco">—</span></td><td>Espeto, fogo e paciência. Erra-se pelo excesso, nunca pela falta.<div class="mono fraco">2× Carne de Coelho + 1× Repolho de Inverno = 8 pr (73%)</div></td></tr>
+<tr><td><strong>Peixe Grelhado com Ervas</strong></td><td class="num preco">15</td><td class="num fraco">1.11</td><td><span class="fraco">—</span></td><td>Simples de fazer e fácil de estragar: um minuto a mais e vira couro.<div class="mono fraco">2× Peixe de Rio + 1× Nabo do Campo + 1× Repolho de Inverno = 11 pr (73%)</div></td></tr>
+<tr><td><strong>Ensopado de Galinha</strong></td><td class="num preco">19</td><td class="num fraco">1.41</td><td><span class="social">+2 em Encanto</span></td><td>Cozinha a tarde inteira e junta gente na cozinha antes de ficar pronto.<div class="mono fraco">2× Galinha de Terreiro + 1× Cevada Rústica + 2× Nabo do Campo = 14 pr (74%)</div></td></tr>
+</tbody></table>
+<h3>Incomum <span class="conta">— 4 pratos · bem feito cura 1d8 + 35% · Cozinha DC 15</span></h3>
+<table><thead><tr><th style="width:19%">Prato</th><th class="num" style="width:7%">Preço</th><th class="num" style="width:8%">pr por PV</th><th style="width:17%">Se bem feito, também</th><th>Descrição e receita</th></tr></thead><tbody>
+<tr><td><strong>Torta de Cogumelo Real</strong></td><td class="num preco">36</td><td class="num fraco">1.64</td><td><span class="fraco">—</span></td><td>Massa fina, recheio escuro. Aguenta viagem de dois dias sem estragar.<div class="mono fraco">1× Cogumelo Real + 2× Cevada Rústica + 2× Repolho de Inverno = 26 pr (72%)</div></td></tr>
+<tr><td><strong>Enguia Defumada</strong></td><td class="num preco">56</td><td class="num fraco">2.55</td><td><span class="fraco">—</span></td><td>Três dias na fumaça fria. Quem tem pressa não faz, quem faz não tem pressa.<div class="mono fraco">1× Enguia do Fundo + 1× Pimenta das Brasas = 40 pr (71%)</div></td></tr>
+<tr><td><strong>Cervo Assado às Brasas</strong></td><td class="num preco">67</td><td class="num fraco">3.05</td><td><span class="fraco">—</span></td><td>Selado por fora, vermelho por dentro. O ponto é tudo, e o ponto é curto.<div class="mono fraco">1× Cervo das Brumas + 1× Pimenta das Brasas + 2× Repolho de Inverno = 48 pr (72%)</div></td></tr>
+<tr><td><strong>Ensopado de Javali com Trufa</strong></td><td class="num preco">68</td><td class="num fraco">3.09</td><td><span class="social">+2 em Negociação</span></td><td>O prato que se põe na mesa quando há um acordo para fechar.<div class="mono fraco">1× Lombo de Javali + 1× Trufa de Raiz Negra + 3× Nabo do Campo = 49 pr (72%)</div></td></tr>
+</tbody></table>
+<h3>Raro <span class="conta">— 4 pratos · bem feito cura 1d10 + 55% · Cozinha DC 20</span></h3>
+<table><thead><tr><th style="width:19%">Prato</th><th class="num" style="width:7%">Preço</th><th class="num" style="width:8%">pr por PV</th><th style="width:17%">Se bem feito, também</th><th>Descrição e receita</th></tr></thead><tbody>
+<tr><td><strong>Costela de Wyvern na Brasa</strong></td><td class="num preco">297</td><td class="num fraco">9.00</td><td><span class="fraco">—</span></td><td>Fogo alto por quatro horas. A carne cede antes do osso, e só então.<div class="mono fraco">1× Costela de Wyvern + 2× Pimenta das Brasas + 2× Nabo do Campo = 210 pr (71%)</div></td></tr>
+<tr><td><strong>Caldo de Fênix</strong></td><td class="num preco">385</td><td class="num fraco">11.67</td><td><span class="fraco">—</span></td><td>Continua quente na tigela depois de fria a noite. Recompõe o que a magia gastou.<div class="mono fraco">1× Peito de Fênix Menor + 2× Cogumelo Real = 276 pr (72%)</div></td></tr>
+<tr><td><strong>Grifo ao Açafrão de Altar</strong></td><td class="num preco">438</td><td class="num fraco">13.27</td><td><span class="social">+3 em Diplomacia</span></td><td>Dourado, caro e servido devagar. Ninguém discute de barriga cheia disto.<div class="mono fraco">1× Carne de Grifo + 1× Açafrão de Altar + 1× Arroz da Colheita Única = 315 pr (72%)</div></td></tr>
+<tr><td><strong>Banquete da Casa Antiga</strong></td><td class="num preco">553</td><td class="num fraco">16.76</td><td><span class="social">+3 em Encanto, Diplomacia e Negociação</span></td><td>Não é um prato, é uma mesa. Serve seis, e o que se decide nela costuma valer.<div class="mono fraco">1× Carne de Grifo + 1× Arroz da Colheita Única + 1× Fruto da Árvore Velha + 2× Trufa de Raiz Negra + 2× Galinha de Terreiro = 398 pr (72%)</div></td></tr>
+</tbody></table>
+</section>
+
+<section class="pagina">
+  <h2>4. Ingredientes</h2>
+  <p>Duas trilhas, e nenhuma delas se cruza com as 23 ervas de alquimia — quem cozinha e quem destila
+  compram em lugares diferentes. <strong>Sobrevivência</strong> (Resistência) é a perícia que caça e colhe;
+  <strong>Cozinha</strong> (Inteligência) é a que transforma. Duas perícias, duas pessoas, um jantar.</p>
+  <h3>Vegetais e plantas <span class="conta">— 9</span></h3>
+<table><thead><tr><th style="width:20%">Ingrediente</th><th style="width:9%">Tier</th><th class="num" style="width:8%">Preço</th><th class="num" style="width:9%">Pratos</th><th>Descrição</th></tr></thead><tbody>
+<tr><td><strong>Nabo do Campo</strong></td><td><span class="selo selo-zinc">Comum</span></td><td class="num preco">1</td><td class="num fraco">5</td><td class="fraco">Cresce em qualquer terra remexida. Enche, e é o que se pede dele.</td></tr>
+<tr><td><strong>Cevada Rústica</strong></td><td><span class="selo selo-zinc">Comum</span></td><td class="num preco">2</td><td class="num fraco">3</td><td class="fraco">O grão de todo dia. Engrossa o caldo e dura o inverno.</td></tr>
+<tr><td><strong>Repolho de Inverno</strong></td><td><span class="selo selo-zinc">Comum</span></td><td class="num preco">2</td><td class="num fraco">4</td><td class="fraco">Colhido depois da primeira geada, quando adoça.</td></tr>
+<tr><td><strong>Pimenta das Brasas</strong></td><td><span class="selo selo-emerald">Incomum</span></td><td class="num preco">14</td><td class="num fraco">3</td><td class="fraco">Vermelha até o talo. Um dedo tempera a panela, dois arruínam.</td></tr>
+<tr><td><strong>Cogumelo Real</strong></td><td><span class="selo selo-emerald">Incomum</span></td><td class="num preco">18</td><td class="num fraco">2</td><td class="fraco">Só brota sob carvalho velho, e só quem sabe olhar encontra.</td></tr>
+<tr><td><strong>Trufa de Raiz Negra</strong></td><td><span class="selo selo-emerald">Incomum</span></td><td class="num preco">24</td><td class="num fraco">2</td><td class="fraco">Farejada por porco treinado. Vale mais que o porco.</td></tr>
+<tr><td><strong>Arroz da Colheita Única</strong></td><td><span class="selo selo-sky">Raro</span></td><td class="num preco">70</td><td class="num fraco">2</td><td class="fraco">Um alqueire por ano, de um vale só. O resto do mundo paga o que pedirem.</td></tr>
+<tr><td><strong>Açafrão de Altar</strong></td><td><span class="selo selo-sky">Raro</span></td><td class="num preco">95</td><td class="num fraco">1</td><td class="fraco">Três fios por flor, colhidos antes do sol. Tinge o prato de ouro.</td></tr>
+<tr><td><strong>Fruto da Árvore Velha</strong></td><td><span class="selo selo-sky">Raro</span></td><td class="num preco">120</td><td class="num fraco">1</td><td class="fraco">Dá uma vez a cada sete anos. Quem come lembra do gosto até morrer.</td></tr>
+</tbody></table>
+  <h3>Carnes <span class="conta">— 9</span></h3>
+<table><thead><tr><th style="width:20%">Ingrediente</th><th style="width:9%">Tier</th><th class="num" style="width:8%">Preço</th><th class="num" style="width:9%">Pratos</th><th>Descrição</th></tr></thead><tbody>
+<tr><td><strong>Carne de Coelho</strong></td><td><span class="selo selo-zinc">Comum</span></td><td class="num preco">3</td><td class="num fraco">1</td><td class="fraco">Magra e rápida de assar. A caça de quem tem pressa.</td></tr>
+<tr><td><strong>Peixe de Rio</strong></td><td><span class="selo selo-zinc">Comum</span></td><td class="num preco">4</td><td class="num fraco">1</td><td class="fraco">Fresco pela manhã, duvidoso à tarde.</td></tr>
+<tr><td><strong>Galinha de Terreiro</strong></td><td><span class="selo selo-zinc">Comum</span></td><td class="num preco">5</td><td class="num fraco">2</td><td class="fraco">Dura de mastigar e generosa de caldo.</td></tr>
+<tr><td><strong>Lombo de Javali</strong></td><td><span class="selo selo-emerald">Incomum</span></td><td class="num preco">22</td><td class="num fraco">1</td><td class="fraco">Escuro e forte. O bicho cobra caro para ser abatido.</td></tr>
+<tr><td><strong>Enguia do Fundo</strong></td><td><span class="selo selo-emerald">Incomum</span></td><td class="num preco">26</td><td class="num fraco">1</td><td class="fraco">Gordurosa, difícil de limpar, inesquecível quando defumada.</td></tr>
+<tr><td><strong>Cervo das Brumas</strong></td><td><span class="selo selo-emerald">Incomum</span></td><td class="num preco">30</td><td class="num fraco">1</td><td class="fraco">Pasta onde a névoa não levanta. A carne guarda o cheiro.</td></tr>
+<tr><td><strong>Carne de Grifo</strong></td><td><span class="selo selo-sky">Raro</span></td><td class="num preco">150</td><td class="num fraco">2</td><td class="fraco">Metade ave, metade felino, e o sabor não decide qual.</td></tr>
+<tr><td><strong>Costela de Wyvern</strong></td><td><span class="selo selo-sky">Raro</span></td><td class="num preco">180</td><td class="num fraco">1</td><td class="fraco">Precisa de fogo alto e de coragem para chegar até ela.</td></tr>
+<tr><td><strong>Peito de Fênix Menor</strong></td><td><span class="selo selo-sky">Raro</span></td><td class="num preco">240</td><td class="num fraco">1</td><td class="fraco">Morna ao toque horas depois de abatida. Ninguém explica.</td></tr>
+</tbody></table>
+</section>
+
+<section class="pagina">
+  <h2>5. Comida contra poção</h2>
+  <p>A conta que sustenta o desenho: em todo tier, o prato mais barato cura por menos prata que a poção
+  equivalente. Cozinhar sempre compensa para quem tem tempo.</p>
+
+  <table>
+    <thead><tr><th style="width:8%">Tier</th>
+    <th style="width:16%">Poção</th><th class="num" style="width:6%">Custa</th>
+    <th class="num" style="width:8%">Cura</th><th class="num" style="width:8%">pr/PV</th>
+    <th style="width:18%">Prato mais barato</th><th class="num" style="width:6%">Custa</th>
+    <th class="num" style="width:8%">Cura</th><th class="num" style="width:8%">pr/PV</th>
+    <th>Vantagem</th></tr></thead>
+    <tbody><tr><td><span class="selo selo-zinc">Comum</span></td><td class="fraco">Poção de Cura Menor</td><td class="num">25</td><td class="num">12.5 PV</td><td class="num">2.00</td><td><strong>Caldo de Nabo e Cevada</strong></td><td class="num">10</td><td class="num">13.5 PV</td><td class="num ok">0.74</td><td class="ok">63% mais barato</td></tr>
+<tr><td><span class="selo selo-emerald">Incomum</span></td><td class="fraco">Poção de Cura Maior</td><td class="num">90</td><td class="num">23.5 PV</td><td class="num">3.83</td><td><strong>Torta de Cogumelo Real</strong></td><td class="num">36</td><td class="num">22.0 PV</td><td class="num ok">1.64</td><td class="ok">57% mais barato</td></tr>
+<tr><td><span class="selo selo-sky">Raro</span></td><td class="fraco">Poção de Cura Superior</td><td class="num">445</td><td class="num">35.5 PV</td><td class="num">12.54</td><td><strong>Costela de Wyvern na Brasa</strong></td><td class="num">297</td><td class="num">33.0 PV</td><td class="num ok">9.00</td><td class="ok">28% mais barato</td></tr></tbody>
+  </table>
+
+  <div class="nota">
+    <p>A poção continua ganhando no que importa numa luta: age numa ação, não em meia hora. O que ela perde
+    é o longo prazo — e a saturação garante que o longo prazo sempre chega.</p>
+  </div>
+
+  <h2>6. Efeitos sociais</h2>
+  <p>A segunda metade da recompensa por acertar o ponto, e a razão de um cozinheiro valer numa mesa que não
+  luta. <strong>Só saem em prato bem feito</strong>, e valem para quem <em>partilhou</em> a refeição — nunca
+  para quem só cozinhou. O efeito é da mesa, não do prato.</p>
+  <table><thead><tr><th style="width:22%">Efeito</th><th style="width:24%">Sai de</th><th>Como funciona</th></tr></thead><tbody>
+<tr><td><span class="social">+2 em Encanto</span></td><td class="fraco">Ensopado de Galinha</td><td class="fraco">Vale para quem partilhou a refeição, pela próxima cena social.</td></tr>
+<tr><td><span class="social">+2 em Negociação</span></td><td class="fraco">Ensopado de Javali com Trufa</td><td class="fraco">Vale para quem partilhou a refeição, pela próxima cena social.</td></tr>
+<tr><td><span class="social">+3 em Diplomacia</span></td><td class="fraco">Grifo ao Açafrão de Altar</td><td class="fraco">Vale para quem partilhou a refeição, pela próxima cena social.</td></tr>
+<tr><td><span class="social">+3 em Encanto, Diplomacia e Negociação</span></td><td class="fraco">Banquete da Casa Antiga</td><td class="fraco">Serve seis. Vale para todos que se sentaram, pela próxima cena social. É o efeito mais forte do catálogo, e custa o que custa.</td></tr>
+</tbody></table>
+
+  <div class="aviso">
+    <p><strong>Os quatro pratos com efeito social são os únicos que podem custar mais por PV que a poção</strong>,
+    porque não estão vendendo só cura. O script permite o prêmio até o dobro e o reporta — hoje o Banquete cobra
+    34% a mais, e o Ensopado de Galinha ainda sai 30% <em>mais barato</em> mesmo dando +2 em Encanto.</p>
+  </div>
+
+  <h2>7. O que falta decidir</h2>
+  <table>
+    <thead><tr><th style="width:26%">Questão</th><th>Onde ela aperta</th></tr></thead>
+    <tbody>
+      <tr><td><strong>A escada de qualidade é geral, não é de comida</strong></td>
+          <td>Mal feito / bem feito é o mesmo problema da ação de fabricar (tópico 8 do mapa de itens), que
+          vale para poção, arma e armadura. Desenhar duas escadas separadas garante que elas divirjam.
+          A recomendação é uma só, e cozinha é o caso concreto para desenhá-la.</td></tr>
+      <tr><td><strong>Crítico e falha crítica</strong></td>
+          <td>Hoje há duas saídas. Vale um terceiro degrau para acerto por 10 ou mais acima da DC — e um
+          degrau abaixo, em que o prato estraga de vez e não cura nada?</td></tr>
+      <tr><td><strong>Quantas porções</strong></td>
+          <td>O Banquete serve seis; os outros onze não dizem. <code>consumiveis.usos</code> já existe e
+          resolveria — mas então o preço por PV precisa ser dividido pelas porções.</td></tr>
+      <tr><td><strong>Comida estraga?</strong></td>
+          <td>Enguia Defumada aguenta viagem, Peixe de Rio é "duvidoso à tarde". Se validade virar regra,
+          precisa de coluna; se ficar na descrição, fica com o mestre.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="nota">
+    <p>Documento gerado de <code>alimentos_dados.py</code>, com as onze regras validadas por
+    <code>verificar_alimentos.py</code> antes da geração. Para mudar um preço ou uma receita, edite os dados
+    e regere — não edite o HTML.</p>
+  </div>
+</section>
+
+</body>
+</html>
