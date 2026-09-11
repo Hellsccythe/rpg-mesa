@@ -1,5 +1,9 @@
 import { Column, DataType, Model, Table } from "sequelize-typescript";
 
+/** Como um veneno chega num alvo que não quer. Só veneno tem via. */
+export const VIAS_DE_VENENO = ["lamina", "ingestao", "contato"] as const;
+export type ViaDeVeneno = (typeof VIAS_DE_VENENO)[number];
+
 /**
  * O que o jogador usa e some: poções, venenos, munição, alimento, pergaminhos.
  *
@@ -43,6 +47,28 @@ export class ConsumivelModel extends Model {
 
   @Column({ type: DataType.INTEGER, allowNull: true })
   declare categoriaConsumivelItem: number | null;
+
+  /**
+   * Só veneno: lâmina, ingestão ou contato (migration 090). NULL em poção e
+   * prato — é assim que a tela sabe quando mostrar o campo.
+   */
+  @Column({ type: DataType.STRING(20), allowNull: true })
+  declare via: ViaDeVeneno | null;
+
+  /**
+   * A cura em número, para poção e prato (migration 091). "1d4 + 20% do PV
+   * máximo" vivia dentro de `efeito` em texto e não era calculável. Em prato,
+   * é a cura de BEM FEITO; mal feito é a regra `alimento.cura_malfeito`.
+   */
+  @Column({ type: DataType.STRING(20), allowNull: true })
+  declare curaDado: string | null;
+
+  @Column({ type: DataType.INTEGER, allowNull: true })
+  declare curaPercentual: number | null;
+
+  /** O que MAIS acontece quando o prato sai bem — hoje, o bônus social. */
+  @Column({ type: DataType.TEXT, allowNull: true })
+  declare efeitoBemfeito: string | null;
 
   @Column({ type: DataType.TEXT, allowNull: true })
   declare createdBy: string | null;

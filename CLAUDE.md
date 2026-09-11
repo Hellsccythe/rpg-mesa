@@ -55,6 +55,7 @@ A raiz **não é mais o login**: `/` lista as campanhas (mundos) e cada uma leva
 | `/master/receitas` | MasterReceitasView | auth + isMaster |
 | `/master/itens` | MasterItensView | auth + isMaster |
 | `/master/consumiveis` | MasterConsumiveisView | auth + isMaster |
+| `/master/condicoes` | MasterCondicoesView | auth + isMaster |
 | `/master/passados` | MasterPassadosView | auth + isMaster |
 | `/master/npcs` | MasterNpcsView | auth + isMaster |
 | `/master/progressao` | MasterProgressaoView | auth + isMaster |
@@ -134,6 +135,15 @@ A raiz **não é mais o login**: `/` lista as campanhas (mundos) e cada uma leva
 | POST/PATCH/DELETE | `/api/consumiveis/admin[/:id]` | isMaster |
 | GET | `/api/consumiveis/categorias` | público |
 | POST/PATCH/DELETE | `/api/consumiveis/categorias/admin[/:item]` | isMaster |
+| GET | `/api/condicoes` | público |
+| GET | `/api/personagens/:id/inventario` | auth — dono ou mestre (com nome, peso e valor do catálogo) |
+| POST | `/api/personagens/:id/inventario` | auth — dono ou mestre (empilha se o catálogo permite) |
+| DELETE | `/api/personagens/:id/inventario/:posicao` | auth — dono ou mestre (tira `quantidade` da pilha) |
+| PATCH | `/api/personagens/:id/inventario/:posicao` | auth — dono ou mestre (`rapido` ou `equipado`) |
+| GET | `/api/personagens/:id/fabricar/checar?receita_id=` | auth — dono ou mestre (pode? por que não? chances) |
+| POST | `/api/personagens/:id/fabricar` | auth — dono ou mestre (**rola no servidor**, consome e entrega numa transação) |
+| GET | `/api/personagens/:id/fabricar/historico` | auth — dono ou mestre |
+| POST/PATCH/DELETE | `/api/condicoes/admin[/:id]` | isMaster |
 | GET | `/api/raridades` | público |
 | POST/PATCH/DELETE | `/api/raridades/admin[/:item]` | isMaster |
 | GET | `/api/indole` | público |
@@ -221,11 +231,24 @@ A raiz **não é mais o login**: `/` lista as campanhas (mundos) e cada uma leva
 | PUT | `/api/player-telas/admin/:characterId` | isMaster (substitui o conjunto inteiro) |
 | GET | `/api/admin/exportar-schema?dialeto=postgresql\|mysql\|sqlite` | isMaster (devolve texto puro como anexo) |
 
+## Direção do produto — o site e o aplicativo futuro
+
+**O site é um "character manager" para o jogador e um "world manager" para o mestre.** As sessões serão jogadas num **aplicativo futuro, estilo Foundry, específico deste RPG e feito para rodar em celular fraco**. O site precisa continuar capaz de sustentar uma sessão sozinho — é o plano B se o app falhar —, então perícias, inventário, combate e regras ficam utilizáveis nele.
+
+O que isso decide, desde já:
+
+- **Regra e conta vivem no servidor e voltam na resposta.** Rolagem, resultado de fabricação, bônus de teste: o servidor decide, os dois clientes só mostram. O que for calculado só num componente Vue é invisível para o app. `regras_do_sistema` é a tabela das constantes de regra.
+- **Onde há cópia cliente/servidor de uma regra** (`bonusDoTeste`, `desceUmPasso`), a do servidor é a que vale; a do cliente é só para prévia.
+- **API magra e agnóstica de cliente.** REST simples, JWT (já serve aos dois), respostas sem excesso — o app roda em celular fraco.
+- **Mobile-first em toda tela nova.** As telas antigas, desktop-first, não se reescrevem por isso; mudam quando forem tocadas.
+- **`characters.data.inventario`** (tabela, id, quantidade, qualidade, rapido, equipado) é o modelo de inventário que os dois clientes leem.
+
 ## Economia — a base do projeto
 
 **`docs/ECONOMIA.pdf` é a referência.** A migration 079 adotou os números dele, e preço novo deve ser ancorado nas mesmas âncoras.
 
-- **Moeda:** bronze → prata → ouro, na razão **1:10:100**. Preço se pensa em **prata**.
+- **Moeda:** bronze → prata → ouro, na razão **1:10:1000** — **um ouro vale cem prata** (migration 092; era dez). Preço se pensa em **prata**. O ouro é moeda de nobre e de realeza: uma peça é quase dois meses de salário de artesão, e vê-la numa taverna é acontecimento. Nenhum código converte entre moedas (o dinheiro é guardado por moeda, `{prata: 73, ouro: 2}`), então a razão vive só em `regras_do_sistema` e nos documentos.
+- **Só a Nobreza rola ouro no dinheiro inicial** (migration 093): 1d10 ouro + 4d10 prata. Os outros rolam prata — Mercenário e Guarda 4d100, Aventureiro 3d100, Varejista 5d100, Andarilho 6d10, Vítima 4d10. Médias: Nobreza 572, Varejista 253, Guarda e Mercenário 202, Aventureiro 152, Andarilho 33, Vítima 22. **A amplitude é 26:1** (a 079 tinha calibrado 2,6:1), e os preços do catálogo foram ancorados na escala antiga — um Guarda compra um Arcabuz (180 pr) no primeiro dia. Decisão do mestre; se recalibrar, é editar cinco linhas na 093.
 - **Âncora:** 2 prata = um dia de trabalho sem qualificação; 5 prata = um dia de artesão; **60 prata = um mês**.
 - **Dinheiro inicial:** média de 22 (Vítima) a 57 (Nobreza) prata. Amplitude 2,6:1 — era 10:1 antes da 079.
 - **Crafting:** os ingredientes devem somar **70–75%** do preço de compra. A API de receitas calcula a proporção a cada leitura e a tela colore por faixa.
@@ -271,7 +294,7 @@ Documentação completa em `docs/COMPONENTS.md`.
 
 ## Banco de Dados — Tabelas
 
-Schema completo em `docs/SCHEMA_CURRENT.sql` — **arquivo gerado por `pg_dump --schema-only`, não editado a mão**; regere-o quando mexer no esquema (o comando está no cabeçalho do próprio arquivo). Migrations em `database/migrations/` (001–079). Documentação em PDF, com as ligações entre tabelas e os fluxos: `docs/BANCO_DE_DADOS.pdf`.
+Schema completo em `docs/SCHEMA_CURRENT.sql` — **arquivo gerado por `pg_dump --schema-only`, não editado a mão**; regere-o quando mexer no esquema (o comando está no cabeçalho do próprio arquivo). Migrations em `database/migrations/` (001–096). Documentação em PDF, com as ligações entre tabelas e os fluxos: `docs/BANCO_DE_DADOS.pdf`.
 
 **Não sobrou nenhum UUID no banco.** As migrations 022–023 converteram as PKs para `INTEGER IDENTITY`, e a **061** terminou o serviço nas colunas que ainda referenciavam o Supabase Auth: `characters.user_id` hoje é `INTEGER` apontando para `usuarios.id`, e `characters.campaign_id` é `INTEGER` apontando para `campaigns.id`. A coluna `usuarios.auth_user_id` foi removida.
 
@@ -340,8 +363,7 @@ Tela: `/master/usuarios` → `MasterUsersView.vue`.
 | `classes` | `[{name, nivel, xp, skillPoints}]` — a progressão por classe |
 | `classPoints` | pontos de classe não gastos |
 | `skills` / `titles` | skills e títulos concedidos ao personagem |
-| `equipamentos_iniciais` | escolha da etapa 6, com peso |
-| `inventario` | itens livres, sem peso |
+| `inventario` | **o inventário estruturado** (migration de código, sem SQL): `[{tabela, id, quantidade, qualidade, rapido, equipado}]`. Substituiu `inventory`, `quickInventory` e `equipamentos_iniciais`, que eram texto livre ou parciais e estavam vazios em todo personagem. Nome, peso e valor **nunca** são gravados aqui — vêm do catálogo na resposta |
 | `adventureNotes` | notas de aventura escritas pelo mestre |
 | `pendingChangeRequest` | pedido de alteração aguardando revisão (índice parcial em cima) |
 | `avatarFocalPoint` / `modalHeroPosition` | enquadramento da imagem, ajustado pelo mestre |
@@ -349,7 +371,7 @@ Tela: `/master/usuarios` → `MasterUsersView.vue`.
 | `dinheiro_inicial` | resultado da rolagem da etapa 6: `{tentativas, resultado, descartado}` |
 | `deusEtapaConcluida` | marca a etapa 5 como vista, mesmo se pulada |
 
-**Cuidado:** `PATCH /api/personagens/:id` **substitui o `data` inteiro**. Mandar um objeto parcial apaga o resto sem aviso.
+**Cuidado:** `PATCH /api/personagens/:id` **substitui o `data` inteiro**. Mandar um objeto parcial apaga o resto sem aviso. É por isso que o inventário tem rotas próprias e **não passa por esse PATCH**: uma cópia velha de `data` no cliente apagaria o que a ação de fabricar acabou de gravar.
 
 ### `indole` (migration 024)
 
@@ -634,12 +656,73 @@ Uma poção fica em `consumiveis`; a erva que a produz fica em `itens`. As duas 
 | valor | NUMERIC(12,2) | **preço final** em prata — ver abaixo |
 | raridade_item | INTEGER | referência a `raridade.item` |
 | categoria_consumivel_item | INTEGER | referência a `categoria_consumivel.item` |
+| via | VARCHAR(20) | **só veneno** (migration 090) — CHECK `lamina` \| `ingestao` \| `contato`. NULL em poção e prato; é assim que a tela sabe quando mostrar o campo |
+| cura_dado | VARCHAR(20) | a cura em número (migration 091), ex: `1d6`. Em prato, é a cura de **bem feito** |
+| cura_percentual | INTEGER | percentual do PV máximo somado ao dado. CHECK 0–100 |
+| efeito_bemfeito | TEXT | o que **mais** acontece quando o prato sai bem — hoje, o bônus social |
+
+**`cura_dado` + `cura_percentual` valem para poção E para prato.** "Recupera 1d4 + 20% do PV máximo" vivia dentro de `efeito` em texto e não era calculável — o mesmo defeito da coluna `dano` corrigido na migration 087. As três poções de cura foram convertidas na 091.
 
 **`valor` é o preço final, não uma base.** O `multiplicador_valor` da raridade é **referência para o mestre decidir** esse número e **não é aplicado** em cima dele. Aplicar automaticamente criaria dupla contagem: quem já pensou o preço de um item Raro veria ele multiplicado por 10 ao salvar. A tela mostra o multiplicador ao lado do campo, como apoio.
 
 `categoria_consumivel`: lookup com `item` IDENTITY. Seed: Poção, Veneno, Munição, Alimento, Pergaminho. Apagar categoria em uso é recusado pelo serviço.
 
-Tela: `/master/consumiveis` → `MasterConsumiveisView.vue`.
+#### Os três catálogos (migrations 083, 090 e 091)
+
+| Categoria | Quantos | Documento | Perícia da receita | O que o diferencia |
+|---|---|---|---|---|
+| Poção | 28 | `docs/POCOES.pdf` | Alquimia | cura ou previne uma condição |
+| **Veneno** | 16 | `docs/VENENOS.pdf` | Alquimia | **inflige** uma condição; tem `via`; Fortitude DC do tier para resistir |
+| **Alimento** | 12 | `docs/ALIMENTOS.pdf` | **Cozinha** | cura sem aplicar Saturação Alquímica; nunca em combate |
+
+Todos são gerados de `docs/*_dados.py` → `verificar_*.py` → PDF e migration, pelo mesmo arquivo. **Para mudar um preço ou receita, edite os dados e regere** — não edite o SQL nem o HTML.
+
+**Veneno é a poção com o sinal trocado.** O antídoto que já existe contra uma condição vale contra qualquer veneno que a aplique, sem ninguém escrever essa ligação. Calibrado para que **envenenar nunca saia mais barato que se defender**: o verificador recusa um veneno mais barato que o antídoto que o anula. Só 5 dos 16 (os de lâmina) funcionam em combate — de propósito. Os 4 farsantes não têm antídoto: passam sozinhos, e a defesa é Medicina.
+
+**Alimento é a resposta à Saturação Alquímica.** Duas poções travam a terceira por uma semana; comida cura sem saturar. O preparo é teste de **Cozinha contra a DC do tier**: mal feito cura **1d4 fixo** (regra `alimento.cura_malfeito`, não coluna — é igual para o catálogo inteiro, e é o que torna caro estragar ingrediente raro); bem feito cura `cura_dado + cura_percentual`, que escala com o tier. O tier do prato é o do **ingrediente mais raro** da receita. A refeição leva 10–30 min (`duracao`), mais que qualquer luta. Quatro pratos dão bônus social (`efeito_bemfeito`), só bem feitos, e para quem **partilhou** a mesa.
+
+Tela: `/master/consumiveis` → `MasterConsumiveisView.vue`. O formulário mostra um bloco por categoria — via para veneno, cura para poção e prato, "se bem feito" para prato.
+
+### `condicoes` e `consumivel_condicao` (migrations 080 e 083)
+
+O que dá errado com um personagem: Cegueira, Envenenado, Maldição, Petrificação. **20 no seed.**
+
+Vieram **antes** do catálogo de poções, e não depois, por uma razão de ordem: uma poção que cura Cegueira não significa nada enquanto Cegueira não existir. E condição não é alvo de poção — é o que skill, veneno, armadilha e monstro infligem; a poção é só uma das respostas, ao lado de Medicina e do tempo.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| id | INTEGER PK | IDENTITY |
+| nome | VARCHAR(100) | |
+| efeito | TEXT | NOT NULL default `''` — o que acontece na prática. É o que a mesa lê |
+| categoria | VARCHAR(20) | CHECK: Física, Mental, Mágica, Doença, Alquímica |
+| raridade_item | INTEGER | **gravidade** — referência a `raridade.item` |
+| duracao | VARCHAR(60) | texto livre |
+| janela_de_cura | VARCHAR(60) | nullable — por quanto tempo a cura ainda funciona. Null = sem prazo |
+| se_nao_tratada | TEXT | nullable — o que acontece passada a janela |
+| acumulativa | BOOLEAN | se empilha de fontes diferentes |
+
+**`raridade_item` é gravidade, e gravidade é a raridade da cura.** Uma condição Rara exige antídoto Raro, e a `dificuldade_base` da mesma linha de `raridade` é a DC para fabricá-lo. Uma escala serve aos dois lados sem coluna nova.
+
+**`janela_de_cura` existe para Cegueira e Surdez.** Cicatrizada, nenhuma poção alcança — e sem um prazo gravado no dado, essa regra viveria só na cabeça do mestre.
+
+#### O vínculo
+
+`consumivel_condicao` liga os dois lados: `consumivel_id`, `condicao_id` e `acao` (CHECK `'cura'` | `'previne'` | `'inflige'`). **25 vínculos de poção (083) + 16 de veneno (090).**
+
+`cura` remove o que já se sofreu; `previne` imuniza por um tempo; `inflige` aplica — é o veneno. São ações diferentes o bastante para o par (condição, ação) ser a chave — Selo da Vontade previne duas condições distintas sem curar nenhuma.
+
+A API de condições devolve `tratada_por` (cura e previne) e `infligida_por` (inflige) **separados**: "tem cura?" e "quem causa?" são perguntas opostas, e misturá-las numa lista faria a tela dizer que um veneno "trata" a condição. **24 condições** hoje: as 20 originais e as 4 da classe farsante (Febre Fingida, Desmaio Breve, Estigma Falso, Morte Aparente), que passam sozinhas e trazem a DC de Medicina que revela a farsa.
+
+`paranoid: false` e sem `updated_at`: o vínculo é detalhe do consumível, editado **como conjunto** (apaga tudo e reinsere), então nunca há o que atualizar numa linha e soft delete só acumularia lixo. É por isso que o índice único é **total**, não parcial.
+
+**O que sustenta a integridade, já que não há FOREIGN KEY:**
+
+- `ConsumiveisService.criar`/`editar` rodam **numa transação** — a validação das condições pode recusar o pedido, e sem transação o consumível ficava criado e sem vínculo
+- `condicoes.condicoes[]` ausente no PATCH significa "não mexa"; array vazio significa "apague todos". Um PATCH que só muda o preço não pode desvincular sem querer
+- apagar consumível apaga os vínculos de verdade (o consumível é soft delete, os vínculos não)
+- apagar condição é **recusado** enquanto algum consumível **vivo** a tratar ou aplicar
+
+Telas: `/master/condicoes` → `MasterCondicoesView.vue` (lista as condições com quem as trata); o vínculo se **edita** em `/master/consumiveis`, que é onde o mestre decide o que a poção faz.
 
 ### `itens` e `categoria_item` (migration 076)
 
@@ -662,7 +745,9 @@ Todos se comportam igual — um batom e uma barra de mithril não precisam de ta
 
 **Exceção de nomenclatura:** as outras tabelas usam `<lookup>_item` na coluna que referencia (`categoria_consumivel` → `categoria_consumivel_item`). Aqui isso daria `categoria_item_item`. Como o nome do lookup já termina em `_item`, a coluna ficou `itens.categoria_item`.
 
-`categoria_item`: seed com Ingrediente, Material Precioso, Ferramenta, Exploração, Cosmético. Apagar categoria em uso é recusado pelo serviço.
+`categoria_item`: seed com Ingrediente, Material Precioso, Ferramenta, Exploração, Cosmético, e **Tecido** (migration 096). Apagar categoria em uso é recusado pelo serviço.
+
+**`publico` e `bonus_social`** (migration 096, `docs/COSMETICOS.pdf`): só em tecido, material e cosmético. O **tecido** decide quem a roupa impressiona (plebe / qualquer / nobreza) e a roupa herda; a **qualidade da fabricação** decide quanto — bem feita dá o `bonus_social` (+1/+2/+3 por tier), mal feita dá 0, obra-prima +1. Roupa de nobreza diante da plebe (ou o inverso) dá −1. Acessório dá +1 fixo e só um conta. O bônus será lido do item com `equipado = true` em `data.inventario`; não há motor de teste social ainda. 8 tecidos, 6 materiais, 10 roupas e 6 acessórios, com as primeiras receitas de **Costura** e **Joalheria** — que já exigem as ferramentas da 094.
 
 Tela: `/master/itens` → `MasterItensView.vue`.
 
@@ -678,12 +763,12 @@ Daí o par **`<coisa>_tabela` + `<coisa>_id`** nos dois lados, com `CHECK` no ba
 | produto_tabela + produto_id | VARCHAR(20) + INTEGER | o que a receita produz |
 | quantidade_produzida | INTEGER | NOT NULL default 1 |
 | tempo_minutos | INTEGER | em minutos, para caber "20 min" e "dois dias" |
-| dificuldade | INTEGER | **solta por enquanto** — vira teste de perícia quando o sistema de habilidades mundanas existir |
-| pericia_id | INTEGER | reservada, sempre nula hoje |
+| dificuldade | INTEGER | a DC do teste — `raridade.dificuldade_base` do produto (10/15/20) |
+| pericia_id | INTEGER | referência a `pericias.id`. **Alquimia** nas 44 receitas de poção e veneno, **Cozinha** nas 12 de prato. Preenchida desde a 083; a 091 trouxe a primeira perícia que não é Alquimia. Exposta na API como `pericia_id` — não era, e a tela de receitas não sabia dizer o ofício |
 
 **Sem UNIQUE em (produto_tabela, produto_id)** de propósito: caminhos alternativos para o mesmo produto são desejáveis.
 
-`receita_ingredientes` tem `quantidade` e **`consumido`** — falso para ferramenta, que é exigida mas não some ao usar. Sem essa coluna o jogador perderia o alambique a cada poção. É a única tabela do projeto com **`paranoid: false`**: os ingredientes são detalhe da receita, editados como conjunto (apaga tudo e reinsere), e por isso o índice único pode ser total.
+`receita_ingredientes` tem `quantidade` e **`consumido`** — falso para ferramenta, que é exigida mas não some ao usar. Sem essa coluna o jogador perderia o alambique a cada poção. **Desde a migration 094 toda receita exige ferramenta**: as 44 de Alquimia pedem Alambique + Almofariz e Pilão; as 12 de Cozinha pedem Espeto e Grelha (assado, grelhado, brasa) ou Panela de Ferro. As 19 ferramentas (`docs/FERRAMENTAS.pdf`) são todas Comuns, preço fixo, `empilhavel = false`; acima de 12 kg a ferramenta é **fixa** — o peso decide, não uma coluna. É a única tabela do projeto com **`paranoid: false`**: os ingredientes são detalhe da receita, editados como conjunto (apaga tudo e reinsere), e por isso o índice único pode ser total.
 
 **Margem do crafting:** a API calcula `custo_dos_ingredientes`, `preco_de_compra` e `proporcao_do_preco` a cada leitura. O alvo do projeto é **70–75%** — abaixo disso ninguém compra pronto; acima, fabricar não compensa o risco. A tela mostra a proporção enquanto o mestre edita, colorida por faixa. Só o que é `consumido` entra no custo.
 
@@ -715,10 +800,12 @@ CHECK em vez de tabela de lookup nos dois casos: os cinco atributos são estrutu
 #### O teste
 
 ```
-d20 + (rank × 3) + ⌊atributo_base ÷ 2⌋   vs   dificuldade
+d20 + (rank × 3) + min(⌊atributo_base ÷ 2⌋, rank × 2)   vs   dificuldade
 ```
 
 O atributo entra **pela metade** de propósito: com 10 pontos no onboarding mais o bônus do passado, um atributo focado chega a 13 e engoliria o rank; dividido, o rank (até +15) domina — que é o certo para uma perícia.
+
+**O `min` é o teto (migration 081).** Sem ele, um personagem de fim de campanha com Inteligência alta passava em quase tudo com rank 1 em toda perícia — o atributo pagava o que o treino deveria pagar. Amarrado a `rank × 2`, o atributo só contribui até onde o treino já chegou: rank 1 aproveita no máximo +2 do atributo, rank 5 aproveita até +10. A mesma conta vive em `client/src/lib/api/pericias.api.ts` e em `server/.../pericia.model.ts` — se mudar, mude nos dois.
 
 **Rank 0 é "não treinado" e não pode tentar.** Sem isso, quem tem Inteligência alta fabrica poções sem nunca ter estudado alquimia.
 
@@ -734,7 +821,42 @@ A `dificuldade_base` de `raridade` (10/15/20/25) **é a DC do teste**: fabricar 
 
 Crescente: rank N custa N pontos. Rank 5 numa perícia custa 1+2+3+4+5 = **15**; rank 1 em cinco perícias custa **5**. Especialista e generalista viram escolhas com peso.
 
-Os ranks do personagem vivem em `data.pericias` (`[{periciaId, nome, rank, rankInicial?}]`) e os pontos em `data.periciaPoints`, seguindo o padrão de `data.classes` e `data.skills`.
+Os ranks do personagem vivem em `data.pericias` (`[{periciaId, nome, rank, rankInicial?}]`) e os pontos em **duas bolsas**, seguindo o padrão de `data.classes` e `data.skills`.
+
+#### Virtude, e as duas bolsas (migrations 081, 084, 085 e 086)
+
+`pericias.bolsa` divide o catálogo em `mundana` e `virtude`. A de Virtude tem cinco perícias — **Luta, Magia, Reflexo, Fortitude, Pontaria** — e gasta uma bolsa própria:
+
+| Bolsa | Campo em `characters.data` | De onde vem |
+|---|---|---|
+| `mundana` | `periciaPoints` | passado, downtime, marco de nível de personagem |
+| `virtude` | `periciaPointsVirtude` | **marcos de nível de classe** |
+
+**Bolsas separadas porque uma só faria o guerreiro pagar duas vezes.** Competência em combate já custa pontos de classe; se Luta saísse da mesma bolsa de Alquimia, o guerreiro compraria o que já comprou usando o dinheiro do alquimista. `CAMPO_DA_BOLSA` (em `pericia.model.ts`) é o mapa que o serviço de progressão consulta ao debitar.
+
+`classe_marco_virtude` guarda quantos pontos cada classe concede nos níveis **5, 10, 15 e 20** — 116 linhas, as 29 classes. Crescente de propósito (o marco 20 vale mais que o 5), o que premia levar a classe até o fim em vez de colecionar começos.
+
+**Por marco de classe, e não por nível de classe.** Um jogador pode ter até 5 classes, ou seja 100 níveis; a 2 pontos por nível o teto chegaria no nível 37 de 100 e o resto da campanha não acrescentaria nada. Já **100 níveis dão 20 marcos não importa como sejam divididos** — cinco classes até 20, dez até 10, vinte até 5. O orçamento parou de multiplicar com o número de classes. Melhor cenário 50 pontos, pior 40; maximizar as cinco perícias custaria 75, então **nunca satura**.
+
+O crédito acontece em `atribuirXpDeClasse`, somando os marcos **atravessados** entre o nível anterior e o novo. `nivelInicial` é capturado **antes** do laço de level-up — lido depois, seria igual ao nível novo e a conta devolveria zero em silêncio.
+
+**Rank 5 concede uma capacidade, não um número maior** (migration 084). Medido: no rank 5 o personagem já passa DC 20 em 100% das rolagens, então qualquer bônus numérico a mais não compra nada. Ex.: Luta rank 5 faz os ataques ignorarem a resistência física do alvo.
+
+`class_level_progression` precisa estar **populada** para tudo isso funcionar: `atribuirXpDeClasse` consulta a tabela para saber o custo do próximo nível, e com ela vazia o XP entrava e o nível não subia — sem erro nenhum, deixando o crédito de marcos como código morto. A migration 086 semeia `120 × nível` para as 29 classes, como ponto de partida editável em `/master/progressao`.
+
+### Inventário estruturado e a ação de fabricar (migration 095 + código)
+
+Desenho completo em `docs/FABRICAR.pdf`. Dois módulos novos, `inventario` e `fabricacao`, ambos sob `personagens/:id/`.
+
+**`data.inventario`** é uma lista de `{tabela, id, quantidade, qualidade, rapido, equipado}`. `tabela` é `itens` | `consumiveis` | `equipamentos` — o mesmo par tabela+id de `receitas`. Duas entradas são a mesma pilha quando casam nos cinco campos que a definem; a mesma poção pode aparecer duas vezes, uma na mochila rápida e outra fora. Por isso as rotas de remover e alternar trabalham por **posição na lista**, não por id. Empilha se `itens.empilhavel`; consumível sempre empilha; equipamento nunca. O peso da barra de carga soma do catálogo (`2 + força × 2` continua a regra). O onboarding grava aqui e **lê o peso do catálogo** — antes somava o `peso` que o cliente mandava, e bastava enviar 0.
+
+**A ação (`POST /personagens/:id/fabricar`)** faz sete checagens que dizem *o que falta* ("Faltam ingredientes: 2× Erva de Sangue" / "Falta no inventário: Alambique"), rola `d20 + bonusDoTeste(rank, atributo)` **no servidor** (como o dinheiro inicial: no cliente bastaria recarregar até sair 20), e consome insumos + entrega o produto + grava em `fabricacoes` numa transação. Ferramenta portátil (≤ 12 kg) precisa estar no inventário; fixa exige `oficina_disponivel: true` — a ação não sabe onde o personagem está. `GET .../checar` faz só as checagens e devolve as chances das quatro saídas, para a tela desabilitar o botão com o motivo escrito.
+
+**A escada de qualidade, uma só para todo ofício** (constantes em `fabricacao.service.ts` e em `regras_do_sistema` como `fabricar.*`): desastre a DC−10 (nada sai, insumos perdidos), mal feito abaixo da DC, bem feito na DC, obra-prima a DC+15. Assimétrica de propósito: com ±10, rank 1 tirava obra-prima em 30% das poções Comuns. **O motor grava a qualidade no item produzido; cada catálogo diz o que ela vale** — poção turva satura, poção límpida não satura, veneno diluído/concentrado é DC −5/+5, prato mal feito cura 1d4, roupa mal feita dá bônus 0. Qualidade nunca salta de tier: uma Poção de Cura Menor obra-prima é uma Menor límpida, não uma Maior.
+
+`fabricacoes` é histórico: sem soft delete, sem `updated_at`. `character_id`, `receita_id`, `rolagem_d20`, `bonus`, `dificuldade`, `resultado` (CHECK nas quatro), `oficina_confirmada`, `created_by`.
+
+**Telas:** `InventarioPersonagem.vue` e `FabricarPainel.vue`, na aba Inventário do Dashboard — os dois primeiros componentes **mobile-first** do site. A escolha de receita é uma lista com busca, não um `VSelect`: um dropdown que abre para baixo no fim da página fica cortado no celular. Os dois se avisam por `ref`: adicionar um insumo re-checa a fabricação; fabricar recarrega o inventário.
 
 ### `passados` (migration 032)
 
@@ -994,10 +1116,7 @@ O dashboard do player exibe todas as informações selecionadas no onboarding:
 - Skills e títulos concedidos
 - Notas de aventura (preview)
 
-**Tab "Inventário":**
-- **Equipamentos do onboarding** (`data.equipamentos_iniciais`): lista com peso por item
-- **Barra de capacidade de carga**: verde < 70%, âmbar 70–90%, vermelho ≥ 90%. Fórmula: `Força × 2`
-- Inventário geral (itens livres, sem peso) com mochila rápida (dropdown)
+**Tab "Inventário":** `InventarioPersonagem` (carga, busca no catálogo para adicionar, e os grupos Equipado / Mochila rápida / Mochila com os selos de qualidade) e `FabricarPainel` (receitas ao alcance, checagem com o que falta, chances, e o resultado da rolagem). Ver "Inventário estruturado e a ação de fabricar".
 
 ## Storage (disco local)
 

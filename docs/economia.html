@@ -68,7 +68,7 @@
     <li>Antes de tudo: dois problemas a resolver
       <div class="filhos">Capacidade de carga impede usar armadura &middot; Varejista sem dinheiro</div></li>
     <li>A moeda
-      <div class="filhos">Bronze, prata e ouro &middot; por que 1:10:100</div></li>
+      <div class="filhos">Bronze, prata e ouro &middot; por que 1:10:1000</div></li>
     <li>Âncoras de preço
       <div class="filhos">Salários, comida, pousada — o que dá sentido a tudo o mais</div></li>
     <li>Preço dos 14 equipamentos que já existem
@@ -140,7 +140,7 @@
 <section class="pagina">
   <h2>2. A moeda</h2>
 
-  <p>Três moedas, na razão <strong>1:10:100</strong>.</p>
+  <p>Três moedas, na razão <strong>1:10:1000</strong> — um ouro vale <strong>cem</strong> prata. <em>(Revisto na migration 092: a versão original deste documento usava 1:10:100. O ouro passou a ser moeda de nobre e de realeza.)</em></p>
 
   <figure>
   <svg viewBox="0 0 700 150" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
@@ -164,14 +164,14 @@
     <text x="480" y="122" text-anchor="middle" font-size="8.5" fill="#5b6270">ou &middot; compras grandes</text>
 
     <line x1="560" y1="40" x2="560" y2="100" stroke="#d8dce3" stroke-width="1"/>
-    <text x="580" y="58" font-size="9" fill="#5b6270">1 ouro = 10 prata</text>
+    <text x="580" y="58" font-size="9" fill="#5b6270">1 ouro = 100 prata</text>
     <text x="580" y="74" font-size="9" fill="#5b6270">1 prata = 10 bronze</text>
-    <text x="580" y="90" font-size="9" fill="#5b6270">1 ouro = 100 bronze</text>
+    <text x="580" y="90" font-size="9" fill="#5b6270">1 ouro = 1000 bronze</text>
   </svg>
   <figcaption>Razão decimal: converter é mover a vírgula.</figcaption>
   </figure>
 
-  <p><strong>Por que 1:10:100 e não outra razão.</strong> Na mesa, a conversão acontece dezenas de vezes por sessão e sempre no meio de outra coisa — alguém está regateando enquanto outro rola iniciativa. Qualquer razão que não seja decimal (1:12, 1:20, 1:8) transforma cada troco numa parada para fazer conta. Com 10 e 100, "37 prata" e "3 ouro e 7 prata" são a mesma frase, e ninguém precisa pensar.</p>
+  <p><strong>Por que 1:10:1000 e não outra razão.</strong> Na mesa, a conversão acontece dezenas de vezes por sessão e sempre no meio de outra coisa — alguém está regateando enquanto outro rola iniciativa. Qualquer razão que não seja decimal (1:12, 1:20, 1:8) transforma cada troco numa parada para fazer conta. Com 10 e 100, "370 prata" e "3 ouro e 70 prata" são a mesma frase, e ninguém precisa pensar. E com o ouro a cem prata, ele sai da conta do dia a dia: um jogador que só pensa em prata joga bem, e o ouro aparece quando um nobre paga.</p>
 
   <p><strong>A prata é a moeda de referência.</strong> Todo preço deste documento está em prata, e é nela que convém pensar. O bronze existe para o que é barato demais para caber em prata (uma refeição, uma vela, uma noite de pousada), e o ouro para o que é caro demais para caber em números pequenos (armaduras, armas de fogo, cavalos). Um jogador que só pensa em prata joga bem.</p>
 
@@ -435,7 +435,8 @@
   <h2>6. Dinheiro inicial dos passados</h2>
 
   <h3>O problema com os valores atuais</h3>
-  <p>Convertendo tudo para prata (1 ouro = 10 prata), a distribuição de hoje fica assim:</p>
+  <p>Convertendo tudo para prata <strong>na razão da época (1 ouro = 10 prata)</strong>, a distribuição calibrada na migration 079 fica assim:</p>
+  <div class="aviso"><p><strong>Revisto na migration 093.</strong> Só a Nobreza rola ouro agora (1d10 ouro + 4d10 prata, média 572). Mercenário e Guarda rolam 4d100 prata (202), Aventureiro 3d100 (152), Varejista 5d100 (253); Andarilho e Vítima não mudaram. A amplitude entre o mais pobre e o mais rico passou de 2,6:1 para <strong>26:1</strong>, e os preços deste documento foram ancorados na escala antiga — um Guarda compra um Arcabuz (180 pr) no primeiro dia. A tabela abaixo é a da 079, mantida como registro.</p></div>
 
   <table>
     <thead><tr><th style="width:18%">Passado</th><th style="width:26%">Hoje</th><th class="num">Mínimo</th><th class="num">Média</th><th class="num">Máximo</th><th>Problema</th></tr></thead>

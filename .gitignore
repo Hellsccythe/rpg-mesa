@@ -47,3 +47,6 @@ __screenshots__/
 
 # Arquivos enviados pelos usuarios (substitui o Supabase Storage)
 server/uploads/
+
+# Bytecode do Python dos geradores de documento
+__pycache__/

@@ -6,6 +6,13 @@
       "runtimeExecutable": "yarn",
       "runtimeArgs": ["workspace", "rpg-mesa", "dev"],
       "port": 5173
+    },
+    {
+      "name": "dev",
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": ["run", "dev:server"],
+      "port": 3000,
+      "autoPort": false
     }
   ]
 }

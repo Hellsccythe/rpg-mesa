@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Perícias de Virtude — Caminho Sem Volta</title>
+<style>
+  @page { size: A4; margin: 16mm 14mm 18mm 14mm; }
+  :root { --tinta:#16181d; --fraca:#5b6270; --linha:#d8dce3; --linha2:#aeb5c0;
+          --alt:#f5f6f9; --dest:#7a3e12; --destbg:#fdf3e7; --alerta:#8c2f2f;
+          --alertabg:#fcf0f0; --ok:#1f5c3d; --okbg:#eef7f1; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:9.6pt/1.5 "Segoe UI","Helvetica Neue",Arial,sans-serif; color:var(--tinta); background:#fff; }
+  h1,h2,h3,h4 { line-height:1.22; margin:0; font-weight:650; }
+  h1 { font-size:25pt; letter-spacing:-0.4pt; }
+  h2 { font-size:15pt; margin:22pt 0 9pt; padding-bottom:4pt; border-bottom:1.6pt solid var(--tinta); break-after:avoid; }
+  h3 { font-size:11.4pt; margin:15pt 0 5pt; color:var(--dest); break-after:avoid; }
+  h4 { font-size:9.8pt; margin:11pt 0 3pt; break-after:avoid; }
+  p { margin:0 0 7pt; }
+  ul,ol { margin:0 0 8pt; padding-left:15pt; } li { margin-bottom:2.5pt; }
+  code { font-family:"Cascadia Mono",Consolas,monospace; font-size:0.88em; background:var(--alt); padding:0.5pt 2.5pt; border-radius:2pt; }
+  table { width:100%; border-collapse:collapse; margin:5pt 0 11pt; font-size:8.5pt; }
+  th,td { text-align:left; vertical-align:top; padding:3.4pt 5pt; border-bottom:0.6pt solid var(--linha); }
+  th { background:var(--alt); border-bottom:1pt solid var(--linha2); font-weight:650; font-size:8pt;
+       text-transform:uppercase; letter-spacing:0.35pt; color:var(--fraca); }
+  tr { break-inside:avoid; }
+  td.c,th.c { text-align:center; white-space:nowrap; }
+  td.num,th.num { text-align:right; white-space:nowrap; }
+  .fraco { color:var(--fraca); }
+  .pagina { break-before:page; }
+  .capa { padding-top:42mm; text-align:center; }
+  .capa .sub { font-size:12pt; color:var(--fraca); margin-top:6pt; }
+  .capa .meta { margin-top:26mm; font-size:8.6pt; color:var(--fraca); border-top:0.6pt solid var(--linha);
+                padding-top:8pt; display:inline-block; min-width:80mm; }
+  .capa .selo { display:inline-block; margin-bottom:10pt; padding:3pt 10pt; border:1pt solid var(--linha2);
+                border-radius:12pt; font-size:8pt; letter-spacing:1.4pt; text-transform:uppercase; color:var(--fraca); }
+  .nota,.aviso,.bom { padding:7pt 10pt; margin:8pt 0 11pt; border-left:2.6pt solid var(--dest);
+                      background:var(--destbg); font-size:8.8pt; break-inside:avoid; }
+  .aviso { border-left-color:var(--alerta); background:var(--alertabg); }
+  .bom { border-left-color:var(--ok); background:var(--okbg); }
+  .nota p:last-child,.aviso p:last-child,.bom p:last-child { margin-bottom:0; }
+  .formula { text-align:center; font-family:"Cascadia Mono",Consolas,monospace; font-size:11.5pt;
+             background:var(--alt); border:0.7pt solid var(--linha); border-radius:4pt;
+             padding:12pt 8pt; margin:10pt 0 12pt; break-inside:avoid; }
+  .formula small { display:block; font-size:8pt; color:var(--fraca); margin-top:6pt; }
+  .grade2 { display:grid; grid-template-columns:1fr 1fr; gap:0 14pt; }
+  .bolsa { display:inline-block; padding:0.8pt 5pt; border-radius:2.5pt; font-size:7.4pt; font-weight:650; }
+  .b-mundana { background:#eceef2; color:#4a505c; }
+  .b-virtude { background:#f2e4e4; color:#8c2f2f; }
+  figure { margin:10pt 0 14pt; break-inside:avoid; }
+  figcaption { font-size:8pt; color:var(--fraca); margin-top:5pt; text-align:center; }
+  svg { display:block; margin:0 auto; max-width:100%; }
+</style>
+</head>
+<body>
+
+<section class="capa">
+  <div class="selo">Regras do Sistema</div>
+  <h1>Perícias de Virtude</h1>
+  <div class="sub">A trilha de combate — RPG de Mesa, Caminho Sem Volta</div>
+  <div class="meta">
+    5 perícias &middot; bolsa de pontos própria<br>
+    9 de setembro de 2026
+  </div>
+</section>
+
+<!-- ═══════════ 1 ═══════════ -->
+<section class="pagina">
+  <h2>1. Por que uma bolsa separada</h2>
+
+  <p>As perícias de Virtude podiam ter entrado como mais cinco linhas na tabela, dividindo o mesmo orçamento
+  das perícias mundanas. Não entraram, e a razão é a mais importante deste documento.</p>
+
+  <h3>O problema da cobrança dupla</h3>
+  <p>O jogador <strong>já paga</strong> por competência de combate, e paga por um caminho inteiro:</p>
+
+  <figure>
+  <svg viewBox="0 0 760 130" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+    <defs><marker id="s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#8a919e"/></marker></defs>
+    <rect x="20" y="30" width="150" height="44" rx="4" fill="#f5f6f9" stroke="#c3cad4"/>
+    <text x="95" y="49" text-anchor="middle" font-size="10" font-weight="620">nível de classe</text>
+    <text x="95" y="64" text-anchor="middle" font-size="8" fill="#5b6270">sobe com XP</text>
+    <line x1="176" y1="52" x2="204" y2="52" stroke="#8a919e" stroke-width="1.2" marker-end="url(#s)"/>
+    <rect x="210" y="30" width="150" height="44" rx="4" fill="#f5f6f9" stroke="#c3cad4"/>
+    <text x="285" y="49" text-anchor="middle" font-size="10" font-weight="620">pontos de classe</text>
+    <text x="285" y="64" text-anchor="middle" font-size="8" fill="#5b6270">concedidos pelo mestre</text>
+    <line x1="366" y1="52" x2="394" y2="52" stroke="#8a919e" stroke-width="1.2" marker-end="url(#s)"/>
+    <rect x="400" y="30" width="150" height="44" rx="4" fill="#f5f6f9" stroke="#c3cad4"/>
+    <text x="475" y="49" text-anchor="middle" font-size="10" font-weight="620">pontos de skill</text>
+    <text x="475" y="64" text-anchor="middle" font-size="8" fill="#5b6270">por classe</text>
+    <line x1="556" y1="52" x2="584" y2="52" stroke="#8a919e" stroke-width="1.2" marker-end="url(#s)"/>
+    <rect x="590" y="30" width="150" height="44" rx="4" fill="#eef7f1" stroke="#a8c6b3"/>
+    <text x="665" y="49" text-anchor="middle" font-size="10" font-weight="620">skills de combate</text>
+    <text x="665" y="64" text-anchor="middle" font-size="8" fill="#1f5c3d">com dano e multiplicador</text>
+    <text x="380" y="105" text-anchor="middle" font-size="8.5" fill="#5b6270">Este caminho já existe e já custa caro. Luta não pode cobrar de novo pela mesma coisa.</text>
+  </svg>
+  </figure>
+
+  <div class="aviso">
+    <p><strong>Se Luta e Pontaria saíssem da bolsa mundana</strong>, o Guerreiro pagaria duas vezes pela mesma
+    competência — e pagaria com o mesmo dinheiro que o Alquimista usa para Alquimia.</p>
+    <p>O resultado seria um <strong>Guerreiro sem Sobrevivência</strong> (gastou tudo em Luta) e um
+    <strong>Alquimista ruim de briga por falta de orçamento</strong>, e não por escolha. As duas trilhas
+    competiriam, e nenhum jogador teria como ser bom no ofício e sobreviver ao combate ao mesmo tempo.</p>
+  </div>
+
+  <h3>A solução: duas bolsas</h3>
+  <table>
+    <thead><tr><th style="width:20%">Bolsa</th><th style="width:34%">De onde vêm os pontos</th><th>O que compra</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="bolsa b-mundana">mundana</span></td>
+        <td>passado + downtime + marco de nível</td>
+        <td>Ofício, Social, Corpo, Saber — 21 perícias</td>
+      </tr>
+      <tr>
+        <td><span class="bolsa b-virtude">virtude</span></td>
+        <td><strong>nível de classe</strong>, no ritmo de cada classe</td>
+        <td>Virtude — 5 perícias</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="bom">
+    <p>Com as duas separadas, o Guerreiro é bom de Luta <strong>porque é Guerreiro</strong>, sem gastar o
+    orçamento de cozinhar; e o Alquimista tem Reflexo e Fortitude decentes sem abrir mão do ofício.
+    As trilhas param de competir, e cada uma responde à pergunta que lhe cabe.</p>
+  </div>
+
+  <p class="fraco" style="font-size:8.4pt">No banco: <code>pericias.bolsa</code> vale <code>'mundana'</code> ou
+  <code>'virtude'</code>, e <code>classes.pontos_virtude_por_nivel</code> guarda o ritmo de cada classe.</p>
+</section>
+
+<!-- ═══════════ 2 ═══════════ -->
+<section class="pagina">
+  <h2>2. As cinco perícias</h2>
+
+  <p>Duas naturezas diferentes convivem no mesmo grupo, e vale saber qual é qual: <strong>três são de ataque</strong>
+  — você rola quando decide agir — e <strong>duas são de resistência</strong>, roladas contra o que os outros fazem
+  com você. A fórmula é a mesma; o momento de usar não é.</p>
+
+  <h3>Ataque — você rola quando age</h3>
+  <table>
+    <thead><tr><th style="width:15%">Perícia</th><th style="width:16%">Atributo</th><th>O que cobre</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Luta</strong></td><td>Força</td><td>Acertar e aparar a curta distância, com lâmina ou sem ela</td></tr>
+      <tr><td><strong>Pontaria</strong></td><td>Destreza</td><td>Acertar o que está longe, com arco, besta ou pólvora</td></tr>
+      <tr><td><strong>Magia</strong></td><td>Aura</td><td>Moldar o que não é matéria, e não perder o controle disso</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Resistência — você rola quando sofre</h3>
+  <table>
+    <thead><tr><th style="width:15%">Perícia</th><th style="width:16%">Atributo</th><th>O que cobre</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Reflexo</strong></td><td>Destreza</td><td>Sair do caminho antes de o caminho chegar</td></tr>
+      <tr><td><strong>Fortitude</strong></td><td>Resistência</td><td>Aguentar veneno, doença e o que mais quiser derrubar você</td></tr>
+    </tbody>
+  </table>
+
+  <div class="nota">
+    <p><strong>Repare que os cinco atributos aparecem.</strong> Luta usa Força, Pontaria e Reflexo usam Destreza,
+    Magia usa Aura, Fortitude usa Resistência. Só Inteligência fica de fora — ela governa o saber e o ofício,
+    não a briga. Nenhum atributo do onboarding vira desperdício.</p>
+  </div>
+
+  <h3>A conexão com as condições</h3>
+  <p>Fortitude e Reflexo são as perícias que decidem se uma condição pega ou não. Quando um veneno é aplicado,
+  é Fortitude que responde; quando a armadilha dispara, é Reflexo. Isso liga o grupo Virtude direto ao catálogo
+  de condições e ao de poções — <strong>quem falha em Fortitude é quem precisa do antídoto</strong>.</p>
+</section>
+
+<!-- ═══════════ 3 ═══════════ -->
+<section class="pagina">
+  <h2>3. O teste</h2>
+
+  <div class="formula">
+    d20 &nbsp;+&nbsp; (rank × 3) &nbsp;+&nbsp; min(⌊atributo ÷ 2⌋, rank × 2)
+    <small>a mesma fórmula das perícias mundanas — Virtude não inventa mecânica nova</small>
+  </div>
+
+  <p>Duas travas no atributo, e cada uma resolve um problema diferente:</p>
+
+  <h4>A metade — para o atributo não engolir o rank</h4>
+  <p>No onboarding o jogador distribui 10 pontos, e o passado soma até 6 num único atributo: um personagem
+  focado chega a <strong>13</strong> antes da primeira sessão. Somado inteiro, esse número engoliria o treino.</p>
+
+  <h4>O teto de <code>rank × 2</code> — para talento não substituir treino</h4>
+  <p>Os atributos crescem ao longo da campanha. Sem teto, um personagem de <strong>rank 1</strong> com
+  Inteligência 20 chegava a +13 e passava 70% dos testes difíceis — treino mínimo vencendo por talento bruto,
+  que é exatamente o que a perícia deveria impedir.</p>
+
+  <table>
+    <thead><tr><th>Cenário</th><th class="c">DC</th><th class="c">Sem teto</th><th class="c">Com teto</th></tr></thead>
+    <tbody>
+      <tr><td>Rank 1, atributo 20 — <em>fim de campanha, treino mínimo</em></td><td class="c">20</td><td class="c">70%</td><td class="c"><strong>30%</strong></td></tr>
+      <tr><td>Rank 1, atributo 20</td><td class="c">25</td><td class="c">45%</td><td class="c"><strong>5%</strong></td></tr>
+      <tr><td>Rank 2, atributo 16</td><td class="c">20</td><td class="c">75%</td><td class="c">55%</td></tr>
+      <tr><td>Rank 3, atributo 10 — <em>profissional</em></td><td class="c">20</td><td class="c">75%</td><td class="c">75%</td></tr>
+      <tr><td>Rank 5, atributo 12 — <em>mestre</em></td><td class="c">25</td><td class="c">85%</td><td class="c">85%</td></tr>
+    </tbody>
+  </table>
+
+  <div class="bom">
+    <p>O gênio destreinado despenca de 70% para 30%. <strong>O profissional e o mestre não perdem nada</strong> —
+    quem treinou continua colhendo o atributo inteiro, porque o teto de <code>rank × 2</code> já os alcança.
+    Talento deixa de substituir treino sem deixar de importar.</p>
+  </div>
+
+  <h3>Rank e custo</h3>
+  <table>
+    <thead><tr><th class="c">Rank</th><th class="c">Custo</th><th class="c">Acumulado</th><th class="c">Bônus do rank</th><th class="c">Teto do atributo</th><th>O que significa</th></tr></thead>
+    <tbody>
+      <tr><td class="c">0</td><td class="c">—</td><td class="c">—</td><td class="c">—</td><td class="c">—</td><td><strong>Não treinado: não pode tentar</strong></td></tr>
+      <tr><td class="c">1</td><td class="c">1</td><td class="c">1</td><td class="c">+3</td><td class="c">+2</td><td>sabe segurar a arma</td></tr>
+      <tr><td class="c">2</td><td class="c">2</td><td class="c">3</td><td class="c">+6</td><td class="c">+4</td><td>treina com regularidade</td></tr>
+      <tr><td class="c">3</td><td class="c">3</td><td class="c">6</td><td class="c">+9</td><td class="c">+6</td><td>vive disso</td></tr>
+      <tr><td class="c">4</td><td class="c">4</td><td class="c">10</td><td class="c">+12</td><td class="c">+8</td><td>é temido pelo nome</td></tr>
+      <tr><td class="c">5</td><td class="c">5</td><td class="c">15</td><td class="c">+15</td><td class="c">+10</td><td>poucos no reino chegam aqui</td></tr>
+    </tbody>
+  </table>
+
+  <div class="aviso">
+    <p><strong>Rank 0 não rola.</strong> Em Virtude isso pesa mais que nas mundanas: um personagem sem rank em
+    Luta não é ruim de briga — ele <em>não briga</em>. Vale conferir se é isso que você quer, ou se o corpo a
+    corpo desarmado deveria ser exceção com um piso mínimo.</p>
+  </div>
+</section>
+
+<!-- ═══════════ 4 ═══════════ -->
+<section class="pagina">
+  <h2>4. O ritmo por classe</h2>
+
+  <p><code>classes.pontos_virtude_por_nivel</code> define quantos pontos de Virtude cada classe concede por
+  nível. <strong>Hoje todas as 29 estão em 1</strong>, que é o default da coluna — ninguém fica sem nada,
+  mas também ninguém se destaca ainda.</p>
+
+  <p>Uma proposta de partida, para você ajustar:</p>
+
+  <table>
+    <thead><tr><th style="width:12%" class="c">Pontos</th><th style="width:22%">Perfil</th><th>Classes</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="c"><strong>3</strong></td><td>combate puro</td>
+        <td>Guerreiro, Atirador, Monge, Protetor</td>
+      </tr>
+      <tr>
+        <td class="c"><strong>2</strong></td><td>combate com outra coisa</td>
+        <td>Ladrão, Sacerdote, Bruxo, e as 21 Híbridas</td>
+      </tr>
+      <tr>
+        <td class="c"><strong>1</strong></td><td>conjurador puro</td>
+        <td>Mago</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="nota">
+    <p><strong>O Mago em 1 não é castigo.</strong> Ele resolve o combate pelas <em>skills</em> da classe, que
+    é o caminho que já lhe custa pontos de classe. Dar-lhe 3 de Virtude seria a cobrança dupla ao contrário —
+    pagar duas vezes pela mesma competência, agora a favor dele.</p>
+    <p>O par a observar na mesa é <strong>Guerreiro contra Mago</strong>: se o Guerreiro estiver acertando com
+    folga enquanto o Mago erra magias, o número do Mago é o que sobe — não o teto do Guerreiro.</p>
+  </div>
+
+  <h3>Quanto isso soma numa campanha</h3>
+  <p>Um Guerreiro que chega ao nível 20 da classe com 3 pontos por nível junta <strong>60 pontos de Virtude</strong>.
+  Rank 5 custa 15, então dá para ter <strong>Luta 5, Reflexo 5, Fortitude 5</strong> e ainda sobrar. Um Mago no
+  mesmo nível junta 20: rank 5 em Magia (15) e rank 2 em Fortitude (3).</p>
+
+  <p>É a diferença certa — o Guerreiro é competente em três frentes de combate, o Mago em uma e meia. E o Mago
+  compensa nas skills, que o Guerreiro não tem.</p>
+
+  <div class="aviso">
+    <p><strong>Isto ainda não está implementado.</strong> A coluna existe e o default é 1, mas <em>nada concede
+    os pontos automaticamente</em> — subir de nível de classe não credita Virtude ainda. Hoje o mestre concede à
+    mão, como já faz com ponto de atributo e de classe.</p>
+  </div>
+</section>
+
+<!-- ═══════════ 5 ═══════════ -->
+<section class="pagina">
+  <h2>5. Onde isso mora, e o que falta</h2>
+
+  <table>
+    <thead><tr><th style="width:34%">Onde</th><th>O que guarda</th></tr></thead>
+    <tbody>
+      <tr><td><code>pericias.categoria = 'Virtude'</code></td><td>as cinco: Luta, Pontaria, Magia, Reflexo, Fortitude</td></tr>
+      <tr><td><code>pericias.bolsa</code></td><td><code>'mundana'</code> ou <code>'virtude'</code> — quem paga o rank</td></tr>
+      <tr><td><code>classes.pontos_virtude_por_nivel</code></td><td>o ritmo de cada classe (todas em 1 hoje)</td></tr>
+      <tr><td><code>characters.data.pericias</code></td><td>os ranks, mundanos e de virtude na mesma lista</td></tr>
+      <tr><td><code>characters.data.periciaPoints</code></td><td>a bolsa mundana</td></tr>
+      <tr><td><code>regras_do_sistema</code></td><td>a fórmula do teste, o rank máximo e o resto das regras</td></tr>
+    </tbody>
+  </table>
+
+  <table>
+    <thead><tr><th class="c" style="width:8%">Estado</th><th>Item</th></tr></thead>
+    <tbody>
+      <tr><td class="c">✔</td><td>As cinco perícias no catálogo, com atributo e bolsa</td></tr>
+      <tr><td class="c">✔</td><td>Coluna <code>bolsa</code> e o CHECK que a limita a dois valores</td></tr>
+      <tr><td class="c">✔</td><td><code>classes.pontos_virtude_por_nivel</code>, com default 1</td></tr>
+      <tr><td class="c">✔</td><td>A trava de atributo, no backend e no frontend</td></tr>
+      <tr><td class="c">—</td><td><strong><code>data.periciaPointsVirtude</code></strong> — a segunda bolsa não existe no personagem ainda</td></tr>
+      <tr><td class="c">—</td><td>Subir nível de classe creditar pontos de Virtude automaticamente</td></tr>
+      <tr><td class="c">—</td><td>A tela separar as duas bolsas (hoje mostra uma lista só)</td></tr>
+      <tr><td class="c">—</td><td>Ajustar o ritmo das 29 classes — todas em 1</td></tr>
+    </tbody>
+  </table>
+
+  <div class="aviso">
+    <p><strong>A segunda bolsa é o buraco que importa.</strong> O catálogo já separa as perícias por
+    <code>bolsa</code>, mas o personagem só tem <code>periciaPoints</code> — uma pilha só. Enquanto
+    <code>periciaPointsVirtude</code> não existir, subir Luta gasta do orçamento mundano, e a separação que este
+    documento inteiro defende ainda não acontece na prática.</p>
+    <p>É o primeiro passo da implementação, e é pequeno: um campo no <code>data</code>, um ramo em
+    <code>subirRankDePericia</code> que escolhe a bolsa pela <code>pericias.bolsa</code>, e a tela mostrando dois
+    contadores.</p>
+  </div>
+
+  <div class="nota">
+    <p>Documento gerado a partir do estado real do banco em 9 de setembro de 2026.
+    Fonte: <code>docs/virtude.html</code>.</p>
+  </div>
+</section>
+
+</body>
+</html>

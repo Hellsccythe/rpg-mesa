@@ -1,8 +1,10 @@
 import {
+  IsIn,
   IsBoolean,
   IsInt,
   IsNumber,
   IsOptional,
+  Max,
   IsString,
   MaxLength,
   Min,
@@ -27,6 +29,12 @@ export class CriarItemDto {
   @IsOptional() @IsBoolean()
   empilhavel?: boolean;
 
+  @IsOptional() @IsIn(["plebe", "qualquer", "nobreza", null])
+  publico?: "plebe" | "qualquer" | "nobreza" | null;
+
+  @IsOptional() @IsInt() @Min(0) @Max(5)
+  bonus_social?: number | null;
+
   @IsOptional() @IsInt() @Min(1)
   raridade_item?: number | null;
 
@@ -49,6 +57,12 @@ export class EditarItemDto {
 
   @IsOptional() @IsBoolean()
   empilhavel?: boolean;
+
+  @IsOptional() @IsIn(["plebe", "qualquer", "nobreza", null])
+  publico?: "plebe" | "qualquer" | "nobreza" | null;
+
+  @IsOptional() @IsInt() @Min(0) @Max(5)
+  bonus_social?: number | null;
 
   @IsOptional() @IsInt() @Min(1)
   raridade_item?: number | null;

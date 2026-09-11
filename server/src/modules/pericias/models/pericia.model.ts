@@ -3,11 +3,24 @@ import { Column, DataType, Model, Table } from "sequelize-typescript";
 export const ATRIBUTOS = ["aura", "forca", "destreza", "resistencia", "inteligencia"] as const;
 export type Atributo = (typeof ATRIBUTOS)[number];
 
-export const CATEGORIAS_PERICIA = ["Ofício", "Social", "Corpo", "Saber"] as const;
+// "Virtude" entrou na migration 081 junto com o grupo de combate. O CHECK do
+// banco foi estendido lá; esta constante ficou para trás, e com isso o DTO
+// recusava criar ou editar qualquer perícia de Virtude pela API — as cinco
+// existentes só entraram porque a migration escreveu em SQL puro.
+export const CATEGORIAS_PERICIA = ["Ofício", "Social", "Corpo", "Saber", "Virtude"] as const;
 export type CategoriaPericia = (typeof CATEGORIAS_PERICIA)[number];
 
 /** Rank máximo. Com custo crescente, chegar lá custa 1+2+3+4+5 = 15 pontos. */
 export const RANK_MAXIMO = 5;
+
+export const BOLSAS = ["mundana", "virtude"] as const;
+export type BolsaDePericia = (typeof BOLSAS)[number];
+
+/** Onde cada bolsa guarda os pontos, dentro de `characters.data`. */
+export const CAMPO_DA_BOLSA: Record<BolsaDePericia, string> = {
+  mundana: "periciaPoints",
+  virtude: "periciaPointsVirtude",
+};
 
 /**
  * Perícia mundana — a terceira trilha de progressão, ao lado do nível de
@@ -36,6 +49,28 @@ export class PericiaModel extends Model {
   @Column(DataType.STRING(20))
   declare categoria: CategoriaPericia;
 
+  /**
+   * Qual bolsa paga o rank: `mundana` ou `virtude`.
+   *
+   * São separadas porque o jogador já paga combate por pontos de classe. Se
+   * Luta saísse da bolsa mundana, o Guerreiro pagaria duas vezes pela mesma
+   * competência, com o mesmo dinheiro que o Alquimista usa no ofício.
+   */
+  @Column(DataType.STRING(10))
+  declare bolsa: BolsaDePericia;
+
+  /** Nome da capacidade destravada no rank 5. */
+  @Column({ type: DataType.STRING(60), allowNull: true })
+  declare capacidadeRank5Nome: string | null;
+
+  /**
+   * O que o rank 5 destrava. É uma CAPACIDADE e não um bônus maior: no rank 5
+   * a rolagem já passa 100% contra DC 20 e 90% contra DC 25, então mais um
+   * número não mudaria nada.
+   */
+  @Column({ type: DataType.TEXT, allowNull: true })
+  declare capacidadeRank5: string | null;
+
   @Column({ type: DataType.TEXT, allowNull: true })
   declare createdBy: string | null;
 
@@ -53,6 +88,25 @@ export class PericiaModel extends Model {
  */
 export function custoDoRank(rank: number): number {
   return rank;
+}
+
+/**
+ * Quanto o atributo contribui no teste: metade dele, **limitado ao dobro do
+ * rank**. Espelha `bonusDoAtributo` do frontend.
+ *
+ * A metade já era para o atributo não engolir o rank. A trava resolve o outro
+ * lado: com os atributos crescendo ao longo da campanha, rank 1 com
+ * Inteligência 20 chegava a +13 e passava 70% dos testes Raros — treino mínimo
+ * vencendo por talento bruto. Com a trava cai para 30%, e o profissional
+ * (rank 3) e o mestre (rank 5) não perdem nada.
+ */
+export function bonusDoAtributo(rank: number, valorDoAtributo: number): number {
+  return Math.min(Math.floor(valorDoAtributo / 2), rank * 2);
+}
+
+/** O bônus total no teste: `rank × 3 + min(⌊atributo ÷ 2⌋, rank × 2)`. */
+export function bonusDoTeste(rank: number, valorDoAtributo: number): number {
+  return rank * 3 + bonusDoAtributo(rank, valorDoAtributo);
 }
 
 /** Custo acumulado de sair do zero até `rank`. */

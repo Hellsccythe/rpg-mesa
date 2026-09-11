@@ -27,6 +27,14 @@ export class ItemModel extends Model {
   @Column(DataType.BOOLEAN)
   declare empilhavel: boolean;
 
+  /** Quem a peça impressiona (migration 096). Só tecido, material e cosmético. */
+  @Column({ type: DataType.STRING(20), allowNull: true })
+  declare publico: "plebe" | "qualquer" | "nobreza" | null;
+
+  /** Bônus social quando bem feita. Mal feita dá 0; obra-prima dá +1. */
+  @Column({ type: DataType.INTEGER, allowNull: true })
+  declare bonusSocial: number | null;
+
   @Column({ type: DataType.INTEGER, allowNull: true })
   declare raridadeItem: number | null;
 

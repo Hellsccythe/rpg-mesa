@@ -19,6 +19,10 @@ export type ItemApi = {
   valor: number | null
   /** Ervas e minérios empilham; uma gazua ou um vestido, não. */
   empilhavel: boolean
+  /** Quem a peça impressiona. Só tecido, material e cosmético. */
+  publico: 'plebe' | 'qualquer' | 'nobreza' | null
+  /** Bônus social quando bem feita. */
+  bonus_social: number | null
   raridade_item: number | null
   raridade: RaridadeResumo | null
   categoria_item: number | null
@@ -31,6 +35,8 @@ export type ItemPayload = {
   peso?: number | null
   valor?: number | null
   empilhavel?: boolean
+  publico?: 'plebe' | 'qualquer' | 'nobreza' | null
+  bonus_social?: number | null
   raridade_item?: number | null
   categoria_item?: number | null
 }

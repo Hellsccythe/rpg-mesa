@@ -31,6 +31,8 @@ export type ReceitaApi = {
   quantidade_produzida: number
   tempo_minutos: number
   dificuldade: number
+  /** A perícia do teste. */
+  pericia_id: number | null
   ingredientes: IngredienteApi[]
   /** Soma de valor × quantidade dos ingredientes consumidos. */
   custo_dos_ingredientes: number

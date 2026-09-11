@@ -21,7 +21,17 @@ import type {
 export type EquipamentoApi = {
   id: number;
   nome: string;
+  /** Só a notação do dado. Ver o comentário da coluna no model. */
   dano: string;
+  dano_alternativo: string | null;
+  multiplicador_critico: number | null;
+  tipo_dano_item: number | null;
+  defesa_fisica: number | null;
+  defesa_magica: number | null;
+  pericia_id: number | null;
+  alcance_ideal: number | null;
+  alcance_maximo: number | null;
+  raridade_item: number | null;
   peso: number | null;
   valor: number | null;
   categoria_equipamento_item: number | null;
@@ -100,6 +110,15 @@ export class ArmaService {
       nome: dados.nome.trim(),
       // dano é NOT NULL no banco; sem valor vira string vazia, não null.
       dano: dados.dano?.trim() ?? "",
+      danoAlternativo: textoOuNulo(dados.dano_alternativo),
+      multiplicadorCritico: dados.multiplicador_critico ?? null,
+      tipoDanoItem: dados.tipo_dano_item ?? null,
+      defesaFisica: dados.defesa_fisica ?? null,
+      defesaMagica: dados.defesa_magica ?? null,
+      periciaId: dados.pericia_id ?? null,
+      alcanceIdeal: dados.alcance_ideal ?? null,
+      alcanceMaximo: dados.alcance_maximo ?? null,
+      raridadeItem: dados.raridade_item ?? null,
       peso: dados.peso ?? null,
       valor: dados.valor ?? null,
       categoriaEquipamentoItem: dados.categoria_equipamento_item ?? null,
@@ -121,6 +140,19 @@ export class ArmaService {
 
     if (dados.nome !== undefined) equipamento.nome = dados.nome.trim();
     if (dados.dano !== undefined) equipamento.dano = dados.dano?.trim() ?? "";
+    if (dados.dano_alternativo !== undefined) {
+      equipamento.danoAlternativo = textoOuNulo(dados.dano_alternativo);
+    }
+    if (dados.multiplicador_critico !== undefined) {
+      equipamento.multiplicadorCritico = dados.multiplicador_critico;
+    }
+    if (dados.tipo_dano_item !== undefined) equipamento.tipoDanoItem = dados.tipo_dano_item;
+    if (dados.defesa_fisica !== undefined) equipamento.defesaFisica = dados.defesa_fisica;
+    if (dados.defesa_magica !== undefined) equipamento.defesaMagica = dados.defesa_magica;
+    if (dados.pericia_id !== undefined) equipamento.periciaId = dados.pericia_id;
+    if (dados.alcance_ideal !== undefined) equipamento.alcanceIdeal = dados.alcance_ideal;
+    if (dados.alcance_maximo !== undefined) equipamento.alcanceMaximo = dados.alcance_maximo;
+    if (dados.raridade_item !== undefined) equipamento.raridadeItem = dados.raridade_item;
     if (dados.peso !== undefined) equipamento.peso = dados.peso;
     if (dados.valor !== undefined) equipamento.valor = dados.valor;
     if (dados.categoria_equipamento_item !== undefined) {
@@ -358,6 +390,15 @@ export class ArmaService {
       id: equipamento.id,
       nome: equipamento.nome?.trim() ?? "",
       dano: equipamento.dano?.trim() ?? "",
+      dano_alternativo: equipamento.danoAlternativo,
+      multiplicador_critico: equipamento.multiplicadorCritico,
+      tipo_dano_item: equipamento.tipoDanoItem,
+      defesa_fisica: equipamento.defesaFisica,
+      defesa_magica: equipamento.defesaMagica,
+      pericia_id: equipamento.periciaId,
+      alcance_ideal: equipamento.alcanceIdeal,
+      alcance_maximo: equipamento.alcanceMaximo,
+      raridade_item: equipamento.raridadeItem,
       peso: paraNumeroOuNulo(equipamento.peso),
       valor: paraNumeroOuNulo(equipamento.valor),
       categoria_equipamento_item: equipamento.categoriaEquipamentoItem,

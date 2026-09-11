@@ -81,7 +81,90 @@
               <!-- Dano -->
               <div>
                 <label class="field-label mb-1.5 block text-xs font-semibold uppercase tracking-wide">Dano</label>
-                <input v-model="form.dano" type="text" placeholder="Ex: 1d8+3" class="field-input w-full rounded-xl border px-3 py-2.5 text-sm font-mono outline-none transition-colors" />
+                <input v-model="form.dano" type="text" placeholder="Ex: 1d8" class="field-input w-full rounded-xl border px-3 py-2.5 text-sm font-mono outline-none transition-colors" />
+                <p class="mt-1 text-[0.65rem] text-zinc-500">Só o dado. Crítico, tipo e alcance têm campos próprios.</p>
+              </div>
+
+              <!-- ── Combate ──────────────────────────────────────────────────
+                   Um bloco para arma e outro para armadura: uma espada não tem
+                   defesa física, e uma armadura não tem alcance. Mostrar os dois
+                   sempre convidaria a preencher o campo errado. -->
+              <div class="sm:col-span-2 lg:col-span-3 rounded-xl border border-white/10 bg-white/[0.02] p-4">
+                <div class="mb-3 flex items-center gap-2">
+                  <span class="field-label text-xs font-semibold uppercase tracking-wide">Combate</span>
+                  <span class="text-[0.65rem] text-zinc-500">{{ rotuloDoBlocoDeCombate }}</span>
+                </div>
+
+                <!-- Arma -->
+                <div v-if="ehArma" class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                  <div>
+                    <label class="field-label mb-1.5 block text-xs font-semibold uppercase tracking-wide">Crítico</label>
+                    <div class="flex items-center gap-1">
+                      <span class="text-sm text-zinc-500">×</span>
+                      <input v-model.number="form.multiplicador_critico" type="number" min="1" max="10" placeholder="2"
+                        class="field-input w-full rounded-xl border px-3 py-2.5 text-center text-sm outline-none transition-colors" />
+                    </div>
+                  </div>
+                  <div>
+                    <label class="field-label mb-1.5 block text-xs font-semibold uppercase tracking-wide">Perícia</label>
+                    <VSelect v-model="form.pericia_id" :options="opcoesPericiaVirtude" />
+                  </div>
+                  <div>
+                    <label class="field-label mb-1.5 block text-xs font-semibold uppercase tracking-wide">Alcance ideal</label>
+                    <input v-model.number="form.alcance_ideal" type="number" min="0" placeholder="m"
+                      class="field-input w-full rounded-xl border px-3 py-2.5 text-center text-sm outline-none transition-colors" />
+                  </div>
+                  <div>
+                    <label class="field-label mb-1.5 block text-xs font-semibold uppercase tracking-wide">Alcance máximo</label>
+                    <input v-model.number="form.alcance_maximo" type="number" min="0" placeholder="m"
+                      class="field-input w-full rounded-xl border px-3 py-2.5 text-center text-sm outline-none transition-colors" />
+                  </div>
+                  <div>
+                    <label class="field-label mb-1.5 block text-xs font-semibold uppercase tracking-wide">Tipo de dano</label>
+                    <VSelect v-model="form.tipo_dano_item" :options="opcoesTipoDano" />
+                  </div>
+                  <div>
+                    <label class="field-label mb-1.5 block text-xs font-semibold uppercase tracking-wide">Dano alternativo</label>
+                    <input v-model="form.dano_alternativo" type="text" placeholder="Ex: 1d6"
+                      class="field-input w-full rounded-xl border px-3 py-2.5 text-center text-sm font-mono outline-none transition-colors" />
+                  </div>
+                  <div class="col-span-2">
+                    <label class="field-label mb-1.5 block text-xs font-semibold uppercase tracking-wide">Raridade</label>
+                    <VSelect v-model="form.raridade_item" :options="opcoesRaridade" />
+                  </div>
+                </div>
+
+                <!-- Armadura -->
+                <div v-else-if="ehArmadura" class="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                  <div>
+                    <label class="field-label mb-1.5 block text-xs font-semibold uppercase tracking-wide">Defesa física</label>
+                    <input v-model.number="form.defesa_fisica" type="number" min="0" placeholder="0"
+                      class="field-input w-full rounded-xl border px-3 py-2.5 text-center text-sm outline-none transition-colors" />
+                  </div>
+                  <div>
+                    <label class="field-label mb-1.5 block text-xs font-semibold uppercase tracking-wide">Defesa mágica</label>
+                    <input v-model.number="form.defesa_magica" type="number" min="0" placeholder="0"
+                      class="field-input w-full rounded-xl border px-3 py-2.5 text-center text-sm outline-none transition-colors" />
+                  </div>
+                  <div>
+                    <label class="field-label mb-1.5 block text-xs font-semibold uppercase tracking-wide">Raridade</label>
+                    <VSelect v-model="form.raridade_item" :options="opcoesRaridade" />
+                  </div>
+                </div>
+
+                <div v-else>
+                  <p class="text-xs text-zinc-500">Escolha a categoria acima para ver os campos de combate.</p>
+                  <div class="mt-3 max-w-xs">
+                    <label class="field-label mb-1.5 block text-xs font-semibold uppercase tracking-wide">Raridade</label>
+                    <VSelect v-model="form.raridade_item" :options="opcoesRaridade" />
+                  </div>
+                </div>
+
+                <!-- A prévia é o argumento a favor de separar as colunas: com
+                     o dano em texto livre nada disto seria calculável. -->
+                <p v-if="previaDaFaixa" class="mt-3 border-t border-white/10 pt-2.5 text-[0.7rem] text-zinc-400">
+                  {{ previaDaFaixa }}
+                </p>
               </div>
 
               <!-- ── Categoria (single-select dropdown — PRIMÁRIO) ─────────── -->
@@ -344,7 +427,7 @@
               {{ (item as ArmaApi).categoria_equipamento_item ? categoriaNome((item as ArmaApi).categoria_equipamento_item) : '—' }}
             </span>
 
-            <span class="dano-text font-mono text-sm font-bold">{{ (item as ArmaApi).dano || '—' }}</span>
+            <span class="dano-text font-mono text-sm font-bold">{{ resumoDeCombate(item as ArmaApi) }}</span>
 
             <div class="hidden sm:flex flex-wrap gap-1">
               <template v-if="(item as ArmaApi).tipo_equipamento_item.length > 0">
@@ -553,6 +636,7 @@ import DataTable from '@/components/DataTable.vue'
 import Modal from '@/components/Modal.vue'
 import IconeDisplay from '@/components/IconeDisplay.vue'
 import IconeInput from '@/components/IconeInput.vue'
+import VSelect from '@/components/VSelect.vue'
 import {
   listarArmas,
   listarCategoriasEquipamento,
@@ -579,7 +663,11 @@ import {
   type ClasseEquipamento,
   type TipoEquipamento,
   type PropriedadeEquipamento,
+  danoNaDistancia,
 } from '@/lib/api/armas.api'
+import { listarPericias, type PericiaApi } from '@/lib/api/pericias.api'
+import { listarRaridades, type RaridadeApi } from '@/lib/api/raridades.api'
+import { skillTiposDanoApi, type SkillLookupApi } from '@/lib/api/skills.api'
 
 // ── Definição de colunas da tabela ───────────────────────────────────────────
 
@@ -617,11 +705,25 @@ const formFeedbackError = ref(false)
 
 const armaParaDeletar = ref<ArmaApi | null>(null)
 
+// Listas de apoio dos campos de combate.
+const pericias  = ref<PericiaApi[]>([])
+const raridades = ref<RaridadeApi[]>([])
+const tiposDano = ref<SkillLookupApi[]>([])
+
 const dropdownAtivo = ref<string | null>(null)
 
 const form = reactive({
   nome: '',
   dano: '',
+  dano_alternativo: '',
+  multiplicador_critico: null as number | null,
+  tipo_dano_item: '' as string | number,
+  defesa_fisica: null as number | null,
+  defesa_magica: null as number | null,
+  pericia_id: '' as string | number,
+  alcance_ideal: null as number | null,
+  alcance_maximo: null as number | null,
+  raridade_item: '' as string | number,
   peso: null as number | null,
   valor: null as number | null,
   categoria_equipamento_item: null as number | null,
@@ -822,6 +924,15 @@ function removeDoForm(tipo: 'tipo' | 'classe' | 'propriedade', item: number) {
 function resetForm() {
   form.nome                         = ''
   form.dano                         = ''
+  form.dano_alternativo             = ''
+  form.multiplicador_critico        = null
+  form.tipo_dano_item               = ''
+  form.defesa_fisica                = null
+  form.defesa_magica                = null
+  form.pericia_id                   = ''
+  form.alcance_ideal                = null
+  form.alcance_maximo               = null
+  form.raridade_item                = ''
   form.peso                         = null
   form.valor                        = null
   form.categoria_equipamento_item   = null
@@ -849,6 +960,15 @@ function iniciarEdicao(arma: ArmaApi) {
   editandoId.value                    = arma.id
   form.nome                           = arma.nome
   form.dano                           = arma.dano ?? ''
+  form.dano_alternativo               = arma.dano_alternativo ?? ''
+  form.multiplicador_critico          = arma.multiplicador_critico
+  form.tipo_dano_item                 = arma.tipo_dano_item ?? ''
+  form.defesa_fisica                  = arma.defesa_fisica
+  form.defesa_magica                  = arma.defesa_magica
+  form.pericia_id                     = arma.pericia_id ?? ''
+  form.alcance_ideal                  = arma.alcance_ideal
+  form.alcance_maximo                 = arma.alcance_maximo
+  form.raridade_item                  = arma.raridade_item ?? ''
   form.peso                           = arma.peso
   form.valor                          = arma.valor
   form.categoria_equipamento_item     = arma.categoria_equipamento_item ?? null
@@ -882,6 +1002,15 @@ async function carregar() {
     classes.value      = cls
     tipos.value        = tips
     propriedades.value = props
+
+    // Em allSettled e depois do essencial: são listas de apoio dos campos de
+    // combate, e uma delas falhando não pode apagar o catálogo inteiro da tela.
+    const [pers, rars, danos] = await Promise.allSettled([
+      listarPericias(), listarRaridades(), skillTiposDanoApi.listar(),
+    ])
+    if (pers.status  === 'fulfilled') pericias.value  = pers.value
+    if (rars.status  === 'fulfilled') raridades.value = rars.value
+    if (danos.status === 'fulfilled') tiposDano.value = danos.value
   } catch {
     feedback.value      = 'Erro ao carregar dados.'
     feedbackError.value = true
@@ -899,6 +1028,17 @@ async function salvar() {
     const payload = {
       nome:                         form.nome,
       dano:                         form.dano.trim() || undefined,
+      dano_alternativo:             form.dano_alternativo.trim() || null,
+      multiplicador_critico:        numeroOuNulo(form.multiplicador_critico),
+      tipo_dano_item:               form.tipo_dano_item === '' ? null : Number(form.tipo_dano_item),
+      // Defesa e alcance são zerados fora do bloco visível: manter o valor de
+      // uma armadura que virou arma deixaria o registro dizendo duas coisas.
+      defesa_fisica:                ehArmadura.value ? numeroOuNulo(form.defesa_fisica) : null,
+      defesa_magica:                ehArmadura.value ? numeroOuNulo(form.defesa_magica) : null,
+      pericia_id:                   ehArma.value && form.pericia_id !== '' ? Number(form.pericia_id) : null,
+      alcance_ideal:                ehArma.value ? numeroOuNulo(form.alcance_ideal) : null,
+      alcance_maximo:               ehArma.value ? numeroOuNulo(form.alcance_maximo) : null,
+      raridade_item:                form.raridade_item === '' ? null : Number(form.raridade_item),
       peso:                         form.peso != null && !isNaN(form.peso) ? form.peso : null,
       valor:                        form.valor != null && !isNaN(form.valor) ? form.valor : null,
       categoria_equipamento_item:   form.categoria_equipamento_item,
@@ -1088,6 +1228,92 @@ async function deletarLookupItem(itemId: number) {
 
 function goMasterPanel() { router.push({ name: 'master-panel' }) }
 async function logout() { await authStore.sair(); router.push({ name: 'login' }) }
+
+// ── Campos de combate ────────────────────────────────────────────────────────
+
+/** `NaN` chega aqui quando o usuário apaga um input numérico. */
+function numeroOuNulo(valor: number | null): number | null {
+  return valor != null && !Number.isNaN(valor) ? valor : null
+}
+
+/**
+ * Qual bloco mostrar sai da CATEGORIA, e não do tipo ou da classe: é a
+ * categoria que separa "Armas" de "Armadura" no catálogo, e as outras seis
+ * foram apagadas na migration 087 justamente para essa pergunta ter só duas
+ * respostas possíveis.
+ */
+const nomeDaCategoriaEscolhida = computed(() =>
+  categorias.value.find(c => c.item === form.categoria_equipamento_item)?.descricao ?? '',
+)
+const ehArma     = computed(() => nomeDaCategoriaEscolhida.value === 'Armas')
+const ehArmadura = computed(() => nomeDaCategoriaEscolhida.value === 'Armadura')
+
+const rotuloDoBlocoDeCombate = computed(() => {
+  if (ehArma.value)     return 'o que a arma faz, e a que distância'
+  if (ehArmadura.value) return 'o que a armadura absorve'
+  return ''
+})
+
+/** Só as de Virtude: uma espada não usa Alquimia. */
+const opcoesPericiaVirtude = computed(() => [
+  { value: '', label: 'Nenhuma' },
+  ...pericias.value
+    .filter(p => p.bolsa === 'virtude')
+    .map(p => ({ value: p.id, label: p.nome })),
+])
+
+const opcoesRaridade = computed(() => [
+  { value: '', label: 'Sem raridade' },
+  ...raridades.value.map(r => ({ value: r.item, label: r.descricao })),
+])
+
+const opcoesTipoDano = computed(() => [
+  { value: '', label: 'Nenhum' },
+  ...tiposDano.value.map(t => ({ value: t.item, label: t.descricao })),
+])
+
+/**
+ * Mostra a regra da faixa acontecendo enquanto o mestre digita. É a prova de
+ * que valeu separar as colunas: com o dano em texto livre ('1d10/x3') nada
+ * disto seria calculável.
+ */
+const previaDaFaixa = computed(() => {
+  if (!ehArma.value || !form.dano.trim() || !form.alcance_ideal) return ''
+  const arma = {
+    dano: form.dano.trim(),
+    alcance_ideal: form.alcance_ideal,
+    alcance_maximo: form.alcance_maximo ?? form.alcance_ideal,
+    multiplicador_critico: form.multiplicador_critico,
+  }
+  const dentro = danoNaDistancia(arma, form.alcance_ideal)
+  const fora   = danoNaDistancia(arma, (form.alcance_maximo ?? form.alcance_ideal))
+  if (!dentro) return ''
+
+  const partes = [`Até ${form.alcance_ideal}m: ${dentro.dado}`]
+  if (fora && (form.alcance_maximo ?? 0) > form.alcance_ideal) {
+    partes.push(`até ${form.alcance_maximo}m: ${fora.dado} (um passo abaixo)`)
+    partes.push(`além disso não há ataque`)
+  }
+  if (form.alcance_ideal > 3) {
+    partes.push('colado: 1d4 sem crítico')
+  }
+  return partes.join(' · ')
+})
+
+/** A coluna "Dano" da listagem: dado, crítico e defesa no mesmo espaço. */
+function resumoDeCombate(arma: ArmaApi): string {
+  if (arma.defesa_fisica != null || arma.defesa_magica != null) {
+    const partes: string[] = []
+    if (arma.defesa_fisica != null) partes.push(`${arma.defesa_fisica} fís`)
+    if (arma.defesa_magica != null) partes.push(`${arma.defesa_magica} mág`)
+    return partes.join(' / ')
+  }
+  if (!arma.dano) return '—'
+  const critico = arma.multiplicador_critico && arma.multiplicador_critico > 2
+    ? ` x${arma.multiplicador_critico}`
+    : ''
+  return `${arma.dano}${critico}`
+}
 
 onMounted(carregar)
 onUnmounted(() => { /* cleanup */ })

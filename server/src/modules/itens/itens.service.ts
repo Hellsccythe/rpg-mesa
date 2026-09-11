@@ -18,6 +18,8 @@ export type ItemApi = {
   peso: number | null;
   valor: number | null;
   empilhavel: boolean;
+  publico: "plebe" | "qualquer" | "nobreza" | null;
+  bonus_social: number | null;
   raridade_item: number | null;
   raridade: { item: number; descricao: string; cor: string; ordem: number } | null;
   categoria_item: number | null;
@@ -37,6 +39,8 @@ const SQL_LISTAR = `
     itens.peso,
     itens.valor,
     itens.empilhavel,
+    itens.publico,
+    itens.bonus_social,
     itens.raridade_item,
     itens.categoria_item,
     CASE WHEN raridade.item IS NULL THEN NULL ELSE
@@ -86,6 +90,8 @@ export class ItensService {
       peso: dados.peso ?? null,
       valor: dados.valor ?? null,
       empilhavel: dados.empilhavel ?? true,
+      publico: dados.publico ?? null,
+      bonusSocial: dados.bonus_social ?? null,
       raridadeItem: dados.raridade_item ?? null,
       categoriaItem: dados.categoria_item ?? null,
     });
@@ -101,6 +107,8 @@ export class ItensService {
     if (dados.peso !== undefined) registro.peso = dados.peso === null ? null : String(dados.peso);
     if (dados.valor !== undefined) registro.valor = dados.valor === null ? null : String(dados.valor);
     if (dados.empilhavel !== undefined) registro.empilhavel = dados.empilhavel;
+    if (dados.publico !== undefined) registro.publico = dados.publico;
+    if (dados.bonus_social !== undefined) registro.bonusSocial = dados.bonus_social;
     if (dados.raridade_item !== undefined) registro.raridadeItem = dados.raridade_item;
     if (dados.categoria_item !== undefined) registro.categoriaItem = dados.categoria_item;
 

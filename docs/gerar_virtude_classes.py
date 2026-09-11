@@ -1,0 +1,323 @@
+# -*- coding: utf-8 -*-
+"""Gera docs/virtude_classes.html a partir de virtude_classes_dados.py."""
+import io
+import sys
+
+sys.path.insert(0, ".")
+import virtude_classes_dados as v
+
+SAIDA = ("C:/Users/Hellsccythe/Documents/PROJETOS/rpg-mesa/.claude/worktrees/"
+         "postgres-db-access-951e7e/docs/virtude_classes.html")
+
+TODAS = v.tetos_de_todas()
+
+
+def esc(t):
+    return str(t).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def celula_teto(t):
+    if t == 0:
+        return '<td class="c teto-0" title="Não pode nem rolar">—</td>'
+    classe = "teto-alto" if t >= 4 else ("teto-medio" if t >= 3 else "teto-baixo")
+    return f'<td class="c {classe}">{t}</td>'
+
+
+def tabela_classes(tier):
+    linhas = []
+    for nome, (tetos, t, nota) in sorted(TODAS.items()):
+        if t != tier:
+            continue
+        build, sobra = v.melhor_build(tetos)
+        texto = ", ".join(f"{v.PERICIAS[i]} {build[i]}" for i in range(5) if build[i] > 0)
+        linhas.append(
+            f"<tr><td><strong>{esc(nome)}</strong></td>"
+            + "".join(celula_teto(x) for x in tetos)
+            + f'<td class="fraco">{esc(texto)}</td>'
+            + f'<td class="fraco small">{esc(nota)}</td></tr>')
+    return "\n".join(linhas)
+
+
+def tabela_saturacao():
+    linhas = []
+    for ritmo in (1, 2, 3):
+        celulas = []
+        for classes in (1, 2, 5, 10):
+            total = ritmo * 20 * classes
+            estourou = total >= v.TETO_ABSOLUTO
+            celulas.append(
+                f'<td class="c {"ruim" if estourou else ""}">{total}'
+                + (' <span class="x">satura</span>' if estourou else "") + "</td>")
+        nivel = v.TETO_ABSOLUTO // ritmo
+        linhas.append(f'<tr><td class="c"><strong>{ritmo}</strong></td>' + "".join(celulas)
+                      + f'<td class="c ruim">nível {nivel}</td>'
+                      + f'<td class="c ruim">{100 - nivel}</td></tr>')
+    return "\n".join(linhas)
+
+
+ESTILO = """
+  @page { size: A4; margin: 15mm 12mm 17mm 12mm; }
+  :root { --tinta:#16181d; --fraca:#5b6270; --linha:#d8dce3; --linha2:#aeb5c0;
+          --alt:#f5f6f9; --dest:#7a3e12; --destbg:#fdf3e7; --alerta:#8c2f2f;
+          --alertabg:#fcf0f0; --ok:#1f5c3d; --okbg:#eef7f1; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:9.2pt/1.46 "Segoe UI","Helvetica Neue",Arial,sans-serif; color:var(--tinta); background:#fff; }
+  h1,h2,h3,h4 { line-height:1.2; margin:0; font-weight:650; }
+  h1 { font-size:24pt; letter-spacing:-0.4pt; }
+  h2 { font-size:14.5pt; margin:20pt 0 8pt; padding-bottom:4pt; border-bottom:1.6pt solid var(--tinta); break-after:avoid; }
+  h3 { font-size:11pt; margin:14pt 0 5pt; color:var(--dest); break-after:avoid; }
+  h4 { font-size:9.6pt; margin:10pt 0 3pt; break-after:avoid; }
+  p { margin:0 0 6pt; }
+  ul,ol { margin:0 0 7pt; padding-left:15pt; } li { margin-bottom:2.5pt; }
+  code { font-family:"Cascadia Mono",Consolas,monospace; font-size:0.88em; background:var(--alt); padding:0.5pt 2.5pt; border-radius:2pt; }
+  table { width:100%; border-collapse:collapse; margin:5pt 0 10pt; font-size:8.2pt; }
+  th,td { text-align:left; vertical-align:top; padding:3pt 4.5pt; border-bottom:0.6pt solid var(--linha); }
+  th { background:var(--alt); border-bottom:1pt solid var(--linha2); font-weight:650; font-size:7.6pt;
+       text-transform:uppercase; letter-spacing:0.3pt; color:var(--fraca); }
+  tr { break-inside:avoid; }
+  td.c,th.c { text-align:center; white-space:nowrap; }
+  .fraco { color:var(--fraca); } .small { font-size:7.6pt; }
+  .teto-alto { background:#eef7f1; font-weight:650; color:#1f5c3d; }
+  .teto-medio { background:#f7f3e8; color:#7a5a12; }
+  .teto-baixo { color:var(--fraca); }
+  .teto-0 { color:#b9bec7; }
+  .ruim { color:var(--alerta); font-weight:600; }
+  .x { font-size:7pt; font-weight:400; }
+  .pagina { break-before:page; }
+  .capa { padding-top:40mm; text-align:center; }
+  .capa .sub { font-size:12pt; color:var(--fraca); margin-top:6pt; }
+  .capa .meta { margin-top:24mm; font-size:8.6pt; color:var(--fraca); border-top:0.6pt solid var(--linha);
+                padding-top:8pt; display:inline-block; min-width:84mm; }
+  .capa .selo { display:inline-block; margin-bottom:10pt; padding:3pt 10pt; border:1pt solid var(--linha2);
+                border-radius:12pt; font-size:8pt; letter-spacing:1.4pt; text-transform:uppercase; color:var(--fraca); }
+  .nota,.aviso,.bom { padding:6pt 9pt; margin:7pt 0 10pt; border-left:2.4pt solid var(--dest);
+                      background:var(--destbg); font-size:8.4pt; break-inside:avoid; }
+  .aviso { border-left-color:var(--alerta); background:var(--alertabg); }
+  .bom { border-left-color:var(--ok); background:var(--okbg); }
+  .nota p:last-child,.aviso p:last-child,.bom p:last-child { margin-bottom:0; }
+  .formula { text-align:center; font-family:"Cascadia Mono",Consolas,monospace; font-size:11pt;
+             background:var(--alt); border:0.7pt solid var(--linha); border-radius:4pt;
+             padding:10pt 8pt; margin:9pt 0 11pt; break-inside:avoid; }
+  .formula small { display:block; font-size:7.8pt; color:var(--fraca); margin-top:5pt; }
+  figure { margin:9pt 0 12pt; break-inside:avoid; }
+  figcaption { font-size:7.8pt; color:var(--fraca); margin-top:4pt; text-align:center; }
+  svg { display:block; margin:0 auto; max-width:100%; }
+"""
+
+HTML = f"""<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8">
+<title>Virtude e Classes — Caminho Sem Volta</title>
+<style>{ESTILO}</style></head>
+<body>
+
+<section class="capa">
+  <div class="selo">Balanceamento</div>
+  <h1>Virtude e Classes</h1>
+  <div class="sub">O orçamento de combate e o teto de cada classe</div>
+  <div class="meta">
+    29 classes &middot; 5 perícias &middot; orçamento de {v.ORCAMENTO} pontos<br>
+    9 de setembro de 2026
+  </div>
+</section>
+
+<section class="pagina">
+  <h2>1. O problema: pontos por nível de classe não funcionam</h2>
+
+  <p>A proposta anterior dava pontos de Virtude <strong>por nível de classe</strong>. Ela quebra, e quebra cedo.</p>
+
+  <p>Maximizar as cinco perícias de Virtude custa <strong>{v.TETO_ABSOLUTO} pontos</strong>
+  (rank 5 custa 15, cinco vezes). A partir daí o ponto seguinte não vale nada. Como o personagem pode ter
+  <strong>até 100 níveis de classe</strong> — cinco classes de 20, ou dez classes, ou qualquer combinação —
+  os pontos se multiplicam:</p>
+
+  <table>
+    <thead><tr><th class="c" style="width:9%">Ritmo</th><th class="c">1 classe</th><th class="c">2 classes</th>
+    <th class="c">5 classes</th><th class="c">10 classes</th>
+    <th class="c">Satura em</th><th class="c">Níveis perdidos</th></tr></thead>
+    <tbody>{tabela_saturacao()}</tbody>
+  </table>
+
+  <div class="aviso">
+    <p><strong>No ritmo 2, o teto é atingido no nível 37 de 100.</strong> Sessenta e três níveis de campanha em
+    que subir de nível não acrescenta nada em Virtude. No ritmo 3, setenta e cinco.</p>
+    <p>E o problema não é só o desperdício: <strong>a segunda classe apaga a identidade da primeira</strong>.
+    Se todo mundo chega a Luta 5, Magia 5 e os três salvamentos no máximo, a classe deixa de significar
+    qualquer coisa em combate.</p>
+  </div>
+
+  <h3>Por que "marcos a cada 5 níveis" ajuda mas não resolve</h3>
+  <p>A ideia de dar 1 ponto a cada 5 níveis de classe reduz o volume — 4 pontos por classe, 40 em dez classes,
+  abaixo dos {v.TETO_ABSOLUTO}. Funciona no total. Mas mantém o defeito de fundo:
+  <strong>o orçamento continua multiplicando com o número de classes</strong>, então quem multiclassa muito
+  continua tendo mais combate que quem se dedica a uma. E para uma classe só, 4 pontos ao longo de 20 níveis
+  é quase nada — não dá nem rank 3.</p>
+</section>
+
+<section class="pagina">
+  <h2>2. A proposta: separar orçamento de teto</h2>
+
+  <p>Duas perguntas diferentes estavam sendo respondidas pela mesma coisa:</p>
+
+  <figure>
+  <svg viewBox="0 0 740 200" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+    <rect x="20" y="24" width="330" height="150" rx="5" fill="#f5f6f9" stroke="#c3cad4"/>
+    <text x="185" y="48" text-anchor="middle" font-size="11.5" font-weight="650">QUANTO você pode gastar</text>
+    <text x="185" y="70" text-anchor="middle" font-size="9" fill="#5b6270">vem do nível de PERSONAGEM</text>
+    <text x="185" y="98" text-anchor="middle" font-size="19" font-weight="650" fill="#16181d">{v.ORCAMENTO} pontos</text>
+    <text x="185" y="118" text-anchor="middle" font-size="8.5" fill="#5b6270">1 por marco, 27 marcos até o nível 100</text>
+    <text x="185" y="142" text-anchor="middle" font-size="8.5" fill="#1f5c3d">não multiplica com classes —</text>
+    <text x="185" y="156" text-anchor="middle" font-size="8.5" fill="#1f5c3d">é o mesmo para todo personagem</text>
+
+    <rect x="390" y="24" width="330" height="150" rx="5" fill="#fdf3e7" stroke="#d9c3a3"/>
+    <text x="555" y="48" text-anchor="middle" font-size="11.5" font-weight="650">ATÉ ONDE cada perícia sobe</text>
+    <text x="555" y="70" text-anchor="middle" font-size="9" fill="#5b6270">vem da CLASSE</text>
+    <text x="555" y="98" text-anchor="middle" font-size="19" font-weight="650" fill="#7a3e12">teto por perícia</text>
+    <text x="555" y="118" text-anchor="middle" font-size="8.5" fill="#5b6270">o Mago não passa de Luta 1;</text>
+    <text x="555" y="132" text-anchor="middle" font-size="8.5" fill="#5b6270">o Guerreiro não conjura</text>
+    <text x="555" y="156" text-anchor="middle" font-size="8.5" fill="#7a3e12">multiclassar LIBERA tetos,</text>
+    <text x="555" y="170" text-anchor="middle" font-size="8.5" fill="#7a3e12">e não dá mais pontos</text>
+  </svg>
+  <figcaption>O orçamento é do personagem; o teto é da classe.</figcaption>
+  </figure>
+
+  <div class="bom">
+    <p><strong>Isso resolve os três problemas de uma vez.</strong></p>
+    <p><strong>Nunca satura:</strong> {v.ORCAMENTO} &lt; {v.TETO_ABSOLUTO}, então todo ponto sempre tem onde ir.
+    Não existe nível "morto".</p>
+    <p><strong>A classe continua importando na décima classe:</strong> ela decide o que você <em>pode</em> ser,
+    e isso não se dilui.</p>
+    <p><strong>Multiclassar é recompensado sem quebrar:</strong> um Guerreiro/Mago destrava Luta 5 <em>e</em>
+    Magia 5 — mas os dois custam 30 pontos e ele tem {v.ORCAMENTO}. Ele <strong>precisa escolher</strong>,
+    que é exatamente o que multiclasse deveria significar.</p>
+  </div>
+
+  <h3>O teste continua o mesmo</h3>
+  <div class="formula">
+    d20 &nbsp;+&nbsp; (rank × 3) &nbsp;+&nbsp; min(⌊atributo ÷ 2⌋, rank × 2)
+    <small>nada muda na mecânica — muda só de onde vêm os pontos e até onde eles levam</small>
+  </div>
+
+  <h3>Onde isso encosta no banco</h3>
+  <table>
+    <thead><tr><th style="width:38%">O que muda</th><th>Como</th></tr></thead>
+    <tbody>
+      <tr><td><code>classes.pontos_virtude_por_nivel</code></td>
+          <td><strong>Sai.</strong> A classe deixa de dar pontos</td></tr>
+      <tr><td><code>classe_teto_virtude</code> <em>(nova)</em></td>
+          <td>classe_id + pericia_id + teto — 5 linhas por classe, 145 no total</td></tr>
+      <tr><td><code>data.periciaPointsVirtude</code></td>
+          <td>a segunda bolsa, creditada por marco de nível de personagem</td></tr>
+      <tr><td><code>atribuirXpAoPersonagem</code></td>
+          <td>já conta marcos para a bolsa mundana; passa a creditar as duas</td></tr>
+      <tr><td>Teto do personagem</td>
+          <td>o <strong>maior</strong> teto entre todas as classes que ele tem</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="pagina">
+  <h2>3. Os tetos das 8 classes Base</h2>
+
+  <p>O teto é a identidade da classe em combate. As colunas são
+  <strong>Lu</strong>ta, <strong>Po</strong>ntaria, <strong>Ma</strong>gia,
+  <strong>Re</strong>flexo e <strong>Fo</strong>rtitude. Traço quer dizer teto zero:
+  a classe não pode nem tentar.</p>
+
+  <table>
+    <thead><tr><th style="width:16%">Classe</th>
+    <th class="c">Lu</th><th class="c">Po</th><th class="c">Ma</th><th class="c">Re</th><th class="c">Fo</th>
+    <th style="width:26%">Build com {v.ORCAMENTO} pontos</th><th>Papel</th></tr></thead>
+    <tbody>{tabela_classes("Base")}</tbody>
+  </table>
+
+  <div class="nota">
+    <p><strong>Guerreiro e Atirador não conjuram, e isso é de propósito.</strong> Teto zero em Magia significa
+    que eles nunca rolam para conjurar — não que rolam mal. Um guerreiro puro que jamais lança magia é a
+    fantasia da classe; se você quiser que ele possa tentar, é subir o teto para 1.</p>
+    <p>Repare que <strong>ninguém tem teto zero em Reflexo ou Fortitude</strong>. Salvamento é diferente de
+    ataque: todo personagem precisa poder tentar se esquivar e resistir a veneno, senão vira alvo automático.</p>
+  </div>
+
+  <div class="aviso">
+    <p><strong>Os builds da coluna não são recomendações, são o que sobra.</strong> Repare no Guerreiro:
+    Luta 5 come 15 dos {v.ORCAMENTO} pontos, e o que resta espalha fino nos salvamentos. Maximizar a perícia
+    principal <em>custa</em> — o jogador que faz isso aceita ser frágil em outra frente. Isso é o orçamento
+    funcionando.</p>
+  </div>
+</section>
+
+<section class="pagina">
+  <h2>4. Os tetos das 21 classes Híbridas</h2>
+
+  <p>O teto da híbrida é derivado das duas raízes, e não escolhido à mão: <strong>o maior valor das duas,
+  com o topo rebaixado em 1</strong>. Assim a híbrida alcança quase o que cada raiz alcança, mas nunca o topo
+  de nenhuma — que é o preço de fazer duas coisas.</p>
+
+  <table>
+    <thead><tr><th style="width:19%">Classe</th>
+    <th class="c">Lu</th><th class="c">Po</th><th class="c">Ma</th><th class="c">Re</th><th class="c">Fo</th>
+    <th style="width:24%">Build com {v.ORCAMENTO} pontos</th><th>Raízes</th></tr></thead>
+    <tbody>{tabela_classes("Híbrida")}</tbody>
+  </table>
+
+  <div class="aviso">
+    <p><strong>As raízes foram inferidas pelos nomes</strong> — "Arqueiro Arcano" como Atirador + Mago,
+    "Punho do Vazio" como Monge + Bruxo, e assim por diante. Confira: se alguma estiver errada, é trocar a
+    dupla no arquivo de dados e os tetos se recalculam sozinhos.</p>
+  </div>
+
+  <div class="nota">
+    <p><strong>Uma correção que a verificação forçou.</strong> A primeira versão da regra era "o maior das duas
+    menos 1" em todas as perícias. Isso quebrava para híbridas de classes <em>parecidas</em>: Mago + Bruxo são
+    ambos conjuradores, e a classe saía com tetos tão baixos que <strong>não conseguia gastar os
+    {v.ORCAMENTO} pontos</strong> — sobravam 9. Uma classe que não gasta o próprio orçamento é estritamente
+    pior que as outras, e ninguém a escolheria.</p>
+    <p>Rebaixar só o topo, e depois subir os tetos mais baixos até a capacidade alcançar o orçamento, resolve.
+    A regra que vale acima de todas: <strong>toda classe precisa conseguir gastar tudo o que recebe.</strong></p>
+  </div>
+</section>
+
+<section class="pagina">
+  <h2>5. O que verifiquei, e o que falta</h2>
+
+  <h3>As três regras que as 29 classes passam</h3>
+  <table>
+    <thead><tr><th style="width:34%">Regra</th><th>Por que importa</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Reflexo e Fortitude ≥ 1</strong></td>
+          <td>rank 0 não rola; sem isso a classe seria alvo automático de armadilha e veneno</td></tr>
+      <tr><td><strong>Ao menos um ataque em 4+</strong></td>
+          <td>toda classe precisa de uma frente em que é boa, ou não tem razão de ser escolhida</td></tr>
+      <tr><td><strong>Sobra ≤ 2 pontos</strong></td>
+          <td>a classe tem de conseguir gastar o orçamento, senão é estritamente pior</td></tr>
+    </tbody>
+  </table>
+
+  <h3>O que ainda não existe</h3>
+  <table>
+    <thead><tr><th class="c" style="width:7%">Estado</th><th>Item</th></tr></thead>
+    <tbody>
+      <tr><td class="c">✔</td><td>As 5 perícias de Virtude, com bolsa própria no catálogo</td></tr>
+      <tr><td class="c">✔</td><td>A trava de atributo <code>min(⌊atr÷2⌋, rank×2)</code>, nos dois lados</td></tr>
+      <tr><td class="c">—</td><td><code>data.periciaPointsVirtude</code> — a segunda bolsa no personagem</td></tr>
+      <tr><td class="c">—</td><td>Marco de nível creditar ponto de Virtude</td></tr>
+      <tr><td class="c">—</td><td>Tabela <code>classe_teto_virtude</code> e as 145 linhas</td></tr>
+      <tr><td class="c">—</td><td><code>subirRankDePericia</code> respeitar o teto da classe</td></tr>
+      <tr><td class="c">—</td><td>Remover <code>classes.pontos_virtude_por_nivel</code>, que esta proposta aposenta</td></tr>
+      <tr><td class="c">—</td><td>A tela mostrar as duas bolsas e o teto de cada perícia</td></tr>
+    </tbody>
+  </table>
+
+  <div class="nota">
+    <p>Documento gerado de <code>docs/virtude_classes_dados.py</code>. Os tetos das híbridas são calculados,
+    não digitados: mudar uma raiz recalcula a linha inteira. Para mexer, edite os dados e regere.</p>
+  </div>
+</section>
+
+</body></html>
+"""
+
+io.open(SAIDA, "w", encoding="utf-8", newline="\n").write(HTML)
+print(f"escrito: {SAIDA}")
+print(f"  {len(TODAS)} classes, orcamento {v.ORCAMENTO}, teto absoluto {v.TETO_ABSOLUTO}")

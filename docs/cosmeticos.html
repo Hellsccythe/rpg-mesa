@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<title>Cosméticos — Caminho Sem Volta</title>
+<style>
+  @page { size: A4 landscape; margin: 12mm 12mm 14mm 12mm; }
+  :root { --tinta:#16181d; --fraca:#5b6270; --linha:#d8dce3; --linha2:#aeb5c0;
+          --alt:#f5f6f9; --dest:#5b3a7a; --destbg:#f2e9f7; --alerta:#8c2f2f;
+          --alertabg:#fcf0f0; --ok:#1f5c3d; --okbg:#eef7f1; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:8.8pt/1.45 "Segoe UI","Helvetica Neue",Arial,sans-serif; color:var(--tinta); background:#fff; }
+  h1,h2,h3 { line-height:1.2; margin:0; font-weight:650; }
+  h1 { font-size:26pt; letter-spacing:-0.4pt; }
+  h2 { font-size:15pt; margin:20pt 0 8pt; padding-bottom:4pt; border-bottom:1.6pt solid var(--tinta); break-after:avoid; }
+  h3 { font-size:11pt; margin:14pt 0 4pt; color:var(--dest); break-after:avoid; }
+  h3 .conta { font-size:8.2pt; font-weight:400; color:var(--fraca); }
+  p { margin:0 0 6pt; }
+  table { width:100%; border-collapse:collapse; margin:4pt 0 10pt; font-size:8pt; }
+  th,td { text-align:left; vertical-align:top; padding:3.2pt 5pt; border-bottom:0.6pt solid var(--linha); }
+  th { background:var(--alt); border-bottom:1pt solid var(--linha2); font-weight:650; font-size:7.4pt;
+       text-transform:uppercase; letter-spacing:0.3pt; color:var(--fraca); }
+  tr { break-inside:avoid; }
+  td.num,th.num { text-align:right; white-space:nowrap; }
+  .fraco { color:var(--fraca); }
+  .mono { font-family:"Cascadia Mono",Consolas,monospace; font-size:7.2pt; margin-top:2pt; }
+  .preco { font-weight:650; color:#8a6a1f; }
+  .ok { color:var(--ok); font-weight:650; }
+  .alertatxt { color:var(--alerta); font-weight:650; }
+  .pagina { break-before:page; }
+  .capa { padding-top:34mm; text-align:center; }
+  .capa .sub { font-size:12pt; color:var(--fraca); margin-top:6pt; }
+  .capa .meta { margin-top:20mm; font-size:8.6pt; color:var(--fraca); border-top:0.6pt solid var(--linha);
+                padding-top:8pt; display:inline-block; min-width:90mm; }
+  .capa .selo0 { display:inline-block; margin-bottom:10pt; padding:3pt 10pt; border:1pt solid var(--linha2);
+                 border-radius:12pt; font-size:8pt; letter-spacing:1.4pt; text-transform:uppercase; color:var(--fraca); }
+  .nota,.aviso,.bom { padding:6pt 9pt; margin:7pt 0 10pt; border-left:2.4pt solid var(--dest);
+                      background:var(--destbg); font-size:8.4pt; break-inside:avoid; }
+  .aviso { border-left-color:var(--alerta); background:var(--alertabg); }
+  .bom { border-left-color:var(--ok); background:var(--okbg); }
+  .nota p:last-child,.aviso p:last-child,.bom p:last-child { margin-bottom:0; }
+  .selo { display:inline-block; padding:0.8pt 5pt; border-radius:2.5pt; font-size:7.2pt; font-weight:650; }
+  .selo-zinc{background:#eceef2;color:#4a505c} .selo-emerald{background:#e6f4ec;color:#1f5c3d}
+  .selo-sky{background:#e4f0fa;color:#1f4d7a}
+  .selo-plebe{background:#f4eee4;color:#7a5a1f} .selo-qualquer{background:#eceef2;color:#4a505c}
+  .selo-nobreza{background:#f2e9f7;color:#5b3a7a}
+  .fixa { color:#8c2f2f; font-size:7pt; font-weight:650; }
+  code { font-family:"Cascadia Mono",Consolas,monospace; font-size:7.6pt; background:var(--alt); padding:0.5pt 3pt; border-radius:2pt; }
+</style></head><body>
+
+<section class="capa">
+  <div class="selo0">Catálogo de Costura e Joalheria</div>
+  <h1>Cosméticos</h1>
+  <div class="sub">O tecido decide quem a roupa impressiona; a qualidade decide quanto</div>
+  <div class="meta">8 tecidos &middot; 10 roupas &middot; 6 materiais
+    &middot; 6 acessórios<br>RPG de Mesa — Caminho Sem Volta &middot; setembro de 2026</div>
+</section>
+
+<section class="pagina">
+  <h2>1. Duas perguntas, duas respostas</h2>
+  <p>Uma roupa responde a duas perguntas separadas, e o desenho inteiro é manter as duas separadas:</p>
+  <table><thead><tr><th style="width:22%">Pergunta</th><th style="width:22%">Quem responde</th><th>Como</th></tr></thead><tbody>
+    <tr><td><strong>Quem ela impressiona?</strong></td><td>O <strong>tecido</strong></td>
+        <td class="fraco">Linho e lã falam com a plebe; seda e brocado com a nobreza; algodão tingido é respeitável em todo lugar.
+        Um casaco de seda e um vestido de seda falam com a mesma gente.</td></tr>
+    <tr><td><strong>Quanto?</strong></td><td>A <strong>qualidade</strong></td>
+        <td class="fraco">Costura contra a DC do tier. Bem feita, dá o bônus do tecido (+1/+2/+3). Mal feita, dá zero —
+        seda mal costurada é um tecido caro num corpo. Não há penalidade por roupa malfeita: roupa malfeita é só roupa.</td></tr>
+  </tbody></table>
+
+  <div class="nota">
+    <p><strong>É a mesma escada da cozinha, e da alquimia, e do veneno.</strong> Teste de ofício contra
+    <code>raridade.dificuldade_base</code>; falhou, o item existe mas não rende; passou, rende o que o tier promete.
+    Quarto uso da mesma régua — e a razão de a escada de qualidade precisar ser desenhada uma vez só, antes da ação de
+    fabricar, em vez de uma por catálogo.</p>
+  </div>
+
+  <h3>Roupa certa na sala errada</h3>
+  <p>Vestir seda na taverna ou linho no salão: a roupa fala com a plateia errada, e a plateia responde.</p>
+  <table style="max-width:70%"><thead><tr><th style="width:24%">A roupa é de</th><th>Diante da plebe</th><th>Diante da nobreza</th></tr></thead>
+  <tbody><tr><td><span class="selo selo-plebe">Plebe</span></td><td class="ok">bônus do tecido</td><td class="alertatxt">-1</td></tr>
+<tr><td><span class="selo selo-qualquer">Qualquer</span></td><td class="fraco">bônus do tecido, sem penalidade</td><td class="fraco">bônus do tecido, sem penalidade</td></tr>
+<tr><td><span class="selo selo-nobreza">Nobreza</span></td><td class="alertatxt">-1</td><td class="ok">bônus do tecido</td></tr></tbody></table>
+  <p class="fraco">O bônus entra em Encanto, Diplomacia, Negociação — as mesmas da comida, e as duas fontes
+  <strong>somam</strong>: uma é o que se veste, a outra é o que se serviu. Intimidação fica de fora (um colete de seda
+  não assusta ninguém), Atuação também (disfarce é outra conversa).</p>
+
+  <h2>2. Tecidos</h2>
+  <p>Preço por metro. Uma túnica gasta 2, um vestido 3, um traje 4 — é isso que separa o preço da peça do preço do pano.</p>
+  <table><thead><tr><th style="width:16%">Tecido</th><th style="width:8%">Tier</th><th class="num" style="width:7%">Preço/m</th><th style="width:10%">Público</th><th class="num" style="width:9%">Bem feito</th><th>Descrição</th></tr></thead><tbody>
+<tr><td><strong>Linho Cru</strong></td><td><span class="selo selo-zinc">Comum</span></td><td class="num preco">4</td><td><span class="selo selo-plebe">Plebe</span></td><td class="num ok">+1</td><td class="fraco">Cor de palha, áspero no primeiro dia e macio no décimo. A roupa de todo mundo.</td></tr>
+<tr><td><strong>Lã Rústica</strong></td><td><span class="selo selo-zinc">Comum</span></td><td class="num preco">5</td><td><span class="selo selo-plebe">Plebe</span></td><td class="num ok">+1</td><td class="fraco">Fiada em casa, tingida com casca de nogueira. Esquenta e cheira a ovelha.</td></tr>
+<tr><td><strong>Couro Curtido</strong></td><td><span class="selo selo-zinc">Comum</span></td><td class="num preco">8</td><td><span class="selo selo-plebe">Plebe</span></td><td class="num ok">+1</td><td class="fraco">Curtido em tanino. Casaco, avental, bota. Dura mais que o dono.</td></tr>
+<tr><td><strong>Algodão Tingido</strong></td><td><span class="selo selo-emerald">Incomum</span></td><td class="num preco">18</td><td><span class="selo selo-qualquer">Qualquer</span></td><td class="num ok">+2</td><td class="fraco">Liso, leve, cor firme. Nem rico nem pobre: limpo.</td></tr>
+<tr><td><strong>Lã Fina</strong></td><td><span class="selo selo-emerald">Incomum</span></td><td class="num preco">24</td><td><span class="selo selo-nobreza">Nobreza</span></td><td class="num ok">+2</td><td class="fraco">De carneiro de altitude, fiada apertada. O primeiro degrau da elegância.</td></tr>
+<tr><td><strong>Veludo</strong></td><td><span class="selo selo-sky">Raro</span></td><td class="num preco">90</td><td><span class="selo selo-nobreza">Nobreza</span></td><td class="num ok">+3</td><td class="fraco">Pelo curto que muda de cor com a luz. Não se usa de dia, e é essa a mensagem.</td></tr>
+<tr><td><strong>Seda</strong></td><td><span class="selo selo-sky">Raro</span></td><td class="num preco">120</td><td><span class="selo selo-nobreza">Nobreza</span></td><td class="num ok">+3</td><td class="fraco">Chega de longe e custa o que custa por isso. Frio ao toque, quente ao olhar.</td></tr>
+<tr><td><strong>Brocado</strong></td><td><span class="selo selo-sky">Raro</span></td><td class="num preco">150</td><td><span class="selo selo-nobreza">Nobreza</span></td><td class="num ok">+3</td><td class="fraco">Seda com fio de ouro tecido no desenho. Uma roupa de brocado é um anúncio.</td></tr>
+</tbody></table>
+</section>
+
+<section class="pagina">
+  <h2>3. Roupas</h2>
+  <p class="fraco">Tier, público e bônus vêm do tecido — calculados, não digitados; o verificador recusa uma peça que
+  discorde do pano. A linha em monoespaçado é a receita e a proporção do preço (alvo 70–75%).</p>
+  <h3>Plebe <span class="conta">— 4 peças · Camponês, taverneiro, varejista, guarda de portão. Quem trabalha com as mãos.</span></h3>
+<table><thead><tr><th style="width:18%">Peça</th><th style="width:8%">Tier</th><th class="num" style="width:7%">Preço</th><th class="num" style="width:6%">DC</th><th class="num" style="width:9%">Bem feita</th><th>Descrição e receita</th></tr></thead><tbody>
+<tr><td><strong>Túnica de Linho</strong></td><td><span class="selo selo-zinc">Comum</span></td><td class="num preco">11</td><td class="num">10</td><td class="num ok">+1</td><td>Um retângulo com buraco para a cabeça e um cinto. Não chama atenção, e é isso que faz.<div class="mono fraco">2m de Linho Cru = 8 pr (73%) · Costura</div></td></tr>
+<tr><td><strong>Vestido de Linho</strong></td><td><span class="selo selo-zinc">Comum</span></td><td class="num preco">17</td><td class="num">10</td><td class="num ok">+1</td><td>Solto, prático, com bainha para subir escada. De domingo e de segunda.<div class="mono fraco">3m de Linho Cru = 12 pr (71%) · Costura</div></td></tr>
+<tr><td><strong>Casaco de Lã Rústica</strong></td><td><span class="selo selo-zinc">Comum</span></td><td class="num preco">21</td><td class="num">10</td><td class="num ok">+1</td><td>Grosso, comprido, cor de terra. O inverno passa por fora.<div class="mono fraco">3m de Lã Rústica = 15 pr (71%) · Costura</div></td></tr>
+<tr><td><strong>Colete de Couro</strong></td><td><span class="selo selo-zinc">Comum</span></td><td class="num preco">22</td><td class="num">10</td><td class="num ok">+1</td><td>Sem manga, com bolsos. Roupa de quem carrega ferramenta.<div class="mono fraco">2m de Couro Curtido = 16 pr (73%) · Costura</div></td></tr>
+</tbody></table>
+<h3>Qualquer <span class="conta">— 2 peças · Respeitável em todo lugar, memorável em nenhum.</span></h3>
+<table><thead><tr><th style="width:18%">Peça</th><th style="width:8%">Tier</th><th class="num" style="width:7%">Preço</th><th class="num" style="width:6%">DC</th><th class="num" style="width:9%">Bem feita</th><th>Descrição e receita</th></tr></thead><tbody>
+<tr><td><strong>Camisa de Algodão</strong></td><td><span class="selo selo-emerald">Incomum</span></td><td class="num preco">50</td><td class="num">15</td><td class="num ok">+2</td><td>Branca, azul ou cinza. Serve na guarda, na loja e na igreja.<div class="mono fraco">2m de Algodão Tingido = 36 pr (72%) · Costura</div></td></tr>
+<tr><td><strong>Vestido de Algodão</strong></td><td><span class="selo selo-emerald">Incomum</span></td><td class="num preco">75</td><td class="num">15</td><td class="num ok">+2</td><td>Cor firme, corte simples. Bonito sem ser motivo de conversa.<div class="mono fraco">3m de Algodão Tingido = 54 pr (72%) · Costura</div></td></tr>
+</tbody></table>
+<h3>Nobreza <span class="conta">— 4 peças · Casa nobre, clero alto, mercador rico. Quem julga pelo corte antes da palavra.</span></h3>
+<table><thead><tr><th style="width:18%">Peça</th><th style="width:8%">Tier</th><th class="num" style="width:7%">Preço</th><th class="num" style="width:6%">DC</th><th class="num" style="width:9%">Bem feita</th><th>Descrição e receita</th></tr></thead><tbody>
+<tr><td><strong>Casaco de Lã Fina</strong></td><td><span class="selo selo-emerald">Incomum</span></td><td class="num preco">100</td><td class="num">15</td><td class="num ok">+2</td><td>Ombro estruturado, botão de osso. A primeira roupa que um nobre nota.<div class="mono fraco">3m de Lã Fina = 72 pr (72%) · Costura</div></td></tr>
+<tr><td><strong>Traje de Veludo</strong></td><td><span class="selo selo-sky">Raro</span></td><td class="num preco">500</td><td class="num">20</td><td class="num ok">+3</td><td>Casaco e calça no mesmo pano. Reflete a luz das velas, e é para isso que existe.<div class="mono fraco">4m de Veludo = 360 pr (72%) · Costura</div></td></tr>
+<tr><td><strong>Vestido de Seda</strong></td><td><span class="selo selo-sky">Raro</span></td><td class="num preco">500</td><td class="num">20</td><td class="num ok">+3</td><td>Cai como água. Quem o veste entra numa sala em silêncio.<div class="mono fraco">3m de Seda = 360 pr (72%) · Costura</div></td></tr>
+<tr><td><strong>Traje de Brocado</strong></td><td><span class="selo selo-sky">Raro</span></td><td class="num preco">833</td><td class="num">20</td><td class="num ok">+3</td><td>Fio de ouro no desenho. Não há como usá-lo por engano.<div class="mono fraco">4m de Brocado = 600 pr (72%) · Costura</div></td></tr>
+</tbody></table>
+
+  <div class="aviso">
+    <p><strong>O Traje de Brocado custa 833 prata — mais que a Nobreza começa com
+    (572 em média).</strong> É de propósito: é a roupa que um nobre <em>compra</em>, não a que ele <em>tem</em>. E
+    é o teto do catálogo por uma razão de jogo: +3 permanente em Diplomacia com a nobreza vale mais que qualquer
+    banquete, e precisa custar de acordo.</p>
+  </div>
+</section>
+
+<section class="pagina">
+  <h2>4. Acessórios</h2>
+  <p>Acessório dá <strong>+1 fixo</strong>, com o público do material — e <strong>só um conta por
+  vez</strong>. A roupa é o argumento; o acessório é a vírgula. Sem esse limite, dez anéis valeriam mais que um traje.</p>
+  <h3>Materiais <span class="conta">— 6</span></h3>
+  <table><thead><tr><th style="width:16%">Material</th><th style="width:8%">Tier</th><th class="num" style="width:7%">Preço</th><th style="width:10%">Público</th><th>Descrição</th></tr></thead><tbody>
+<tr><td><strong>Fio de Cobre</strong></td><td><span class="selo selo-zinc">Comum</span></td><td class="num preco">3</td><td><span class="selo selo-qualquer">Qualquer</span></td><td class="fraco">Verde-escuro com o tempo. O metal de quem quer um anel e não quer perguntas.</td></tr>
+<tr><td><strong>Pedra Polida</strong></td><td><span class="selo selo-zinc">Comum</span></td><td class="num preco">6</td><td><span class="selo selo-qualquer">Qualquer</span></td><td class="fraco">Ágata, quartzo, o que o rio deu. Bonita se alguém a lapidou.</td></tr>
+<tr><td><strong>Prata em Barra</strong></td><td><span class="selo selo-emerald">Incomum</span></td><td class="num preco">40</td><td><span class="selo selo-nobreza">Nobreza</span></td><td class="fraco">Escurece, e é polida de novo. Metal de quem tem posses e não precisa mostrar.</td></tr>
+<tr><td><strong>Ametista</strong></td><td><span class="selo selo-emerald">Incomum</span></td><td class="num preco">60</td><td><span class="selo selo-nobreza">Nobreza</span></td><td class="fraco">Roxa, translúcida. A pedra mais cara que um artesão compra sem fiador.</td></tr>
+<tr><td><strong>Ouro em Barra</strong></td><td><span class="selo selo-sky">Raro</span></td><td class="num preco">300</td><td><span class="selo selo-nobreza">Nobreza</span></td><td class="fraco">Três moedas de ouro fundidas numa. Vale mais como joia do que como dinheiro.</td></tr>
+<tr><td><strong>Rubi</strong></td><td><span class="selo selo-sky">Raro</span></td><td class="num preco">200</td><td><span class="selo selo-nobreza">Nobreza</span></td><td class="fraco">Vermelho até o fundo. Quem usa um no dedo não precisa se apresentar.</td></tr>
+</tbody></table>
+  <h3>Peças <span class="conta">— 6, todas de Joalheria</span></h3>
+  <table><thead><tr><th style="width:20%">Acessório</th><th style="width:8%">Tier</th><th class="num" style="width:7%">Preço</th><th class="num" style="width:6%">DC</th><th style="width:10%">Público</th><th>Descrição e receita</th></tr></thead><tbody>
+<tr><td><strong>Anel de Cobre</strong></td><td><span class="selo selo-zinc">Comum</span></td><td class="num preco">4</td><td class="num">10</td><td><span class="selo selo-qualquer">Qualquer</span></td><td>Um aro simples. Diz que alguém deu, e é o bastante.<div class="mono fraco">1× Fio de Cobre = 3 pr (75%) · Joalheria</div></td></tr>
+<tr><td><strong>Pingente de Pedra Polida</strong></td><td><span class="selo selo-zinc">Comum</span></td><td class="num preco">12</td><td class="num">10</td><td><span class="selo selo-qualquer">Qualquer</span></td><td>Ágata num cordão de couro. Bonito o suficiente para ser lembrado.<div class="mono fraco">1× Pedra Polida + 1× Fio de Cobre = 9 pr (75%) · Joalheria</div></td></tr>
+<tr><td><strong>Broche de Prata</strong></td><td><span class="selo selo-emerald">Incomum</span></td><td class="num preco">60</td><td class="num">15</td><td><span class="selo selo-nobreza">Nobreza</span></td><td>Prende a capa e diz de onde vem quem a veste.<div class="mono fraco">1× Prata em Barra + 1× Fio de Cobre = 43 pr (72%) · Joalheria</div></td></tr>
+<tr><td><strong>Anel de Ametista</strong></td><td><span class="selo selo-emerald">Incomum</span></td><td class="num preco">84</td><td class="num">15</td><td><span class="selo selo-nobreza">Nobreza</span></td><td>Roxo num aro de prata. Discreto de longe, inconfundível de perto.<div class="mono fraco">1× Ametista + 1× Fio de Cobre = 63 pr (75%) · Joalheria</div></td></tr>
+<tr><td><strong>Anel de Rubi</strong></td><td><span class="selo selo-sky">Raro</span></td><td class="num preco">280</td><td class="num">20</td><td><span class="selo selo-nobreza">Nobreza</span></td><td>Uma pedra, um aro. Quem o usa não se apresenta — é apresentado.<div class="mono fraco">1× Rubi + 1× Fio de Cobre = 203 pr (72%) · Joalheria</div></td></tr>
+<tr><td><strong>Colar de Ouro</strong></td><td><span class="selo selo-sky">Raro</span></td><td class="num preco">420</td><td class="num">20</td><td><span class="selo selo-nobreza">Nobreza</span></td><td>Elos grossos. Pesa no pescoço e no julgamento de quem olha.<div class="mono fraco">1× Ouro em Barra + 1× Fio de Cobre = 303 pr (72%) · Joalheria</div></td></tr>
+</tbody></table>
+
+  <div class="nota">
+    <p><strong>Ouro em Barra custa 300 — três moedas de ouro fundidas.</strong> Com o ouro a cem prata (migration
+    092), o metal e a moeda voltam a bater: uma barra vale exatamente o que as moedas que a fizeram valiam, mais o
+    trabalho de fundir. Um Colar de Ouro a 420 é uma peça que só nobre encomenda, e é o que o catálogo quer.</p>
+  </div>
+
+  <h2>5. O que falta decidir</h2>
+  <table><thead><tr><th style="width:26%">Questão</th><th>Onde ela aperta</th></tr></thead><tbody>
+    <tr><td><strong>Onde a roupa fica na ficha</strong></td>
+        <td>Hoje não há "equipado" para cosmético — <code>data.equipamentos_iniciais</code> e
+        <code>data.inventario</code> não distinguem o que se veste do que se carrega. Sem isso, o bônus não tem
+        de onde ser lido. É a mesma pergunta que armadura vai fazer.</td></tr>
+    <tr><td><strong>Duas colunas novas em <code>itens</code></strong></td>
+        <td><code>publico</code> (plebe / qualquer / nobreza) e <code>bonus_social</code>. Tecido carrega os dois;
+        roupa herda do tecido na receita. É pouco, e é o suficiente para a tela mostrar.</td></tr>
+    <tr><td><strong>Categoria "Tecido"</strong></td>
+        <td>Os oito tecidos e os seis materiais entram em <code>itens</code>. Tecido não é "Ingrediente" nem
+        "Material Precioso" — vale uma categoria própria, curta, que é o que o mestre vai procurar.</td></tr>
+    <tr><td><strong>A escada de qualidade, de uma vez</strong></td>
+        <td>Quatro catálogos usam mal feito / bem feito. A ação de fabricar precisa nascer com a escada geral, e
+        cosmético é o caso que mostra por quê: aqui a qualidade decide um bônus, não uma cura.</td></tr>
+  </tbody></table>
+
+  <div class="nota"><p>Documento gerado de <code>cosmeticos_dados.py</code>, validado por
+  <code>verificar_ferramentas_cosmeticos.py</code> — que pegou 13 erros de margem na primeira rodada, sete deles em
+  que costurar custava mais que comprar.</p></div>
+</section>
+</body></html>

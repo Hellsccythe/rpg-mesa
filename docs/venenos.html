@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Venenos — Caminho Sem Volta</title>
+<style>
+  @page { size: A4 landscape; margin: 12mm 12mm 14mm 12mm; }
+  :root { --tinta:#16181d; --fraca:#5b6270; --linha:#d8dce3; --linha2:#aeb5c0;
+          --alt:#f5f6f9; --dest:#5c2020; --destbg:#fbf0f0; --alerta:#8c2f2f;
+          --alertabg:#fcf0f0; --ok:#1f5c3d; --okbg:#eef7f1; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:8.8pt/1.45 "Segoe UI","Helvetica Neue",Arial,sans-serif; color:var(--tinta); background:#fff; }
+  h1,h2,h3 { line-height:1.2; margin:0; font-weight:650; }
+  h1 { font-size:26pt; letter-spacing:-0.4pt; }
+  h2 { font-size:15pt; margin:20pt 0 8pt; padding-bottom:4pt; border-bottom:1.6pt solid var(--tinta); break-after:avoid; }
+  h3 { font-size:11pt; margin:14pt 0 4pt; color:var(--dest); break-after:avoid; }
+  h3 .conta { font-size:8.2pt; font-weight:400; color:var(--fraca); }
+  p { margin:0 0 6pt; }
+  table { width:100%; border-collapse:collapse; margin:4pt 0 10pt; font-size:8pt; }
+  th,td { text-align:left; vertical-align:top; padding:3.2pt 5pt; border-bottom:0.6pt solid var(--linha); }
+  th { background:var(--alt); border-bottom:1pt solid var(--linha2); font-weight:650; font-size:7.4pt;
+       text-transform:uppercase; letter-spacing:0.3pt; color:var(--fraca); }
+  tr { break-inside:avoid; }
+  td.num,th.num { text-align:right; white-space:nowrap; }
+  .fraco { color:var(--fraca); }
+  .mono { font-family:"Cascadia Mono",Consolas,monospace; font-size:7.2pt; margin-top:2pt; }
+  .preco { font-weight:650; color:#8a6a1f; }
+  .ok { color:var(--ok); font-weight:650; }
+  .alertatxt { color:var(--alerta); font-weight:650; }
+  .cat { font-weight:600; font-size:7.6pt; }
+  .alvo { font-size:7.6pt; font-style:italic; color:#8c2f2f; }
+  .pagina { break-before:page; }
+  .capa { padding-top:34mm; text-align:center; }
+  .capa .sub { font-size:12pt; color:var(--fraca); margin-top:6pt; }
+  .capa .meta { margin-top:20mm; font-size:8.6pt; color:var(--fraca); border-top:0.6pt solid var(--linha);
+                padding-top:8pt; display:inline-block; min-width:90mm; }
+  .capa .selo0 { display:inline-block; margin-bottom:10pt; padding:3pt 10pt; border:1pt solid var(--linha2);
+                 border-radius:12pt; font-size:8pt; letter-spacing:1.4pt; text-transform:uppercase; color:var(--fraca); }
+  .nota,.aviso,.bom { padding:6pt 9pt; margin:7pt 0 10pt; border-left:2.4pt solid var(--dest);
+                      background:var(--destbg); font-size:8.4pt; break-inside:avoid; }
+  .aviso { border-left-color:var(--alerta); background:var(--alertabg); }
+  .bom { border-left-color:var(--ok); background:var(--okbg); }
+  .nota p:last-child,.aviso p:last-child,.bom p:last-child { margin-bottom:0; }
+  .selo { display:inline-block; padding:0.8pt 5pt; border-radius:2.5pt; font-size:7.2pt; font-weight:650; }
+  .selo-zinc{background:#eceef2;color:#4a505c} .selo-emerald{background:#e6f4ec;color:#1f5c3d}
+  .selo-sky{background:#e4f0fa;color:#1f4d7a}
+  .via { display:inline-block; padding:0.6pt 4pt; border-radius:2.5pt; font-size:7pt; font-weight:650; }
+  .via-lam{background:#fde8e8;color:#8c2f2f} .via-ing{background:#f4eee4;color:#7a5a1f}
+  .via-cont{background:#f2e9f7;color:#5b3a7a}
+  code { font-family:"Cascadia Mono",Consolas,monospace; font-size:7.6pt; background:var(--alt); padding:0.5pt 3pt; border-radius:2pt; }
+</style>
+</head>
+<body>
+
+<section class="capa">
+  <div class="selo0">Catálogo de Alquimia</div>
+  <h1>Venenos</h1>
+  <div class="sub">Mortíferos, Sensoriais, Debilitantes e Farsantes</div>
+  <div class="meta">
+    16 venenos &middot; 4 condições novas
+    &middot; 5 ingredientes novos<br>
+    RPG de Mesa — Caminho Sem Volta &middot; setembro de 2026
+  </div>
+</section>
+
+<section class="pagina">
+  <h2>1. O veneno é a poção com o sinal trocado</h2>
+
+  <p>A máquina inteira já existe. A tabela <code>consumivel_condicao</code>, criada para dizer
+  <em>"esta poção CURA Cegueira"</em>, passa a dizer <em>"este veneno INFLIGE Cegueira"</em> —
+  a mesma linha de dado, com <code>acao = 'inflige'</code> em vez de <code>'cura'</code>.
+  <code>categoria_consumivel</code> já tem <strong>Veneno</strong> desde a migration 075, e está vazia.</p>
+
+  <div class="bom">
+    <p><strong>O que isso compra:</strong> o antídoto que já existe contra uma condição vale contra
+    <em>qualquer</em> veneno que a aplique, sem ninguém escrever essa ligação. Colírio de Visão Clara cura
+    a cegueira venha ela de magia, de armadilha ou de <em>Cinza nos Olhos</em>. Nenhum caso especial.</p>
+  </div>
+
+  <h3>Resumo por tier</h3>
+  <table>
+    <thead><tr><th style="width:10%">Tier</th><th class="num" style="width:8%">Venenos</th>
+    <th class="num" style="width:12%">Fortitude DC</th><th class="num" style="width:12%">Faixa de preço</th>
+    <th>Condições aplicadas</th></tr></thead>
+    <tbody><tr><td><span class="selo selo-zinc">Comum</span></td><td class="num">5</td><td class="num">10</td><td class="num preco">19 – 31</td><td class="fraco">Embriaguez, Fadiga, Febre Fingida, Náusea, Sangramento</td></tr>
+<tr><td><span class="selo selo-emerald">Incomum</span></td><td class="num">7</td><td class="num">15</td><td class="num preco">62 – 114</td><td class="fraco">Cegueira, Desmaio Breve, Enregelado, Envenenado, Estigma Falso, Silenciado, Surdez</td></tr>
+<tr><td><span class="selo selo-sky">Raro</span></td><td class="num">4</td><td class="num">20</td><td class="num preco">453 – 642</td><td class="fraco">Morte Aparente, Necrose, Paralisia, Peste Negra</td></tr></tbody>
+  </table>
+
+  <h3>O teste para resistir</h3>
+  <p>Um só, para o catálogo inteiro: <strong>Fortitude contra a DC do tier</strong> — 10, 15 ou 20. Passou,
+  nada acontece; falhou, a condição se aplica com a duração dela.</p>
+  <div class="nota">
+    <p>A DC sai de <code>raridade.dificuldade_base</code>, a mesma coluna que já diz quanto custa
+    <em>fabricar</em> algo daquele tier. Uma escala servindo aos dois lados, sem coluna nova — do mesmo jeito
+    que a gravidade de uma condição já define a raridade do antídoto dela.</p>
+    <p>Fortitude é perícia de <strong>Virtude</strong>, com Resistência como atributo base. Quem investiu em
+    aguentar pancada aguenta veneno pelo mesmo ponto — que é o que a perícia deveria significar.</p>
+  </div>
+
+  <h2>2. Como o veneno chega no alvo</h2>
+  <p>A via é o que decide se o veneno serve numa luta ou numa trama. É ela, e não o preço, que separa
+  um frasco de uso imediato de um que exige uma cena inteira para aplicar.</p>
+  <table><thead><tr><th style="width:12%">Via</th><th class="num" style="width:8%">Venenos</th><th style="width:16%">Serve em combate?</th><th>Como funciona</th></tr></thead><tbody>
+<tr><td><span class="via via-lam">Lâmina</span></td><td class="num">4</td><td class="ok">Sim</td><td class="fraco">Passado numa arma. Vale pelos golpes indicados em `usos` ou por 1 minuto, o que acabar antes. É a única via que funciona no meio de um combate.</td></tr>
+<tr><td><span class="via via-ing">Ingestão</span></td><td class="num">8</td><td class="fraco">Não</td><td class="fraco">Em comida ou bebida. Não serve em luta: exige acesso à cozinha, à taça ou ao odre, o que é uma cena inteira e não uma ação.</td></tr>
+<tr><td><span class="via via-cont">Contato</span></td><td class="num">4</td><td class="fraco">Só preparado antes</td><td class="fraco">Pó, óleo ou pano. Atinge quem tocar a superfície ou respirar de perto. Meio-termo: dá para preparar uma armadilha, mas não para usar em iniciativa.</td></tr>
+</tbody></table>
+
+  <div class="aviso">
+    <p><strong>Só cinco dos dezesseis funcionam em combate.</strong> É de propósito: veneno que se joga em
+    alguém no meio da iniciativa é só mais um dado de dano, e o catálogo viraria uma lista de armas caras.
+    A ingestão e o contato existem para serem <em>planejados</em> — e é por isso que os efeitos mais duros
+    do catálogo estão justamente neles.</p>
+  </div>
+</section>
+
+<section class="pagina">
+  <h2>3. As quatro classes</h2>
+  <p class="fraco">Preço em prata. <code>DC</code> é o Fortitude para resistir. A linha em monoespaçado é a
+  receita e a proporção do preço que ela representa — o alvo do projeto é 70–75%.</p>
+  <h3>Mortíferos <span class="conta">— 5 venenos</span></h3>
+<p class="fraco">Atentam direto contra a vida do alvo.</p>
+<table><thead><tr><th style="width:16%">Veneno</th><th style="width:7%">Tier</th><th style="width:8%">Via</th><th class="num" style="width:5%">Usos</th><th class="num" style="width:6%">Preço</th><th class="num" style="width:5%">DC</th><th style="width:11%">Aplica</th><th>Efeito e receita</th></tr></thead><tbody>
+<tr><td><strong>Corte que Não Fecha</strong></td><td><span class="selo selo-zinc">Comum</span></td><td><span class="via via-lam">Lâmina</span></td><td class="num">3</td><td class="num preco">31</td><td class="num">10</td><td class="alvo">Sangramento</td><td>A ferida para de coagular. O alvo perde 1d4 PV por turno até ser tratado.<div class="mono fraco">2× Erva de Sangue + 1× Semente de Cicuta = 22 pr (71%)</div></td></tr>
+<tr><td><strong>Fel de Víbora</strong></td><td><span class="selo selo-emerald">Incomum</span></td><td><span class="via via-lam">Lâmina</span></td><td class="num">3</td><td class="num preco">108</td><td class="num">15</td><td class="alvo">Envenenado</td><td>Peçonha concentrada de três glândulas numa. Perde 1d6 PV por turno e sofre −2 em tudo.<div class="mono fraco">2× Glândula de Víbora + 1× Semente de Cicuta = 78 pr (72%)</div></td></tr>
+<tr><td><strong>Toque da Serpente-Pedra</strong></td><td><span class="selo selo-sky">Raro</span></td><td><span class="via via-lam">Lâmina</span></td><td class="num">1</td><td class="num preco">453</td><td class="num">20</td><td class="alvo">Paralisia</td><td>Uma gota na lâmina. O alvo trava onde está, e quem o alcançar acerta em cheio.<div class="mono fraco">1× Sangue de Basilisco + 1× Espinho de Arraia = 326 pr (72%)</div></td></tr>
+<tr><td><strong>Beijo da Necrose</strong></td><td><span class="selo selo-sky">Raro</span></td><td><span class="via via-cont">Contato</span></td><td class="num">1</td><td class="num preco">558</td><td class="num">20</td><td class="alvo">Necrose</td><td>Passado na maçaneta, na taça, na mão estendida. A carne que tocar apodrece.<div class="mono fraco">1× Raiz de Carne + 1× Olho de Corvo Cego + 1× Fungo do Afogado = 402 pr (72%)</div></td></tr>
+<tr><td><strong>Sopro da Vala</strong></td><td><span class="selo selo-sky">Raro</span></td><td><span class="via via-ing">Ingestão</span></td><td class="num">1</td><td class="num preco">642</td><td class="num">20</td><td class="alvo">Peste Negra</td><td>Não é veneno, é doença engarrafada. Mata devagar e não fica só no alvo.<div class="mono fraco">1× Raiz de Carne + 1× Olho de Corvo Cego + 2× Fungo do Afogado + 1× Cogumelo do Silêncio = 462 pr (72%)</div></td></tr>
+</tbody></table>
+<h3>Sensoriais <span class="conta">— 4 venenos</span></h3>
+<p class="fraco">Afetam coordenação motora ou funções do corpo — cegueira, surdez, náusea.</p>
+<table><thead><tr><th style="width:16%">Veneno</th><th style="width:7%">Tier</th><th style="width:8%">Via</th><th class="num" style="width:5%">Usos</th><th class="num" style="width:6%">Preço</th><th class="num" style="width:5%">DC</th><th style="width:11%">Aplica</th><th>Efeito e receita</th></tr></thead><tbody>
+<tr><td><strong>Água Torta</strong></td><td><span class="selo selo-zinc">Comum</span></td><td><span class="via via-ing">Ingestão</span></td><td class="num">1</td><td class="num preco">19</td><td class="num">10</td><td class="alvo">Náusea</td><td>Some no vinho e aparece no estômago. O alvo não consegue usar consumível nenhum.<div class="mono fraco">2× Baba de Sapo-Pedra + 1× Água Pura = 14 pr (74%)</div></td></tr>
+<tr><td><strong>Vinho do Bobo</strong></td><td><span class="selo selo-zinc">Comum</span></td><td><span class="via via-ing">Ingestão</span></td><td class="num">1</td><td class="num preco">22</td><td class="num">10</td><td class="alvo">Embriaguez</td><td>Bêbado sem ter bebido. Serve para desacreditar tanto quanto para atrapalhar.<div class="mono fraco">1× Mel Silvestre + 1× Semente de Cicuta + 1× Água Pura = 16 pr (73%)</div></td></tr>
+<tr><td><strong>Silêncio de Cripta</strong></td><td><span class="selo selo-emerald">Incomum</span></td><td><span class="via via-ing">Ingestão</span></td><td class="num">1</td><td class="num preco">80</td><td class="num">15</td><td class="alvo">Surdez</td><td>O mundo cala. Ordem gritada não chega, e emboscada não se anuncia.<div class="mono fraco">2× Cogumelo do Silêncio + 1× Água Pura = 58 pr (72%)</div></td></tr>
+<tr><td><strong>Cinza nos Olhos</strong></td><td><span class="selo selo-emerald">Incomum</span></td><td><span class="via via-cont">Contato</span></td><td class="num">1</td><td class="num preco">86</td><td class="num">15</td><td class="alvo">Cegueira</td><td>Um punhado no rosto. Ataque à distância do alvo falha automaticamente.<div class="mono fraco">1× Espinho de Arraia + 1× Fungo do Afogado + 1× Cinza de Carvalho = 62 pr (72%)</div></td></tr>
+</tbody></table>
+<h3>Debilitantes <span class="conta">— 3 venenos</span></h3>
+<p class="fraco">Restringem movimento e ações sem matar.</p>
+<table><thead><tr><th style="width:16%">Veneno</th><th style="width:7%">Tier</th><th style="width:8%">Via</th><th class="num" style="width:5%">Usos</th><th class="num" style="width:6%">Preço</th><th class="num" style="width:5%">DC</th><th style="width:11%">Aplica</th><th>Efeito e receita</th></tr></thead><tbody>
+<tr><td><strong>Fardo de Chumbo</strong></td><td><span class="selo selo-zinc">Comum</span></td><td><span class="via via-ing">Ingestão</span></td><td class="num">1</td><td class="num preco">22</td><td class="num">10</td><td class="alvo">Fadiga</td><td>Os braços pesam. Sofre −2 em testes de Força e de Resistência até descansar.<div class="mono fraco">2× Cinza de Carvalho + 1× Baba de Sapo-Pedra + 1× Sal Mineral = 16 pr (73%)</div></td></tr>
+<tr><td><strong>Peçonha do Torpor</strong></td><td><span class="selo selo-emerald">Incomum</span></td><td><span class="via via-lam">Lâmina</span></td><td class="num">3</td><td class="num preco">100</td><td class="num">15</td><td class="alvo">Enregelado</td><td>Esfria o sangue de dentro. Move-se pela metade e sofre −3 em Destreza.<div class="mono fraco">1× Escama de Salamandra + 1× Fungo do Afogado = 72 pr (72%)</div></td></tr>
+<tr><td><strong>Trava-Língua</strong></td><td><span class="selo selo-emerald">Incomum</span></td><td><span class="via via-ing">Ingestão</span></td><td class="num">1</td><td class="num preco">114</td><td class="num">15</td><td class="alvo">Silenciado</td><td>A garganta fecha. Nenhuma skill que exija palavra falada sai — o alvo é um conjurador mudo.<div class="mono fraco">2× Cogumelo do Silêncio + 1× Espinho de Arraia = 82 pr (72%)</div></td></tr>
+</tbody></table>
+<h3>Farsantes <span class="conta">— 4 venenos</span></h3>
+<p class="fraco">Duração curta e efeito visível. O valor está no que as outras pessoas acreditam.</p>
+<table><thead><tr><th style="width:16%">Veneno</th><th style="width:7%">Tier</th><th style="width:8%">Via</th><th class="num" style="width:5%">Usos</th><th class="num" style="width:6%">Preço</th><th class="num" style="width:5%">DC</th><th style="width:11%">Aplica</th><th>Efeito e receita</th></tr></thead><tbody>
+<tr><td><strong>Máscara Febril</strong></td><td><span class="selo selo-zinc">Comum</span></td><td><span class="via via-ing">Ingestão</span></td><td class="num">1</td><td class="num preco">29</td><td class="num">10</td><td class="alvo">Febre Fingida</td><td>Febre de verdade sem doença nenhuma. Dispensa da guarda, entra na enfermaria, esvazia a mesa de jantar.<div class="mono fraco">1× Erva de Sangue + 1× Semente de Cicuta + 1× Mel Silvestre = 21 pr (72%)</div></td></tr>
+<tr><td><strong>Pústula de Mentira</strong></td><td><span class="selo selo-emerald">Incomum</span></td><td><span class="via via-cont">Contato</span></td><td class="num">1</td><td class="num preco">62</td><td class="num">15</td><td class="alvo">Estigma Falso</td><td>As manchas da peste sem a peste. Serve para esvaziar uma rua, fechar um porto, ou fazer com que ninguém encoste em quem carrega.<div class="mono fraco">1× Espinho de Arraia + 1× Erva de Sangue + 2× Baba de Sapo-Pedra = 45 pr (73%)</div></td></tr>
+<tr><td><strong>Sopro Curto</strong></td><td><span class="selo selo-emerald">Incomum</span></td><td><span class="via via-cont">Contato</span></td><td class="num">1</td><td class="num preco">89</td><td class="num">15</td><td class="alvo">Desmaio Breve</td><td>Um lenço no rosto e a sentinela dorme. Acorda sem entender e sem sequela — o que também significa que vai poder contar.<div class="mono fraco">1× Flor da Meia-Noite + 1× Fungo do Afogado + 1× Água Pura = 64 pr (72%)</div></td></tr>
+<tr><td><strong>Sono do Coveiro</strong></td><td><span class="selo selo-sky">Raro</span></td><td><span class="via via-ing">Ingestão</span></td><td class="num">1</td><td class="num preco">583</td><td class="num">20</td><td class="alvo">Morte Aparente</td><td>Morre por algumas horas e volta. Escapa de execução, de cerco e de casamento — desde que alguém saiba onde vão enterrar o corpo.<div class="mono fraco">1× Coração de Mandrágora + 1× Flor da Meia-Noite + 1× Olho de Corvo Cego = 420 pr (72%)</div></td></tr>
+</tbody></table>
+</section>
+
+<section class="pagina">
+  <h2>4. As quatro condições novas</h2>
+  <p>As 20 que existem cobrem mortíferos, sensoriais e debilitantes inteiros. Quem precisa de vocabulário
+  próprio é a classe <strong>farsante</strong>: o efeito dela não é o dano, é <em>o que as outras pessoas
+  acreditam ao olhar</em>. Nenhuma condição existente diz isso.</p>
+  <table><thead><tr><th style="width:14%">Condição</th><th style="width:8%">Tier</th><th style="width:10%">Categoria</th><th style="width:12%">Duração</th><th>Efeito</th><th style="width:16%">Aplicada por</th></tr></thead><tbody>
+<tr><td><strong>Febre Fingida</strong></td><td><span class="selo selo-zinc">Comum</span></td><td class="cat">Alquímica</td><td class="fraco">1d6 horas</td><td>Suor, tremor e testa quente, sem doença nenhuma por trás. Sofre −2 em tudo. Medicina DC 15 revela a farsa.</td><td class="fraco">Máscara Febril</td></tr>
+<tr><td><strong>Desmaio Breve</strong></td><td><span class="selo selo-emerald">Incomum</span></td><td class="cat">Física</td><td class="fraco">1d10 minutos</td><td>Cai inconsciente. Não age nem percebe. Acorda sozinho, sem sequela. Sacudir ou molhar não adianta.</td><td class="fraco">Sopro Curto</td></tr>
+<tr><td><strong>Estigma Falso</strong></td><td><span class="selo selo-emerald">Incomum</span></td><td class="cat">Alquímica</td><td class="fraco">1d4 dias</td><td>A pele racha em manchas escuras iguais às da peste. Quem vê foge, guarda fecha e cidade expulsa. Medicina DC 20 revela a farsa.</td><td class="fraco">Pústula de Mentira</td></tr>
+<tr><td><strong>Morte Aparente</strong></td><td><span class="selo selo-sky">Raro</span></td><td class="cat">Alquímica</td><td class="fraco">1d4 horas</td><td>Pulso imperceptível, respiração que não embaça espelho, corpo frio. Não age nem percebe, e continua consciente do que se fala ao redor. Medicina DC 25 revela a farsa — abaixo disso, o coveiro faz o trabalho dele.</td><td class="fraco">Sono do Coveiro</td></tr>
+</tbody></table>
+
+  <div class="nota">
+    <p><strong>Todas passam sozinhas, e nenhuma tira PV.</strong> É o que separa um farsante de um mortífero
+    mal calibrado — e o script de verificação recusa o catálogo se um farsante aplicar condição que causa
+    perda de vida, ou se uma dessas quatro tiver duração <em>"Permanente"</em> ou <em>"Até ser tratada"</em>.</p>
+    <p>Cada uma traz a DC de <strong>Medicina</strong> que revela a farsa. É o contrapeso: um NPC competente
+    desconfia, um coveiro apressado não.</p>
+  </div>
+
+  <h2>5. Ingredientes</h2>
+  <p>Veneno não se faz com as ervas da poção de cura — cinco entram novos. Os outros são reaproveitados,
+  e essa sobreposição é a parte interessante: quem compra os dois lados não levanta suspeita.</p>
+  <table><thead><tr><th style="width:18%">Ingrediente</th><th style="width:8%">Tier</th><th class="num" style="width:8%">Preço</th><th class="num" style="width:9%">Receitas</th><th>Descrição</th></tr></thead><tbody>
+<tr><td><strong>Baba de Sapo-Pedra</strong></td><td><span class="selo selo-zinc">Comum</span></td><td class="num preco">6</td><td class="num fraco">3</td><td class="fraco">Raspada do dorso do bicho, que não morre por isso. Irrita tudo que toca.</td></tr>
+<tr><td><strong>Semente de Cicuta</strong></td><td><span class="selo selo-zinc">Comum</span></td><td class="num preco">8</td><td class="num fraco">4</td><td class="fraco">Cresce em beira de charco. Toda criança do campo aprende a não colher.</td></tr>
+<tr><td><strong>Espinho de Arraia</strong></td><td><span class="selo selo-emerald">Incomum</span></td><td class="num preco">26</td><td class="num fraco">4</td><td class="fraco">Do rabo do bicho de rio. Guarda a peçonha por meses depois de seco.</td></tr>
+<tr><td><strong>Fungo do Afogado</strong></td><td><span class="selo selo-emerald">Incomum</span></td><td class="num preco">32</td><td class="num fraco">5</td><td class="fraco">Brota em corpo que ficou na água. Cheira a nada, e é esse o problema.</td></tr>
+<tr><td><strong>Olho de Corvo Cego</strong></td><td><span class="selo selo-sky">Raro</span></td><td class="num preco">190</td><td class="num fraco">3</td><td class="fraco">De ave que comeu de cadáver pestilento e sobreviveu cega.</td></tr>
+</tbody></table>
+<h3>Reaproveitados do catálogo de poções <span class="conta">— 12 dos 18</span></h3>
+<p class="fraco">A mesma glândula de víbora que dá o antídoto dá o veneno. É o que a descrição dela sempre disse.</p>
+<table><thead><tr><th style="width:22%">Ingrediente</th><th class="num" style="width:8%">Preço</th><th class="num" style="width:9%">Receitas</th><th>Usado em</th></tr></thead><tbody>
+<tr><td><strong>Água Pura</strong></td><td class="num preco">2</td><td class="num fraco">4</td><td class="fraco">Água Torta, Vinho do Bobo, Silêncio de Cripta, Sopro Curto</td></tr>
+<tr><td><strong>Sal Mineral</strong></td><td class="num preco">2</td><td class="num fraco">1</td><td class="fraco">Fardo de Chumbo</td></tr>
+<tr><td><strong>Cinza de Carvalho</strong></td><td class="num preco">4</td><td class="num fraco">2</td><td class="fraco">Cinza nos Olhos, Fardo de Chumbo</td></tr>
+<tr><td><strong>Mel Silvestre</strong></td><td class="num preco">6</td><td class="num fraco">2</td><td class="fraco">Vinho do Bobo, Máscara Febril</td></tr>
+<tr><td><strong>Erva de Sangue</strong></td><td class="num preco">7</td><td class="num fraco">3</td><td class="fraco">Corte que Não Fecha, Máscara Febril, Pústula de Mentira</td></tr>
+<tr><td><strong>Cogumelo do Silêncio</strong></td><td class="num preco">28</td><td class="num fraco">3</td><td class="fraco">Sopro da Vala, Silêncio de Cripta, Trava-Língua</td></tr>
+<tr><td><strong>Flor da Meia-Noite</strong></td><td class="num preco">30</td><td class="num fraco">2</td><td class="fraco">Sopro Curto, Sono do Coveiro</td></tr>
+<tr><td><strong>Glândula de Víbora</strong></td><td class="num preco">35</td><td class="num fraco">1</td><td class="fraco">Fel de Víbora</td></tr>
+<tr><td><strong>Escama de Salamandra</strong></td><td class="num preco">40</td><td class="num fraco">1</td><td class="fraco">Peçonha do Torpor</td></tr>
+<tr><td><strong>Raiz de Carne</strong></td><td class="num preco">180</td><td class="num fraco">2</td><td class="fraco">Sopro da Vala, Beijo da Necrose</td></tr>
+<tr><td><strong>Coração de Mandrágora</strong></td><td class="num preco">200</td><td class="num fraco">1</td><td class="fraco">Sono do Coveiro</td></tr>
+<tr><td><strong>Sangue de Basilisco</strong></td><td class="num preco">300</td><td class="num fraco">1</td><td class="fraco">Toque da Serpente-Pedra</td></tr>
+</tbody></table>
+</section>
+
+<section class="pagina">
+  <h2>6. Veneno contra antídoto</h2>
+  <p>O catálogo foi calibrado para que <strong>envenenar nunca saia mais barato que se defender</strong>.
+  Se o veneno custasse menos que o frasco que o anula, envenenar viraria a jogada barata e o antídoto
+  viraria imposto — todo grupo andaria com um, e a decisão desapareceria.</p>
+  <table><thead><tr><th style="width:20%">Veneno</th><th style="width:14%">Aplica</th><th class="num" style="width:8%">Custa</th><th style="width:22%">Antídoto que já existe</th><th class="num" style="width:8%">Custa</th><th>Diferença</th></tr></thead><tbody>
+<tr><td><strong>Corte que Não Fecha</strong></td><td class="alvo">Sangramento</td><td class="num preco">31</td><td class="fraco">Emplastro de Sangue Firme</td><td class="num fraco">15</td><td class="fraco"><span class="ok">+16 pr</span> — envenenar custa mais que se defender</td></tr>
+<tr><td><strong>Fel de Víbora</strong></td><td class="alvo">Envenenado</td><td class="num preco">108</td><td class="fraco">Antídoto Comum</td><td class="num fraco">60</td><td class="fraco"><span class="ok">+48 pr</span> — envenenar custa mais que se defender</td></tr>
+<tr><td><strong>Toque da Serpente-Pedra</strong></td><td class="alvo">Paralisia</td><td class="num preco">453</td><td class="fraco">Soro do Corpo Livre</td><td class="num fraco">350</td><td class="fraco"><span class="ok">+103 pr</span> — envenenar custa mais que se defender</td></tr>
+<tr><td><strong>Sopro da Vala</strong></td><td class="alvo">Peste Negra</td><td class="num preco">642</td><td class="fraco">Panaceia da Peste</td><td class="num fraco">445</td><td class="fraco"><span class="ok">+197 pr</span> — envenenar custa mais que se defender</td></tr>
+<tr><td><strong>Beijo da Necrose</strong></td><td class="alvo">Necrose</td><td class="num preco">558</td><td class="fraco">Unguento de Carne Nova</td><td class="num fraco">420</td><td class="fraco"><span class="ok">+138 pr</span> — envenenar custa mais que se defender</td></tr>
+<tr><td><strong>Água Torta</strong></td><td class="alvo">Náusea</td><td class="num preco">19</td><td class="fraco">Chá de Estômago Calmo</td><td class="num fraco">11</td><td class="fraco"><span class="ok">+8 pr</span> — envenenar custa mais que se defender</td></tr>
+<tr><td><strong>Vinho do Bobo</strong></td><td class="alvo">Embriaguez</td><td class="num preco">22</td><td class="fraco">Tônico do Desperto</td><td class="num fraco">18</td><td class="fraco"><span class="ok">+4 pr</span> — envenenar custa mais que se defender</td></tr>
+<tr><td><strong>Silêncio de Cripta</strong></td><td class="alvo">Surdez</td><td class="num preco">80</td><td class="fraco">Essência do Ouvido Aberto</td><td class="num fraco">69</td><td class="fraco"><span class="ok">+11 pr</span> — envenenar custa mais que se defender</td></tr>
+<tr><td><strong>Cinza nos Olhos</strong></td><td class="alvo">Cegueira</td><td class="num preco">86</td><td class="fraco">Colírio de Visão Clara</td><td class="num fraco">70</td><td class="fraco"><span class="ok">+16 pr</span> — envenenar custa mais que se defender</td></tr>
+<tr><td><strong>Fardo de Chumbo</strong></td><td class="alvo">Fadiga</td><td class="num preco">22</td><td class="fraco">Infusão Revigorante</td><td class="num fraco">20</td><td class="fraco"><span class="ok">+2 pr</span> — envenenar custa mais que se defender</td></tr>
+<tr><td><strong>Peçonha do Torpor</strong></td><td class="alvo">Enregelado</td><td class="num preco">100</td><td class="fraco">Tônico do Sangue Quente</td><td class="num fraco">46</td><td class="fraco"><span class="ok">+54 pr</span> — envenenar custa mais que se defender</td></tr>
+<tr><td><strong>Trava-Língua</strong></td><td class="alvo">Silenciado</td><td class="num preco">114</td><td class="fraco">Xarope da Voz Livre</td><td class="num fraco">86</td><td class="fraco"><span class="ok">+28 pr</span> — envenenar custa mais que se defender</td></tr>
+<tr><td><strong>Máscara Febril</strong></td><td class="alvo">Febre Fingida</td><td class="num preco">29</td><td class="fraco">—</td><td class="num fraco">—</td><td class="fraco"><span class="alertatxt">Nenhum antídoto no catálogo.</span> Passa sozinho — é a classe farsante.</td></tr>
+<tr><td><strong>Sopro Curto</strong></td><td class="alvo">Desmaio Breve</td><td class="num preco">89</td><td class="fraco">—</td><td class="num fraco">—</td><td class="fraco"><span class="alertatxt">Nenhum antídoto no catálogo.</span> Passa sozinho — é a classe farsante.</td></tr>
+<tr><td><strong>Pústula de Mentira</strong></td><td class="alvo">Estigma Falso</td><td class="num preco">62</td><td class="fraco">—</td><td class="num fraco">—</td><td class="fraco"><span class="alertatxt">Nenhum antídoto no catálogo.</span> Passa sozinho — é a classe farsante.</td></tr>
+<tr><td><strong>Sono do Coveiro</strong></td><td class="alvo">Morte Aparente</td><td class="num preco">583</td><td class="fraco">—</td><td class="num fraco">—</td><td class="fraco"><span class="alertatxt">Nenhum antídoto no catálogo.</span> Passa sozinho — é a classe farsante.</td></tr>
+</tbody></table>
+
+  <div class="aviso">
+    <p><strong>Os quatro farsantes não têm antídoto, e isso é o desenho, não um buraco.</strong> Eles passam
+    sozinhos em minutos, horas ou dias. Gastar um frasco Raro para encurtar um desmaio de dez minutos seria
+    um mau negócio — e é exatamente por isso que a defesa contra um farsante não é alquimia, é
+    <strong>Medicina</strong>: descobrir a tempo que o corpo no caixão está respirando.</p>
+  </div>
+
+  <h2>7. O que falta para isso virar banco</h2>
+  <table>
+    <thead><tr><th class="num" style="width:6%">Estado</th><th>Item</th></tr></thead>
+    <tbody>
+      <tr><td class="num">✔</td><td><code>categoria_consumivel</code> já tem <strong>Veneno</strong> (migration 075), vazia</td></tr>
+      <tr><td class="num">✔</td><td><code>consumivel_condicao</code>, <code>condicoes</code> e <code>raridade</code> existem</td></tr>
+      <tr><td class="num">✔</td><td><strong>Fortitude</strong> no catálogo de perícias, com Resistência como base</td></tr>
+      <tr><td class="num">✔</td><td>As 12 condições que os venenos aplicam já estão cadastradas</td></tr>
+      <tr><td class="num">—</td><td><strong>O CHECK de <code>consumivel_condicao.acao</code></strong> aceita só
+          <code>'cura'</code> e <code>'previne'</code>. Precisa aceitar <code>'inflige'</code></td></tr>
+      <tr><td class="num">—</td><td>Coluna de <strong>via</strong> em <code>consumiveis</code> — lâmina, ingestão ou contato</td></tr>
+      <tr><td class="num">—</td><td>As 4 condições novas e os 5 ingredientes novos</td></tr>
+      <tr><td class="num">—</td><td>Os 16 venenos, suas receitas e seus vínculos</td></tr>
+      <tr><td class="num">—</td><td>A tela de consumíveis mostrar <em>inflige</em> em vermelho, ao lado de cura e previne</td></tr>
+    </tbody>
+  </table>
+
+  <div class="nota">
+    <p>Documento gerado de <code>venenos_dados.py</code>, com as nove regras validadas por
+    <code>verificar_venenos.py</code> antes da geração. Para mudar um preço ou uma receita, edite os dados e
+    regere — não edite o HTML.</p>
+  </div>
+</section>
+
+</body>
+</html>
