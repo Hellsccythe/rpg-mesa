@@ -7,10 +7,10 @@ import { PersonagemModel } from "./models/personagem.model.js";
 import { garantirAcessoAoPersonagem } from "./personagem-acesso.js";
 import { mapearPersonagemParaApi, type PersonagemApi } from "./personagem-api.mapper.js";
 import { PericiasService } from "../pericias/pericias.service.js";
+import type { EntradaDeInventario } from "../inventario/inventario.model.js";
 import type {
   ConcluirOnboardingDto,
   DefinirAtributosDto,
-  EquipamentoInicialDto,
   EscolherSkillInicialDto,
 } from "./personagens-onboarding.dto.js";
 
@@ -452,21 +452,48 @@ export class PersonagensOnboardingService {
     const dadosPersonagem = this.lerDados(personagem);
     const forca = this.lerForca(dadosPersonagem);
     const pesoMaximo = 2 + forca * 2;
+
+    // O peso vem do CATÁLOGO, não do que o cliente mandou. Antes o servidor
+    // somava `equipamento.peso` do corpo da requisição — bastava enviar 0 em
+    // tudo para levar a Armadura Completa com força 1. O cliente ainda manda
+    // nome e peso (o DTO não mudou), mas só o id é usado.
+    const ids = [...new Set(dados.equipamentos.map((equipamento) => equipamento.id))];
+    const doCatalogo = ids.length === 0 ? [] : await this.sequelize.query<{ id: number; peso: string | null }>(
+      `SELECT id, peso FROM equipamentos WHERE id IN (:ids) AND deleted_at IS NULL`,
+      { replacements: { ids }, type: QueryTypes.SELECT },
+    );
+    const pesoPorId = new Map(doCatalogo.map((linha) => [linha.id, Number(linha.peso ?? 0)]));
+
+    const desconhecidos = ids.filter((id) => !pesoPorId.has(id));
+    if (desconhecidos.length > 0) {
+      throw new BadRequestException(
+        `Equipamento(s) inexistente(s) no catálogo: ${desconhecidos.join(", ")}.`,
+      );
+    }
+
     const pesoTotal = dados.equipamentos.reduce(
-      (acumulado, equipamento) => acumulado + equipamento.peso,
+      (acumulado, equipamento) => acumulado + (pesoPorId.get(equipamento.id) ?? 0),
       0,
     );
-
     if (pesoTotal > pesoMaximo) {
       throw new BadRequestException(
         `Peso total (${pesoTotal.toFixed(1)} kg) excede a capacidade de carga (${pesoMaximo} kg).`,
       );
     }
 
-    personagem.data = {
-      ...dadosPersonagem,
-      equipamentos_iniciais: dados.equipamentos as EquipamentoInicialDto[],
-    };
+    // Grava no inventário estruturado, não em `equipamentos_iniciais`. Cada
+    // equipamento é uma entrada própria (equipamento não empilha) e nasce
+    // equipado: é o que o personagem escolheu vestir para começar.
+    const inventario: EntradaDeInventario[] = dados.equipamentos.map((equipamento) => ({
+      tabela: "equipamentos",
+      id: equipamento.id,
+      quantidade: 1,
+      qualidade: null,
+      rapido: false,
+      equipado: true,
+    }));
+
+    personagem.data = { ...dadosPersonagem, inventario };
     personagem.onboardingCompleto = true;
     await personagem.save();
     return mapearPersonagemParaApi(personagem);

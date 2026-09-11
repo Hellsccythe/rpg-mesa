@@ -14,6 +14,8 @@ import { ItensModule } from "./modules/itens/itens.module.js";
 import { ReceitasModule } from "./modules/receitas/receitas.module.js";
 import { PericiasModule } from "./modules/pericias/pericias.module.js";
 import { CondicoesModule } from "./modules/condicoes/condicoes.module.js";
+import { InventarioModule } from "./modules/inventario/inventario.module.js";
+import { FabricacaoModule } from "./modules/fabricacao/fabricacao.module.js";
 import { GeneroModule } from "./modules/genero/genero.module.js";
 import { UsuariosModule } from "./modules/usuarios/usuarios.module.js";
 import { PersonagensConsultaModule } from "./modules/personagem/personagens-consulta.module.js";
@@ -54,6 +56,8 @@ import { LevelProgressionModule } from "./modules/level-progression/level-progre
     ReceitasModule,
     PericiasModule,
     CondicoesModule,
+    InventarioModule,
+    FabricacaoModule,
     GeneroModule,
     UsuariosModule,
     PersonagensConsultaModule,

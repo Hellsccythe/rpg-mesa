@@ -13,7 +13,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict emhLQvixoclct08f8D5je9zcpEJwOk31lOfYzm0lShGqJ5bY25izQ2o9Br5IGBv
+\restrict 2Iw58aryW7EopAax89qHesQXcxeO6wIn9LCBlqmOpgbhvaGxZHTBbxISZoMtSWK
 
 -- Dumped from database version 18.6 (Debian 18.6-1.pgdg13+2)
 -- Dumped by pg_dump version 18.6 (Debian 18.6-1.pgdg13+2)
@@ -1247,6 +1247,40 @@ CREATE TABLE public.equipamentos (
 
 ALTER TABLE public.equipamentos ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
     SEQUENCE NAME public.equipamentos__new_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: fabricacoes; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.fabricacoes (
+    id integer NOT NULL,
+    character_id integer NOT NULL,
+    receita_id integer NOT NULL,
+    rolagem_d20 integer NOT NULL,
+    bonus integer NOT NULL,
+    dificuldade integer NOT NULL,
+    resultado character varying(12) NOT NULL,
+    oficina_confirmada boolean DEFAULT false NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by text,
+    CONSTRAINT fabricacoes_resultado_check CHECK (((resultado)::text = ANY ((ARRAY['desastre'::character varying, 'malfeito'::character varying, 'bemfeito'::character varying, 'obra_prima'::character varying])::text[]))),
+    CONSTRAINT fabricacoes_rolagem_check CHECK (((rolagem_d20 >= 1) AND (rolagem_d20 <= 20)))
+);
+
+
+--
+-- Name: fabricacoes_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.fabricacoes ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.fabricacoes_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -2742,6 +2776,14 @@ ALTER TABLE ONLY public.equipamentos
 
 
 --
+-- Name: fabricacoes fabricacoes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.fabricacoes
+    ADD CONSTRAINT fabricacoes_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: genero genero_codigo_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3332,6 +3374,20 @@ CREATE INDEX idx_equipamentos_raridade ON public.equipamentos USING btree (rarid
 --
 
 CREATE INDEX idx_equipamentos_tipo_item ON public.equipamentos USING gin (tipo_equipamento_item);
+
+
+--
+-- Name: idx_fabricacoes_personagem; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_fabricacoes_personagem ON public.fabricacoes USING btree (character_id, created_at DESC);
+
+
+--
+-- Name: idx_fabricacoes_receita; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_fabricacoes_receita ON public.fabricacoes USING btree (receita_id);
 
 
 --
@@ -4045,5 +4101,5 @@ ALTER TABLE public.usuarios ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict emhLQvixoclct08f8D5je9zcpEJwOk31lOfYzm0lShGqJ5bY25izQ2o9Br5IGBv
+\unrestrict 2Iw58aryW7EopAax89qHesQXcxeO6wIn9LCBlqmOpgbhvaGxZHTBbxISZoMtSWK
 

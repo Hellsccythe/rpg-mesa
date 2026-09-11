@@ -557,215 +557,24 @@
               </div>
 
               <!-- ── Tab: Inventário ─────────────────────────────────── -->
+              <!-- Extraído para componentes: o inventário estruturado e a ação de
+                   fabricar são os dois primeiros blocos mobile-first do site, e
+                   serão reaproveitados pelo painel do mestre. -->
               <div v-show="activeTab === 'inventario'" class="space-y-3">
-
-                <!-- ── Equipamentos do Onboarding ──────────────────── -->
-                <div class="dash-card overflow-hidden">
-
-                  <!-- Header com peso -->
-                  <div class="px-5 pt-4 pb-3 flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-amber-400/70">
-                        <path d="M14.5 17.5L3 6 3 3l3 0 11.5 11.5"/><path d="M13 19l6-6"/><path d="M16 16l4 4"/><path d="M19 21l2-2"/>
-                      </svg>
-                      <span class="text-xs font-semibold font-cinzel text-amber-400">Equipamentos</span>
-                      <span class="inv-count-badge">{{ equipamentosIniciais.length }} {{ equipamentosIniciais.length === 1 ? 'item' : 'itens' }}</span>
-                    </div>
-                    <span class="text-[0.7rem] font-semibold tabular-nums" :class="pesoPorcentagem >= 90 ? 'text-red-400' : pesoPorcentagem >= 70 ? 'text-amber-400' : 'text-zinc-400'">
-                      {{ pesoAtual.toFixed(1) }} / {{ pesoMaximo.toFixed(1) }} kg
-                    </span>
-                  </div>
-
-                  <!-- Barra de peso -->
-                  <div class="mx-5 mb-1">
-                    <div class="h-1.5 rounded-full bg-white/[0.05] overflow-hidden">
-                      <div
-                        class="h-full rounded-full transition-all duration-700"
-                        :class="pesoPorcentagem >= 90 ? 'bg-red-500' : pesoPorcentagem >= 70 ? 'bg-amber-500' : 'bg-emerald-500'"
-                        :style="`width: ${pesoPorcentagem}%`"
-                      />
-                    </div>
-                    <div class="flex justify-between mt-1">
-                      <span class="text-[0.6rem] text-zinc-600">Capacidade de carga</span>
-                      <span class="text-[0.6rem] text-zinc-600">Força × 2</span>
-                    </div>
-                  </div>
-
-                  <!-- Lista -->
-                  <div class="px-5 pb-4 mt-3">
-                    <div v-if="!equipamentosIniciais.length" class="inv-empty-state">
-                      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" class="mx-auto mb-2 opacity-20">
-                        <path d="M14.5 17.5L3 6 3 3l3 0 11.5 11.5"/><path d="M13 19l6-6"/><path d="M16 16l4 4"/>
-                      </svg>
-                      <p class="text-sm font-medium" style="color:var(--text-muted)">Nenhum equipamento selecionado</p>
-                      <p class="text-xs mt-0.5 opacity-60" style="color:var(--text-muted)">Itens escolhidos no início da jornada aparecem aqui</p>
-                    </div>
-                    <div v-else class="space-y-1.5">
-                      <div
-                        v-for="eq in equipamentosIniciais"
-                        :key="eq.id"
-                        class="flex items-center justify-between rounded-xl border border-white/[0.05] bg-white/[0.02] px-3 py-2.5"
-                      >
-                        <span class="text-sm font-medium text-zinc-300 truncate">{{ eq.nome }}</span>
-                        <span class="text-xs text-zinc-500 ml-3 shrink-0 tabular-nums">{{ eq.peso.toFixed(1) }} kg</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- ── Inventário Geral ─────────────────────────────── -->
-                <div class="dash-card overflow-hidden">
-
-                  <!-- Card header -->
-                  <div class="inv-card-header px-5 py-4 flex items-center justify-between">
-                    <div class="flex items-center gap-2.5">
-                      <div class="inv-header-icon">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
-                          <line x1="3" y1="6" x2="21" y2="6"/>
-                          <path d="M16 10a4 4 0 0 1-8 0"/>
-                        </svg>
-                      </div>
-                      <div>
-                        <span class="text-xs font-semibold text-amber-400 font-cinzel">Inventário</span>
-                        <span class="ml-2 inv-count-badge">{{ normalInventory.length }} {{ normalInventory.length === 1 ? 'item' : 'itens' }}</span>
-                      </div>
-                    </div>
-
-                    <!-- Mochila Rápida trigger -->
-                    <div class="relative" @click.stop>
-                      <button
-                        @click="toggleQuickInventory"
-                        class="backpack-btn"
-                        :class="showQuickInventory ? 'backpack-btn-active' : ''"
-                        title="Mochila Rápida"
-                        aria-label="Abrir mochila rápida"
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
-                          <line x1="3" y1="6" x2="21" y2="6"/>
-                          <path d="M16 10a4 4 0 0 1-8 0"/>
-                        </svg>
-                        <span class="backpack-label">Mochila</span>
-                        <span v-if="quickInventory.length" class="backpack-badge">{{ quickInventory.length }}</span>
-                      </button>
-
-                      <!-- Mochila Rápida dropdown -->
-                      <Transition name="dropdown">
-                        <div v-if="showQuickInventory" class="quick-inv-panel">
-                          <div class="quick-inv-head">
-                            <div>
-                              <p class="text-xs font-bold text-amber-400 font-cinzel">Mochila Rápida</p>
-                              <p class="text-[0.65rem] mt-0.5" style="color:var(--text-muted)">O que você carrega no dia a dia</p>
-                            </div>
-                            <span v-if="quickInventory.length" class="inv-count-badge">{{ quickInventory.length }}</span>
-                          </div>
-
-                          <div class="quick-inv-body">
-                            <!-- Add row: qty first, name second -->
-                            <div class="quick-add-row">
-                              <input
-                                v-model.number="newQuickItemQty"
-                                type="number"
-                                min="1"
-                                class="quick-qty-input text-center"
-                              />
-                              <input
-                                v-model="newQuickItemName"
-                                @keydown.enter="addQuickItem"
-                                type="text"
-                                placeholder="Nome do item..."
-                                class="inv-input flex-1 text-xs"
-                              />
-                              <button
-                                @click="addQuickItem"
-                                :disabled="!newQuickItemName.trim() || savingQuickInventory"
-                                class="inv-add-btn flex-shrink-0 disabled:opacity-40"
-                              >
-                                <svg v-if="savingQuickInventory" class="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10" stroke-dasharray="30" stroke-dashoffset="20"/></svg>
-                                <span v-else class="text-sm font-bold">+</span>
-                              </button>
-                            </div>
-
-                            <!-- Quick list -->
-                            <div v-if="quickInventory.length === 0" class="py-5 text-center text-[0.68rem] italic" style="color:rgba(251,191,36,0.3)">
-                              Mochila vazia
-                            </div>
-                            <div v-else class="quick-inv-list">
-                              <div v-for="item in quickInventory" :key="item.id" class="quick-inv-item group">
-                                <span class="quick-qty-tag">{{ item.quantity }}×</span>
-                                <p class="flex-1 text-xs font-medium truncate quick-item-name">{{ item.name }}</p>
-                                <button @click="removeQuickItem(item.id)" class="inv-remove opacity-0 group-hover:opacity-100" title="Remover">
-                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </Transition>
-                    </div>
-                  </div>
-
-                  <!-- Divider -->
-                  <div class="mx-5 h-px" style="background: var(--border-soft)" />
-
-                  <!-- Add item form: qty first, name second -->
-                  <div class="px-5 pt-4 pb-3">
-                    <div class="inv-add-row">
-                      <input
-                        v-model.number="newItemQty"
-                        type="number"
-                        min="1"
-                        class="inv-input inv-input-qty"
-                      />
-                      <input
-                        v-model="newItemName"
-                        @keydown.enter="addNormalItem"
-                        type="text"
-                        placeholder="Nome do item..."
-                        class="inv-input flex-1"
-                      />
-                      <button
-                        @click="addNormalItem"
-                        :disabled="!newItemName.trim() || savingInventory"
-                        class="inv-add-btn px-4 flex-shrink-0 disabled:opacity-40"
-                      >
-                        <svg v-if="savingInventory" class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-dasharray="30" stroke-dashoffset="20"/></svg>
-                        <span v-else class="font-bold text-base">+</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- Items -->
-                  <div class="px-5 pb-5">
-                    <div v-if="normalInventory.length === 0" class="inv-empty-state">
-                      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" class="mx-auto mb-2 opacity-20">
-                        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
-                        <line x1="3" y1="6" x2="21" y2="6"/>
-                        <path d="M16 10a4 4 0 0 1-8 0"/>
-                      </svg>
-                      <p class="text-sm font-medium" style="color:var(--text-muted)">Inventário vazio</p>
-                      <p class="text-xs mt-0.5 opacity-60" style="color:var(--text-muted)">Use o campo acima para adicionar itens</p>
-                    </div>
-
-                    <TransitionGroup v-else name="inv-item" tag="div" class="inv-list">
-                      <div v-for="item in normalInventory" :key="item.id" class="inv-item group">
-                        <span class="inv-qty-tag flex-shrink-0">{{ item.quantity }}×</span>
-                        <div class="flex-1 min-w-0">
-                          <p class="text-sm font-medium leading-snug truncate" style="color:var(--text-main)">{{ item.name }}</p>
-                          <p v-if="item.description" class="text-[0.65rem] mt-0.5 truncate" style="color:var(--text-muted)">{{ item.description }}</p>
-                        </div>
-                        <button
-                          @click="removeNormalItem(item.id)"
-                          class="inv-remove opacity-0 group-hover:opacity-100 flex-shrink-0"
-                          title="Remover"
-                        >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                        </button>
-                      </div>
-                    </TransitionGroup>
-                  </div>
-                </div>
+                <InventarioPersonagem
+                  v-if="character"
+                  ref="inventarioRef"
+                  :personagem-id="Number(character.characterId)"
+                  :pode-editar="true"
+                  @mudou="fabricarRef?.rechecar()"
+                />
+                <FabricarPainel
+                  v-if="character"
+                  ref="fabricarRef"
+                  :personagem-id="Number(character.characterId)"
+                  :pericias-do-personagem="periciasDoPersonagem"
+                  @fabricou="inventarioRef?.recarregar()"
+                />
               </div>
 
             </div>
@@ -1641,14 +1450,8 @@ import { listarPassados, type PassadoApi } from '@/lib/api/passados.api'
 import { listPublicGods } from '@/lib/api/gods.api'
 import { listarIndole } from '@/lib/api/indole.api'
 import type { PersonagemApi, GodApi, IndoleApi } from '@/types/api'
-
-interface InventoryItem {
-  id: string
-  name: string
-  description?: string
-  quantity: number
-  addedAt: string
-}
+import InventarioPersonagem from '@/components/InventarioPersonagem.vue'
+import FabricarPainel from '@/components/FabricarPainel.vue'
 
 interface Notification {
   id: string
@@ -1673,17 +1476,12 @@ const showSettingsMenu = ref(false)
 const showSettingsModal = ref(false)
 const showNotifications = ref(false)
 const showManagePanel = ref(false)
-const showQuickInventory = ref(false)
 const settingsLoading = ref(false)
 const activeTab = ref('personagem')
 
-// Inventory state
-const newItemName = ref('')
-const newItemQty = ref(1)
-const savingInventory = ref(false)
-const newQuickItemName = ref('')
-const newQuickItemQty = ref(1)
-const savingQuickInventory = ref(false)
+// Refs dos dois componentes da aba de inventário, para um avisar o outro.
+const inventarioRef = ref<InstanceType<typeof InventarioPersonagem> | null>(null)
+const fabricarRef = ref<InstanceType<typeof FabricarPainel> | null>(null)
 
 // Notifications
 const notifications = ref<Notification[]>([])
@@ -1876,15 +1674,6 @@ const characterClass = computed(() => {
   return classes.map((c: any) => c.name).join(' / ')
 })
 
-const normalInventory = computed<InventoryItem[]>(() => {
-  const inv = character.value?.data?.inventory
-  return Array.isArray(inv) ? inv : []
-})
-
-const quickInventory = computed<InventoryItem[]>(() => {
-  const inv = character.value?.data?.quickInventory
-  return Array.isArray(inv) ? inv : []
-})
 
 // ── Catálogos de lookup para exibição no dashboard ────────────────────────────
 const todasRacas    = ref<RacaApi[]>([])
@@ -1905,21 +1694,6 @@ const deusPersonagem = computed(() => {
   return todosDeuses.value.find(d => Number(d.id) === Number(character.value!.deusId)) ?? null
 })
 
-// ── Inventário de equipamentos (onboarding) ────────────────────────────────────
-const equipamentosIniciais = computed<Array<{id: number; nome: string; peso: number}>>(() => {
-  const equips = character.value?.data?.equipamentos_iniciais
-  return Array.isArray(equips) ? equips : []
-})
-const pesoMaximo = computed(() => {
-  const forca = (character.value?.data?.atributos as any)?.forca ?? 0
-  return 2 + (forca as number) * 2
-})
-const pesoAtual = computed(() =>
-  equipamentosIniciais.value.reduce((s, e) => s + (e.peso ?? 0), 0)
-)
-const pesoPorcentagem = computed(() =>
-  pesoMaximo.value > 0 ? Math.min((pesoAtual.value / pesoMaximo.value) * 100, 100) : 0
-)
 
 const ATRIBUTOS_DASHBOARD = [
   { key: 'aura',         label: 'Aura',         color: 'text-pink-400',   barColor: 'bg-pink-500/70' },
@@ -2236,7 +2010,7 @@ async function loadNotifications(charId: string | number) {
 
 function toggleNotifications() {
   showNotifications.value = !showNotifications.value
-  if (showNotifications.value) { showSettingsMenu.value = false; showQuickInventory.value = false }
+  if (showNotifications.value) { showSettingsMenu.value = false }
 }
 
 function markAllRead() {
@@ -2252,59 +2026,18 @@ function openNotification(notif: Notification) {
   router.push(notif.route)
 }
 
-function toggleQuickInventory() {
-  showQuickInventory.value = !showQuickInventory.value
-  if (showQuickInventory.value) { showNotifications.value = false; showSettingsMenu.value = false }
-}
-
-// Inventory helpers
-function genId() { return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}` }
-
+/**
+ * Substitui `data` INTEIRO — é o que PATCH /personagens/:id faz. Serve para
+ * campos avulsos como `changeRequestResponse`; o inventário NÃO passa por
+ * aqui, tem rotas próprias, justamente para uma cópia velha de `data` não
+ * apagar o que outra tela gravou.
+ */
 async function persistData(newData: any) {
   if (!character.value) return
   await editCharacter(character.value.characterId, { data: newData })
   character.value = { ...character.value, data: newData }
 }
 
-async function addNormalItem() {
-  const name = newItemName.value.trim()
-  if (!name || savingInventory.value) return
-  savingInventory.value = true
-  try {
-    const current = [...normalInventory.value]
-    current.push({ id: genId(), name, quantity: newItemQty.value || 1, addedAt: new Date().toISOString() })
-    await persistData({ ...(character.value!.data ?? {}), inventory: current })
-    newItemName.value = ''
-    newItemQty.value = 1
-  } finally { savingInventory.value = false }
-}
-
-async function removeNormalItem(itemId: string) {
-  if (!character.value) return
-  const current = normalInventory.value.filter(i => i.id !== itemId)
-  await persistData({ ...(character.value.data ?? {}), inventory: current })
-}
-
-async function addQuickItem() {
-  const name = newQuickItemName.value.trim()
-  if (!name || savingQuickInventory.value) return
-  savingQuickInventory.value = true
-  try {
-    const current = [...quickInventory.value]
-    current.push({ id: genId(), name, quantity: newQuickItemQty.value || 1, addedAt: new Date().toISOString() })
-    await persistData({ ...(character.value!.data ?? {}), quickInventory: current })
-    newQuickItemName.value = ''
-    newQuickItemQty.value = 1
-  } finally { savingQuickInventory.value = false }
-}
-
-async function removeQuickItem(itemId: string) {
-  if (!character.value) return
-  const current = quickInventory.value.filter(i => i.id !== itemId)
-  await persistData({ ...(character.value.data ?? {}), quickInventory: current })
-}
-
-// Navigation
 function goToNotas() {
   const charId = getRequestedCharacterId()
   router.push(charId ? { path: '/notas', query: { characterId: charId } } : '/notas')
@@ -2313,7 +2046,7 @@ const goBack = () => { limparMetaAuthLocal(); router.push({ name: 'login', query
 const retornarPainelMestre = () => { closeSettingsMenu(); router.push({ name: 'master-panel' }) }
 const toggleSettingsMenu = () => {
   showSettingsMenu.value = !showSettingsMenu.value
-  if (showSettingsMenu.value) { showNotifications.value = false; showQuickInventory.value = false }
+  if (showSettingsMenu.value) { showNotifications.value = false }
 }
 const closeSettingsMenu = () => { showSettingsMenu.value = false }
 
@@ -2373,7 +2106,6 @@ const logout = async () => { closeSettingsMenu(); try { await authStore.sair() }
 const onGlobalClick = () => {
   closeSettingsMenu()
   showNotifications.value = false
-  showQuickInventory.value = false
 }
 
 onMounted(() => window.addEventListener('click', onGlobalClick))

@@ -136,6 +136,13 @@ A raiz **não é mais o login**: `/` lista as campanhas (mundos) e cada uma leva
 | GET | `/api/consumiveis/categorias` | público |
 | POST/PATCH/DELETE | `/api/consumiveis/categorias/admin[/:item]` | isMaster |
 | GET | `/api/condicoes` | público |
+| GET | `/api/personagens/:id/inventario` | auth — dono ou mestre (com nome, peso e valor do catálogo) |
+| POST | `/api/personagens/:id/inventario` | auth — dono ou mestre (empilha se o catálogo permite) |
+| DELETE | `/api/personagens/:id/inventario/:posicao` | auth — dono ou mestre (tira `quantidade` da pilha) |
+| PATCH | `/api/personagens/:id/inventario/:posicao` | auth — dono ou mestre (`rapido` ou `equipado`) |
+| GET | `/api/personagens/:id/fabricar/checar?receita_id=` | auth — dono ou mestre (pode? por que não? chances) |
+| POST | `/api/personagens/:id/fabricar` | auth — dono ou mestre (**rola no servidor**, consome e entrega numa transação) |
+| GET | `/api/personagens/:id/fabricar/historico` | auth — dono ou mestre |
 | POST/PATCH/DELETE | `/api/condicoes/admin[/:id]` | isMaster |
 | GET | `/api/raridades` | público |
 | POST/PATCH/DELETE | `/api/raridades/admin[/:item]` | isMaster |
@@ -224,6 +231,18 @@ A raiz **não é mais o login**: `/` lista as campanhas (mundos) e cada uma leva
 | PUT | `/api/player-telas/admin/:characterId` | isMaster (substitui o conjunto inteiro) |
 | GET | `/api/admin/exportar-schema?dialeto=postgresql\|mysql\|sqlite` | isMaster (devolve texto puro como anexo) |
 
+## Direção do produto — o site e o aplicativo futuro
+
+**O site é um "character manager" para o jogador e um "world manager" para o mestre.** As sessões serão jogadas num **aplicativo futuro, estilo Foundry, específico deste RPG e feito para rodar em celular fraco**. O site precisa continuar capaz de sustentar uma sessão sozinho — é o plano B se o app falhar —, então perícias, inventário, combate e regras ficam utilizáveis nele.
+
+O que isso decide, desde já:
+
+- **Regra e conta vivem no servidor e voltam na resposta.** Rolagem, resultado de fabricação, bônus de teste: o servidor decide, os dois clientes só mostram. O que for calculado só num componente Vue é invisível para o app. `regras_do_sistema` é a tabela das constantes de regra.
+- **Onde há cópia cliente/servidor de uma regra** (`bonusDoTeste`, `desceUmPasso`), a do servidor é a que vale; a do cliente é só para prévia.
+- **API magra e agnóstica de cliente.** REST simples, JWT (já serve aos dois), respostas sem excesso — o app roda em celular fraco.
+- **Mobile-first em toda tela nova.** As telas antigas, desktop-first, não se reescrevem por isso; mudam quando forem tocadas.
+- **`characters.data.inventario`** (tabela, id, quantidade, qualidade, rapido, equipado) é o modelo de inventário que os dois clientes leem.
+
 ## Economia — a base do projeto
 
 **`docs/ECONOMIA.pdf` é a referência.** A migration 079 adotou os números dele, e preço novo deve ser ancorado nas mesmas âncoras.
@@ -275,7 +294,7 @@ Documentação completa em `docs/COMPONENTS.md`.
 
 ## Banco de Dados — Tabelas
 
-Schema completo em `docs/SCHEMA_CURRENT.sql` — **arquivo gerado por `pg_dump --schema-only`, não editado a mão**; regere-o quando mexer no esquema (o comando está no cabeçalho do próprio arquivo). Migrations em `database/migrations/` (001–094). Documentação em PDF, com as ligações entre tabelas e os fluxos: `docs/BANCO_DE_DADOS.pdf`.
+Schema completo em `docs/SCHEMA_CURRENT.sql` — **arquivo gerado por `pg_dump --schema-only`, não editado a mão**; regere-o quando mexer no esquema (o comando está no cabeçalho do próprio arquivo). Migrations em `database/migrations/` (001–095). Documentação em PDF, com as ligações entre tabelas e os fluxos: `docs/BANCO_DE_DADOS.pdf`.
 
 **Não sobrou nenhum UUID no banco.** As migrations 022–023 converteram as PKs para `INTEGER IDENTITY`, e a **061** terminou o serviço nas colunas que ainda referenciavam o Supabase Auth: `characters.user_id` hoje é `INTEGER` apontando para `usuarios.id`, e `characters.campaign_id` é `INTEGER` apontando para `campaigns.id`. A coluna `usuarios.auth_user_id` foi removida.
 
@@ -344,8 +363,7 @@ Tela: `/master/usuarios` → `MasterUsersView.vue`.
 | `classes` | `[{name, nivel, xp, skillPoints}]` — a progressão por classe |
 | `classPoints` | pontos de classe não gastos |
 | `skills` / `titles` | skills e títulos concedidos ao personagem |
-| `equipamentos_iniciais` | escolha da etapa 6, com peso |
-| `inventario` | itens livres, sem peso |
+| `inventario` | **o inventário estruturado** (migration de código, sem SQL): `[{tabela, id, quantidade, qualidade, rapido, equipado}]`. Substituiu `inventory`, `quickInventory` e `equipamentos_iniciais`, que eram texto livre ou parciais e estavam vazios em todo personagem. Nome, peso e valor **nunca** são gravados aqui — vêm do catálogo na resposta |
 | `adventureNotes` | notas de aventura escritas pelo mestre |
 | `pendingChangeRequest` | pedido de alteração aguardando revisão (índice parcial em cima) |
 | `avatarFocalPoint` / `modalHeroPosition` | enquadramento da imagem, ajustado pelo mestre |
@@ -353,7 +371,7 @@ Tela: `/master/usuarios` → `MasterUsersView.vue`.
 | `dinheiro_inicial` | resultado da rolagem da etapa 6: `{tentativas, resultado, descartado}` |
 | `deusEtapaConcluida` | marca a etapa 5 como vista, mesmo se pulada |
 
-**Cuidado:** `PATCH /api/personagens/:id` **substitui o `data` inteiro**. Mandar um objeto parcial apaga o resto sem aviso.
+**Cuidado:** `PATCH /api/personagens/:id` **substitui o `data` inteiro**. Mandar um objeto parcial apaga o resto sem aviso. É por isso que o inventário tem rotas próprias e **não passa por esse PATCH**: uma cópia velha de `data` no cliente apagaria o que a ação de fabricar acabou de gravar.
 
 ### `indole` (migration 024)
 
@@ -744,7 +762,7 @@ Daí o par **`<coisa>_tabela` + `<coisa>_id`** nos dois lados, com `CHECK` no ba
 | quantidade_produzida | INTEGER | NOT NULL default 1 |
 | tempo_minutos | INTEGER | em minutos, para caber "20 min" e "dois dias" |
 | dificuldade | INTEGER | a DC do teste — `raridade.dificuldade_base` do produto (10/15/20) |
-| pericia_id | INTEGER | referência a `pericias.id`. **Alquimia** nas 44 receitas de poção e veneno, **Cozinha** nas 12 de prato. Preenchida desde a 083; a 091 trouxe a primeira perícia que não é Alquimia |
+| pericia_id | INTEGER | referência a `pericias.id`. **Alquimia** nas 44 receitas de poção e veneno, **Cozinha** nas 12 de prato. Preenchida desde a 083; a 091 trouxe a primeira perícia que não é Alquimia. Exposta na API como `pericia_id` — não era, e a tela de receitas não sabia dizer o ofício |
 
 **Sem UNIQUE em (produto_tabela, produto_id)** de propósito: caminhos alternativos para o mesmo produto são desejáveis.
 
@@ -823,6 +841,20 @@ O crédito acontece em `atribuirXpDeClasse`, somando os marcos **atravessados** 
 **Rank 5 concede uma capacidade, não um número maior** (migration 084). Medido: no rank 5 o personagem já passa DC 20 em 100% das rolagens, então qualquer bônus numérico a mais não compra nada. Ex.: Luta rank 5 faz os ataques ignorarem a resistência física do alvo.
 
 `class_level_progression` precisa estar **populada** para tudo isso funcionar: `atribuirXpDeClasse` consulta a tabela para saber o custo do próximo nível, e com ela vazia o XP entrava e o nível não subia — sem erro nenhum, deixando o crédito de marcos como código morto. A migration 086 semeia `120 × nível` para as 29 classes, como ponto de partida editável em `/master/progressao`.
+
+### Inventário estruturado e a ação de fabricar (migration 095 + código)
+
+Desenho completo em `docs/FABRICAR.pdf`. Dois módulos novos, `inventario` e `fabricacao`, ambos sob `personagens/:id/`.
+
+**`data.inventario`** é uma lista de `{tabela, id, quantidade, qualidade, rapido, equipado}`. `tabela` é `itens` | `consumiveis` | `equipamentos` — o mesmo par tabela+id de `receitas`. Duas entradas são a mesma pilha quando casam nos cinco campos que a definem; a mesma poção pode aparecer duas vezes, uma na mochila rápida e outra fora. Por isso as rotas de remover e alternar trabalham por **posição na lista**, não por id. Empilha se `itens.empilhavel`; consumível sempre empilha; equipamento nunca. O peso da barra de carga soma do catálogo (`2 + força × 2` continua a regra). O onboarding grava aqui e **lê o peso do catálogo** — antes somava o `peso` que o cliente mandava, e bastava enviar 0.
+
+**A ação (`POST /personagens/:id/fabricar`)** faz sete checagens que dizem *o que falta* ("Faltam ingredientes: 2× Erva de Sangue" / "Falta no inventário: Alambique"), rola `d20 + bonusDoTeste(rank, atributo)` **no servidor** (como o dinheiro inicial: no cliente bastaria recarregar até sair 20), e consome insumos + entrega o produto + grava em `fabricacoes` numa transação. Ferramenta portátil (≤ 12 kg) precisa estar no inventário; fixa exige `oficina_disponivel: true` — a ação não sabe onde o personagem está. `GET .../checar` faz só as checagens e devolve as chances das quatro saídas, para a tela desabilitar o botão com o motivo escrito.
+
+**A escada de qualidade, uma só para todo ofício** (constantes em `fabricacao.service.ts` e em `regras_do_sistema` como `fabricar.*`): desastre a DC−10 (nada sai, insumos perdidos), mal feito abaixo da DC, bem feito na DC, obra-prima a DC+15. Assimétrica de propósito: com ±10, rank 1 tirava obra-prima em 30% das poções Comuns. **O motor grava a qualidade no item produzido; cada catálogo diz o que ela vale** — poção turva satura, poção límpida não satura, veneno diluído/concentrado é DC −5/+5, prato mal feito cura 1d4, roupa mal feita dá bônus 0. Qualidade nunca salta de tier: uma Poção de Cura Menor obra-prima é uma Menor límpida, não uma Maior.
+
+`fabricacoes` é histórico: sem soft delete, sem `updated_at`. `character_id`, `receita_id`, `rolagem_d20`, `bonus`, `dificuldade`, `resultado` (CHECK nas quatro), `oficina_confirmada`, `created_by`.
+
+**Telas:** `InventarioPersonagem.vue` e `FabricarPainel.vue`, na aba Inventário do Dashboard — os dois primeiros componentes **mobile-first** do site. A escolha de receita é uma lista com busca, não um `VSelect`: um dropdown que abre para baixo no fim da página fica cortado no celular. Os dois se avisam por `ref`: adicionar um insumo re-checa a fabricação; fabricar recarrega o inventário.
 
 ### `passados` (migration 032)
 
@@ -1082,10 +1114,7 @@ O dashboard do player exibe todas as informações selecionadas no onboarding:
 - Skills e títulos concedidos
 - Notas de aventura (preview)
 
-**Tab "Inventário":**
-- **Equipamentos do onboarding** (`data.equipamentos_iniciais`): lista com peso por item
-- **Barra de capacidade de carga**: verde < 70%, âmbar 70–90%, vermelho ≥ 90%. Fórmula: `Força × 2`
-- Inventário geral (itens livres, sem peso) com mochila rápida (dropdown)
+**Tab "Inventário":** `InventarioPersonagem` (carga, busca no catálogo para adicionar, e os grupos Equipado / Mochila rápida / Mochila com os selos de qualidade) e `FabricarPainel` (receitas ao alcance, checagem com o que falta, chances, e o resultado da rolagem). Ver "Inventário estruturado e a ação de fabricar".
 
 ## Storage (disco local)
 

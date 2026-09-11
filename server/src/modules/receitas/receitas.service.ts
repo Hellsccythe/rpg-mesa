@@ -30,6 +30,8 @@ export type ReceitaApi = {
   quantidade_produzida: number;
   tempo_minutos: number;
   dificuldade: number;
+  /** A perícia do teste. Nula só em receita antiga que a migration não alcançou. */
+  pericia_id: number | null;
   ingredientes: IngredienteApi[];
   /** Soma de valor × quantidade dos ingredientes. */
   custo_dos_ingredientes: number;
@@ -134,7 +136,7 @@ export class ReceitasService {
 
   // ── Apoio ─────────────────────────────────────────────────────────────────
 
-  private async buscarOuFalhar(id: number): Promise<ReceitaApi> {
+  async buscarOuFalhar(id: number): Promise<ReceitaApi> {
     const receita = await this.modeloReceita.findByPk(id);
     if (!receita) throw new NotFoundException("Receita não encontrada.");
     const ingredientes = await this.modeloIngrediente.findAll({ where: { receitaId: id } });
@@ -256,6 +258,7 @@ export class ReceitasService {
       quantidade_produzida: receita.quantidadeProduzida,
       tempo_minutos: receita.tempoMinutos,
       dificuldade: receita.dificuldade,
+      pericia_id: receita.periciaId,
       ingredientes: lista,
       custo_dos_ingredientes: Math.round(custo * 100) / 100,
       preco_de_compra: precoDeCompra,
