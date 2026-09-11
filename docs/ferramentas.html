@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<title>Ferramentas — Caminho Sem Volta</title>
+<style>
+  @page { size: A4 landscape; margin: 12mm 12mm 14mm 12mm; }
+  :root { --tinta:#16181d; --fraca:#5b6270; --linha:#d8dce3; --linha2:#aeb5c0;
+          --alt:#f5f6f9; --dest:#4a3a2a; --destbg:#f5f0ea; --alerta:#8c2f2f;
+          --alertabg:#fcf0f0; --ok:#1f5c3d; --okbg:#eef7f1; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:8.8pt/1.45 "Segoe UI","Helvetica Neue",Arial,sans-serif; color:var(--tinta); background:#fff; }
+  h1,h2,h3 { line-height:1.2; margin:0; font-weight:650; }
+  h1 { font-size:26pt; letter-spacing:-0.4pt; }
+  h2 { font-size:15pt; margin:20pt 0 8pt; padding-bottom:4pt; border-bottom:1.6pt solid var(--tinta); break-after:avoid; }
+  h3 { font-size:11pt; margin:14pt 0 4pt; color:var(--dest); break-after:avoid; }
+  h3 .conta { font-size:8.2pt; font-weight:400; color:var(--fraca); }
+  p { margin:0 0 6pt; }
+  table { width:100%; border-collapse:collapse; margin:4pt 0 10pt; font-size:8pt; }
+  th,td { text-align:left; vertical-align:top; padding:3.2pt 5pt; border-bottom:0.6pt solid var(--linha); }
+  th { background:var(--alt); border-bottom:1pt solid var(--linha2); font-weight:650; font-size:7.4pt;
+       text-transform:uppercase; letter-spacing:0.3pt; color:var(--fraca); }
+  tr { break-inside:avoid; }
+  td.num,th.num { text-align:right; white-space:nowrap; }
+  .fraco { color:var(--fraca); }
+  .mono { font-family:"Cascadia Mono",Consolas,monospace; font-size:7.2pt; margin-top:2pt; }
+  .preco { font-weight:650; color:#8a6a1f; }
+  .ok { color:var(--ok); font-weight:650; }
+  .alertatxt { color:var(--alerta); font-weight:650; }
+  .pagina { break-before:page; }
+  .capa { padding-top:34mm; text-align:center; }
+  .capa .sub { font-size:12pt; color:var(--fraca); margin-top:6pt; }
+  .capa .meta { margin-top:20mm; font-size:8.6pt; color:var(--fraca); border-top:0.6pt solid var(--linha);
+                padding-top:8pt; display:inline-block; min-width:90mm; }
+  .capa .selo0 { display:inline-block; margin-bottom:10pt; padding:3pt 10pt; border:1pt solid var(--linha2);
+                 border-radius:12pt; font-size:8pt; letter-spacing:1.4pt; text-transform:uppercase; color:var(--fraca); }
+  .nota,.aviso,.bom { padding:6pt 9pt; margin:7pt 0 10pt; border-left:2.4pt solid var(--dest);
+                      background:var(--destbg); font-size:8.4pt; break-inside:avoid; }
+  .aviso { border-left-color:var(--alerta); background:var(--alertabg); }
+  .bom { border-left-color:var(--ok); background:var(--okbg); }
+  .nota p:last-child,.aviso p:last-child,.bom p:last-child { margin-bottom:0; }
+  .selo { display:inline-block; padding:0.8pt 5pt; border-radius:2.5pt; font-size:7.2pt; font-weight:650; }
+  .selo-zinc{background:#eceef2;color:#4a505c} .selo-emerald{background:#e6f4ec;color:#1f5c3d}
+  .selo-sky{background:#e4f0fa;color:#1f4d7a}
+  .selo-plebe{background:#f4eee4;color:#7a5a1f} .selo-qualquer{background:#eceef2;color:#4a505c}
+  .selo-nobreza{background:#f2e9f7;color:#5b3a7a}
+  .fixa { color:#8c2f2f; font-size:7pt; font-weight:650; }
+  code { font-family:"Cascadia Mono",Consolas,monospace; font-size:7.6pt; background:var(--alt); padding:0.5pt 3pt; border-radius:2pt; }
+</style></head><body>
+
+<section class="capa">
+  <div class="selo0">Catálogo de Ofícios</div>
+  <h1>Ferramentas</h1>
+  <div class="sub">O que a receita exige e não consome</div>
+  <div class="meta">19 ferramentas &middot; 6 ofícios &middot; todas Comuns<br>
+    RPG de Mesa — Caminho Sem Volta &middot; setembro de 2026</div>
+</section>
+
+<section class="pagina">
+  <h2>1. Por que este catálogo é curto de propósito</h2>
+  <p><code>receita_ingredientes.consumido = false</code> existe desde a migration 077 para a ferramenta: o
+  item que a receita exige mas não gasta. Até aqui não havia <strong>uma</strong> cadastrada — nenhuma das
+  44 receitas de Alquimia exigia alambique, e qualquer um com uma erva na mão destilava poção.</p>
+
+  <div class="nota">
+    <p><strong>Todas Comuns, e sem raridade.</strong> Ferramenta não é achado, é compra. Uma bigorna é cara porque
+    pesa 45 kg de ferro, não porque é rara — qualquer cidade com ferreiro tem uma à venda. Dar raridade a
+    ferramenta transformaria "quero fabricar" numa caçada, e o que se quer é que fabricar seja escolha de tempo e
+    dinheiro, não de sorte.</p>
+    <p><strong>Preço fixo, sem multiplicador.</strong> O mais barato (3 pr) cabe no
+    troco; o mais caro (120 pr) é dois meses de salário de artesão. Nenhum kit inteiro
+    passa de 183 pr.</p>
+  </div>
+
+  <h3>O peso é a regra que falta</h3>
+  <p>A capacidade de carga é <code>2 + força × 2</code> kg. Um personagem de força 5 carrega 12 kg — e a bigorna
+  pesa 45. Ela não se carrega: <strong>se instala</strong>, e fabricar exige ir até ela. É a diferença entre o
+  alquimista que viaja com a mochila e o ferreiro que precisa de uma forja. Não há coluna "fixa": o peso já diz.</p>
+
+  <h2>2. As ferramentas, por ofício</h2>
+  <h3>Alquimia <span class="conta">— 3 ferramentas · o kit completo custa 93 pr</span></h3>
+<table><thead><tr><th style="width:20%">Ferramenta</th><th class="num" style="width:8%">Preço</th><th class="num" style="width:8%">Peso</th><th style="width:9%">Carrega?</th><th>Descrição</th></tr></thead><tbody>
+<tr><td><strong>Alambique</strong></td><td class="num preco">60</td><td class="num fraco">4 kg</td><td><span class=fraco>Sim</span></td><td class="fraco">Vidro e cobre. Destila, condensa e separa — sem ele não há poção nem veneno.</td></tr>
+<tr><td><strong>Almofariz e Pilão</strong></td><td class="num preco">8</td><td class="num fraco">1.5 kg</td><td><span class=fraco>Sim</span></td><td class="fraco">Pedra fundo, pedra em cima. Mói o que a receita manda moer.</td></tr>
+<tr><td><strong>Balança de Precisão</strong></td><td class="num preco">25</td><td class="num fraco">1 kg</td><td><span class=fraco>Sim</span></td><td class="fraco">Dois pratos e um jogo de pesos. Um grão a mais estraga o Raro.</td></tr>
+</tbody></table>
+<h3>Cozinha <span class="conta">— 3 ferramentas · o kit completo custa 28 pr</span></h3>
+<table><thead><tr><th style="width:20%">Ferramenta</th><th class="num" style="width:8%">Preço</th><th class="num" style="width:8%">Peso</th><th style="width:9%">Carrega?</th><th>Descrição</th></tr></thead><tbody>
+<tr><td><strong>Panela de Ferro</strong></td><td class="num preco">12</td><td class="num fraco">3 kg</td><td><span class=fraco>Sim</span></td><td class="fraco">Pesada e eterna. Caldo, ensopado, torta e o que mais couber.</td></tr>
+<tr><td><strong>Espeto e Grelha</strong></td><td class="num preco">10</td><td class="num fraco">2 kg</td><td><span class=fraco>Sim</span></td><td class="fraco">Para o que vai ao fogo direto: assado, grelhado, brasa.</td></tr>
+<tr><td><strong>Faca de Cozinha</strong></td><td class="num preco">6</td><td class="num fraco">0.4 kg</td><td><span class=fraco>Sim</span></td><td class="fraco">Afiada de um lado só. Não é arma, e quem tentar vai descobrir.</td></tr>
+</tbody></table>
+<h3>Ferraria <span class="conta">— 4 ferramentas · o kit completo custa 183 pr</span></h3>
+<table><thead><tr><th style="width:20%">Ferramenta</th><th class="num" style="width:8%">Preço</th><th class="num" style="width:8%">Peso</th><th style="width:9%">Carrega?</th><th>Descrição</th></tr></thead><tbody>
+<tr><td><strong>Bigorna</strong></td><td class="num preco">120</td><td class="num fraco">45 kg</td><td><span class=fixa>Fixa</span></td><td class="fraco">Quarenta e cinco quilos de ferro. Não se carrega: se instala.</td></tr>
+<tr><td><strong>Martelo de Forja</strong></td><td class="num preco">18</td><td class="num fraco">2 kg</td><td><span class=fraco>Sim</span></td><td class="fraco">Cabeça curta, cabo comprido. Bate o dia inteiro sem cansar a mão.</td></tr>
+<tr><td><strong>Tenaz</strong></td><td class="num preco">10</td><td class="num fraco">1 kg</td><td><span class=fraco>Sim</span></td><td class="fraco">Segura o que está em brasa. A alternativa é a própria mão.</td></tr>
+<tr><td><strong>Fole</strong></td><td class="num preco">35</td><td class="num fraco">5 kg</td><td><span class=fraco>Sim</span></td><td class="fraco">Couro e madeira. Sem ele o carvão não passa do vermelho.</td></tr>
+</tbody></table>
+<h3>Carpintaria <span class="conta">— 3 ferramentas · o kit completo custa 36 pr</span></h3>
+<table><thead><tr><th style="width:20%">Ferramenta</th><th class="num" style="width:8%">Preço</th><th class="num" style="width:8%">Peso</th><th style="width:9%">Carrega?</th><th>Descrição</th></tr></thead><tbody>
+<tr><td><strong>Serra de Mão</strong></td><td class="num preco">15</td><td class="num fraco">1.5 kg</td><td><span class=fraco>Sim</span></td><td class="fraco">Dentes para madeira verde e para seca. Não se usa em osso.</td></tr>
+<tr><td><strong>Plaina</strong></td><td class="num preco">12</td><td class="num fraco">1.2 kg</td><td><span class=fraco>Sim</span></td><td class="fraco">Tira a lasca fina. O que sai dela cabe na mão sem farpa.</td></tr>
+<tr><td><strong>Formão e Maço</strong></td><td class="num preco">9</td><td class="num fraco">1 kg</td><td><span class=fraco>Sim</span></td><td class="fraco">Entalha, encaixa, abre furo quadrado. O maço é de madeira para não amassar o cabo.</td></tr>
+</tbody></table>
+<h3>Costura <span class="conta">— 3 ferramentas · o kit completo custa 62 pr</span></h3>
+<table><thead><tr><th style="width:20%">Ferramenta</th><th class="num" style="width:8%">Preço</th><th class="num" style="width:8%">Peso</th><th style="width:9%">Carrega?</th><th>Descrição</th></tr></thead><tbody>
+<tr><td><strong>Agulhas e Dedal</strong></td><td class="num preco">3</td><td class="num fraco">0.1 kg</td><td><span class=fraco>Sim</span></td><td class="fraco">Seis agulhas de tamanhos diferentes e um dedal de latão. Cabe no bolso.</td></tr>
+<tr><td><strong>Tesoura de Alfaiate</strong></td><td class="num preco">14</td><td class="num fraco">0.3 kg</td><td><span class=fraco>Sim</span></td><td class="fraco">Lâmina longa, corte reto. Nunca se empresta.</td></tr>
+<tr><td><strong>Tear de Mesa</strong></td><td class="num preco">45</td><td class="num fraco">8 kg</td><td><span class=fraco>Sim</span></td><td class="fraco">Tece o tecido a partir do fio. Fixo: ocupa uma mesa inteira.</td></tr>
+</tbody></table>
+<h3>Joalheria <span class="conta">— 3 ferramentas · o kit completo custa 61 pr</span></h3>
+<table><thead><tr><th style="width:20%">Ferramenta</th><th class="num" style="width:8%">Preço</th><th class="num" style="width:8%">Peso</th><th style="width:9%">Carrega?</th><th>Descrição</th></tr></thead><tbody>
+<tr><td><strong>Lupa de Joalheiro</strong></td><td class="num preco">30</td><td class="num fraco">0.2 kg</td><td><span class=fraco>Sim</span></td><td class="fraco">Lente de aumento numa armação de latão. Vê o defeito antes do comprador.</td></tr>
+<tr><td><strong>Pinça e Lima Finas</strong></td><td class="num preco">9</td><td class="num fraco">0.2 kg</td><td><span class=fraco>Sim</span></td><td class="fraco">Para o que é pequeno demais para os dedos.</td></tr>
+<tr><td><strong>Maçarico de Boca</strong></td><td class="num preco">22</td><td class="num fraco">0.6 kg</td><td><span class=fraco>Sim</span></td><td class="fraco">Sopra chama fina o bastante para soldar um elo sem derreter o anel.</td></tr>
+</tbody></table>
+</section>
+
+<section class="pagina">
+  <h2>3. O que cada receita passa a exigir</h2>
+  <p>Por ofício, e não receita a receita: 44 receitas de Alquimia exigem o mesmo alambique, e listar uma a uma
+  seria 44 chances de esquecer uma. A migration lê <code>receitas.pericia_id</code> e insere a exigência.</p>
+  <table><thead><tr><th style="width:16%">Receitas de</th><th class="num" style="width:8%">Quantas</th><th style="width:30%">Passam a exigir</th><th>Regra</th></tr></thead><tbody>
+<tr><td><strong>Alquimia</strong></td><td class="num">44</td><td>Alambique + Almofariz e Pilão</td><td class="fraco">Poção e veneno. Todas as 44, sem exceção — não há destilar sem alambique.</td></tr>
+<tr><td><strong>Cozinha</strong> (fogo direto)</td><td class="num">5</td><td>Espeto e Grelha</td><td class="fraco">Os pratos com "('', 'AssadoGrelhadoBrasa')" no nome: assado, grelhado ou na brasa.</td></tr>
+<tr><td><strong>Cozinha</strong> (o resto)</td><td class="num">7</td><td>Panela de Ferro</td><td class="fraco">Caldo, ensopado, torta, defumado.</td></tr>
+</tbody></table>
+
+  <div class="bom">
+    <p><strong>Ferraria, Carpintaria, Costura e Joalheria ainda não têm receita nenhuma.</strong> As ferramentas
+    entram agora para que a primeira receita de cada ofício já nasça exigindo o que deve — o catálogo de cosméticos
+    traz as de Costura e Joalheria.</p>
+  </div>
+
+  <h2>4. O que falta para virar banco</h2>
+  <table><thead><tr><th class="num" style="width:6%">Estado</th><th>Item</th></tr></thead><tbody>
+    <tr><td class="num">✔</td><td><code>categoria_item</code> já tem <strong>Ferramenta</strong>, vazia</td></tr>
+    <tr><td class="num">✔</td><td><code>receita_ingredientes.consumido</code> existe e a tela de receitas já o distingue</td></tr>
+    <tr><td class="num">—</td><td>As 19 ferramentas em <code>itens</code></td></tr>
+    <tr><td class="num">—</td><td>As exigências nas 56 receitas existentes (44 de Alquimia, 12 de Cozinha)</td></tr>
+    <tr><td class="num">—</td><td>A ação de fabricar conferir a ferramenta antes de rolar — hoje ninguém confere nada</td></tr>
+  </tbody></table>
+
+  <div class="nota"><p>Documento gerado de <code>ferramentas_dados.py</code>, validado por
+  <code>verificar_ferramentas_cosmeticos.py</code>. Para mudar um preço, edite os dados e regere.</p></div>
+</section>
+</body></html>

@@ -229,7 +229,7 @@ A raiz **não é mais o login**: `/` lista as campanhas (mundos) e cada uma leva
 **`docs/ECONOMIA.pdf` é a referência.** A migration 079 adotou os números dele, e preço novo deve ser ancorado nas mesmas âncoras.
 
 - **Moeda:** bronze → prata → ouro, na razão **1:10:1000** — **um ouro vale cem prata** (migration 092; era dez). Preço se pensa em **prata**. O ouro é moeda de nobre e de realeza: uma peça é quase dois meses de salário de artesão, e vê-la numa taverna é acontecimento. Nenhum código converte entre moedas (o dinheiro é guardado por moeda, `{prata: 73, ouro: 2}`), então a razão vive só em `regras_do_sistema` e nos documentos.
-- **PENDENTE — passados que rolam ouro.** Cinco passados têm dado de ouro no `dinheiro_inicial` (Nobreza 1d6; Mercenário, Aventureiro, Guarda e Varejista 1d4). A cem prata por ouro esses dados valem dez vezes mais que quando foram calibrados na 079, e a amplitude de 2,6:1 entre o passado mais pobre e o mais rico vira ~17:1. A migration 092 **não** mexeu neles; a decisão é do mestre.
+- **Só a Nobreza rola ouro no dinheiro inicial** (migration 093): 1d10 ouro + 4d10 prata. Os outros rolam prata — Mercenário e Guarda 4d100, Aventureiro 3d100, Varejista 5d100, Andarilho 6d10, Vítima 4d10. Médias: Nobreza 572, Varejista 253, Guarda e Mercenário 202, Aventureiro 152, Andarilho 33, Vítima 22. **A amplitude é 26:1** (a 079 tinha calibrado 2,6:1), e os preços do catálogo foram ancorados na escala antiga — um Guarda compra um Arcabuz (180 pr) no primeiro dia. Decisão do mestre; se recalibrar, é editar cinco linhas na 093.
 - **Âncora:** 2 prata = um dia de trabalho sem qualificação; 5 prata = um dia de artesão; **60 prata = um mês**.
 - **Dinheiro inicial:** média de 22 (Vítima) a 57 (Nobreza) prata. Amplitude 2,6:1 — era 10:1 antes da 079.
 - **Crafting:** os ingredientes devem somar **70–75%** do preço de compra. A API de receitas calcula a proporção a cada leitura e a tela colore por faixa.
@@ -275,7 +275,7 @@ Documentação completa em `docs/COMPONENTS.md`.
 
 ## Banco de Dados — Tabelas
 
-Schema completo em `docs/SCHEMA_CURRENT.sql` — **arquivo gerado por `pg_dump --schema-only`, não editado a mão**; regere-o quando mexer no esquema (o comando está no cabeçalho do próprio arquivo). Migrations em `database/migrations/` (001–092). Documentação em PDF, com as ligações entre tabelas e os fluxos: `docs/BANCO_DE_DADOS.pdf`.
+Schema completo em `docs/SCHEMA_CURRENT.sql` — **arquivo gerado por `pg_dump --schema-only`, não editado a mão**; regere-o quando mexer no esquema (o comando está no cabeçalho do próprio arquivo). Migrations em `database/migrations/` (001–093). Documentação em PDF, com as ligações entre tabelas e os fluxos: `docs/BANCO_DE_DADOS.pdf`.
 
 **Não sobrou nenhum UUID no banco.** As migrations 022–023 converteram as PKs para `INTEGER IDENTITY`, e a **061** terminou o serviço nas colunas que ainda referenciavam o Supabase Auth: `characters.user_id` hoje é `INTEGER` apontando para `usuarios.id`, e `characters.campaign_id` é `INTEGER` apontando para `campaigns.id`. A coluna `usuarios.auth_user_id` foi removida.
 
