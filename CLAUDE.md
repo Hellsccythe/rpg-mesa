@@ -294,7 +294,7 @@ Documentação completa em `docs/COMPONENTS.md`.
 
 ## Banco de Dados — Tabelas
 
-Schema completo em `docs/SCHEMA_CURRENT.sql` — **arquivo gerado por `pg_dump --schema-only`, não editado a mão**; regere-o quando mexer no esquema (o comando está no cabeçalho do próprio arquivo). Migrations em `database/migrations/` (001–095). Documentação em PDF, com as ligações entre tabelas e os fluxos: `docs/BANCO_DE_DADOS.pdf`.
+Schema completo em `docs/SCHEMA_CURRENT.sql` — **arquivo gerado por `pg_dump --schema-only`, não editado a mão**; regere-o quando mexer no esquema (o comando está no cabeçalho do próprio arquivo). Migrations em `database/migrations/` (001–096). Documentação em PDF, com as ligações entre tabelas e os fluxos: `docs/BANCO_DE_DADOS.pdf`.
 
 **Não sobrou nenhum UUID no banco.** As migrations 022–023 converteram as PKs para `INTEGER IDENTITY`, e a **061** terminou o serviço nas colunas que ainda referenciavam o Supabase Auth: `characters.user_id` hoje é `INTEGER` apontando para `usuarios.id`, e `characters.campaign_id` é `INTEGER` apontando para `campaigns.id`. A coluna `usuarios.auth_user_id` foi removida.
 
@@ -745,7 +745,9 @@ Todos se comportam igual — um batom e uma barra de mithril não precisam de ta
 
 **Exceção de nomenclatura:** as outras tabelas usam `<lookup>_item` na coluna que referencia (`categoria_consumivel` → `categoria_consumivel_item`). Aqui isso daria `categoria_item_item`. Como o nome do lookup já termina em `_item`, a coluna ficou `itens.categoria_item`.
 
-`categoria_item`: seed com Ingrediente, Material Precioso, Ferramenta, Exploração, Cosmético. Apagar categoria em uso é recusado pelo serviço.
+`categoria_item`: seed com Ingrediente, Material Precioso, Ferramenta, Exploração, Cosmético, e **Tecido** (migration 096). Apagar categoria em uso é recusado pelo serviço.
+
+**`publico` e `bonus_social`** (migration 096, `docs/COSMETICOS.pdf`): só em tecido, material e cosmético. O **tecido** decide quem a roupa impressiona (plebe / qualquer / nobreza) e a roupa herda; a **qualidade da fabricação** decide quanto — bem feita dá o `bonus_social` (+1/+2/+3 por tier), mal feita dá 0, obra-prima +1. Roupa de nobreza diante da plebe (ou o inverso) dá −1. Acessório dá +1 fixo e só um conta. O bônus será lido do item com `equipado = true` em `data.inventario`; não há motor de teste social ainda. 8 tecidos, 6 materiais, 10 roupas e 6 acessórios, com as primeiras receitas de **Costura** e **Joalheria** — que já exigem as ferramentas da 094.
 
 Tela: `/master/itens` → `MasterItensView.vue`.
 

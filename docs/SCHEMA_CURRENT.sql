@@ -13,7 +13,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 2Iw58aryW7EopAax89qHesQXcxeO6wIn9LCBlqmOpgbhvaGxZHTBbxISZoMtSWK
+\restrict tNCGaaSdm8OhI7Yfahx1P0IkSE51Au2lrRQeGJbtasraOtTrUXz9ZL62FqF5gfI
 
 -- Dumped from database version 18.6 (Debian 18.6-1.pgdg13+2)
 -- Dumped by pg_dump version 18.6 (Debian 18.6-1.pgdg13+2)
@@ -1417,7 +1417,11 @@ CREATE TABLE public.itens (
     created_by text,
     updated_by text,
     deleted_at timestamp with time zone,
-    deleted_by text
+    deleted_by text,
+    publico character varying(20),
+    bonus_social integer,
+    CONSTRAINT itens_bonus_social_check CHECK (((bonus_social IS NULL) OR ((bonus_social >= 0) AND (bonus_social <= 5)))),
+    CONSTRAINT itens_publico_check CHECK (((publico IS NULL) OR ((publico)::text = ANY ((ARRAY['plebe'::character varying, 'qualquer'::character varying, 'nobreza'::character varying])::text[]))))
 );
 
 
@@ -4101,5 +4105,5 @@ ALTER TABLE public.usuarios ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 2Iw58aryW7EopAax89qHesQXcxeO6wIn9LCBlqmOpgbhvaGxZHTBbxISZoMtSWK
+\unrestrict tNCGaaSdm8OhI7Yfahx1P0IkSE51Au2lrRQeGJbtasraOtTrUXz9ZL62FqF5gfI
 
