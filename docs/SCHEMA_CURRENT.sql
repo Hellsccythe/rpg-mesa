@@ -13,7 +13,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 1Egq2nUcmacTbuNr3MY4jvj6pauV30e6DVbopwUPW6ox47VMxq9kVcbPFGLQ20l
+\restrict emhLQvixoclct08f8D5je9zcpEJwOk31lOfYzm0lShGqJ5bY25izQ2o9Br5IGBv
 
 -- Dumped from database version 18.6 (Debian 18.6-1.pgdg13+2)
 -- Dumped by pg_dump version 18.6 (Debian 18.6-1.pgdg13+2)
@@ -4045,5 +4045,5 @@ ALTER TABLE public.usuarios ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 1Egq2nUcmacTbuNr3MY4jvj6pauV30e6DVbopwUPW6ox47VMxq9kVcbPFGLQ20l
+\unrestrict emhLQvixoclct08f8D5je9zcpEJwOk31lOfYzm0lShGqJ5bY25izQ2o9Br5IGBv
 

@@ -275,7 +275,7 @@ Documentação completa em `docs/COMPONENTS.md`.
 
 ## Banco de Dados — Tabelas
 
-Schema completo em `docs/SCHEMA_CURRENT.sql` — **arquivo gerado por `pg_dump --schema-only`, não editado a mão**; regere-o quando mexer no esquema (o comando está no cabeçalho do próprio arquivo). Migrations em `database/migrations/` (001–093). Documentação em PDF, com as ligações entre tabelas e os fluxos: `docs/BANCO_DE_DADOS.pdf`.
+Schema completo em `docs/SCHEMA_CURRENT.sql` — **arquivo gerado por `pg_dump --schema-only`, não editado a mão**; regere-o quando mexer no esquema (o comando está no cabeçalho do próprio arquivo). Migrations em `database/migrations/` (001–094). Documentação em PDF, com as ligações entre tabelas e os fluxos: `docs/BANCO_DE_DADOS.pdf`.
 
 **Não sobrou nenhum UUID no banco.** As migrations 022–023 converteram as PKs para `INTEGER IDENTITY`, e a **061** terminou o serviço nas colunas que ainda referenciavam o Supabase Auth: `characters.user_id` hoje é `INTEGER` apontando para `usuarios.id`, e `characters.campaign_id` é `INTEGER` apontando para `campaigns.id`. A coluna `usuarios.auth_user_id` foi removida.
 
@@ -748,7 +748,7 @@ Daí o par **`<coisa>_tabela` + `<coisa>_id`** nos dois lados, com `CHECK` no ba
 
 **Sem UNIQUE em (produto_tabela, produto_id)** de propósito: caminhos alternativos para o mesmo produto são desejáveis.
 
-`receita_ingredientes` tem `quantidade` e **`consumido`** — falso para ferramenta, que é exigida mas não some ao usar. Sem essa coluna o jogador perderia o alambique a cada poção. É a única tabela do projeto com **`paranoid: false`**: os ingredientes são detalhe da receita, editados como conjunto (apaga tudo e reinsere), e por isso o índice único pode ser total.
+`receita_ingredientes` tem `quantidade` e **`consumido`** — falso para ferramenta, que é exigida mas não some ao usar. Sem essa coluna o jogador perderia o alambique a cada poção. **Desde a migration 094 toda receita exige ferramenta**: as 44 de Alquimia pedem Alambique + Almofariz e Pilão; as 12 de Cozinha pedem Espeto e Grelha (assado, grelhado, brasa) ou Panela de Ferro. As 19 ferramentas (`docs/FERRAMENTAS.pdf`) são todas Comuns, preço fixo, `empilhavel = false`; acima de 12 kg a ferramenta é **fixa** — o peso decide, não uma coluna. É a única tabela do projeto com **`paranoid: false`**: os ingredientes são detalhe da receita, editados como conjunto (apaga tudo e reinsere), e por isso o índice único pode ser total.
 
 **Margem do crafting:** a API calcula `custo_dos_ingredientes`, `preco_de_compra` e `proporcao_do_preco` a cada leitura. O alvo do projeto é **70–75%** — abaixo disso ninguém compra pronto; acima, fabricar não compensa o risco. A tela mostra a proporção enquanto o mestre edita, colorida por faixa. Só o que é `consumido` entra no custo.
 

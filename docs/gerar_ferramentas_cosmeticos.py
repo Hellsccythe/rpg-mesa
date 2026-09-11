@@ -6,6 +6,12 @@ import sys
 sys.path.insert(0, ".")
 import ferramentas_dados as f
 import cosmeticos_dados as c
+import alimentos_dados as a
+
+# Contado dos pratos reais, e não digitado: a primeira versão dizia 5/7 e o
+# banco tinha 4/8.
+PRATOS_NO_FOGO = [p[0] for p in a.PRATOS if any(k in p[0] for k in f.PALAVRAS_DE_FOGO_DIRETO)]
+PRATOS_NA_PANELA = [p[0] for p in a.PRATOS if p[0] not in PRATOS_NO_FOGO]
 
 PASTA = ("C:/Users/Hellsccythe/Documents/PROJETOS/rpg-mesa/"
          ".claude/worktrees/postgres-db-access-951e7e/docs/")
@@ -107,12 +113,12 @@ def bloco_exigencias():
         f'<td>{esc(" + ".join(f.FERRAMENTAS_POR_OFICIO["Alquimia"]))}</td>'
         f'<td class="fraco">Poção e veneno. Todas as 44, sem exceção — não há destilar sem alambique.</td></tr>')
     partes.append(
-        f'<tr><td><strong>Cozinha</strong> (fogo direto)</td><td class="num">5</td>'
+        f'<tr><td><strong>Cozinha</strong> (fogo direto)</td><td class="num">{len(PRATOS_NO_FOGO)}</td>'
         f'<td>{esc(" + ".join(f.COZINHA_NO_FOGO_DIRETO))}</td>'
         f'<td class="fraco">Os pratos com "{"", "".join(f.PALAVRAS_DE_FOGO_DIRETO)}" no nome: '
         f'assado, grelhado ou na brasa.</td></tr>')
     partes.append(
-        f'<tr><td><strong>Cozinha</strong> (o resto)</td><td class="num">7</td>'
+        f'<tr><td><strong>Cozinha</strong> (o resto)</td><td class="num">{len(PRATOS_NA_PANELA)}</td>'
         f'<td>{esc(" + ".join(f.FERRAMENTAS_POR_OFICIO["Cozinha"]))}</td>'
         f'<td class="fraco">Caldo, ensopado, torta, defumado.</td></tr>')
     partes.append("</tbody></table>")
