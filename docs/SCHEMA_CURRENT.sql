@@ -13,7 +13,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict P6IjtKnUXS3eacHPsgJlChvaQYJeaPOT3WVvHyWoGRcdih6zsizafvJaOspd9qc
+\restrict 1Egq2nUcmacTbuNr3MY4jvj6pauV30e6DVbopwUPW6ox47VMxq9kVcbPFGLQ20l
 
 -- Dumped from database version 18.6 (Debian 18.6-1.pgdg13+2)
 -- Dumped by pg_dump version 18.6 (Debian 18.6-1.pgdg13+2)
@@ -1119,7 +1119,13 @@ CREATE TABLE public.consumiveis (
     created_by text,
     updated_by text,
     deleted_at timestamp with time zone,
-    deleted_by text
+    deleted_by text,
+    via character varying(20),
+    cura_dado character varying(20),
+    cura_percentual integer,
+    efeito_bemfeito text,
+    CONSTRAINT consumiveis_cura_percentual_check CHECK (((cura_percentual IS NULL) OR ((cura_percentual >= 0) AND (cura_percentual <= 100)))),
+    CONSTRAINT consumiveis_via_check CHECK (((via IS NULL) OR ((via)::text = ANY ((ARRAY['lamina'::character varying, 'ingestao'::character varying, 'contato'::character varying])::text[]))))
 );
 
 
@@ -1148,7 +1154,7 @@ CREATE TABLE public.consumivel_condicao (
     acao character varying(10) NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     created_by text,
-    CONSTRAINT consumivel_condicao_acao_check CHECK (((acao)::text = ANY ((ARRAY['cura'::character varying, 'previne'::character varying])::text[])))
+    CONSTRAINT consumivel_condicao_acao_check CHECK (((acao)::text = ANY ((ARRAY['cura'::character varying, 'previne'::character varying, 'inflige'::character varying])::text[])))
 );
 
 
@@ -4039,5 +4045,5 @@ ALTER TABLE public.usuarios ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict P6IjtKnUXS3eacHPsgJlChvaQYJeaPOT3WVvHyWoGRcdih6zsizafvJaOspd9qc
+\unrestrict 1Egq2nUcmacTbuNr3MY4jvj6pauV30e6DVbopwUPW6ox47VMxq9kVcbPFGLQ20l
 

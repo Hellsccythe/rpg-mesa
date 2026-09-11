@@ -11,9 +11,28 @@ import { api } from '@/plugins/axios'
 export type RaridadeResumo = { item: number; descricao: string; cor: string; ordem: number }
 export type CategoriaConsumivelApi = { item: number; descricao: string; icone: string | null }
 
-/** `cura` remove o que já se sofreu; `previne` imuniza por um tempo. */
-export const ACOES_SOBRE_CONDICAO = ['cura', 'previne'] as const
+/**
+ * `cura` remove o que já se sofreu; `previne` imuniza por um tempo; `inflige`
+ * aplica — é o veneno, a poção com o sinal trocado.
+ */
+export const ACOES_SOBRE_CONDICAO = ['cura', 'previne', 'inflige'] as const
 export type AcaoSobreCondicao = (typeof ACOES_SOBRE_CONDICAO)[number]
+
+/** Classes de selo por ação. Literais, porque o Tailwind varre nomes inteiros. */
+export const CLASSE_POR_ACAO: Record<AcaoSobreCondicao, string> = {
+  cura: 'border-emerald-500/25 bg-emerald-950/30 text-emerald-300',
+  previne: 'border-sky-500/25 bg-sky-950/30 text-sky-300',
+  inflige: 'border-red-500/25 bg-red-950/30 text-red-300',
+}
+
+/** Como um veneno chega num alvo que não quer. Só veneno tem via. */
+export const VIAS_DE_VENENO = ['lamina', 'ingestao', 'contato'] as const
+export type ViaDeVeneno = (typeof VIAS_DE_VENENO)[number]
+export const ROTULO_VIA: Record<ViaDeVeneno, string> = {
+  lamina: 'Lâmina',
+  ingestao: 'Ingestão',
+  contato: 'Contato',
+}
 
 /** A condição que este consumível resolve, e de que jeito. */
 export type CondicaoVinculada = {
@@ -40,6 +59,13 @@ export type ConsumivelApi = {
   raridade: RaridadeResumo | null
   categoria_consumivel_item: number | null
   categoria: { item: number; descricao: string } | null
+  /** Só veneno. Null em poção e prato. */
+  via: ViaDeVeneno | null
+  /** A cura em número. Em prato, é a de BEM FEITO; mal feito é 1d4 fixo. */
+  cura_dado: string | null
+  cura_percentual: number | null
+  /** O que mais acontece quando o prato sai bem — o bônus social. */
+  efeito_bemfeito: string | null
   /** Vazio significa consumível que não responde a nenhuma condição. */
   condicoes: CondicaoVinculada[]
 }
@@ -54,6 +80,10 @@ export type ConsumivelPayload = {
   valor?: number | null
   raridade_item?: number | null
   categoria_consumivel_item?: number | null
+  via?: ViaDeVeneno | null
+  cura_dado?: string | null
+  cura_percentual?: number | null
+  efeito_bemfeito?: string | null
   /**
    * Omitir mantém os vínculos como estão; array vazio apaga todos. Mandar
    * sempre, no formulário, é o certo — é lá que o mestre decide.

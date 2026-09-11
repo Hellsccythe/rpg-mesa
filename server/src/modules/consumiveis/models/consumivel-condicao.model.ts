@@ -1,7 +1,10 @@
 import { Column, DataType, Model, Table } from "sequelize-typescript";
 
-/** `cura` remove o que já se sofreu; `previne` imuniza por um tempo. */
-export const ACOES_SOBRE_CONDICAO = ["cura", "previne"] as const;
+/**
+ * `cura` remove o que já se sofreu; `previne` imuniza por um tempo; `inflige`
+ * aplica — é o veneno, a poção com o sinal trocado (migration 090).
+ */
+export const ACOES_SOBRE_CONDICAO = ["cura", "previne", "inflige"] as const;
 export type AcaoSobreCondicao = (typeof ACOES_SOBRE_CONDICAO)[number];
 
 /**

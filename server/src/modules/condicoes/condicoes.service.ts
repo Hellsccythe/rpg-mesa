@@ -13,6 +13,13 @@ export type ConsumivelQueTrata = {
   valor: number | null;
 };
 
+/** Um veneno que aplica a condição. Sem `acao`: só existe uma. */
+export type ConsumivelQueInflige = {
+  id: number;
+  nome: string;
+  valor: number | null;
+};
+
 export type CondicaoApi = {
   id: number;
   nome: string;
@@ -27,6 +34,12 @@ export type CondicaoApi = {
   acumulativa: boolean;
   /** O que existe hoje contra ela. Vazio significa condição sem resposta. */
   tratada_por: ConsumivelQueTrata[];
+  /**
+   * O que a aplica (migration 090). Separado de `tratada_por` porque são
+   * perguntas opostas — "tem cura?" e "quem causa?" — e misturá-las numa lista
+   * faria a tela dizer que um veneno "trata" a condição.
+   */
+  infligida_por: ConsumivelQueInflige[];
 };
 
 /**
@@ -44,7 +57,8 @@ const SQL_LISTAR = `
     CASE WHEN r.item IS NULL THEN NULL ELSE
       json_build_object('item', r.item, 'descricao', r.descricao, 'cor', r.cor, 'ordem', r.ordem)
     END AS raridade,
-    COALESCE(tratamento.lista, '[]'::json) AS tratada_por
+    COALESCE(tratamento.lista, '[]'::json) AS tratada_por,
+    COALESCE(causa.lista, '[]'::json) AS infligida_por
   FROM condicoes c
   LEFT JOIN raridade r ON r.item = c.raridade_item AND r.deleted_at IS NULL
   LEFT JOIN LATERAL (
@@ -54,13 +68,23 @@ const SQL_LISTAR = `
            ) AS lista
     FROM consumivel_condicao cc
     JOIN consumiveis x ON x.id = cc.consumivel_id AND x.deleted_at IS NULL
-    WHERE cc.condicao_id = c.id
+    WHERE cc.condicao_id = c.id AND cc.acao IN ('cura', 'previne')
   ) AS tratamento ON TRUE
+  LEFT JOIN LATERAL (
+    SELECT json_agg(
+             json_build_object('id', x.id, 'nome', x.nome, 'valor', x.valor)
+             ORDER BY x.valor
+           ) AS lista
+    FROM consumivel_condicao cc
+    JOIN consumiveis x ON x.id = cc.consumivel_id AND x.deleted_at IS NULL
+    WHERE cc.condicao_id = c.id AND cc.acao = 'inflige'
+  ) AS causa ON TRUE
   WHERE c.deleted_at IS NULL
 `;
 
-type LinhaCondicao = Omit<CondicaoApi, "tratada_por"> & {
+type LinhaCondicao = Omit<CondicaoApi, "tratada_por" | "infligida_por"> & {
   tratada_por: Array<ConsumivelQueTrata & { valor: string | null }>;
+  infligida_por: Array<ConsumivelQueInflige & { valor: string | null }>;
 };
 
 @Injectable()
@@ -133,9 +157,11 @@ export class CondicoesService {
       { replacements: { id }, type: QueryTypes.SELECT },
     );
 
+    // A contagem inclui quem INFLIGE: um veneno apontando para condição
+    // apagada é tão órfão quanto um antídoto.
     if (Number(total) > 0) {
       throw new BadRequestException(
-        `Não dá para apagar: ${total} consumível(is) tratam esta condição. Desfaça os vínculos primeiro.`,
+        `Não dá para apagar: ${total} consumível(is) tratam ou aplicam esta condição. Desfaça os vínculos primeiro.`,
       );
     }
 
@@ -156,6 +182,10 @@ export class CondicoesService {
     return {
       ...linha,
       tratada_por: (linha.tratada_por ?? []).map((t) => ({
+        ...t,
+        valor: t.valor === null ? null : Number(t.valor),
+      })),
+      infligida_por: (linha.infligida_por ?? []).map((t) => ({
         ...t,
         valor: t.valor === null ? null : Number(t.valor),
       })),

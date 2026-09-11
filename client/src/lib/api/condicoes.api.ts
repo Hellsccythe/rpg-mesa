@@ -12,6 +12,13 @@ export type ConsumivelQueTrata = {
   valor: number | null
 }
 
+/** Um veneno que aplica a condição. */
+export type ConsumivelQueInflige = {
+  id: number
+  nome: string
+  valor: number | null
+}
+
 export type CondicaoApi = {
   id: number
   nome: string
@@ -27,6 +34,8 @@ export type CondicaoApi = {
   acumulativa: boolean
   /** Vazio significa condição sem resposta no catálogo. */
   tratada_por: ConsumivelQueTrata[]
+  /** O que a aplica. Separado: "tem cura?" e "quem causa?" são perguntas opostas. */
+  infligida_por: ConsumivelQueInflige[]
 }
 
 export type CondicaoPayload = {

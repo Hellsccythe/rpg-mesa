@@ -8,6 +8,7 @@ import {
   ConsumivelCondicaoModel,
   type AcaoSobreCondicao,
 } from "./models/consumivel-condicao.model.js";
+import type { ViaDeVeneno } from "./models/consumivel.model.js";
 import type {
   CriarCategoriaConsumivelDto,
   CriarConsumivelDto,
@@ -38,6 +39,12 @@ export type ConsumivelApi = {
   raridade: { item: number; descricao: string; cor: string; ordem: number } | null;
   categoria_consumivel_item: number | null;
   categoria: { item: number; descricao: string } | null;
+  /** Só veneno. */
+  via: ViaDeVeneno | null;
+  /** A cura em número. Em prato, é a de bem feito. */
+  cura_dado: string | null;
+  cura_percentual: number | null;
+  efeito_bemfeito: string | null;
   /** Vazio significa consumível que não responde a nenhuma condição. */
   condicoes: CondicaoVinculada[];
 };
@@ -60,6 +67,10 @@ const SQL_LISTAR = `
     consumiveis.valor,
     consumiveis.raridade_item,
     consumiveis.categoria_consumivel_item,
+    consumiveis.via,
+    consumiveis.cura_dado,
+    consumiveis.cura_percentual,
+    consumiveis.efeito_bemfeito,
     CASE WHEN raridade.item IS NULL THEN NULL ELSE
       json_build_object('item', raridade.item, 'descricao', raridade.descricao,
                         'cor', raridade.cor, 'ordem', raridade.ordem)
@@ -138,6 +149,10 @@ export class ConsumiveisService {
           valor: dados.valor ?? null,
           raridadeItem: dados.raridade_item ?? null,
           categoriaConsumivelItem: dados.categoria_consumivel_item ?? null,
+          via: dados.via ?? null,
+          curaDado: dados.cura_dado?.trim() || null,
+          curaPercentual: dados.cura_percentual ?? null,
+          efeitoBemfeito: dados.efeito_bemfeito?.trim() || null,
         },
         { transaction: transacao },
       );
@@ -163,6 +178,12 @@ export class ConsumiveisService {
     if (dados.raridade_item !== undefined) registro.raridadeItem = dados.raridade_item;
     if (dados.categoria_consumivel_item !== undefined) {
       registro.categoriaConsumivelItem = dados.categoria_consumivel_item;
+    }
+    if (dados.via !== undefined) registro.via = dados.via;
+    if (dados.cura_dado !== undefined) registro.curaDado = dados.cura_dado?.trim() || null;
+    if (dados.cura_percentual !== undefined) registro.curaPercentual = dados.cura_percentual;
+    if (dados.efeito_bemfeito !== undefined) {
+      registro.efeitoBemfeito = dados.efeito_bemfeito?.trim() || null;
     }
 
     await this.sequelize.transaction(async (transacao) => {

@@ -72,8 +72,15 @@
             </p>
             <p
               v-if="(item as ConsumivelApi).condicoes.length"
-              class="truncate text-[0.65rem] text-emerald-400/80"
+              class="truncate text-[0.65rem]"
+              :class="(item as ConsumivelApi).condicoes.some(v => v.acao === 'inflige') ? 'text-red-400/80' : 'text-emerald-400/80'"
             >{{ resumoDosVinculos(item as ConsumivelApi) }}</p>
+            <p v-if="(item as ConsumivelApi).cura_dado" class="truncate text-[0.65rem] text-emerald-400/80">
+              cura {{ (item as ConsumivelApi).cura_dado }}<template v-if="(item as ConsumivelApi).cura_percentual"> + {{ (item as ConsumivelApi).cura_percentual }}%</template>
+            </p>
+            <p v-if="(item as ConsumivelApi).via" class="truncate text-[0.65rem] text-zinc-500">
+              {{ ROTULO_VIA[(item as ConsumivelApi).via!] }}
+            </p>
           </div>
 
           <span class="hidden truncate text-xs text-zinc-500 sm:block">
@@ -172,6 +179,49 @@
           </div>
         </div>
 
+        <!-- ── O que muda por categoria ────────────────────────────────────
+             Veneno tem via; poção e prato têm cura em número; prato tem o que
+             mais acontece quando sai bem. Mostrar todos sempre convidaria a
+             preencher o campo errado — o bloco segue a categoria escolhida. -->
+        <div v-if="ehVeneno" class="space-y-1">
+          <label class="block text-xs font-semibold uppercase tracking-wide text-red-400/80">Via</label>
+          <p class="text-[0.65rem] text-zinc-600">
+            Como chega num alvo que não quer. Só lâmina serve em combate.
+          </p>
+          <VSelect v-model="form.via" :options="opcoesVia" />
+        </div>
+
+        <div v-if="ehPocao || ehAlimento" class="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+          <label class="block text-xs font-semibold uppercase tracking-wide text-emerald-400/80">
+            {{ ehAlimento ? 'Cura se bem feito' : 'Cura' }}
+          </label>
+          <p class="mb-2 text-[0.65rem] text-zinc-600">
+            {{ ehAlimento
+              ? 'Mal feito cura 1d4 fixo, não importa o ingrediente. Isto é o que sai quando o teste de Cozinha passa.'
+              : 'Em número, para ser somável. O texto do efeito continua sendo o que a mesa lê.' }}
+          </p>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="space-y-1">
+              <label class="block text-[0.65rem] uppercase tracking-wide text-zinc-500">Dado</label>
+              <input v-model="form.cura_dado" type="text" placeholder="1d6"
+                class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-center text-sm font-mono text-white placeholder-zinc-600 outline-none focus:border-emerald-500/50" />
+            </div>
+            <div class="space-y-1">
+              <label class="block text-[0.65rem] uppercase tracking-wide text-zinc-500">+ % do PV máximo</label>
+              <input v-model.number="form.cura_percentual" type="number" min="0" max="100" placeholder="20"
+                class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-center text-sm text-white placeholder-zinc-600 outline-none focus:border-emerald-500/50" />
+            </div>
+          </div>
+          <p v-if="previaDaCura" class="mt-2 text-[0.7rem] text-zinc-400">{{ previaDaCura }}</p>
+
+          <div v-if="ehAlimento" class="mt-3 space-y-1">
+            <label class="block text-[0.65rem] uppercase tracking-wide text-violet-400/80">Se bem feito, também</label>
+            <input v-model="form.efeito_bemfeito" type="text"
+              placeholder="+2 em Encanto para quem partilhou a refeição, pela próxima cena social."
+              class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white placeholder-zinc-600 outline-none focus:border-violet-500/50" />
+          </div>
+        </div>
+
         <!-- ── Condições ───────────────────────────────────────────────────
              É o que dá razão de existir a uma poção que não cura vida. Sem
              vínculo, "Elixir de Olhos Claros" é só um nome bonito. -->
@@ -188,9 +238,7 @@
               v-for="vinculo in form.condicoes"
               :key="`${vinculo.condicao_id}-${vinculo.acao}`"
               class="flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs"
-              :class="vinculo.acao === 'cura'
-                ? 'border-emerald-500/25 bg-emerald-950/30 text-emerald-300'
-                : 'border-sky-500/25 bg-sky-950/30 text-sky-300'"
+              :class="CLASSE_POR_ACAO[vinculo.acao]"
             >
               {{ nomeDaCondicao(vinculo.condicao_id) }}
               <span class="text-[0.6rem] opacity-70">{{ vinculo.acao }}</span>
@@ -210,8 +258,9 @@
             <button
               type="button"
               class="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-zinc-400 hover:text-white"
-              @click="acaoParaAdicionar = acaoParaAdicionar === 'cura' ? 'previne' : 'cura'"
-            >{{ acaoParaAdicionar === 'cura' ? 'Cura' : 'Previne' }}</button>
+              :class="acaoParaAdicionar === 'inflige' ? 'text-red-300' : ''"
+              @click="proximaAcao"
+            >{{ ROTULO_ACAO[acaoParaAdicionar] }}</button>
             <button
               type="button"
               :disabled="condicaoParaAdicionar === ''"
@@ -334,7 +383,8 @@ import {
   listarConsumiveis, criarConsumivel, editarConsumivel, deletarConsumivel,
   listarCategoriasConsumivel,
   type ConsumivelApi, type CategoriaConsumivelApi,
-  type AcaoSobreCondicao,
+  type AcaoSobreCondicao, type ViaDeVeneno,
+  ACOES_SOBRE_CONDICAO, CLASSE_POR_ACAO, VIAS_DE_VENENO, ROTULO_VIA,
 } from '@/lib/api/consumiveis.api'
 import { listarRaridades, classeDaRaridade, type RaridadeApi } from '@/lib/api/raridades.api'
 import { listarCondicoes, type CondicaoApi } from '@/lib/api/condicoes.api'
@@ -370,6 +420,10 @@ const formVazio = () => ({
   valor: null as number | null,
   raridade_item: '' as string | number,
   categoria_consumivel_item: '' as string | number,
+  via: '' as string,
+  cura_dado: '',
+  cura_percentual: null as number | null,
+  efeito_bemfeito: '',
   condicoes: [] as VinculoEmEdicao[],
 })
 const form = ref(formVazio())
@@ -395,6 +449,43 @@ const opcoesFiltroRaridade = computed(() => [
 const raridadeEscolhida = computed(() =>
   raridades.value.find(r => r.item === Number(form.value.raridade_item)) ?? null,
 )
+
+/** Os blocos do formulário seguem a categoria — pelo NOME, que é o que o mestre vê. */
+const nomeDaCategoriaEscolhida = computed(() =>
+  categorias.value.find(c => c.item === Number(form.value.categoria_consumivel_item))?.descricao ?? '',
+)
+const ehVeneno   = computed(() => nomeDaCategoriaEscolhida.value === 'Veneno')
+const ehPocao    = computed(() => nomeDaCategoriaEscolhida.value === 'Poção')
+const ehAlimento = computed(() => nomeDaCategoriaEscolhida.value === 'Alimento')
+
+const ROTULO_ACAO: Record<AcaoSobreCondicao, string> = {
+  cura: 'Cura', previne: 'Previne', inflige: 'Inflige',
+}
+
+/** Cicla cura → previne → inflige → cura. */
+function proximaAcao() {
+  const posicao = ACOES_SOBRE_CONDICAO.indexOf(acaoParaAdicionar.value)
+  acaoParaAdicionar.value = ACOES_SOBRE_CONDICAO[(posicao + 1) % ACOES_SOBRE_CONDICAO.length]
+}
+
+const opcoesVia = [
+  { value: '', label: 'Sem via' },
+  ...VIAS_DE_VENENO.map(v => ({ value: v, label: ROTULO_VIA[v] })),
+]
+
+/** Mostra a conta num personagem de 50 PV — o nível 20, meio da campanha. */
+const previaDaCura = computed(() => {
+  const dado = form.value.cura_dado.trim()
+  const pct = form.value.cura_percentual
+  if (!/^[0-9]+d[0-9]+$/.test(dado) && pct == null) return ''
+  const partes: string[] = []
+  if (/^[0-9]+d[0-9]+$/.test(dado)) {
+    const [quantidade, faces] = dado.split('d').map(Number)
+    partes.push(`${dado} (média ${(quantidade * (faces + 1)) / 2})`)
+  }
+  if (pct != null && !Number.isNaN(pct)) partes.push(`+ ${pct}% do PV máximo (${Math.round(50 * pct / 100)} PV em 50)`)
+  return partes.join(' ')
+})
 
 /** Só as ainda não vinculadas com a ação escolhida — evita repetir o par. */
 const opcoesCondicao = computed(() => {
@@ -448,11 +539,11 @@ function removerVinculo(alvo: VinculoEmEdicao) {
 
 /** Texto curto para a listagem: "cura Cegueira, Surdez". */
 function resumoDosVinculos(item: ConsumivelApi): string {
-  const cura = item.condicoes.filter(v => v.acao === 'cura').map(v => v.nome)
-  const previne = item.condicoes.filter(v => v.acao === 'previne').map(v => v.nome)
   const partes: string[] = []
-  if (cura.length) partes.push(`cura ${cura.join(', ')}`)
-  if (previne.length) partes.push(`previne ${previne.join(', ')}`)
+  for (const acao of ACOES_SOBRE_CONDICAO) {
+    const nomes = item.condicoes.filter(v => v.acao === acao).map(v => v.nome)
+    if (nomes.length) partes.push(`${acao} ${nomes.join(', ')}`)
+  }
   return partes.join(' · ')
 }
 
@@ -497,6 +588,10 @@ function abrirForm(item: ConsumivelApi | null) {
         valor: item.valor,
         raridade_item: item.raridade_item ?? '',
         categoria_consumivel_item: item.categoria_consumivel_item ?? '',
+        via: item.via ?? '',
+        cura_dado: item.cura_dado ?? '',
+        cura_percentual: item.cura_percentual,
+        efeito_bemfeito: item.efeito_bemfeito ?? '',
         condicoes: item.condicoes.map(v => ({ condicao_id: v.condicao_id, acao: v.acao })),
       }
     : formVazio()
@@ -521,6 +616,13 @@ async function salvar() {
       raridade_item: form.value.raridade_item === '' ? null : Number(form.value.raridade_item),
       categoria_consumivel_item:
         form.value.categoria_consumivel_item === '' ? null : Number(form.value.categoria_consumivel_item),
+      // Zerados fora do bloco visível: uma poção que virou veneno não pode
+      // continuar carregando cura, nem um veneno que virou prato carregar via.
+      via: ehVeneno.value && form.value.via ? (form.value.via as ViaDeVeneno) : null,
+      cura_dado: (ehPocao.value || ehAlimento.value) ? (form.value.cura_dado.trim() || null) : null,
+      cura_percentual: (ehPocao.value || ehAlimento.value) && form.value.cura_percentual != null
+        && !Number.isNaN(form.value.cura_percentual) ? form.value.cura_percentual : null,
+      efeito_bemfeito: ehAlimento.value ? (form.value.efeito_bemfeito.trim() || null) : null,
       // Sempre enviado: aqui o formulário É a verdade sobre os vínculos, e
       // omitir faria o backend preservar os antigos (ver o DTO no servidor).
       condicoes: form.value.condicoes,

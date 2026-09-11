@@ -107,6 +107,16 @@
                 <span v-if="t.valor !== null" class="text-[0.6rem] text-zinc-500">{{ t.valor }} pr</span>
               </span>
             </div>
+
+            <!-- Quem a causa. Em vermelho, e em linha própria: não é tratamento. -->
+            <div v-if="condicao.infligida_por.length" class="mt-2 flex flex-wrap items-center gap-1.5">
+              <span class="mr-1 text-[0.65rem] uppercase tracking-widest text-zinc-600">Infligida por</span>
+              <span v-for="v in condicao.infligida_por" :key="v.id"
+                class="inline-flex items-center gap-1.5 rounded-full border border-red-500/25 bg-red-950/30 px-2.5 py-1 text-xs text-red-300">
+                {{ v.nome }}
+                <span v-if="v.valor !== null" class="text-[0.6rem] text-zinc-500">{{ v.valor }} pr</span>
+              </span>
+            </div>
           </div>
         </article>
       </div>
@@ -196,9 +206,9 @@
       <div class="space-y-4 p-6">
         <p class="text-base font-bold text-white">Apagar condição?</p>
         <p class="text-sm text-zinc-400"><strong class="text-white">{{ paraDeletar.nome }}</strong> sai da listagem.</p>
-        <p v-if="paraDeletar.tratada_por.length" class="text-xs text-amber-400">
-          {{ paraDeletar.tratada_por.length }} consumível(is) tratam esta condição — o servidor vai recusar
-          enquanto os vínculos existirem.
+        <p v-if="paraDeletar.tratada_por.length + paraDeletar.infligida_por.length" class="text-xs text-amber-400">
+          {{ paraDeletar.tratada_por.length + paraDeletar.infligida_por.length }} consumível(is) tratam ou
+          aplicam esta condição — o servidor vai recusar enquanto os vínculos existirem.
         </p>
         <p v-if="erroDelete" class="text-xs text-red-400">{{ erroDelete }}</p>
         <div class="flex gap-3">

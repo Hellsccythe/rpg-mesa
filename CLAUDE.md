@@ -228,7 +228,8 @@ A raiz **não é mais o login**: `/` lista as campanhas (mundos) e cada uma leva
 
 **`docs/ECONOMIA.pdf` é a referência.** A migration 079 adotou os números dele, e preço novo deve ser ancorado nas mesmas âncoras.
 
-- **Moeda:** bronze → prata → ouro, na razão **1:10:100**. Preço se pensa em **prata**.
+- **Moeda:** bronze → prata → ouro, na razão **1:10:1000** — **um ouro vale cem prata** (migration 092; era dez). Preço se pensa em **prata**. O ouro é moeda de nobre e de realeza: uma peça é quase dois meses de salário de artesão, e vê-la numa taverna é acontecimento. Nenhum código converte entre moedas (o dinheiro é guardado por moeda, `{prata: 73, ouro: 2}`), então a razão vive só em `regras_do_sistema` e nos documentos.
+- **PENDENTE — passados que rolam ouro.** Cinco passados têm dado de ouro no `dinheiro_inicial` (Nobreza 1d6; Mercenário, Aventureiro, Guarda e Varejista 1d4). A cem prata por ouro esses dados valem dez vezes mais que quando foram calibrados na 079, e a amplitude de 2,6:1 entre o passado mais pobre e o mais rico vira ~17:1. A migration 092 **não** mexeu neles; a decisão é do mestre.
 - **Âncora:** 2 prata = um dia de trabalho sem qualificação; 5 prata = um dia de artesão; **60 prata = um mês**.
 - **Dinheiro inicial:** média de 22 (Vítima) a 57 (Nobreza) prata. Amplitude 2,6:1 — era 10:1 antes da 079.
 - **Crafting:** os ingredientes devem somar **70–75%** do preço de compra. A API de receitas calcula a proporção a cada leitura e a tela colore por faixa.
@@ -274,7 +275,7 @@ Documentação completa em `docs/COMPONENTS.md`.
 
 ## Banco de Dados — Tabelas
 
-Schema completo em `docs/SCHEMA_CURRENT.sql` — **arquivo gerado por `pg_dump --schema-only`, não editado a mão**; regere-o quando mexer no esquema (o comando está no cabeçalho do próprio arquivo). Migrations em `database/migrations/` (001–079). Documentação em PDF, com as ligações entre tabelas e os fluxos: `docs/BANCO_DE_DADOS.pdf`.
+Schema completo em `docs/SCHEMA_CURRENT.sql` — **arquivo gerado por `pg_dump --schema-only`, não editado a mão**; regere-o quando mexer no esquema (o comando está no cabeçalho do próprio arquivo). Migrations em `database/migrations/` (001–092). Documentação em PDF, com as ligações entre tabelas e os fluxos: `docs/BANCO_DE_DADOS.pdf`.
 
 **Não sobrou nenhum UUID no banco.** As migrations 022–023 converteram as PKs para `INTEGER IDENTITY`, e a **061** terminou o serviço nas colunas que ainda referenciavam o Supabase Auth: `characters.user_id` hoje é `INTEGER` apontando para `usuarios.id`, e `characters.campaign_id` é `INTEGER` apontando para `campaigns.id`. A coluna `usuarios.auth_user_id` foi removida.
 
@@ -637,12 +638,32 @@ Uma poção fica em `consumiveis`; a erva que a produz fica em `itens`. As duas 
 | valor | NUMERIC(12,2) | **preço final** em prata — ver abaixo |
 | raridade_item | INTEGER | referência a `raridade.item` |
 | categoria_consumivel_item | INTEGER | referência a `categoria_consumivel.item` |
+| via | VARCHAR(20) | **só veneno** (migration 090) — CHECK `lamina` \| `ingestao` \| `contato`. NULL em poção e prato; é assim que a tela sabe quando mostrar o campo |
+| cura_dado | VARCHAR(20) | a cura em número (migration 091), ex: `1d6`. Em prato, é a cura de **bem feito** |
+| cura_percentual | INTEGER | percentual do PV máximo somado ao dado. CHECK 0–100 |
+| efeito_bemfeito | TEXT | o que **mais** acontece quando o prato sai bem — hoje, o bônus social |
+
+**`cura_dado` + `cura_percentual` valem para poção E para prato.** "Recupera 1d4 + 20% do PV máximo" vivia dentro de `efeito` em texto e não era calculável — o mesmo defeito da coluna `dano` corrigido na migration 087. As três poções de cura foram convertidas na 091.
 
 **`valor` é o preço final, não uma base.** O `multiplicador_valor` da raridade é **referência para o mestre decidir** esse número e **não é aplicado** em cima dele. Aplicar automaticamente criaria dupla contagem: quem já pensou o preço de um item Raro veria ele multiplicado por 10 ao salvar. A tela mostra o multiplicador ao lado do campo, como apoio.
 
 `categoria_consumivel`: lookup com `item` IDENTITY. Seed: Poção, Veneno, Munição, Alimento, Pergaminho. Apagar categoria em uso é recusado pelo serviço.
 
-Tela: `/master/consumiveis` → `MasterConsumiveisView.vue`.
+#### Os três catálogos (migrations 083, 090 e 091)
+
+| Categoria | Quantos | Documento | Perícia da receita | O que o diferencia |
+|---|---|---|---|---|
+| Poção | 28 | `docs/POCOES.pdf` | Alquimia | cura ou previne uma condição |
+| **Veneno** | 16 | `docs/VENENOS.pdf` | Alquimia | **inflige** uma condição; tem `via`; Fortitude DC do tier para resistir |
+| **Alimento** | 12 | `docs/ALIMENTOS.pdf` | **Cozinha** | cura sem aplicar Saturação Alquímica; nunca em combate |
+
+Todos são gerados de `docs/*_dados.py` → `verificar_*.py` → PDF e migration, pelo mesmo arquivo. **Para mudar um preço ou receita, edite os dados e regere** — não edite o SQL nem o HTML.
+
+**Veneno é a poção com o sinal trocado.** O antídoto que já existe contra uma condição vale contra qualquer veneno que a aplique, sem ninguém escrever essa ligação. Calibrado para que **envenenar nunca saia mais barato que se defender**: o verificador recusa um veneno mais barato que o antídoto que o anula. Só 5 dos 16 (os de lâmina) funcionam em combate — de propósito. Os 4 farsantes não têm antídoto: passam sozinhos, e a defesa é Medicina.
+
+**Alimento é a resposta à Saturação Alquímica.** Duas poções travam a terceira por uma semana; comida cura sem saturar. O preparo é teste de **Cozinha contra a DC do tier**: mal feito cura **1d4 fixo** (regra `alimento.cura_malfeito`, não coluna — é igual para o catálogo inteiro, e é o que torna caro estragar ingrediente raro); bem feito cura `cura_dado + cura_percentual`, que escala com o tier. O tier do prato é o do **ingrediente mais raro** da receita. A refeição leva 10–30 min (`duracao`), mais que qualquer luta. Quatro pratos dão bônus social (`efeito_bemfeito`), só bem feitos, e para quem **partilhou** a mesa.
+
+Tela: `/master/consumiveis` → `MasterConsumiveisView.vue`. O formulário mostra um bloco por categoria — via para veneno, cura para poção e prato, "se bem feito" para prato.
 
 ### `condicoes` e `consumivel_condicao` (migrations 080 e 083)
 
@@ -668,9 +689,11 @@ Vieram **antes** do catálogo de poções, e não depois, por uma razão de orde
 
 #### O vínculo
 
-`consumivel_condicao` liga os dois lados: `consumivel_id`, `condicao_id` e `acao` (CHECK `'cura'` | `'previne'`). **25 vínculos no seed.**
+`consumivel_condicao` liga os dois lados: `consumivel_id`, `condicao_id` e `acao` (CHECK `'cura'` | `'previne'` | `'inflige'`). **25 vínculos de poção (083) + 16 de veneno (090).**
 
-`cura` remove o que já se sofreu; `previne` imuniza por um tempo. São ações diferentes o bastante para o par (condição, ação) ser a chave — Selo da Vontade previne duas condições distintas sem curar nenhuma.
+`cura` remove o que já se sofreu; `previne` imuniza por um tempo; `inflige` aplica — é o veneno. São ações diferentes o bastante para o par (condição, ação) ser a chave — Selo da Vontade previne duas condições distintas sem curar nenhuma.
+
+A API de condições devolve `tratada_por` (cura e previne) e `infligida_por` (inflige) **separados**: "tem cura?" e "quem causa?" são perguntas opostas, e misturá-las numa lista faria a tela dizer que um veneno "trata" a condição. **24 condições** hoje: as 20 originais e as 4 da classe farsante (Febre Fingida, Desmaio Breve, Estigma Falso, Morte Aparente), que passam sozinhas e trazem a DC de Medicina que revela a farsa.
 
 `paranoid: false` e sem `updated_at`: o vínculo é detalhe do consumível, editado **como conjunto** (apaga tudo e reinsere), então nunca há o que atualizar numa linha e soft delete só acumularia lixo. É por isso que o índice único é **total**, não parcial.
 
@@ -679,7 +702,7 @@ Vieram **antes** do catálogo de poções, e não depois, por uma razão de orde
 - `ConsumiveisService.criar`/`editar` rodam **numa transação** — a validação das condições pode recusar o pedido, e sem transação o consumível ficava criado e sem vínculo
 - `condicoes.condicoes[]` ausente no PATCH significa "não mexa"; array vazio significa "apague todos". Um PATCH que só muda o preço não pode desvincular sem querer
 - apagar consumível apaga os vínculos de verdade (o consumível é soft delete, os vínculos não)
-- apagar condição é **recusado** enquanto algum consumível **vivo** a tratar
+- apagar condição é **recusado** enquanto algum consumível **vivo** a tratar ou aplicar
 
 Telas: `/master/condicoes` → `MasterCondicoesView.vue` (lista as condições com quem as trata); o vínculo se **edita** em `/master/consumiveis`, que é onde o mestre decide o que a poção faz.
 
@@ -720,8 +743,8 @@ Daí o par **`<coisa>_tabela` + `<coisa>_id`** nos dois lados, com `CHECK` no ba
 | produto_tabela + produto_id | VARCHAR(20) + INTEGER | o que a receita produz |
 | quantidade_produzida | INTEGER | NOT NULL default 1 |
 | tempo_minutos | INTEGER | em minutos, para caber "20 min" e "dois dias" |
-| dificuldade | INTEGER | **solta por enquanto** — vira teste de perícia quando o sistema de habilidades mundanas existir |
-| pericia_id | INTEGER | reservada, sempre nula hoje |
+| dificuldade | INTEGER | a DC do teste — `raridade.dificuldade_base` do produto (10/15/20) |
+| pericia_id | INTEGER | referência a `pericias.id`. **Alquimia** nas 44 receitas de poção e veneno, **Cozinha** nas 12 de prato. Preenchida desde a 083; a 091 trouxe a primeira perícia que não é Alquimia |
 
 **Sem UNIQUE em (produto_tabela, produto_id)** de propósito: caminhos alternativos para o mesmo produto são desejáveis.
 
