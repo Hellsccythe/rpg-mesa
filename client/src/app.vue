@@ -66,26 +66,35 @@ onMounted(() => {
 }
 
 /* ── Transição padrão entre páginas ─────────────────────────────────────── */
+/* Só opacidade e escala: ambas compõem na GPU. O blur(6px) que havia aqui
+   refiltrava a página inteira a cada quadro, quase um segundo por troca de
+   tela — caro demais no celular fraco que é o alvo. */
 .page-fade-leave-active {
   transition:
-    opacity 0.45s cubic-bezier(0.4, 0, 1, 1),
-    transform 0.45s cubic-bezier(0.4, 0, 1, 1),
-    filter 0.45s ease;
+    opacity 0.3s cubic-bezier(0.4, 0, 1, 1),
+    transform 0.3s cubic-bezier(0.4, 0, 1, 1);
 }
 .page-fade-enter-active {
   transition:
-    opacity 0.5s cubic-bezier(0, 0, 0.2, 1),
-    transform 0.5s cubic-bezier(0, 0, 0.2, 1),
-    filter 0.5s ease;
+    opacity 0.35s cubic-bezier(0, 0, 0.2, 1),
+    transform 0.35s cubic-bezier(0, 0, 0.2, 1);
 }
 .page-fade-enter-from {
   opacity: 0;
-  transform: scale(1.04);
-  filter: blur(6px);
+  transform: scale(1.02);
 }
 .page-fade-leave-to {
   opacity: 0;
-  transform: scale(0.96);
-  filter: blur(6px);
+  transform: scale(0.98);
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-fade-enter-active,
+  .page-fade-leave-active {
+    transition: opacity 0.15s ease;
+  }
+  .page-fade-enter-from,
+  .page-fade-leave-to {
+    transform: none;
+  }
 }
 </style>
