@@ -93,14 +93,17 @@
                   </div>
                 </div>
 
-                <!-- Barra de progressão de nível -->
-                <div v-if="levelProgression.length" class="mb-3">
+                <!-- Barra de XP DA CLASSE: data.classes[].xp contra o custo do
+                     próximo nível em class_level_progression. Antes lia o XP
+                     do personagem e a tabela de nível de personagem — o card
+                     dizia "2.086.629 / próximo 37.500" para uma classe 20/20. -->
+                <div v-if="custoDoProximoNivel(pc) !== null" class="mb-3">
                   <div class="flex justify-between text-xs text-zinc-500 mb-1">
-                    <span>XP: {{ xpAtualFormatado }}</span>
-                    <span>Próximo: {{ xpProximoNivel(pc.level) }}</span>
+                    <span>XP: {{ xpDaClasse(pc).toLocaleString('pt-BR') }}</span>
+                    <span>Próximo: {{ custoDoProximoNivel(pc)!.toLocaleString('pt-BR') }}</span>
                   </div>
                   <div class="h-1.5 rounded-full bg-zinc-700/60 overflow-hidden">
-                    <div class="h-full rounded-full bg-amber-500 transition-all" :style="{ width: `${xpPercent(pc.level)}%` }" />
+                    <div class="h-full rounded-full bg-amber-500 transition-all" :style="{ width: `${xpPercentDaClasse(pc)}%` }" />
                   </div>
                 </div>
 
@@ -562,7 +565,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useCharactersStore } from '@/stores/characters'
 import { useClassesStore } from '@/stores/classes'
 import { useSkillsStore } from '@/stores/skills'
-import type { ClasseApi, LevelProgressionApi } from '@/lib/api/classes.api'
+import { listarProgressaoClasse, type ClasseApi } from '@/lib/api/classes.api'
 import type { SkillApi } from '@/lib/api/skills.api'
 
 const route = useRoute()
@@ -793,41 +796,37 @@ function defaultSkills(cls: ClasseApi): string[] {
   return []
 }
 
-// ── Level Progression ─────────────────────────────────────────────────────
-const xpAtualFormatado = computed(() => xpAtual.value.toLocaleString('pt-BR'))
+// ── XP da classe ──────────────────────────────────────────────────────────
+/** class_level_progression por classe: nível → XP necessário para chegar nele. */
+const progressaoPorClasse = ref<Map<string, Map<number, number>>>(new Map())
 
-/**
- * A tabela é esparsa (tem os níveis 1 a 5, depois 10, 15, 20, 25...), então
- * procurar exatamente `nivel + 1` não acha nada na maior parte dos níveis e a
- * barra ficava zerada. Aqui pega o marco anterior e o próximo marco existente.
- */
-function marcoAtual(classLevel: number): LevelProgressionApi | undefined {
-  return [...levelProgression.value]
-    .filter((linha) => linha.level <= classLevel)
-    .sort((a, b) => b.level - a.level)[0]
+function xpDaClasse(pc: any): number {
+  return Number(pc?.xp ?? 0)
 }
 
-function proximoMarco(classLevel: number): LevelProgressionApi | undefined {
-  return [...levelProgression.value]
-    .filter((linha) => linha.level > classLevel)
-    .sort((a, b) => a.level - b.level)[0]
+/** Custo do próximo nível da classe, ou null no teto / sem tabela. */
+function custoDoProximoNivel(pc: any): number | null {
+  const nivel = Number(pc?.level ?? 1)
+  if (nivel >= 20) return null
+  const custo = progressaoPorClasse.value.get(String(pc?.classId))?.get(nivel + 1)
+  return custo === undefined ? null : custo
 }
 
-// XP acumulado necessário para chegar ao próximo marco — não o delta daquele
-// nível, que é o que esta função mostrava por engano.
-function xpProximoNivel(classLevel: number): string {
-  const proximo = proximoMarco(classLevel)
-  return proximo ? proximo.xp_total_accumulated.toLocaleString('pt-BR') : '—'
+function xpPercentDaClasse(pc: any): number {
+  const custo = custoDoProximoNivel(pc)
+  if (!custo) return 0
+  return Math.min(100, Math.max(0, Math.round((xpDaClasse(pc) / custo) * 100)))
 }
 
-function xpPercent(classLevel: number): number {
-  const atual = marcoAtual(classLevel)
-  const proximo = proximoMarco(classLevel)
-  if (!atual || !proximo) return 0
-  const percorrido = xpAtual.value - atual.xp_total_accumulated
-  const faixa = proximo.xp_total_accumulated - atual.xp_total_accumulated
-  if (faixa <= 0) return 100
-  return Math.min(100, Math.max(0, Math.round((percorrido / faixa) * 100)))
+async function carregarProgressaoDasClasses() {
+  const linhas = await listarProgressaoClasse()
+  const mapa = new Map<string, Map<number, number>>()
+  for (const linha of linhas) {
+    const chave = String(linha.classe_id)
+    if (!mapa.has(chave)) mapa.set(chave, new Map())
+    mapa.get(chave)!.set(linha.nivel, linha.xp_necessario)
+  }
+  progressaoPorClasse.value = mapa
 }
 
 // ── Skill helpers ─────────────────────────────────────────────────────────
@@ -1039,6 +1038,7 @@ async function init() {
     await Promise.allSettled([
       classesStore.fetchClasses(characterId || undefined),
       classesStore.fetchLevelProgression(),
+      carregarProgressaoDasClasses(),
       skillsStore.catalogo.length === 0 ? skillsStore.fetchCatalogo() : Promise.resolve(),
       characterId && !character.value
         ? charactersStore.fetchCharacterById(characterId)

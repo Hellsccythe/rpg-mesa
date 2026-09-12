@@ -3,6 +3,9 @@ import { InjectModel } from "@nestjs/sequelize";
 import { QueryTypes } from "sequelize";
 import { Sequelize } from "sequelize-typescript";
 import type { UsuarioAutenticado } from "../../common/cls/usuario-autenticado.interface.js";
+
+/** O mesmo teto de personagens-progressao.service.ts — a tabela de XP para até 20. */
+const NIVEL_MAXIMO_DE_CLASSE = 20;
 import { PersonagemModel } from "./models/personagem.model.js";
 import { garantirAcessoAoPersonagem } from "./personagem-acesso.js";
 import { mapearPersonagemParaApi, type PersonagemApi } from "./personagem-api.mapper.js";
@@ -92,6 +95,39 @@ export class PersonagensOnboardingService {
     private readonly sequelize: Sequelize,
     private readonly servicoPericias: PericiasService,
   ) {}
+
+  /**
+   * A skill precisa existir e pertencer à classe — ser uma das starting_skills
+   * ou ter required_class igual à classe — e respeitar nivel_minimo_classe.
+   * O dashboard já filtrava a lista, mas a rota aceitava qualquer nome: com o
+   * token na mão dava para se conceder "Skill de Teste" ou a skill de outra
+   * classe gastando um ponto.
+   */
+  private async garantirSkillDaClasse(nomeDaSkill: string, classeId: string, nivelDaClasse: number): Promise<void> {
+    const linhas = await this.sequelize.query<{ nivel_minimo_classe: number | null; pertence: boolean }>(
+      `SELECT skills.nivel_minimo_classe,
+              (skills.required_class = :classeId
+               OR EXISTS (
+                 SELECT 1 FROM classes
+                  WHERE classes.id = :classeIdNumero AND classes.deleted_at IS NULL
+                    AND LOWER(:nome) = ANY (SELECT LOWER(unnest(classes.starting_skills)))
+               )) AS pertence
+         FROM skills
+        WHERE skills.deleted_at IS NULL AND LOWER(skills.name) = LOWER(:nome)
+        LIMIT 1`,
+      {
+        replacements: { nome: nomeDaSkill, classeId, classeIdNumero: Number.parseInt(classeId, 10) || 0 },
+        type: QueryTypes.SELECT,
+      },
+    );
+
+    const skill = linhas[0];
+    if (!skill) throw new NotFoundException("Skill não encontrada no catálogo.");
+    if (!skill.pertence) throw new BadRequestException("Esta skill não pertence a esta classe.");
+    if (skill.nivel_minimo_classe != null && skill.nivel_minimo_classe > nivelDaClasse) {
+      throw new BadRequestException(`Esta skill exige a classe no nível ${skill.nivel_minimo_classe}.`);
+    }
+  }
 
   // ── Etapa 1: raça ─────────────────────────────────────────────────────────
 
@@ -184,13 +220,19 @@ export class PersonagensOnboardingService {
       throw new BadRequestException("Sem pontos de skill disponíveis para esta classe.");
     }
 
+    const nivelDaClasse = typeof classeDoPersonagem.level === "number" ? classeDoPersonagem.level : 1;
+    await this.garantirSkillDaClasse(nomeDaSkill, dados.classId, nivelDaClasse);
+
+    // Esta rota atende toda skill aprendida pelo dashboard, não só a inicial,
+    // e cada uma somava +1 sem teto: no nível 20 com 10 pontos a classe ia a
+    // 30, e os níveis pares devolviam pontos — nível de graça, sem XP.
     const nivelAtual = typeof classeDoPersonagem.level === "number" ? classeDoPersonagem.level : 1;
     skillsEscolhidas.push(nomeDaSkill);
     classes[posicaoDaClasse] = {
       ...classeDoPersonagem,
       chosenSkills: skillsEscolhidas,
       skillPoints: pontosDisponiveis - 1,
-      level: nivelAtual + 1,
+      level: Math.min(nivelAtual + 1, NIVEL_MAXIMO_DE_CLASSE),
     };
 
     const skillsDoPersonagem = Array.isArray(dadosPersonagem.skills)

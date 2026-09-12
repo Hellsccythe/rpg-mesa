@@ -1,7 +1,7 @@
 <template>
   <TemaDarkLight variante="contexto" class="min-h-screen">
     <header class="sticky top-0 z-20 border-b backdrop-blur-xl page-header">
-      <div class="mx-auto flex h-16 w-full max-w-5xl items-center gap-3 px-4 sm:px-6">
+      <div class="mx-auto flex min-h-16 w-full max-w-5xl flex-wrap items-center gap-3 px-4 py-2 sm:px-6">
         <button type="button" class="text-zinc-400 hover:text-white transition-colors" @click="router.push({ name: 'master-panel' })">
           <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
         </button>
@@ -47,7 +47,7 @@
         <div
           v-for="c in campanhas"
           :key="c.id"
-          class="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-5 flex gap-4 items-start"
+          class="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-5 flex flex-wrap gap-4 items-start"
         >
           <!-- Miniatura -->
           <div class="flex-none w-20 h-14 rounded-xl overflow-hidden bg-white/[0.04] border border-white/[0.06]">
@@ -68,7 +68,7 @@
           </div>
 
           <!-- Ações -->
-          <div class="flex-none flex items-center gap-2">
+          <div class="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-none">
             <button
               type="button"
               class="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-zinc-400 hover:text-white transition-colors"

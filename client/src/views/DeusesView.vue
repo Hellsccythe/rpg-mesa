@@ -17,7 +17,7 @@
         </div>
 
         <div class="flex items-center gap-3">
-          <span class="header-title text-2xl font-bold tracking-widest">Caminho Sem Volta</span>
+          <span class="header-title truncate text-lg font-bold tracking-widest sm:text-2xl">Caminho Sem Volta</span>
         </div>
 
         <div class="flex items-center gap-6 text-2xl">
@@ -167,6 +167,11 @@
                     </div>
                   </div>
                   <div class="p-6">
+                    <!-- Nome fora do overlay: o overlay só aparece no hover, e no
+                         celular não há hover — o jogador via a arte e a descrição
+                         sem nunca saber de quem era. -->
+                    <h3 class="mb-0.5 text-lg font-bold" :class="getAlignmentClass(entry.god.alinhamento)">{{ entry.god.name }}</h3>
+                    <p v-if="entry.god.title" class="deuses-card-text mb-2 text-xs italic opacity-80">{{ entry.god.title }}</p>
                     <p class="deuses-card-text line-clamp-4 text-sm leading-relaxed">
                       {{ entry.god.shortDescription }}
                     </p>
@@ -222,6 +227,11 @@
                     </div>
                   </div>
                   <div class="p-6">
+                    <!-- Nome fora do overlay: o overlay só aparece no hover, e no
+                         celular não há hover — o jogador via a arte e a descrição
+                         sem nunca saber de quem era. -->
+                    <h3 class="mb-0.5 text-lg font-bold" :class="getAlignmentClass(entry.god.alinhamento)">{{ entry.god.name }}</h3>
+                    <p v-if="entry.god.title" class="deuses-card-text mb-2 text-xs italic opacity-80">{{ entry.god.title }}</p>
                     <p class="deuses-card-text line-clamp-4 text-sm leading-relaxed">
                       {{ entry.god.shortDescription }}
                     </p>
@@ -281,6 +291,11 @@
                     </div>
                   </div>
                   <div class="p-6">
+                    <!-- Nome fora do overlay: o overlay só aparece no hover, e no
+                         celular não há hover — o jogador via a arte e a descrição
+                         sem nunca saber de quem era. -->
+                    <h3 class="mb-0.5 text-lg font-bold" :class="getAlignmentClass(entry.god.alinhamento)">{{ entry.god.name }}</h3>
+                    <p v-if="entry.god.title" class="deuses-card-text mb-2 text-xs italic opacity-80">{{ entry.god.title }}</p>
                     <p class="deuses-card-text line-clamp-4 text-sm leading-relaxed">
                       {{ entry.god.shortDescription }}
                     </p>

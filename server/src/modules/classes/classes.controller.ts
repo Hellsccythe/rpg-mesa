@@ -59,7 +59,12 @@ export class ClassesController {
 
   // ── Progressão de XP por classe ───────────────────────────────────────────
 
-  @UseGuards(JwtAuthGuard, MasterGuard)
+  /**
+   * Só JwtAuthGuard, e não MasterGuard: é a tabela de regra que o card da
+   * classe no site do jogador precisa para dizer "XP 120 / próximo 360". Era
+   * isMaster, e o card mostrava o XP do personagem contra a tabela errada.
+   */
+  @UseGuards(JwtAuthGuard)
   @Get("progressao")
   listarProgressaoDeClasse(@Query() filtro: FiltroProgressaoClasseDto) {
     return this.servicoClasses.listarProgressao(filtro.classe_id);
