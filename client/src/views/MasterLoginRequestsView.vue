@@ -136,6 +136,10 @@
                 </a>
               </div>
 
+              <p class="text-xs text-zinc-500">
+                Mundo: <span :class="req.campaign_id ? 'text-zinc-300' : 'text-amber-400'">{{ nomeDaCampanha(req.campaign_id) }}</span>
+              </p>
+
               <!-- Motivo de rejeição -->
               <div v-if="req.status === 'rejeitado' && req.rejeitado_motivo" class="rounded-xl bg-red-950/20 border border-red-500/20 p-3">
                 <p class="mb-1 text-xs uppercase tracking-wider text-red-400">Motivo da Rejeição</p>
@@ -183,6 +187,17 @@
         Confirma a aprovação de <span class="font-semibold text-white">{{ nomeAprovar }}</span>?
         Isso criará a conta e o personagem no sistema.
       </p>
+      <!-- O mundo é decisão do mestre: a solicitação só sugere (vem do
+           /mundo/:slug em que o jogador se cadastrou; pelo /login direto vem vazia). -->
+      <div class="space-y-1">
+        <label class="block text-xs font-semibold uppercase tracking-wide text-zinc-400">Mundo do personagem</label>
+        <VSelect
+          v-model="campanhaAprovar"
+          :options="opcoesDeCampanha"
+          placeholder="Escolha a campanha"
+        />
+        <p v-if="!campanhaAprovar" class="text-xs text-amber-400">Sem mundo o personagem não aparece na tela de nenhuma campanha.</p>
+      </div>
       <div class="flex gap-3">
         <button
           @click="fecharConfirmacaoAprovar"
@@ -192,7 +207,7 @@
         </button>
         <button
           @click="confirmarAprovar"
-          :disabled="processando[modalAprovarId!] === 'aprovar'"
+          :disabled="processando[modalAprovarId!] === 'aprovar' || !campanhaAprovar"
           class="flex-1 rounded-xl bg-emerald-600 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
         >
           {{ processando[modalAprovarId!] === 'aprovar' ? 'Aprovando...' : 'Confirmar Aprovação' }}
@@ -238,10 +253,12 @@
 
 <script setup lang="ts">
 import AvatarPersonagem from '@/components/AvatarPersonagem.vue'
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import Modal from '@/components/Modal.vue'
+import VSelect from '@/components/VSelect.vue'
 import TemaDarkLight from '@/components/TemaDarkLight.vue'
+import { listarCampanhasAdmin, type CampanhaApi } from '@/lib/api/campanhas.api'
 import {
   listarSolicitacoesPendentes,
   aprovarSolicitacao,
@@ -263,6 +280,16 @@ const modalRejeicaoId = ref<number | null>(null)
 const motivoRejeicao = ref('')
 const modalAprovarId = ref<number | null>(null)
 const nomeAprovar = ref('')
+const campanhaAprovar = ref<number | ''>('')
+const campanhas = ref<CampanhaApi[]>([])
+const opcoesDeCampanha = computed(() =>
+  campanhas.value.filter((c) => c.is_active).map((c) => ({ value: c.id, label: c.name })),
+)
+
+function nomeDaCampanha(id: number | null): string {
+  if (!id) return 'sem mundo'
+  return campanhas.value.find((c) => c.id === id)?.name ?? `campanha #${id}`
+}
 
 function formatarData(iso: string) {
   if (!iso) return ''
@@ -273,12 +300,14 @@ async function carregarSolicitacoes() {
   carregando.value = true
   erro.value = ''
   try {
-    const [lista, count] = await Promise.all([
+    const [lista, count, mundos] = await Promise.all([
       listarSolicitacoesPendentes(),
       contarSolicitacoesPendentes(),
+      listarCampanhasAdmin().catch(() => [] as CampanhaApi[]),
     ])
     solicitacoes.value = lista
     pendingCount.value = count
+    campanhas.value = mundos
   } catch (err: any) {
     erro.value = err?.response?.data?.message ?? err?.message ?? 'Erro ao carregar solicitações.'
   } finally {
@@ -289,6 +318,9 @@ async function carregarSolicitacoes() {
 function abrirConfirmacaoAprovar(req: CharacterCreationRequestApi) {
   modalAprovarId.value = req.id
   nomeAprovar.value = req.nome
+  // Sugere o mundo da solicitação; sem ele, o único ativo — se houver um só.
+  const ativas = opcoesDeCampanha.value
+  campanhaAprovar.value = req.campaign_id ?? (ativas.length === 1 ? ativas[0].value : '')
 }
 
 function fecharConfirmacaoAprovar() {
@@ -299,16 +331,17 @@ function fecharConfirmacaoAprovar() {
 async function confirmarAprovar() {
   if (modalAprovarId.value === null) return
   const id = modalAprovarId.value
+  const campanhaId = campanhaAprovar.value || null
   fecharConfirmacaoAprovar()
-  await aprovar(id)
+  await aprovar(id, campanhaId)
 }
 
-async function aprovar(id: number) {
+async function aprovar(id: number, campanhaId: number | null) {
   processando[id] = 'aprovar'
   delete erroAcao[id]
   delete sucessoAcao[id]
   try {
-    await aprovarSolicitacao(id)
+    await aprovarSolicitacao(id, campanhaId)
     const req = solicitacoes.value.find((r) => r.id === id)
     if (req) req.status = 'aprovado'
     sucessoAcao[id] = 'Personagem criado com sucesso!'

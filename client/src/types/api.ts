@@ -129,6 +129,8 @@ export interface CharacterCreationRequestApi {
   rejeitado_motivo: string | null
   revisado_em: string | null
   revisado_por: string | null
+  /** Nulo quando o jogador se cadastrou pelo /login direto, sem mundo. */
+  campaign_id: number | null
   created_at: string
   updated_at: string
 }

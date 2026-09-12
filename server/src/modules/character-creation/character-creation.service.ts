@@ -148,8 +148,9 @@ export class CharacterCreationService {
    * transferido como está — a versão anterior decifrava a senha em texto para
    * mandar ao Supabase Auth.
    */
-  async aprovar(id: number): Promise<{ success: boolean }> {
+  async aprovar(id: number, campanhaEscolhida?: number): Promise<{ success: boolean }> {
     const solicitacao = await this.buscarPendenteOuFalhar(id);
+    const campanhaId = await this.resolverCampanha(campanhaEscolhida ?? solicitacao.campaignId);
 
     if (FORMATO_SENHA_LEGADO.test(solicitacao.passwordHash)) {
       throw new BadRequestException(
@@ -187,7 +188,7 @@ export class CharacterCreationService {
         historiaTexto: solicitacao.historiaTexto,
         historiaDocUrl: solicitacao.historiaDocUrl,
         status: "vivo",
-        campaignId: solicitacao.campaignId,
+        campaignId: campanhaId,
         data: {},
       });
     } catch (erro) {
@@ -202,6 +203,25 @@ export class CharacterCreationService {
     await solicitacao.save();
 
     return { success: true };
+  }
+
+  /**
+   * Personagem sem campanha não aparece em /mundo/:slug nenhum — só no
+   * /login direto. A escolha do mestre vale mais que a da solicitação, e
+   * nenhuma das duas pode ficar em branco.
+   */
+  private async resolverCampanha(campanhaId: number | null | undefined): Promise<number> {
+    if (!campanhaId) {
+      throw new BadRequestException("Escolha a campanha em que o personagem entra.");
+    }
+    const linhas = await this.sequelize.query<{ id: number }>(
+      `SELECT id FROM campaigns WHERE id = :id AND deleted_at IS NULL`,
+      { replacements: { id: campanhaId }, type: QueryTypes.SELECT },
+    );
+    if (linhas.length === 0) {
+      throw new BadRequestException("Campanha não encontrada.");
+    }
+    return campanhaId;
   }
 
   async rejeitar(id: number, motivo?: string): Promise<{ success: boolean }> {

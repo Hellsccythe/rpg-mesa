@@ -51,8 +51,8 @@ export async function contarSolicitacoesPendentes(): Promise<number> {
   return data.count
 }
 
-export async function aprovarSolicitacao(id: number | string): Promise<void> {
-  await api.patch(`/character-creation-requests/admin/${id}/aprovar`)
+export async function aprovarSolicitacao(id: number | string, campaignId?: number | null): Promise<void> {
+  await api.patch(`/character-creation-requests/admin/${id}/aprovar`, campaignId ? { campaign_id: campaignId } : {})
 }
 
 export async function rejeitarSolicitacao(

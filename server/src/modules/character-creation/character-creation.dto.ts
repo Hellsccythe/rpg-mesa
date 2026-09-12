@@ -49,6 +49,17 @@ export class SubmeterSolicitacaoDto {
   campaign_id?: number | null;
 }
 
+/**
+ * A campanha em que o personagem nasce. Vem da solicitação quando o jogador
+ * se cadastrou por /mundo/:slug; quem entrou pelo /login direto mandou nulo,
+ * e a aprovação copiava o nulo para o personagem — que então não aparecia
+ * em mundo nenhum. Agora o mestre escolhe ao aprovar.
+ */
+export class AprovarSolicitacaoDto {
+  @IsOptional() @IsInt() @Min(1)
+  campaign_id?: number;
+}
+
 export class RejeitarSolicitacaoDto {
   @IsOptional() @IsString() @MaxLength(1000)
   motivo?: string;
