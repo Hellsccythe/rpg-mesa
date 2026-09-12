@@ -203,7 +203,7 @@
                     :key="stat"
                     class="stat-bonus-badge text-xs rounded-full px-2 py-0.5"
                   >
-                    +{{ val }} {{ stat }}
+                    +{{ val }} {{ rotuloDoAtributo(stat) }}
                   </span>
                 </div>
 
@@ -336,7 +336,7 @@
             :key="stat"
             class="text-sm bg-emerald-900/30 border border-emerald-700/40 rounded-full px-3 py-1 text-emerald-300"
           >
-            +{{ val }} {{ stat }}
+            +{{ val }} {{ rotuloDoAtributo(stat) }}
           </span>
         </div>
       </div>
@@ -476,7 +476,7 @@
             :key="stat"
             class="text-sm bg-emerald-900/30 border border-emerald-700/40 rounded-full px-3 py-1 text-emerald-300"
           >
-            +{{ val }} {{ stat }}
+            +{{ val }} {{ rotuloDoAtributo(stat) }}
           </span>
         </div>
       </div>
@@ -775,6 +775,14 @@ function tierBadgeClass(tier: string): string {
   if (t === 'base') return 'tier-badge--base'
   if (t.startsWith('hibrid')) return 'tier-badge--hibrida'
   return 'tier-badge--other'
+}
+
+/** As chaves de stat_bonuses são os cinco atributos do sistema (migration 097); aqui viram o rótulo com acento. */
+const ROTULO_DO_ATRIBUTO: Record<string, string> = {
+  aura: 'Aura', forca: 'Força', destreza: 'Destreza', resistencia: 'Resistência', inteligencia: 'Inteligência',
+}
+function rotuloDoAtributo(chave: string): string {
+  return ROTULO_DO_ATRIBUTO[chave] ?? chave
 }
 
 function statusBonusEntries(cls: ClasseApi): [string, unknown][] {
