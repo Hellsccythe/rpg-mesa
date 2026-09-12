@@ -153,7 +153,7 @@ A raiz **não é mais o login**: `/` lista as campanhas (mundos) e cada uma leva
 | POST | `/api/character-creation-requests/upload-historia` | público |
 | GET | `/api/character-creation-requests/admin` | isMaster |
 | GET | `/api/character-creation-requests/admin/pendentes/count` | auth |
-| PATCH | `/api/character-creation-requests/admin/:id/aprovar` | isMaster |
+| PATCH | `/api/character-creation-requests/admin/:id/aprovar` | isMaster (body `{campaign_id?}` — a escolha do mestre vale mais que a da solicitação; sem nenhuma das duas, 400) |
 | PATCH | `/api/character-creation-requests/admin/:id/rejeitar` | isMaster |
 | GET | `/api/usuarios/admin` | isMaster |
 | PATCH | `/api/usuarios/admin/:id` | isMaster |
@@ -187,7 +187,7 @@ A raiz **não é mais o login**: `/` lista as campanhas (mundos) e cada uma leva
 | POST | `/api/personagens/:id/escolher-classe` | auth (adquire classe nova, gasta 1 ponto de classe) |
 | POST | `/api/personagens/:id/levar-classe` | auth (converte 1 ponto de classe em 1 ponto de skill) |
 | PATCH | `/api/personagens/:id/distribuir-pontos-atributo` | auth |
-| PATCH | `/api/personagens/:id` | auth — dono ou mestre |
+| PATCH | `/api/personagens/:id` | auth — dono ou mestre. **Para o dono só funde `data.changeRequestResponse`** e ignora o resto (nome, nível, `data` inteiro): a rota aceitava tudo, e qualquer jogador regravava `classPoints`, `level` ou as notas com o próprio token |
 | PATCH | `/api/personagens/:id/solicitacao` | auth (pede alteração que o mestre revisa) |
 | GET | `/api/personagens/admin/solicitacoes` | isMaster |
 | POST | `/api/personagens/admin/solicitacoes/:id/revisar` | isMaster |
@@ -201,6 +201,8 @@ A raiz **não é mais o login**: `/` lista as campanhas (mundos) e cada uma leva
 | PATCH | `/api/personagens/admin/:id/avatar-focal-point` | isMaster |
 | PATCH | `/api/personagens/admin/:id/modal-hero-position` | isMaster |
 | POST | `/api/personagens/admin/personagens/:id/notas` | isMaster (nota de aventura) |
+| PATCH | `/api/personagens/admin/personagens/:id/notas/:indice` | isMaster (`{note?, oculta?}` — as notas não têm id, a posição é o endereço) |
+| DELETE | `/api/personagens/admin/personagens/:id/notas/:indice` | isMaster |
 | DELETE | `/api/personagens/admin/:id` | isMaster (soft delete + apaga o avatar do disco) |
 | PATCH | `/api/personagens/admin/:id/status` | isMaster (vivo \| morto; morte libera classe secreta) |
 | GET | `/api/campanhas` | público (só as ativas) |
@@ -296,7 +298,7 @@ Documentação completa em `docs/COMPONENTS.md`.
 
 ## Banco de Dados — Tabelas
 
-Schema completo em `docs/SCHEMA_CURRENT.sql` — **arquivo gerado por `pg_dump --schema-only`, não editado a mão**; regere-o quando mexer no esquema (o comando está no cabeçalho do próprio arquivo). Migrations em `database/migrations/` (001–096). Documentação em PDF, com as ligações entre tabelas e os fluxos: `docs/BANCO_DE_DADOS.pdf`.
+Schema completo em `docs/SCHEMA_CURRENT.sql` — **arquivo gerado por `pg_dump --schema-only`, não editado a mão**; regere-o quando mexer no esquema (o comando está no cabeçalho do próprio arquivo). Migrations em `database/migrations/` (001–097). Documentação em PDF, com as ligações entre tabelas e os fluxos: `docs/BANCO_DE_DADOS.pdf`.
 
 **Não sobrou nenhum UUID no banco.** As migrations 022–023 converteram as PKs para `INTEGER IDENTITY`, e a **061** terminou o serviço nas colunas que ainda referenciavam o Supabase Auth: `characters.user_id` hoje é `INTEGER` apontando para `usuarios.id`, e `characters.campaign_id` é `INTEGER` apontando para `campaigns.id`. A coluna `usuarios.auth_user_id` foi removida.
 
@@ -366,14 +368,14 @@ Tela: `/master/usuarios` → `MasterUsersView.vue`.
 | `classPoints` | pontos de classe não gastos |
 | `skills` / `titles` | skills e títulos concedidos ao personagem |
 | `inventario` | **o inventário estruturado** (migration de código, sem SQL): `[{tabela, id, quantidade, qualidade, rapido, equipado}]`. Substituiu `inventory`, `quickInventory` e `equipamentos_iniciais`, que eram texto livre ou parciais e estavam vazios em todo personagem. Nome, peso e valor **nunca** são gravados aqui — vêm do catálogo na resposta |
-| `adventureNotes` | notas de aventura escritas pelo mestre |
+| `adventureNotes` | notas de aventura escritas pelo mestre: `[{text, addedBy, addedAt, oculta?, editadaEm?, editadaPor?}]`. **`oculta` some da resposta do jogador** (`mapearPersonagemParaJogador`) e continua com o mestre; o livro do jogador (`/notas`) mostra as visíveis como "Diário de Aventura", uma por página |
 | `pendingChangeRequest` | pedido de alteração aguardando revisão (índice parcial em cima) |
 | `avatarFocalPoint` / `modalHeroPosition` | enquadramento da imagem, ajustado pelo mestre |
 | `xp` | XP do personagem (distinto do XP por classe) |
 | `dinheiro_inicial` | resultado da rolagem da etapa 6: `{tentativas, resultado, descartado}` |
 | `deusEtapaConcluida` | marca a etapa 5 como vista, mesmo se pulada |
 
-**Cuidado:** `PATCH /api/personagens/:id` **substitui o `data` inteiro**. Mandar um objeto parcial apaga o resto sem aviso. É por isso que o inventário tem rotas próprias e **não passa por esse PATCH**: uma cópia velha de `data` no cliente apagaria o que a ação de fabricar acabou de gravar.
+**Cuidado:** `PATCH /api/personagens/:id` **substitui o `data` inteiro** quando quem chama é o mestre. Mandar um objeto parcial apaga o resto sem aviso. É por isso que o inventário tem rotas próprias e **não passa por esse PATCH**: uma cópia velha de `data` no cliente apagaria o que a ação de fabricar acabou de gravar. Para o **dono** a rota só funde `changeRequestResponse` — o único campo que o dashboard do jogador grava por ela.
 
 ### `indole` (migration 024)
 
@@ -931,7 +933,7 @@ Tela: `/master/telas` → `MasterTelasView.vue`.
 
 Duas tabelas de XP, com propósitos diferentes — é fácil trocar uma pela outra.
 
-**`level_progression`** é a do **personagem**: `level` (**UNIQUE**), `tier`, `multiplier`, `xp_required_next` e `xp_total_accumulated`. 27 níveis cadastrados. É a tabela que `atribuirXpAoPersonagem` percorre para decidir o nível a partir do XP acumulado. O código-fonte da migração anterior consultava colunas que não existem aqui (`nivel`, `xp_necessario`), então **o XP nunca subia o nível de ninguém** até isso ser corrigido.
+**`level_progression`** é a do **personagem**: `level` (**UNIQUE**), `tier`, `multiplier`, `xp_required_next` e `xp_total_accumulated`. 27 níveis cadastrados. É a tabela que `atribuirXpAoPersonagem` percorre para decidir o nível a partir do XP acumulado: **`xp_total_accumulated(N)` é o XP total em que o personagem *chega* ao nível N** — nível 1 = 0, nível 2 = 120, nível 100 = 1.050.000 (migration 097; antes a linha do nível 1 dizia 120, como se houvesse um nível 0, e o nível 2 só vinha com 360). `xp_required_next` é a diferença até a próxima linha, que nas linhas esparsas (5 → 10) é o custo do marco inteiro. O código-fonte da migração anterior consultava colunas que não existem aqui (`nivel`, `xp_necessario`), então **o XP nunca subia o nível de ninguém** até isso ser corrigido.
 
 **`class_level_progression`** é a do **par classe/nível**: `classe_id`, `nivel`, `xp_necessario`, com `UNIQUE(classe_id, nivel)`. Alimenta a progressão dentro de cada classe em `data.classes[].xp`.
 
@@ -1045,7 +1047,7 @@ JWT próprio, emitido pelo backend. Supabase Auth saiu de cena.
    - **Atenção:** a API `submeterSolicitacaoCriacao` mapeia camelCase → snake_case antes de enviar (ex: `aparenciaFisica → aparencia_fisica`)
 6. Jogador vê "Aguardando aprovação do mestre" — **sem login automático**
 7. Mestre vê o sino com a contagem em `/master` e abre `/master/logins`
-8. Mestre aprova: o backend preenche o pré-registro em `usuarios` **transferindo o hash** já pronto e cria o registro em `characters`. Se a criação do personagem falhar, a conta é desfeita para não ficar órfã
+8. Mestre aprova, **escolhendo o mundo** no modal (sugerido pela solicitação, ou o único ativo): o backend preenche o pré-registro em `usuarios` **transferindo o hash** já pronto e cria o registro em `characters` com esse `campaign_id`. Se a criação do personagem falhar, a conta é desfeita para não ficar órfã. Sem campanha a aprovação é recusada — a solicitação chega sem `campaign_id` quando o jogador se cadastrou pelo `/login` direto, e o personagem nascia invisível para todo mundo
 9. Mestre rejeita: preenche o motivo (opcional). O username volta a ficar livre — o índice único é parcial e só cobre `pendente`/`aprovado` (migration 069)
 
 **A senha nunca é recuperável a partir do banco.** Antes era AES-256-CBC reversível, porque o texto puro era necessário para criar a conta no Supabase Auth. Como a conta agora nasce aqui, basta transferir o hash.
