@@ -2,6 +2,7 @@
 import { onMounted } from 'vue'
 import { RouterView } from 'vue-router'
 import { usePortalTransition } from '@/composables/usePortalTransition'
+import TrocaDeSenhaObrigatoria from '@/components/TrocaDeSenhaObrigatoria.vue'
 
 const { state: portal } = usePortalTransition()
 
@@ -18,6 +19,9 @@ onMounted(() => {
     :class="portal.phase"
     :style="`--ox:${portal.ox}px;--oy:${portal.oy}px`"
   />
+
+  <!-- Um só lugar para a troca de senha obrigatória: vale para toda rota autenticada. -->
+  <TrocaDeSenhaObrigatoria />
 
   <RouterView v-slot="{ Component, route }">
     <Transition :name="portal.phase !== 'idle' ? 'instant' : 'page-fade'" mode="out-in">

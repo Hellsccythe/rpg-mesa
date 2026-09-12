@@ -68,6 +68,17 @@ export class AuthService {
   }
 
   /**
+   * Quem está logado, com a obrigação de trocar a senha lida do banco — e não
+   * do token, que foi emitido antes de o mestre eventualmente resetá-la.
+   */
+  async quemSouEu(usuario: UsuarioAutenticado) {
+    const registro = await this.modeloUsuario.findByPk(usuario.usuarioId, {
+      attributes: ["requiresPasswordChange"],
+    });
+    return { ...usuario, precisaTrocarSenha: registro?.requiresPasswordChange === true };
+  }
+
+  /**
    * Troca da própria senha pelo usuário logado. Substitui o
    * supabase.auth.updateUser({ password }) que as telas usavam, e é o que
    * encerra a obrigação criada pelo "Reset Padrão" do mestre.

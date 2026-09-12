@@ -36,7 +36,7 @@
             </button>
 
             <Transition name="dropdown">
-              <div v-if="showNotifications" class="dropdown-panel right-0 w-80">
+              <div v-if="showNotifications" class="dropdown-panel dropdown-panel--largo right-0 w-80">
                 <div class="flex items-center justify-between px-4 py-3 border-b border-[#6B4E9E]/20">
                   <span class="text-sm font-semibold text-amber-400 font-cinzel">Notificações</span>
                   <button v-if="notifications.length > 0" @click="markAllRead" class="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">Marcar como lido</button>
@@ -273,7 +273,7 @@
                               :disabled="levelandoClasse === String(cls.classId ?? cls.name)"
                               class="text-[0.6rem] font-semibold bg-amber-700/40 border border-amber-600/40 text-amber-300 rounded-lg px-2 py-1 hover:bg-amber-700/60 transition-colors disabled:opacity-50"
                               title="Gasta 1 ponto de classe e concede pontos de skill"
-                              @click="levelarClasseHandler(cls)"
+                              @click="classeParaLevar = cls"
                             >
                               {{ levelandoClasse === String(cls.classId ?? cls.name) ? '...' : '↑ Ganhar pts. skill' }}
                             </button>
@@ -397,13 +397,25 @@
                 </div>
 
                 <!-- Perícias Mundanas -->
-                <div v-if="periciasDoPersonagem.length || pontosDePericia > 0" class="dash-card p-5">
-                  <div class="mb-4 flex items-center justify-between">
+                <div v-if="periciasDoPersonagem.length || pontosDePericia > 0 || pontosDeVirtude > 0" class="dash-card p-5">
+                  <div class="mb-4 flex items-center justify-between gap-2">
                     <h3 class="dash-section-label">Perícias</h3>
-                    <span
-                      v-if="pontosDePericia > 0"
-                      class="rounded-full border border-sky-700/40 bg-sky-900/30 px-2 py-0.5 text-[0.65rem] font-bold text-sky-300"
-                    >{{ pontosDePericia }} ponto{{ pontosDePericia !== 1 ? 's' : '' }}</span>
+                    <!-- Duas bolsas, como no servidor (CAMPO_DA_BOLSA): a mundana paga
+                         Alquimia e companhia; a de Virtude paga Luta, Magia, Reflexo,
+                         Fortitude e Pontaria. A tela só conhecia a primeira, e o
+                         jogador comprava Luta "dos 26 pontos" enquanto a Virtude caía. -->
+                    <div class="flex flex-wrap justify-end gap-1.5">
+                      <span
+                        v-if="pontosDePericia > 0"
+                        class="rounded-full border border-sky-700/40 bg-sky-900/30 px-2 py-0.5 text-[0.65rem] font-bold text-sky-300"
+                        title="Bolsa mundana: passado, downtime e marcos de nível"
+                      >{{ pontosDePericia }} ponto{{ pontosDePericia !== 1 ? 's' : '' }}</span>
+                      <span
+                        v-if="pontosDeVirtude > 0"
+                        class="rounded-full border border-amber-700/40 bg-amber-900/30 px-2 py-0.5 text-[0.65rem] font-bold text-amber-300"
+                        title="Bolsa de Virtude: marcos de nível de classe. Paga Luta, Magia, Reflexo, Fortitude e Pontaria"
+                      >{{ pontosDeVirtude }} de Virtude</span>
+                    </div>
                   </div>
 
                   <p v-if="!periciasDoPersonagem.length" class="text-xs italic text-zinc-600">
@@ -436,9 +448,10 @@
                       <button
                         v-if="!authStore.eMestre && pericia.rank < RANK_MAXIMO"
                         type="button"
-                        :disabled="pontosDePericia < custoDoRank(pericia.rank + 1) || subindoPericia"
-                        class="shrink-0 rounded-lg border border-sky-600/40 px-2 py-1 text-[0.65rem] font-semibold text-sky-300 transition-colors hover:bg-sky-900/30 disabled:opacity-30"
-                        :title="`Subir para o rank ${pericia.rank + 1} custa ${custoDoRank(pericia.rank + 1)} ponto(s)`"
+                        :disabled="pontosDaBolsaDe(pericia.periciaId) < custoDoRank(pericia.rank + 1) || subindoPericia"
+                        class="shrink-0 rounded-lg border px-2 py-1 text-[0.65rem] font-semibold transition-colors disabled:opacity-30"
+                        :class="ehDeVirtude(pericia.periciaId) ? 'border-amber-600/40 text-amber-300 hover:bg-amber-900/30' : 'border-sky-600/40 text-sky-300 hover:bg-sky-900/30'"
+                        :title="`Subir para o rank ${pericia.rank + 1} custa ${custoDoRank(pericia.rank + 1)} ponto(s) ${ehDeVirtude(pericia.periciaId) ? 'de Virtude' : 'da bolsa mundana'}`"
                         @click="periciaParaSubir = pericia"
                       >
                         +{{ custoDoRank(pericia.rank + 1) }}
@@ -447,14 +460,28 @@
                   </div>
 
                   <!-- Aprender uma perícia nova -->
-                  <div v-if="!authStore.eMestre && pontosDePericia > 0 && periciasDisponiveis.length" class="mt-4 border-t border-white/[0.06] pt-3">
+                  <div v-if="!authStore.eMestre && pontosDePericia > 0 && periciasMundanasDisponiveis.length" class="mt-4 border-t border-white/[0.06] pt-3">
                     <p class="mb-2 text-[0.65rem] uppercase tracking-widest text-zinc-600">Aprender nova (1 ponto)</p>
                     <div class="flex flex-wrap gap-1.5">
                       <button
-                        v-for="pericia in periciasDisponiveis" :key="pericia.id"
+                        v-for="pericia in periciasMundanasDisponiveis" :key="pericia.id"
                         type="button"
                         :disabled="subindoPericia"
                         class="rounded-full border border-white/10 px-2.5 py-1 text-[0.65rem] text-zinc-400 transition-colors hover:border-sky-600/50 hover:text-sky-300 disabled:opacity-40"
+                        @click="periciaParaSubir = { periciaId: pericia.id, nome: pericia.nome, rank: 0 }"
+                      >
+                        {{ pericia.nome }}
+                      </button>
+                    </div>
+                  </div>
+                  <div v-if="!authStore.eMestre && pontosDeVirtude > 0 && periciasDeVirtudeDisponiveis.length" class="mt-4 border-t border-white/[0.06] pt-3">
+                    <p class="mb-2 text-[0.65rem] uppercase tracking-widest text-zinc-600">Virtude — aprender nova (1 ponto de Virtude)</p>
+                    <div class="flex flex-wrap gap-1.5">
+                      <button
+                        v-for="pericia in periciasDeVirtudeDisponiveis" :key="pericia.id"
+                        type="button"
+                        :disabled="subindoPericia"
+                        class="rounded-full border border-amber-700/30 px-2.5 py-1 text-[0.65rem] text-amber-200/80 transition-colors hover:border-amber-500/60 hover:text-amber-200 disabled:opacity-40"
                         @click="periciaParaSubir = { periciaId: pericia.id, nome: pericia.nome, rank: 0 }"
                       >
                         {{ pericia.nome }}
@@ -519,14 +546,23 @@
                 </div>
 
                 <!-- Skills -->
-                <div v-if="(character.data?.skills ?? []).length" class="dash-card p-5">
+                <!-- As skills do passado não são copiadas para data.skills (ver
+                     CLAUDE.md, onboarding etapa 3); antes só apareciam dentro do
+                     modal do passado, e numa sessão o jogador olha aqui. -->
+                <div v-if="(character.data?.skills ?? []).length || passadoPersonagem?.skills?.length" class="dash-card p-5">
                   <h3 class="dash-section-label mb-3">Skills</h3>
                   <div class="flex flex-wrap gap-2">
                     <span
-                      v-for="skill in character.data.skills"
+                      v-for="skill in (character.data?.skills ?? [])"
                       :key="skill.name"
                       class="text-xs bg-violet-900/25 border border-violet-700/30 text-violet-300 px-2.5 py-1 rounded-full hover:bg-violet-900/40 transition-colors"
                     >{{ skill.name }}</span>
+                    <span
+                      v-for="skill in (passadoPersonagem?.skills ?? [])"
+                      :key="'passado-' + skill.id"
+                      class="inline-flex items-center gap-1.5 text-xs bg-violet-900/10 border border-dashed border-violet-700/40 text-violet-300/90 px-2.5 py-1 rounded-full"
+                      :title="`Concedida pelo passado ${passadoPersonagem?.nome}`"
+                    >{{ skill.name }}<span class="text-[0.55rem] uppercase tracking-wider text-violet-400/70">passado</span></span>
                   </div>
                 </div>
 
@@ -811,75 +847,6 @@
           </div>
         </div>
       </div>
-    </Modal>
-
-    <!-- Modal Troca Obrigatória de Senha -->
-    <Modal
-      v-if="showPasswordChangeModal"
-      title="Defina uma Nova Senha"
-      tema="escuro"
-      panel-class="max-w-sm"
-      :close-on-backdrop="false"
-    >
-      <div class="space-y-5 px-6 py-5">
-        <p class="text-sm text-zinc-400">Sua senha foi resetada pelo mestre. Defina uma nova senha para continuar.</p>
-
-        <div v-if="erroNovaSenha" class="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
-          {{ erroNovaSenha }}
-        </div>
-
-        <div class="space-y-1">
-          <label class="block text-xs font-semibold uppercase tracking-wide text-zinc-400">Nova Senha</label>
-          <input
-            v-model="novaSenhaObrigatoria"
-            :type="mostrarNovaSenhaObrigatoria ? 'text' : 'password'"
-            class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-violet-500/40"
-            placeholder="Mín. 8 chars, maiúscula, número e especial"
-          />
-        </div>
-
-        <div class="space-y-1">
-          <label class="block text-xs font-semibold uppercase tracking-wide text-zinc-400">Confirmar Senha</label>
-          <input
-            v-model="novaSenhaObrigatoriaConfirmacao"
-            :type="mostrarNovaSenhaObrigatoria ? 'text' : 'password'"
-            class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-violet-500/40"
-            placeholder="Repita a senha"
-          />
-          <button
-            type="button"
-            class="mt-1 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
-            @click="mostrarNovaSenhaObrigatoria = !mostrarNovaSenhaObrigatoria"
-          >
-            {{ mostrarNovaSenhaObrigatoria ? 'Ocultar' : 'Mostrar' }} senha
-          </button>
-        </div>
-
-        <ul class="space-y-1">
-          <li
-            v-for="regra in regrasNovaSenha"
-            :key="regra.label"
-            class="flex items-center gap-2 text-xs"
-            :class="regra.ok ? 'text-emerald-400' : 'text-zinc-600'"
-          >
-            <span>{{ regra.ok ? '✓' : '○' }}</span>
-            {{ regra.label }}
-          </li>
-        </ul>
-      </div>
-
-      <template #footer>
-        <div class="flex justify-end">
-          <button
-            type="button"
-            :disabled="salvandoNovaSenha || !novaSenhaValida"
-            class="rounded-xl bg-violet-600 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
-            @click="salvarNovaSenhaObrigatoria"
-          >
-            {{ salvandoNovaSenha ? 'Salvando...' : 'Confirmar' }}
-          </button>
-        </div>
-      </template>
     </Modal>
 
     <!-- ══ Modal Retrato ════════════════════════════════════════════════════ -->
@@ -1242,6 +1209,40 @@
       </div>
     </Modal>
 
+  <!-- ══ Modal: Ganhar pts. skill ══ -->
+  <!-- Um toque convertia o ponto de classe sem perguntar; no celular o botão
+       fica ao alcance do polegar. Mesmo padrão do modal de perícia. -->
+  <Modal
+    v-if="classeParaLevar"
+    panel-class="max-w-sm"
+    tema="escuro"
+    :show-close-button="false"
+    :close-on-backdrop="false"
+    @close="classeParaLevar = null"
+  >
+    <div class="space-y-4 p-6">
+      <p class="text-base font-bold text-white">Ganhar ponto de skill em {{ classeParaLevar.name }}?</p>
+      <p class="text-sm text-zinc-400">
+        Gasta <strong class="text-white">1</strong> dos
+        <strong class="text-amber-300">{{ character?.data?.classPoints ?? 0 }}</strong> pontos de classe
+        e dá <strong class="text-white">1 ponto de skill</strong> a esta classe.
+      </p>
+      <p class="text-xs text-zinc-600">Pontos de classe gastos não voltam.</p>
+      <div class="flex gap-3">
+        <button type="button" class="flex-1 rounded-xl border border-white/10 py-2 text-sm text-zinc-400 hover:text-white" @click="classeParaLevar = null">
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="flex-1 rounded-xl bg-amber-700 py-2 text-sm font-semibold text-white hover:bg-amber-600"
+          @click="confirmarLevarClasse"
+        >
+          Confirmar
+        </button>
+      </div>
+    </div>
+  </Modal>
+
   <!-- ══ Modal: Confirmar distribuição de atributos ══ -->
   <Modal
     v-if="periciaParaSubir"
@@ -1258,8 +1259,9 @@
       <p class="text-sm text-zinc-400">
         Vai para o <strong class="text-sky-300">rank {{ periciaParaSubir.rank + 1 }}</strong>
         e custa <strong class="text-white">{{ custoDoRank(periciaParaSubir.rank + 1) }}</strong>
-        ponto{{ custoDoRank(periciaParaSubir.rank + 1) !== 1 ? 's' : '' }} dos
-        {{ pontosDePericia }} que você tem.
+        ponto{{ custoDoRank(periciaParaSubir.rank + 1) !== 1 ? 's' : '' }}
+        {{ ehDeVirtude(periciaParaSubir.periciaId) ? 'de Virtude' : '' }} dos
+        {{ pontosDaBolsaDe(periciaParaSubir.periciaId) }} que você tem.
       </p>
       <p class="text-xs text-zinc-600">Pontos gastos não voltam.</p>
       <div class="flex gap-3">
@@ -1542,37 +1544,6 @@ async function confirmarTrocaDeus() {
   }
 }
 
-// Troca obrigatória de senha após reset
-const showPasswordChangeModal = ref(false)
-const novaSenhaObrigatoria = ref('')
-const novaSenhaObrigatoriaConfirmacao = ref('')
-const mostrarNovaSenhaObrigatoria = ref(false)
-const salvandoNovaSenha = ref(false)
-const erroNovaSenha = ref('')
-
-const regrasNovaSenha = computed(() => [
-  { label: 'Mínimo 8 caracteres', ok: novaSenhaObrigatoria.value.length >= 8 },
-  { label: 'Ao menos uma letra maiúscula', ok: /[A-Z]/.test(novaSenhaObrigatoria.value) },
-  { label: 'Ao menos um número', ok: /[0-9]/.test(novaSenhaObrigatoria.value) },
-  { label: 'Ao menos um caractere especial', ok: /[^a-zA-Z0-9]/.test(novaSenhaObrigatoria.value) },
-  { label: 'Senhas coincidem', ok: novaSenhaObrigatoria.value.length > 0 && novaSenhaObrigatoria.value === novaSenhaObrigatoriaConfirmacao.value },
-])
-const novaSenhaValida = computed(() => regrasNovaSenha.value.every((r) => r.ok))
-
-async function salvarNovaSenhaObrigatoria() {
-  if (!novaSenhaValida.value) return
-  salvandoNovaSenha.value = true
-  erroNovaSenha.value = ''
-  try {
-    await authStore.trocarSenha(novaSenhaObrigatoria.value)
-    showPasswordChangeModal.value = false
-  } catch (err: any) {
-    erroNovaSenha.value = err?.message ?? 'Erro ao salvar nova senha.'
-  } finally {
-    salvandoNovaSenha.value = false
-  }
-}
-
 const pendingApprovals = computed(() => masterApprovalsStore.pendingApprovals)
 
 const tabs = [
@@ -1734,6 +1705,15 @@ const msgPreReqClasse = computed(() => {
   return `Nível 10 em duas classes libera uma classe híbrida.`
 })
 
+/** A classe cuja conversão (1 ponto de classe → 1 de skill) espera confirmação. */
+const classeParaLevar = ref<any | null>(null)
+
+async function confirmarLevarClasse() {
+  const cls = classeParaLevar.value
+  classeParaLevar.value = null
+  if (cls) await levelarClasseHandler(cls)
+}
+
 async function levelarClasseHandler(cls: any) {
   const id = String(cls.classId ?? cls.name)
   if (levelandoClasse.value || !character.value) return
@@ -1884,12 +1864,24 @@ const periciasDoPersonagem = computed<PericiaDoPersonagem[]>(() => {
 })
 
 const pontosDePericia = computed(() => Number((character.value?.data as any)?.periciaPoints ?? 0))
+const pontosDeVirtude = computed(() => Number((character.value?.data as any)?.periciaPointsVirtude ?? 0))
 
-/** O que o personagem ainda não tem — só aparece se sobrar ponto para o rank 1. */
+function ehDeVirtude(periciaId: number): boolean {
+  return periciaDoCatalogo(periciaId)?.bolsa === 'virtude'
+}
+
+/** Os pontos da bolsa que esta perícia gasta — o mesmo critério do servidor. */
+function pontosDaBolsaDe(periciaId: number): number {
+  return ehDeVirtude(periciaId) ? pontosDeVirtude.value : pontosDePericia.value
+}
+
+/** O que o personagem ainda não tem, separado por bolsa: cada grupo só aparece se a sua sobrar. */
 const periciasDisponiveis = computed(() => {
   const jaTem = new Set(periciasDoPersonagem.value.map(p => p.periciaId))
   return catalogoPericias.value.filter(p => !jaTem.has(p.id))
 })
+const periciasMundanasDisponiveis = computed(() => periciasDisponiveis.value.filter(p => p.bolsa !== 'virtude'))
+const periciasDeVirtudeDisponiveis = computed(() => periciasDisponiveis.value.filter(p => p.bolsa === 'virtude'))
 
 function periciaDoCatalogo(periciaId: number): PericiaApi | undefined {
   return catalogoPericias.value.find(p => p.id === periciaId)
@@ -2313,14 +2305,6 @@ async function loadCharacter() {
       }
     }
 
-    if (!authStore.eMestre) {
-      if (authStore.precisaTrocarSenha) {
-        novaSenhaObrigatoria.value = ''
-        novaSenhaObrigatoriaConfirmacao.value = ''
-        erroNovaSenha.value = ''
-        showPasswordChangeModal.value = true
-      }
-    }
   } catch (err) {
     const maybeError = err as { response?: { status?: number } }
     if (!authStore.eMestre && maybeError?.response?.status === 404) {
@@ -2419,6 +2403,19 @@ watch(() => route.query.characterId, async (next, prev) => {
   background: color-mix(in srgb, var(--bg-card) 97%, #fff 3%);
   box-shadow: 0 20px 40px rgb(0 0 0 / 0.25);
   overflow: hidden;
+}
+/* No celular, o painel de 320px ancorado no sino vazava pela esquerda e era
+   cortado pelo overflow-x-hidden da raiz. Abaixo de sm ele fica fixo, colado
+   nas bordas, logo abaixo do header. Em CSS e não em utility do Tailwind:
+   `.dropdown-panel[data-v]` tem mais especificidade que `.max-sm\:fixed`. */
+@media (max-width: 639px) {
+  .dropdown-panel--largo {
+    position: fixed;
+    left: 0.75rem;
+    right: 0.75rem;
+    top: 4.25rem;
+    width: auto;
+  }
 }
 .dropdown-item {
   display: block;
