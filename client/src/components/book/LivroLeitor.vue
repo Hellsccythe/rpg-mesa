@@ -231,7 +231,63 @@ function virar(sentido: 'frente' | 'tras', canto: CantoDaFolha = 'inferior') {
 
 // ── Dedo e mouse ─────────────────────────────────────────────────────────────
 const cenaRef = ref<HTMLElement | null>(null)
-let ponteiro: { id: number; inicio: Ponto; virada: Virada | null; moveu: boolean; alvoEraLink: boolean } | null = null
+
+/**
+ * Gesto sobre uma capa dura. A capa acompanha o dedo como a folha: a
+ * abertura (ou o fechamento, para a contracapa) anda com o deslocamento
+ * horizontal dividido pela largura da folha — meia folha arrastada, meio
+ * caminho da capa. Solta depois da metade, completa; antes, volta.
+ */
+interface GestoDeCapa {
+  capa: 'frente' | 'tras'
+  /** aberturaDaCapa ou fechamentoDaContracapa, conforme a capa. */
+  valor: { value: number }
+  inicial: number
+  /** As duas capas giram para a esquerda: arrastar para a esquerda avança o giro. */
+  faseDurante: Fase
+  faseAoCompletar: Fase
+  faseAoDesistir: Fase
+}
+
+let ponteiro: {
+  id: number
+  inicio: Ponto
+  virada: Virada | null
+  capa: GestoDeCapa | null
+  /** O que um toque simples faz quando não há folha para virar (abrir/fechar uma capa). */
+  toque: (() => void) | null
+  moveu: boolean
+  alvoEraLink: boolean
+} | null = null
+
+/** Qual capa um gesto naquela metade do livro puxa — ou nenhuma. */
+function gestoDeCapaPara(sentido: 'frente' | 'tras'): GestoDeCapa | null {
+  if (fase.value === 'fechado' && sentido === 'frente') {
+    return { capa: 'frente', valor: aberturaDaCapa, inicial: 0, faseDurante: 'abrindo', faseAoCompletar: 'aberto', faseAoDesistir: 'fechado' }
+  }
+  if (fase.value === 'aberto' && sentido === 'tras' && !podeVoltar.value) {
+    return { capa: 'frente', valor: aberturaDaCapa, inicial: 1, faseDurante: 'fechando', faseAoCompletar: 'fechado', faseAoDesistir: 'aberto' }
+  }
+  if (fase.value === 'aberto' && sentido === 'frente' && !podeAvancar.value) {
+    return { capa: 'tras', valor: fechamentoDaContracapa, inicial: 0, faseDurante: 'fechando-atras', faseAoCompletar: 'fechado-atras', faseAoDesistir: 'aberto' }
+  }
+  if (fase.value === 'fechado-atras' && sentido === 'tras') {
+    return { capa: 'tras', valor: fechamentoDaContracapa, inicial: 1, faseDurante: 'abrindo-atras', faseAoCompletar: 'aberto', faseAoDesistir: 'fechado-atras' }
+  }
+  return null
+}
+
+function soltarCapa(gesto: GestoDeCapa) {
+  // A abertura cresce quando a capa vai para a esquerda; "completar" é chegar
+  // ao extremo oposto ao inicial. Passou da metade do caminho, completa.
+  const destinoCompleto = gesto.inicial === 0 ? 1 : 0
+  const completa = Math.abs(gesto.valor.value - gesto.inicial) > 0.5
+  const destino = completa ? destinoCompleto : gesto.inicial
+  const duracao = Math.max(200, Math.abs(destino - gesto.valor.value) * 900)
+  animarValor(gesto.valor, destino, duracao, () => {
+    fase.value = completa ? gesto.faseAoCompletar : gesto.faseAoDesistir
+  })
+}
 
 /** Posição do ponteiro em coordenadas da cena, descontando o zoom. */
 function pontoNaCena(evento: PointerEvent): Ponto {
@@ -241,26 +297,49 @@ function pontoNaCena(evento: PointerEvent): Ponto {
 }
 
 function aoPressionar(evento: PointerEvent) {
-  if (!cenaRef.value || evento.button !== 0) return
-  if (fase.value === 'fechado') { abrirLivro(); return }
-  if (fase.value === 'fechado-atras') { reabrirPorTras(); return }
-  if (fase.value !== 'aberto' || virada.value) return
+  if (!cenaRef.value || evento.button !== 0 || virada.value) return
+  if (fase.value !== 'aberto' && fase.value !== 'fechado' && fase.value !== 'fechado-atras') return
 
   const alvo = evento.target as HTMLElement
   const alvoEraLink = !!alvo.closest('a, button, .toc-god-link')
   const p = pontoNaCena(evento)
-  const sentido: 'frente' | 'tras' = p.x >= xDireita.value + (retrato.value ? larguraFolha.value / 2 : 0) ? 'frente' : 'tras'
+  // Com o livro fechado (pela frente ou por trás) a capa ocupa a cena toda:
+  // qualquer ponto é "a capa", e o sentido é o do giro que a abre.
+  const sentido: 'frente' | 'tras' = fase.value === 'fechado' ? 'frente'
+    : fase.value === 'fechado-atras' ? 'tras'
+    : p.x >= xDireita.value + (retrato.value ? larguraFolha.value / 2 : 0) ? 'frente' : 'tras'
   const canto: CantoDaFolha = p.y >= alturaFolha.value / 2 ? 'inferior' : 'superior'
-  const v = prepararVirada(sentido, canto)
-  ponteiro = { id: evento.pointerId, inicio: p, virada: v, moveu: false, alvoEraLink }
+
+  const v = fase.value === 'aberto' ? prepararVirada(sentido, canto) : null
+  const capa = v ? null : gestoDeCapaPara(sentido)
+  const toque = v ? null
+    : fase.value === 'fechado' ? abrirLivro
+    : fase.value === 'fechado-atras' ? reabrirPorTras
+    : capa?.capa === 'frente' ? fecharLivro
+    : capa?.capa === 'tras' ? fecharPorTras
+    : null
+  ponteiro = { id: evento.pointerId, inicio: p, virada: v, capa, toque, moveu: false, alvoEraLink }
   cenaRef.value.setPointerCapture(evento.pointerId)
 }
 
 function aoMover(evento: PointerEvent) {
-  if (!ponteiro || evento.pointerId !== ponteiro.id || !ponteiro.virada) return
+  if (!ponteiro || evento.pointerId !== ponteiro.id) return
   const p = pontoNaCena(evento)
   const dx = p.x - ponteiro.inicio.x
   const dy = p.y - ponteiro.inicio.y
+
+  if (ponteiro.capa) {
+    if (!ponteiro.moveu) {
+      if (Math.hypot(dx, dy) < 6) return
+      ponteiro.moveu = true
+      fase.value = ponteiro.capa.faseDurante
+    }
+    // Capa gira para a esquerda: arrastar para a esquerda (dx < 0) avança.
+    ponteiro.capa.valor.value = Math.min(1, Math.max(0, ponteiro.capa.inicial - dx / larguraFolha.value))
+    return
+  }
+
+  if (!ponteiro.virada) return
   if (!ponteiro.moveu) {
     if (Math.hypot(dx, dy) < 6) return
     ponteiro.moveu = true
@@ -274,24 +353,29 @@ function aoMover(evento: PointerEvent) {
 
 function aoSoltar(evento: PointerEvent) {
   if (!ponteiro || evento.pointerId !== ponteiro.id) return
-  const { virada: v, moveu, alvoEraLink } = ponteiro
+  const { virada: v, capa, toque, moveu, alvoEraLink } = ponteiro
   ponteiro = null
-  if (!v) return
-  if (moveu) soltarVirada(v)
-  else if (!alvoEraLink) virar(v.sentido, v.canto)
+  if (capa && moveu) { soltarCapa(capa); return }
+  if (v) {
+    if (moveu) soltarVirada(v)
+    else if (!alvoEraLink) virar(v.sentido, v.canto)
+    return
+  }
+  if (!moveu && !alvoEraLink && toque) toque()
 }
 
 function aoCancelar(evento: PointerEvent) {
   if (!ponteiro || evento.pointerId !== ponteiro.id) return
-  const v = ponteiro.virada
+  const { virada: v, capa, moveu } = ponteiro
   ponteiro = null
+  if (capa && moveu) { capa.valor.value = capa.inicial; fase.value = capa.faseAoDesistir; return }
   if (v && v.arrastando) { v.ponto = { ...v.partida }; virada.value = null }
 }
 
 // ── Teclado, botões, índice ──────────────────────────────────────────────────
 function aoTeclar(evento: KeyboardEvent) {
-  if (evento.key === 'ArrowRight') virar('frente')
-  else if (evento.key === 'ArrowLeft') virar('tras')
+  if (evento.key === 'ArrowRight') avancar()
+  else if (evento.key === 'ArrowLeft') voltar()
   else if (evento.key === 'Escape') emit('fechar')
 }
 
@@ -545,8 +629,8 @@ defineExpose({ avancar, voltar })
       </div>
     </div>
     <p class="leitor__dica">
-      <span v-if="retrato">Arraste a quina da página, ou toque nela.</span>
-      <span v-else>Arraste a quina da página com o mouse, ou use as setas ← → do teclado.</span>
+      <span v-if="retrato">Arraste a quina da página ou a capa, ou toque nelas.</span>
+      <span v-else>Arraste a quina da página ou a capa com o mouse, ou use as setas ← → do teclado.</span>
     </p>
   </div>
 </template>

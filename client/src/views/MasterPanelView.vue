@@ -337,14 +337,15 @@
               <div class="min-w-0 flex-1">
                 <div class="flex flex-wrap items-center gap-2">
                   <p class="truncate text-sm font-semibold text-amber-100">{{ nota.formato === 'pergaminho' ? '📜' : '📖' }} {{ nota.title }}</p>
-                  <span
-                    class="shrink-0 rounded-full border px-2 py-0.5 text-[0.6rem] font-medium"
-                    :class="nota.character_id
-                      ? 'border-violet-500/40 bg-violet-900/50 text-violet-300'
-                      : 'border-amber-600/30 bg-amber-900/30 text-amber-400'"
-                  >
-                    {{ nomePersonagemDaNota(nota.character_id) }}
-                  </span>
+                  <!-- Para quem a nota é: global ou de um personagem. Muda na hora, sem reescrever a nota. -->
+                  <VSelect
+                    :model-value="nota.character_id ?? ''"
+                    :options="loreCharacterOptions"
+                    root-class="w-56 text-xs"
+                    :disabled="loadingLoreNotes"
+                    aria-label="Visibilidade da nota"
+                    @update:model-value="mudarVisibilidadeDaNota(nota, $event)"
+                  />
                 </div>
                 <p v-if="nota.subtitle" class="truncate text-xs italic text-zinc-500">{{ nota.subtitle }}</p>
                 <p class="mt-0.5 text-xs text-zinc-700">{{ nota.content.split(/\n---+\n/).length }} página(s)</p>
@@ -900,6 +901,26 @@ function trocarCapaDaNota(nota: LoreNoteApi, lado: 'capa' | 'contracapa') {
     }
   }
   input.click()
+}
+
+/** Vincula (ou desvincula) uma nota já criada a um personagem. '' é global. */
+async function mudarVisibilidadeDaNota(nota: LoreNoteApi, valor: string | number) {
+  const characterId = Number(valor) || null
+  if (characterId === nota.character_id) return
+  loadingLoreNotes.value = true
+  try {
+    await updateLoreNote(nota.id, { characterId })
+    await carregarLoreNotes()
+    feedback.value = characterId
+      ? `"${nota.title}" agora é exclusiva de ${nomePersonagemDaNota(characterId)}.`
+      : `"${nota.title}" agora é global.`
+    feedbackError.value = false
+  } catch (err: any) {
+    feedback.value = err?.response?.data?.message || 'Erro ao mudar a visibilidade da nota.'
+    feedbackError.value = true
+  } finally {
+    loadingLoreNotes.value = false
+  }
 }
 
 async function removerCapaDaNota(nota: LoreNoteApi, lado: 'capa' | 'contracapa') {
