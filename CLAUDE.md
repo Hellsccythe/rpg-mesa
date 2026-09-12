@@ -30,15 +30,15 @@ A raiz **não é mais o login**: `/` lista as campanhas (mundos) e cada uma leva
 | `/login` | LoginView | pública |
 | `/dashboard?characterId=` | DashboardView | auth |
 | `/onboarding?characterId=` | OnboardingView | auth (player) |
-| `/deuses` | DeusesView | pública |
+| `/deuses` | DeusesView | pública — nome e título do deus ficam **abaixo da arte**, sempre visíveis; o overlay do hover é só enfeite, e no celular não há hover |
 | `/cidade` | CidadeView | auth |
-| `/classes` | ClassesView | auth |
+| `/classes` | ClassesView | auth — o card de cada classe mostra o **XP da classe** (`data.classes[].xp`) contra `class_level_progression`; a tabela de níveis do personagem, embaixo, é `level_progression` |
 | `/skills` | SkillsView | auth |
 | `/titulos` | TitulosView | auth |
 | `/racas` | RacasView | auth |
 | `/equipamentos` | EquipamentosView | auth |
 | `/npcs` | NpcsView | auth |
-| `/notas` | NotasView | auth |
+| `/notas` | NotasView | auth — leitor em livro; a folha vira com dobra (`components/book/PaginaDobrando.vue`), spread no desktop e página única no celular |
 | `/master` | MasterPanelView | auth + isMaster |
 | `/master/deuses` | MasterGodsView | auth + isMaster |
 | `/master/mapas` | MasterMapsView | auth + isMaster |
@@ -176,7 +176,7 @@ A raiz **não é mais o login**: `/` lista as campanhas (mundos) e cada uma leva
 | GET | `/api/classes/admin` | isMaster |
 | GET | `/api/classes/para-player?characterId=X` | auth — só o dono do personagem ou o mestre (retorna normais + secretas reveladas) |
 | GET | `/api/classes/level-progression` | auth (mesma tabela de `/personagens/admin/level-progression`, que é isMaster) |
-| GET | `/api/classes/progressao?classe_id=X` | isMaster (XP por nível dentro de uma classe) |
+| GET | `/api/classes/progressao?classe_id=X` | auth (XP por nível dentro de uma classe — era isMaster, mas o card da classe do jogador precisa dela) |
 | POST | `/api/classes/progressao/admin` | isMaster |
 | POST | `/api/classes/progressao/admin/bulk` | isMaster |
 | PATCH | `/api/classes/progressao/admin/:id` | isMaster |
@@ -269,6 +269,8 @@ Documentação completa em `docs/COMPONENTS.md`.
 | `HamburgerDrawerMenu` | `components/HamburgerDrawerMenu.vue` | Menu lateral hambúrguer |
 | `VSelect` | `components/VSelect.vue` | Select customizado — usar em todos os dropdowns (v-model string\|number, options: {value,label}[]) |
 | `TabelaEditor` | `components/TabelaEditor.vue` | CRUD inline para tabelas de lookup simples (item INTEGER + descricao). Props: titulo, itens, categorias?, campoCategoria?, labelCategoria?. Emite: criar, editar, deletar |
+| `TrocaDeSenhaObrigatoria` | `components/TrocaDeSenhaObrigatoria.vue` | Montado **uma vez em `App.vue`**; abre em qualquer rota autenticada enquanto `authStore.precisaTrocarSenha` for verdadeiro, e só fecha trocando a senha |
+| `PaginaDobrando` / `TiraDaFolha` | `components/book/` | A folha do livro de notas virando com dobra — página fatiada em tiras aninhadas em 3D, keyframes CSS. `sentido` frente/tras, `reverso` para a folha chegar em vez de sair, `tiras`, `curvaMaxima`; emite `terminou` |
 
 ### DataTable — uso rápido
 
@@ -1016,9 +1018,7 @@ Ambos os tipos têm registro na tabela `usuarios`. Players são criados automati
 - **Deletar**: é **soft delete**, no usuário e no personagem. A documentação antiga dizia "hard delete: auth + personagem + storage"; hoje nada é apagado de verdade e **o avatar em disco é preservado**, justamente porque a exclusão é reversível
 - **Contas GM são protegidas**: `alterarAtivo` e `deletar` recusam quem tem `tipo = 'gm'`. Só dá para desativar ou apagar player pelo painel
 - **Definir Senha GM** (botão violet): modal com input + validação (mín 8, maiúscula, número, especial). Grava o bcrypt e deixa `requires_password_change = false`
-- **Reset Padrão** (botão orange, GM e player): senha vira `12345` e `requires_password_change = true`. No próximo login o modal obrigatório de troca aparece
-  - **Player**: modal no `DashboardView`
-  - **GM**: modal no `MasterPanelView` (verificado no `onMounted`)
+- **Reset Padrão** (botão orange, GM e player): senha vira `12345` e `requires_password_change = true`. No próximo login o modal obrigatório de troca aparece — em **qualquer** rota autenticada, porque `TrocaDeSenhaObrigatoria` está montado em `App.vue`. Antes ele vivia copiado no Dashboard e no painel do mestre, o onboarding nunca o mostrava, e o flag só existia na memória do store: um F5 restaurava a sessão sem ele e o jogador ficava com `12345` para sempre. Hoje `precisaTrocarSenha` é gravado no `rpg-mesa.auth-meta` junto com a sessão, e `GET /api/auth/eu` também o devolve, lido do banco
 
 ## Fluxo de Auth
 
@@ -1061,7 +1061,7 @@ Todas as 6 etapas estão implementadas em `OnboardingView.vue`.
 |---|---|---|---|
 | 1 — Raça | `PATCH /api/personagens/:id/escolher-raca` | Sim | Atualiza `characters.raca_id` |
 | 2 — Classe | `PATCH /api/personagens/:id/escolher-classe` | Sim | Atualiza `characters.classe_id` e cria a entrada em `data.classes` com 2 pontos de skill |
-| 2b — Skill inicial | `POST /api/personagens/:id/escolher-skill-inicial` | Sim | Só aparece se a classe tiver `starting_skills`. Gasta 1 ponto de skill e sobe o nível da classe |
+| 2b — Skill inicial | `POST /api/personagens/:id/escolher-skill-inicial` | Sim | Só aparece se a classe tiver `starting_skills`. Gasta 1 ponto de skill e sobe o nível da classe. **A mesma rota atende toda skill aprendida pelo dashboard** — por isso ela confere que a skill existe, pertence à classe (`starting_skills` ou `required_class`) e respeita `nivel_minimo_classe`, e o nível **não passa de 20**. Sem isso, com o token na mão dava para se conceder a skill de outra classe, e no nível 20 cada skill subia a classe além do teto |
 | 3 — Passado | `PATCH /api/personagens/:id/escolher-passado` | Sim | Atualiza `characters.passado_id`. As skills e títulos do passado **não** são copiados para o personagem — o dashboard os lê do catálogo de passados na hora de exibir |
 | 4 — Atributos | `PATCH /api/personagens/:id/definir-atributos` | Sim | Salva em `data.atributos` |
 | 5 — Deus | `PATCH /api/personagens/:id/escolher-deus` | Sim | Atualiza `characters.deus_id`; pode ser pulado |
@@ -1110,10 +1110,11 @@ O dashboard do player exibe todas as informações selecionadas no onboarding:
 
 **Tab "Personagem":**
 - Visão geral: nível, pontos de classe, índole
-- Classes do personagem
+- Classes do personagem. "Ganhar pts. skill" (1 ponto de classe → 1 de skill) e a compra de rank de perícia pedem confirmação: são irreversíveis e, no celular, ficam sob o polegar
 - **Atributos** (após onboarding): barras coloridas para Aura, Força, Destreza, Resistência, Inteligência
+- **Perícias** com as **duas bolsas** (`periciaPoints` e `periciaPointsVirtude`): cada perícia habilita pela bolsa que ela gasta, como `CAMPO_DA_BOLSA` no servidor. A tela só conhecia a mundana, e o jogador comprava Luta "dos 26 pontos" enquanto a Virtude caía em silêncio
 - **Origem**: cards com raça, passado e deus (carregados via APIs públicas em background)
-- Skills e títulos concedidos
+- Skills e títulos concedidos — a skill do passado aparece aqui com o selo "passado", já que não é copiada para `data.skills`
 - Notas de aventura (preview)
 
 **Tab "Inventário":** `InventarioPersonagem` (carga, busca no catálogo para adicionar, e os grupos Equipado / Mochila rápida / Mochila com os selos de qualidade) e `FabricarPainel` (receitas ao alcance, checagem com o que falta, chances, e o resultado da rolagem). Ver "Inventário estruturado e a ação de fabricar".
