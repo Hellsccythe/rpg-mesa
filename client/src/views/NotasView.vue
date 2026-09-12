@@ -120,10 +120,13 @@
               </div>
             </template>
 
-            <!-- Virando para frente -->
+            <!-- Virando para frente: a folha da direita dobra sobre a esquerda.
+                 Por baixo ficam o destino (à esquerda, onde a folha vai pousar)
+                 e a página seguinte (à direita, que a folha descobre ao sair). -->
             <template v-else-if="flipDir === 'forward'">
               <div class="page-slot page-slot--left" style="z-index:1">
                 <BookPageContent :page="pendingLeft" :note-titulo="notaSelecionada?.titulo" @jump-to-page="jumpToSpread" />
+                <div class="sombra-projetada sombra-projetada--esquerda" />
               </div>
               <div class="book-spine" style="z-index:1" />
               <div class="page-slot page-slot--right" style="z-index:1">
@@ -132,22 +135,19 @@
               <div class="page-slot page-slot--left" style="z-index:2">
                 <BookPageContent :page="currentLeft" :note-titulo="notaSelecionada?.titulo" @jump-to-page="jumpToSpread" />
               </div>
-              <div
-                class="flip-card flip-fwd"
-                :class="{ 'is-flipping': flipAnimating }"
-                style="z-index:3"
-                @transitionend="onFlipTransitionEnd"
-              >
-                <div class="flip-face flip-face--front">
-                  <BookPageContent :page="currentRight" :note-titulo="notaSelecionada?.titulo" @jump-to-page="jumpToSpread" />
-                </div>
-                <div class="flip-face flip-face--back">
-                  <BookPageContent :page="pendingLeft" :note-titulo="notaSelecionada?.titulo" @jump-to-page="jumpToSpread" />
-                </div>
+              <div class="folha-virando folha-virando--direita" style="z-index:3">
+                <PaginaDobrando
+                  sentido="frente"
+                  :frente="currentRight"
+                  :verso="pendingLeft"
+                  :note-titulo="notaSelecionada?.titulo"
+                  :duracao-ms="DURACAO_VIRADA_MS"
+                  @terminou="onFlipTerminou"
+                />
               </div>
             </template>
 
-            <!-- Virando para trás -->
+            <!-- Virando para trás: espelho do de cima. -->
             <template v-else>
               <div class="page-slot page-slot--left" style="z-index:1">
                 <BookPageContent :page="pendingLeft" :note-titulo="notaSelecionada?.titulo" @jump-to-page="jumpToSpread" />
@@ -155,22 +155,20 @@
               <div class="book-spine" style="z-index:1" />
               <div class="page-slot page-slot--right" style="z-index:1">
                 <BookPageContent :page="pendingRight" :note-titulo="notaSelecionada?.titulo" @jump-to-page="jumpToSpread" />
+                <div class="sombra-projetada sombra-projetada--direita" />
               </div>
               <div class="page-slot page-slot--right" style="z-index:2">
                 <BookPageContent :page="currentRight" :note-titulo="notaSelecionada?.titulo" @jump-to-page="jumpToSpread" />
               </div>
-              <div
-                class="flip-card flip-bwd"
-                :class="{ 'is-flipping': flipAnimating }"
-                style="z-index:3"
-                @transitionend="onFlipTransitionEnd"
-              >
-                <div class="flip-face flip-face--front">
-                  <BookPageContent :page="currentLeft" :note-titulo="notaSelecionada?.titulo" @jump-to-page="jumpToSpread" />
-                </div>
-                <div class="flip-face flip-face--back">
-                  <BookPageContent :page="pendingRight" :note-titulo="notaSelecionada?.titulo" @jump-to-page="jumpToSpread" />
-                </div>
+              <div class="folha-virando folha-virando--esquerda" style="z-index:3">
+                <PaginaDobrando
+                  sentido="tras"
+                  :frente="currentLeft"
+                  :verso="pendingRight"
+                  :note-titulo="notaSelecionada?.titulo"
+                  :duracao-ms="DURACAO_VIRADA_MS"
+                  @terminou="onFlipTerminou"
+                />
               </div>
             </template>
 
@@ -178,16 +176,33 @@
         </div>
 
         <!-- ─── PÁGINA ÚNICA (mobile) ─── -->
+        <!-- No celular a lombada fica na borda esquerda da tela: avançar é a
+             folha atual girando para fora pela esquerda e descobrindo a
+             próxima; voltar é a anterior chegando de fora, na mesma animação
+             de trás para frente. -->
         <div class="mobile-book block sm:hidden">
-          <Transition :name="mobileTransitionName" mode="out-in">
-            <div :key="mobilePageIdx" class="mobile-page">
+          <div class="mobile-scene">
+            <div class="mobile-page">
               <BookPageContent
-                :page="paginasAtuais[mobilePageIdx]"
+                :page="paginasAtuais[mobileFlip === 'forward' ? mobilePendingIdx : mobilePageIdx]"
                 :note-titulo="notaSelecionada?.titulo"
                 @jump-to-page="jumpMobile"
               />
+              <div v-if="mobileFlip !== 'idle'" class="sombra-projetada sombra-projetada--esquerda" />
             </div>
-          </Transition>
+            <PaginaDobrando
+              v-if="mobileFlip !== 'idle'"
+              sentido="frente"
+              :reverso="mobileFlip === 'back'"
+              :frente="paginasAtuais[mobileFlip === 'forward' ? mobilePageIdx : mobilePendingIdx]"
+              :verso="paginasAtuais[mobilePendingIdx]"
+              :note-titulo="notaSelecionada?.titulo"
+              :tiras="4"
+              :curva-maxima="14"
+              :duracao-ms="DURACAO_VIRADA_MOBILE_MS"
+              @terminou="onMobileFlipTerminou"
+            />
+          </div>
         </div>
 
         <!-- Controles de navegação -->
@@ -254,10 +269,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import HamburgerDrawerMenu from '@/components/HamburgerDrawerMenu.vue'
 import BookPageContent from '@/components/book/BookPageContent.vue'
+import PaginaDobrando from '@/components/book/PaginaDobrando.vue'
 import { useAuthStore } from '@/stores/auth'
 import { PANTEAO_PAGES } from '@/data/panteao'
 import { listLoreNotes } from '@/lib/api/lore-notes.api'
@@ -298,10 +314,15 @@ function zoomOut() { zoomLevel.value = Math.max(ZOOM_MIN, +(zoomLevel.value - ZO
 const currentSpreadIdx  = ref(0)
 const flipState         = ref<FlipState>('idle')
 const flipDir           = ref<FlipDir>('forward')
-const flipAnimating     = ref(false)
 const pendingSpreadIdx  = ref(0)
 const mobilePageIdx     = ref(0)
-const mobileTransitionName = ref('page-slide-fwd')
+const mobilePendingIdx  = ref(0)
+const mobileFlip        = ref<'idle' | FlipDir>('idle')
+
+// Uma folha de verdade leva perto de um segundo; no celular, mais curta, que
+// é uma página só e a tela é pequena.
+const DURACAO_VIRADA_MS        = 950
+const DURACAO_VIRADA_MOBILE_MS = 650
 const showSettingsMenu  = ref(false)
 
 // ── Computed ─────────────────────────────────────────────────────────────────
@@ -363,7 +384,7 @@ function abrirNota(nota: LoreNoteItem) {
   currentSpreadIdx.value = 0
   mobilePageIdx.value = 0
   flipState.value = 'idle'
-  flipAnimating.value = false
+  mobileFlip.value = 'idle'
   viewMode.value = 'book'
 }
 
@@ -373,46 +394,48 @@ function voltarParaPrateleira() {
 }
 
 // ── Navegação desktop ─────────────────────────────────────────────────────────
-async function goForward() {
+// A animação começa quando PaginaDobrando monta (keyframes CSS), então basta
+// trocar o estado; o componente avisa quando a folha pousou.
+function goForward() {
   if (window.innerWidth < 640) {
-    if (mobilePageIdx.value < totalPaginas.value - 1) {
-      mobileTransitionName.value = 'page-slide-fwd'
-      mobilePageIdx.value++
-    }
+    virarMobile(mobilePageIdx.value + 1)
     return
   }
   if (flipState.value !== 'idle' || currentSpreadIdx.value >= totalSpreads.value - 1) return
   pendingSpreadIdx.value = currentSpreadIdx.value + 1
   flipDir.value = 'forward'
   flipState.value = 'flipping'
-  flipAnimating.value = false
-  await nextTick()
-  requestAnimationFrame(() => requestAnimationFrame(() => { flipAnimating.value = true }))
 }
 
-async function goBack() {
+function goBack() {
   if (window.innerWidth < 640) {
-    if (mobilePageIdx.value > 0) {
-      mobileTransitionName.value = 'page-slide-bwd'
-      mobilePageIdx.value--
-    }
+    virarMobile(mobilePageIdx.value - 1)
     return
   }
   if (flipState.value !== 'idle' || currentSpreadIdx.value <= 0) return
   pendingSpreadIdx.value = currentSpreadIdx.value - 1
   flipDir.value = 'back'
   flipState.value = 'flipping'
-  flipAnimating.value = false
-  await nextTick()
-  requestAnimationFrame(() => requestAnimationFrame(() => { flipAnimating.value = true }))
 }
 
-function onFlipTransitionEnd(e: TransitionEvent) {
-  if (e.propertyName !== 'transform') return
+function onFlipTerminou() {
   currentSpreadIdx.value = pendingSpreadIdx.value
   mobilePageIdx.value = currentSpreadIdx.value * 2
   flipState.value = 'idle'
-  flipAnimating.value = false
+}
+
+function virarMobile(destino: number) {
+  if (mobileFlip.value !== 'idle') return
+  const alvo = Math.max(0, Math.min(totalPaginas.value - 1, destino))
+  if (alvo === mobilePageIdx.value) return
+  mobilePendingIdx.value = alvo
+  mobileFlip.value = alvo > mobilePageIdx.value ? 'forward' : 'back'
+}
+
+function onMobileFlipTerminou() {
+  mobilePageIdx.value = mobilePendingIdx.value
+  currentSpreadIdx.value = Math.floor(mobilePageIdx.value / 2)
+  mobileFlip.value = 'idle'
 }
 
 function jumpToSpread(spreadIdx: number) {
@@ -422,9 +445,7 @@ function jumpToSpread(spreadIdx: number) {
 }
 
 function jumpMobile(spreadIdx: number) {
-  const page = Math.max(0, Math.min(totalPaginas.value - 1, spreadIdx * 2))
-  mobileTransitionName.value = page > mobilePageIdx.value ? 'page-slide-fwd' : 'page-slide-bwd'
-  mobilePageIdx.value = page
+  virarMobile(spreadIdx * 2)
 }
 
 // ── Swipe ────────────────────────────────────────────────────────────────────
@@ -697,47 +718,44 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
 }
 
-/* ── Flip card ── */
-.flip-card {
+/* ── A folha que vira (PaginaDobrando) ── */
+/* Ocupa a metade de onde a folha sai; a folha em si atravessa a lombada e
+   pousa na outra metade, por isso sem overflow hidden aqui. */
+.folha-virando {
   position: absolute;
   top: 0;
   height: 100%;
   width: calc(50% - 3px);
   transform-style: preserve-3d;
-  transition: transform 860ms cubic-bezier(0.645, 0.045, 0.355, 1.000);
-  will-change: transform;
 }
+.folha-virando--direita  { right: 0; }
+.folha-virando--esquerda { left: 0; }
 
-.flip-fwd {
-  right: 0;
-  transform-origin: left center;
-}
-
-.flip-fwd.is-flipping { transform: rotateY(-180deg); }
-
-.flip-bwd {
-  left: 0;
-  transform-origin: right center;
-}
-
-.flip-bwd.is-flipping { transform: rotateY(180deg); }
-
-/* Faces do cartão */
-.flip-face {
+/* Sombra que a folha de pé projeta na página onde vai pousar: cresce a partir
+   da lombada e some quando a folha assenta. */
+.sombra-projetada {
   position: absolute;
   inset: 0;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  overflow: hidden;
+  pointer-events: none;
+  z-index: 11;
+  opacity: 0;
+  animation: sombra-projetada 950ms ease-in-out both;
 }
-
-.flip-face--back { transform: rotateY(180deg); }
-
-/* Sombra dinâmica durante o flip */
-.flip-fwd .flip-face--front { box-shadow: -4px 0 12px rgba(0,0,0,0.2); }
-.flip-fwd.is-flipping .flip-face--front { box-shadow: -12px 0 28px rgba(0,0,0,0.45); }
-.flip-bwd .flip-face--front { box-shadow: 4px 0 12px rgba(0,0,0,0.2); }
-.flip-bwd.is-flipping .flip-face--front { box-shadow: 12px 0 28px rgba(0,0,0,0.45); }
+.sombra-projetada--esquerda {
+  background: linear-gradient(to left, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.18) 40%, transparent 80%);
+}
+.sombra-projetada--direita {
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.18) 40%, transparent 80%);
+}
+@keyframes sombra-projetada {
+  0%   { opacity: 0; }
+  40%  { opacity: 0.35; }
+  75%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sombra-projetada { animation-duration: 1ms; }
+}
 
 /* ── Mobile ── */
 .mobile-book {
@@ -748,20 +766,18 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
-.mobile-page { width: 100%; height: 100%; }
-
-/* Transições mobile */
-.page-slide-fwd-enter-active,
-.page-slide-fwd-leave-active,
-.page-slide-bwd-enter-active,
-.page-slide-bwd-leave-active {
-  transition: all 280ms cubic-bezier(0.4, 0, 0.2, 1);
+/* A cena tem a perspectiva ancorada perto da lombada (borda esquerda), que é
+   de onde a folha gira. */
+.mobile-scene {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  perspective: 1400px;
+  perspective-origin: 10% 45%;
+  transform-style: preserve-3d;
 }
-
-.page-slide-fwd-enter-from { opacity: 0; transform: translateX(36px); }
-.page-slide-fwd-leave-to   { opacity: 0; transform: translateX(-36px); }
-.page-slide-bwd-enter-from { opacity: 0; transform: translateX(-36px); }
-.page-slide-bwd-leave-to   { opacity: 0; transform: translateX(36px); }
+.mobile-page { position: absolute; inset: 0; }
+.mobile-scene .sombra-projetada { animation-duration: 650ms; }
 
 /* ── Nav bar ── */
 .nav-bar {
