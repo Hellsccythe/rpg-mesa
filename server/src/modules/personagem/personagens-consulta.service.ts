@@ -6,7 +6,7 @@ import type { UsuarioAutenticado } from "../../common/cls/usuario-autenticado.in
 import { montarUrlPublica } from "../../common/storage/armazenamento-arquivos.service.js";
 import { PersonagemModel } from "./models/personagem.model.js";
 import { garantirAcessoAoPersonagem } from "./personagem-acesso.js";
-import { mapearPersonagemParaApi, type PersonagemApi } from "./personagem-api.mapper.js";
+import { mapearPersonagemParaApi, mapearPersonagemParaJogador, type PersonagemApi } from "./personagem-api.mapper.js";
 
 export type PersonagemPublico = {
   characterId: number;
@@ -149,7 +149,7 @@ export class PersonagensConsultaService {
       order: [["createdAt", "DESC"]],
     });
 
-    return encontrados.map(mapearPersonagemParaApi);
+    return encontrados.map(mapearPersonagemParaJogador);
   }
 
   /**
@@ -165,7 +165,9 @@ export class PersonagensConsultaService {
 
     garantirAcessoAoPersonagem(personagem, usuario);
     await this.garantirClassesEmData(personagem);
-    return mapearPersonagemParaApi(personagem);
+    return usuario.tipo === "gm"
+      ? mapearPersonagemParaApi(personagem)
+      : mapearPersonagemParaJogador(personagem);
   }
 
   /**

@@ -1,4 +1,4 @@
-import { IsIn, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
+import { IsBoolean, IsIn, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
 
 export class AlterarStatusDto {
   @IsIn(["vivo", "morto"], { message: "Status inválido. Use 'vivo' ou 'morto'." })
@@ -20,6 +20,16 @@ export class PosicaoDeImagemDto {
 export class FocalPointDto {
   @IsString() @MaxLength(60)
   focalPoint!: string;
+}
+
+/** Edição de uma nota já escrita: o texto, e se o jogador a vê. */
+export class EditarNotaAventuraDto {
+  @IsOptional() @IsString() @MinLength(1) @MaxLength(5000)
+  note?: string;
+
+  /** Oculta some da resposta do jogador, mas o mestre continua vendo. */
+  @IsOptional() @IsBoolean()
+  oculta?: boolean;
 }
 
 export class AdicionarNotaAventuraDto {

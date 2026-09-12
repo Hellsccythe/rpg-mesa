@@ -78,7 +78,7 @@
                 <div class="note-card-body">
                   <h3 class="note-card-title">{{ nota.titulo }}</h3>
                   <p v-if="nota.subtitulo" class="note-card-sub">{{ nota.subtitulo }}</p>
-                  <p class="note-card-meta">{{ nota.totalPaginas }} páginas</p>
+                  <p class="note-card-meta">{{ nota.totalPaginas }} {{ nota.totalPaginas === 1 ? 'página' : 'páginas' }}</p>
                 </div>
                 <svg class="note-card-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                   <polyline points="9 18 15 12 9 6" />
@@ -278,6 +278,8 @@ import { useAuthStore } from '@/stores/auth'
 import { PANTEAO_PAGES } from '@/data/panteao'
 import { listLoreNotes } from '@/lib/api/lore-notes.api'
 import type { LoreNoteApi } from '@/lib/api/lore-notes.api'
+import { useCharactersStore } from '@/stores/characters'
+import type { NotaDeAventura } from '@/lib/api/personagens.api'
 import type { BookPage, LoreNoteItem } from '@/types/book'
 
 function notaApiParaPaginas(nota: LoreNoteApi): BookPage[] {
@@ -357,7 +359,37 @@ const NOTA_PANTEAO: LoreNoteItem = {
   pages: PANTEAO_PAGES,
 }
 
+// ── Diário de aventura ───────────────────────────────────────────────────────
+// As notas que o mestre escreve sobre o personagem (data.adventureNotes). O
+// dashboard mostra as três últimas; o livro tem todas, uma por página. A API
+// do jogador já vem sem as ocultas; o mestre vê todas, com o aviso.
+const notasDeAventura = ref<NotaDeAventura[]>([])
+
+function formatarDataDaNota(iso?: string): string {
+  if (!iso) return ''
+  const data = new Date(iso)
+  return Number.isNaN(data.getTime()) ? '' : data.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
+}
+
+const paginasDoDiario = computed<BookPage[]>(() =>
+  notasDeAventura.value.map((nota, idx) => ({
+    pageNumber: idx + 1,
+    type: 'text' as const,
+    gods: [],
+    textContent: nota.text,
+    noteTitle: idx === 0 ? 'Diário de Aventura' : undefined,
+    noteSubtitle: [formatarDataDaNota(nota.addedAt), nota.oculta ? 'oculta do jogador' : ''].filter(Boolean).join(' · ') || undefined,
+  })),
+)
+
+const NOTA_DIARIO = computed<LoreNoteItem | null>(() =>
+  paginasDoDiario.value.length
+    ? { id: 'diario', titulo: 'Diário de Aventura', subtitulo: 'O que o mestre anotou sobre você', tipo: 'static', totalPaginas: paginasDoDiario.value.length, pages: paginasDoDiario.value }
+    : null,
+)
+
 const todasAsNotas = computed<LoreNoteItem[]>(() => [
+  ...(NOTA_DIARIO.value ? [NOTA_DIARIO.value] : []),
   NOTA_PANTEAO,
   ...notasDinamicas.value.map<LoreNoteItem>((n) => ({
     id: String(n.id),
@@ -526,7 +558,13 @@ onMounted(async () => {
   loadingNotas.value = true
   try {
     const characterId = Number(route.query.characterId ?? authStore.idPersonagemAtivo ?? 0) || undefined
-    notasDinamicas.value = await listLoreNotes(characterId)
+    const [lore, personagem] = await Promise.all([
+      listLoreNotes(characterId),
+      characterId ? useCharactersStore().fetchCharacterById(characterId).catch(() => null) : Promise.resolve(null),
+    ])
+    notasDinamicas.value = lore
+    const notas = (personagem as any)?.data?.adventureNotes
+    notasDeAventura.value = Array.isArray(notas) ? notas : []
   } catch {
     // sem notas dinâmicas, continua com estáticas
   } finally {

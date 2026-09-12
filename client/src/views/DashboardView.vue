@@ -587,8 +587,49 @@
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
                     </button>
                   </div>
-                  <p v-if="!historyPreview" class="text-zinc-600 text-sm italic">Nenhuma anotação registrada ainda.</p>
-                  <p v-else class="text-sm leading-relaxed whitespace-pre-wrap" style="color: var(--text-muted)">{{ historyPreview }}</p>
+                  <!-- Jogador: prévia das três últimas; o livro tem todas. -->
+                  <template v-if="!authStore.eMestre">
+                    <p v-if="!historyPreview" class="text-zinc-600 text-sm italic">Nenhuma anotação registrada ainda.</p>
+                    <p v-else class="text-sm leading-relaxed whitespace-pre-wrap" style="color: var(--text-muted)">{{ historyPreview }}</p>
+                  </template>
+
+                  <!-- Mestre: todas, com editar, ocultar e apagar. Ocultar tira a
+                       nota da resposta do jogador sem perdê-la. -->
+                  <template v-else>
+                    <p v-if="!notasDeAventura.length" class="text-zinc-600 text-sm italic">Nenhuma anotação registrada ainda.</p>
+                    <ul v-else class="space-y-2">
+                      <li
+                        v-for="(nota, indice) in notasDeAventura"
+                        :key="indice"
+                        class="rounded-xl border px-3 py-2.5 text-sm"
+                        :class="nota.oculta ? 'border-dashed border-zinc-700/60 bg-zinc-900/30' : 'border-white/[0.06] bg-white/[0.02]'"
+                      >
+                        <div class="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.65rem] text-zinc-500">
+                          <span v-if="nota.addedAt">{{ formatarDataDaNota(nota.addedAt) }}</span>
+                          <span v-if="nota.editadaEm" class="italic">· editada</span>
+                          <span v-if="nota.oculta" class="rounded-full border border-zinc-600/60 px-1.5 py-px font-semibold uppercase tracking-wider text-zinc-400">oculta do jogador</span>
+                          <span class="ml-auto flex items-center gap-1">
+                            <button type="button" class="rounded-md px-1.5 py-0.5 text-zinc-400 transition-colors hover:bg-white/[0.06] hover:text-white" title="Editar" @click="iniciarEdicaoDaNota(indice)">✎</button>
+                            <button type="button" class="rounded-md px-1.5 py-0.5 text-zinc-400 transition-colors hover:bg-white/[0.06] hover:text-white" :title="nota.oculta ? 'Mostrar ao jogador' : 'Ocultar do jogador'" :disabled="salvandoNota" @click="alternarOcultaDaNota(indice)">{{ nota.oculta ? '👁' : '🚫' }}</button>
+                            <button type="button" class="rounded-md px-1.5 py-0.5 text-red-400/70 transition-colors hover:bg-red-900/30 hover:text-red-300" title="Apagar" @click="notaParaApagar = indice">🗑</button>
+                          </span>
+                        </div>
+                        <template v-if="notaEmEdicao === indice">
+                          <textarea
+                            v-model="textoDaNotaEmEdicao"
+                            rows="3"
+                            class="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-zinc-200 outline-none focus:border-amber-500/40"
+                          />
+                          <div class="mt-2 flex justify-end gap-2">
+                            <button type="button" class="rounded-lg border border-white/10 px-3 py-1 text-xs text-zinc-400 hover:text-white" @click="notaEmEdicao = null">Cancelar</button>
+                            <button type="button" class="rounded-lg bg-amber-700 px-3 py-1 text-xs font-semibold text-white hover:bg-amber-600 disabled:opacity-50" :disabled="salvandoNota || !textoDaNotaEmEdicao.trim()" @click="salvarNotaEmEdicao">{{ salvandoNota ? 'Salvando...' : 'Salvar' }}</button>
+                          </div>
+                        </template>
+                        <p v-else class="whitespace-pre-wrap leading-relaxed" :class="nota.oculta ? 'text-zinc-500' : ''" :style="nota.oculta ? '' : 'color: var(--text-muted)'">{{ nota.text }}</p>
+                      </li>
+                    </ul>
+                    <p v-if="erroNota" class="mt-2 text-xs text-red-400">{{ erroNota }}</p>
+                  </template>
                 </div>
               </div>
 
@@ -1209,6 +1250,26 @@
       </div>
     </Modal>
 
+  <!-- ══ Modal: apagar nota de aventura ══ -->
+  <Modal
+    v-if="notaParaApagar !== null"
+    panel-class="max-w-sm"
+    tema="escuro"
+    :show-close-button="false"
+    :close-on-backdrop="false"
+    @close="notaParaApagar = null"
+  >
+    <div class="space-y-4 p-6">
+      <p class="text-base font-bold text-white">Apagar esta nota?</p>
+      <p class="text-sm text-zinc-400 line-clamp-4 whitespace-pre-wrap">{{ notasDeAventura[notaParaApagar]?.text }}</p>
+      <p class="text-xs text-zinc-600">Se a ideia é só tirar do jogador, use ocultar — a nota continua aqui.</p>
+      <div class="flex gap-3">
+        <button type="button" class="flex-1 rounded-xl border border-white/10 py-2 text-sm text-zinc-400 hover:text-white" @click="notaParaApagar = null">Cancelar</button>
+        <button type="button" class="flex-1 rounded-xl bg-red-700 py-2 text-sm font-semibold text-white hover:bg-red-600 disabled:opacity-60" :disabled="salvandoNota" @click="confirmarApagarNota">{{ salvandoNota ? 'Apagando...' : 'Apagar' }}</button>
+      </div>
+    </div>
+  </Modal>
+
   <!-- ══ Modal: Ganhar pts. skill ══ -->
   <!-- Um toque convertia o ponto de classe sem perguntar; no celular o botão
        fica ao alcance do polegar. Mesmo padrão do modal de perícia. -->
@@ -1443,7 +1504,7 @@ import {
   listarPericias, custoDoRank, bonusDoTeste, RANK_MAXIMO, ROTULO_ATRIBUTO,
   type PericiaApi, type PericiaDoPersonagem,
 } from '@/lib/api/pericias.api'
-import { subirRankDePericia } from '@/lib/api/personagens.api'
+import { subirRankDePericia, editarNotaDeAventura, removerNotaDeAventura, type NotaDeAventura } from '@/lib/api/personagens.api'
 import { listarCatalogoSkills, type SkillApi } from '@/lib/api/skills.api'
 import { listLoreNotes } from '@/lib/api/lore-notes.api'
 import { listarMinhasTelas } from '@/lib/api/player-telas.api'
@@ -1588,6 +1649,59 @@ const activeDashboardHeaderItem = computed(() => {
   if (path.startsWith('/notas')) return 'notas'
   return null
 })
+
+// ── Notas de aventura (mestre) ───────────────────────────────────────────────
+const notasDeAventura = computed<NotaDeAventura[]>(() => {
+  const notas = character.value?.data?.adventureNotes
+  return Array.isArray(notas) ? (notas as NotaDeAventura[]) : []
+})
+const notaEmEdicao         = ref<number | null>(null)
+const textoDaNotaEmEdicao  = ref('')
+const notaParaApagar       = ref<number | null>(null)
+const salvandoNota         = ref(false)
+const erroNota             = ref('')
+
+function formatarDataDaNota(iso: string): string {
+  const data = new Date(iso)
+  return Number.isNaN(data.getTime()) ? '' : data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+function iniciarEdicaoDaNota(indice: number) {
+  notaEmEdicao.value = indice
+  textoDaNotaEmEdicao.value = notasDeAventura.value[indice]?.text ?? ''
+}
+
+async function salvarNotaEmEdicao() {
+  if (notaEmEdicao.value === null || !character.value) return
+  await aplicarNaNota(() => editarNotaDeAventura(character.value!.characterId, notaEmEdicao.value!, { note: textoDaNotaEmEdicao.value.trim() }))
+  notaEmEdicao.value = null
+}
+
+async function alternarOcultaDaNota(indice: number) {
+  if (!character.value) return
+  const oculta = !notasDeAventura.value[indice]?.oculta
+  await aplicarNaNota(() => editarNotaDeAventura(character.value!.characterId, indice, { oculta }))
+}
+
+async function confirmarApagarNota() {
+  if (notaParaApagar.value === null || !character.value) return
+  const indice = notaParaApagar.value
+  await aplicarNaNota(() => removerNotaDeAventura(character.value!.characterId, indice))
+  notaParaApagar.value = null
+}
+
+/** A resposta traz o personagem inteiro; a lista se atualiza por reatividade. */
+async function aplicarNaNota(acao: () => Promise<PersonagemApi>) {
+  salvandoNota.value = true
+  erroNota.value = ''
+  try {
+    character.value = await acao()
+  } catch (err: any) {
+    erroNota.value = err?.response?.data?.message ?? err.message ?? 'Erro ao salvar a nota.'
+  } finally {
+    salvandoNota.value = false
+  }
+}
 
 const historyPreview = computed(() => {
   const notes = character.value?.data?.adventureNotes

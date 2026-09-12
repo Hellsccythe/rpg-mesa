@@ -4,7 +4,7 @@ import type { UsuarioAutenticado } from "../../common/cls/usuario-autenticado.in
 import { ArmazenamentoArquivosService } from "../../common/storage/armazenamento-arquivos.service.js";
 import { PersonagemModel } from "./models/personagem.model.js";
 import { garantirAcessoAoPersonagem } from "./personagem-acesso.js";
-import { mapearPersonagemParaApi, type PersonagemApi } from "./personagem-api.mapper.js";
+import { mapearPersonagemParaApi, mapearPersonagemParaJogador, type PersonagemApi } from "./personagem-api.mapper.js";
 import type { EditarPersonagemDto } from "./personagens-crud.dto.js";
 
 @Injectable()
@@ -28,6 +28,22 @@ export class PersonagensCrudService {
     usuario: UsuarioAutenticado,
   ): Promise<PersonagemApi> {
     const personagem = await this.buscarPermitidoOuFalhar(personagemId, usuario);
+
+    // O dono não edita a ficha por aqui: nome, avatar e história passam pela
+    // solicitação que o mestre revisa, e o resto (nível, pontos, XP,
+    // inventário, notas) é do mestre ou de rota própria. A única coisa que o
+    // dashboard do jogador grava por esta rota é "vi a resposta do mestre" —
+    // e era o `data` inteiro que ia junto, o que deixava qualquer jogador
+    // regravar classPoints, level ou as notas de aventura com o próprio token.
+    if (usuario.tipo !== "gm") {
+      const atual = (personagem.data ?? {}) as Record<string, unknown>;
+      const enviado = (dados.data ?? {}) as Record<string, unknown>;
+      if (enviado.changeRequestResponse !== undefined) {
+        personagem.data = { ...atual, changeRequestResponse: enviado.changeRequestResponse };
+        await personagem.save();
+      }
+      return mapearPersonagemParaJogador(personagem);
+    }
 
     if (dados.name !== undefined) personagem.name = dados.name.trim();
     if (dados.level !== undefined) personagem.level = dados.level;

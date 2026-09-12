@@ -5,6 +5,7 @@ import { Sequelize } from "sequelize-typescript";
 import { obterUsuarioAutenticadoDoContexto } from "../../common/cls/contexto-requisicao.js";
 import { PersonagemModel } from "./models/personagem.model.js";
 import { mapearPersonagemParaApi, type PersonagemApi } from "./personagem-api.mapper.js";
+import type { EditarNotaAventuraDto } from "./personagens-mestre.dto.js";
 
 /**
  * Ajustes que só o mestre faz e que não são progressão: status de vida,
@@ -106,6 +107,55 @@ export class PersonagensMestreService {
     personagem.data = { ...dados, adventureNotes: notas };
     await personagem.save();
     return mapearPersonagemParaApi(personagem);
+  }
+
+  /**
+   * Edita o texto e/ou a visibilidade de uma nota. O mestre precisa poder
+   * corrigir o que escreveu e tirar do jogador o que revelou cedo demais —
+   * até aqui só havia o POST, e um acento errado exigia SQL.
+   */
+  async editarNotaAventura(
+    personagemId: number,
+    indice: number,
+    dados: EditarNotaAventuraDto,
+  ): Promise<PersonagemApi> {
+    const personagem = await this.buscarOuFalhar(personagemId);
+    const dadosPersonagem = this.lerDados(personagem);
+    const notas = this.lerNotas(dadosPersonagem, indice);
+
+    const atual = notas[indice];
+    notas[indice] = {
+      ...atual,
+      ...(dados.note !== undefined ? { text: dados.note.trim() } : {}),
+      ...(dados.oculta !== undefined ? { oculta: dados.oculta } : {}),
+      editadaEm: new Date().toISOString(),
+      editadaPor: obterUsuarioAutenticadoDoContexto()?.email ?? "master",
+    };
+
+    personagem.data = { ...dadosPersonagem, adventureNotes: notas };
+    await personagem.save();
+    return mapearPersonagemParaApi(personagem);
+  }
+
+  async removerNotaAventura(personagemId: number, indice: number): Promise<PersonagemApi> {
+    const personagem = await this.buscarOuFalhar(personagemId);
+    const dadosPersonagem = this.lerDados(personagem);
+    const notas = this.lerNotas(dadosPersonagem, indice);
+    notas.splice(indice, 1);
+
+    personagem.data = { ...dadosPersonagem, adventureNotes: notas };
+    await personagem.save();
+    return mapearPersonagemParaApi(personagem);
+  }
+
+  private lerNotas(dados: Record<string, unknown>, indice: number): Array<Record<string, unknown>> {
+    const notas = Array.isArray(dados.adventureNotes)
+      ? [...(dados.adventureNotes as Array<Record<string, unknown>>)]
+      : [];
+    if (indice < 0 || indice >= notas.length) {
+      throw new NotFoundException("Nota de aventura não encontrada.");
+    }
+    return notas;
   }
 
   private async buscarOuFalhar(personagemId: number): Promise<PersonagemModel> {

@@ -1,9 +1,10 @@
-import { Body, Controller, Param, ParseIntPipe, Patch, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Param, ParseIntPipe, Patch, Post, UseGuards } from "@nestjs/common";
 import { JwtAuthGuard } from "../../common/auth/jwt-auth.guard.js";
 import { MasterGuard } from "../../common/auth/master.guard.js";
 import { PersonagensMestreService } from "./personagens-mestre.service.js";
 import {
   AdicionarNotaAventuraDto,
+  EditarNotaAventuraDto,
   AlterarStatusDto,
   FocalPointDto,
   InfoAdicionalDeDeusDto,
@@ -58,5 +59,26 @@ export class PersonagensMestreController {
     @Body() dados: AdicionarNotaAventuraDto,
   ) {
     return this.servicoMestre.adicionarNotaAventura(personagemId, dados.note);
+  }
+
+  /**
+   * As notas vivem numa lista em data.adventureNotes e não têm id próprio, então
+   * são endereçadas pela posição — a mesma que a resposta do personagem entrega.
+   */
+  @Patch("admin/personagens/:characterId/notas/:indice")
+  editarNotaAventura(
+    @Param("characterId", ParseIntPipe) personagemId: number,
+    @Param("indice", ParseIntPipe) indice: number,
+    @Body() dados: EditarNotaAventuraDto,
+  ) {
+    return this.servicoMestre.editarNotaAventura(personagemId, indice, dados);
+  }
+
+  @Delete("admin/personagens/:characterId/notas/:indice")
+  removerNotaAventura(
+    @Param("characterId", ParseIntPipe) personagemId: number,
+    @Param("indice", ParseIntPipe) indice: number,
+  ) {
+    return this.servicoMestre.removerNotaAventura(personagemId, indice);
   }
 }
