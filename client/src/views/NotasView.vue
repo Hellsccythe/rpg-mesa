@@ -74,11 +74,13 @@
               :aria-label="`Abrir ${nota.titulo}`"
             >
               <div class="note-card-inner">
-                <div class="note-icon">{{ nota.tipo === 'static' ? '📖' : '📜' }}</div>
+                <!-- Capa personalizada vira miniatura; sem ela, o ícone do formato. -->
+                <img v-if="nota.capaUrl" :src="nota.capaUrl" alt="" class="note-capa" />
+                <div v-else class="note-icon">{{ nota.formato === 'pergaminho' ? '📜' : '📖' }}</div>
                 <div class="note-card-body">
                   <h3 class="note-card-title">{{ nota.titulo }}</h3>
                   <p v-if="nota.subtitulo" class="note-card-sub">{{ nota.subtitulo }}</p>
-                  <p class="note-card-meta">{{ nota.totalPaginas }} {{ nota.totalPaginas === 1 ? 'página' : 'páginas' }}</p>
+                  <p class="note-card-meta">{{ nota.formato === 'pergaminho' ? 'uma folha' : `${nota.totalPaginas} ${nota.totalPaginas === 1 ? 'página' : 'páginas'}` }}</p>
                 </div>
                 <svg class="note-card-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                   <polyline points="9 18 15 12 9 6" />
@@ -96,13 +98,22 @@
 
       <!-- ═══════════════════════════════ LEITOR ═══════════════════════════════ -->
       <main v-else class="flex-1 flex flex-col items-center justify-center py-4 px-2">
+        <PergaminhoLeitor
+          v-if="notaSelecionada && notaSelecionada.formato === 'pergaminho'"
+          :key="notaSelecionada.id"
+          :paginas="paginasAtuais"
+          :titulo="notaSelecionada.titulo"
+          :subtitulo="notaSelecionada.subtitulo"
+        />
         <LivroLeitor
-          v-if="notaSelecionada"
+          v-else-if="notaSelecionada"
           :key="notaSelecionada.id"
           :paginas="paginasAtuais"
           :titulo="notaSelecionada.titulo"
           :subtitulo="notaSelecionada.subtitulo"
           :note-titulo="notaSelecionada.titulo"
+          :imagem-da-capa="notaSelecionada.capaUrl ?? undefined"
+          :imagem-da-contracapa="notaSelecionada.contracapaUrl ?? undefined"
           @fechar="voltarParaPrateleira"
         />
       </main>
@@ -115,6 +126,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import HamburgerDrawerMenu from '@/components/HamburgerDrawerMenu.vue'
 import LivroLeitor from '@/components/book/LivroLeitor.vue'
+import PergaminhoLeitor from '@/components/book/PergaminhoLeitor.vue'
 import { useAuthStore } from '@/stores/auth'
 import { PANTEAO_PAGES } from '@/data/panteao'
 import { listLoreNotes } from '@/lib/api/lore-notes.api'
@@ -152,6 +164,7 @@ const NOTA_PANTEAO: LoreNoteItem = {
   titulo: 'Panteão de Elyra',
   subtitulo: 'Conhecimento Comum dos Mortais',
   tipo: 'static',
+  formato: 'livro',
   totalPaginas: PANTEAO_PAGES.length,
   pages: PANTEAO_PAGES,
 }
@@ -181,7 +194,7 @@ const paginasDoDiario = computed<BookPage[]>(() =>
 
 const NOTA_DIARIO = computed<LoreNoteItem | null>(() =>
   paginasDoDiario.value.length
-    ? { id: 'diario', titulo: 'Diário de Aventura', subtitulo: 'O que o mestre anotou sobre você', tipo: 'static', totalPaginas: paginasDoDiario.value.length, pages: paginasDoDiario.value }
+    ? { id: 'diario', titulo: 'Diário de Aventura', subtitulo: 'O que o mestre anotou sobre você', tipo: 'static', formato: 'livro', totalPaginas: paginasDoDiario.value.length, pages: paginasDoDiario.value }
     : null,
 )
 
@@ -193,6 +206,9 @@ const todasAsNotas = computed<LoreNoteItem[]>(() => [
     titulo: n.title,
     subtitulo: n.subtitle ?? undefined,
     tipo: 'dynamic',
+    formato: n.formato ?? 'livro',
+    capaUrl: n.capa_url,
+    contracapaUrl: n.contracapa_url,
     totalPaginas: n.content.split(/\n---+\n/).length,
     apiId: n.id,
     rawContent: n.content,
@@ -355,6 +371,14 @@ onMounted(async () => {
   font-size: 1.8rem;
   flex-shrink: 0;
   line-height: 1;
+}
+.note-capa {
+  width: 2.4rem;
+  height: 3.3rem;
+  flex-shrink: 0;
+  object-fit: cover;
+  border-radius: 2px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
 }
 
 .note-card-body {

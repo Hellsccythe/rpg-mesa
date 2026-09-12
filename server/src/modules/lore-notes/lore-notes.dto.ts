@@ -1,5 +1,6 @@
 import { Type } from "class-transformer";
-import { IsInt, IsOptional, IsString, MaxLength, Min, MinLength } from "class-validator";
+import { IsIn, IsInt, IsOptional, IsString, MaxLength, Min, MinLength } from "class-validator";
+import { FORMATOS_DA_NOTA, type FormatoDaNota } from "./models/lore-note.model.js";
 
 export class FiltroLoreNotesDto {
   @IsOptional() @Type(() => Number) @IsInt() @Min(1)
@@ -27,6 +28,16 @@ export class CriarLoreNoteDto {
   /** Nulo ou ausente = nota global. */
   @IsOptional() @IsInt() @Min(1)
   characterId?: number | null;
+
+  @IsOptional() @IsIn(FORMATOS_DA_NOTA)
+  formato?: FormatoDaNota;
+
+  /** Caminhos devolvidos por upload-capa. Nulo apaga. */
+  @IsOptional() @IsString() @MaxLength(500)
+  capaUrl?: string | null;
+
+  @IsOptional() @IsString() @MaxLength(500)
+  contracapaUrl?: string | null;
 }
 
 export class EditarLoreNoteDto {
@@ -47,4 +58,13 @@ export class EditarLoreNoteDto {
 
   @IsOptional() @IsInt() @Min(1)
   characterId?: number | null;
+
+  @IsOptional() @IsIn(FORMATOS_DA_NOTA)
+  formato?: FormatoDaNota;
+
+  @IsOptional() @IsString() @MaxLength(500)
+  capaUrl?: string | null;
+
+  @IsOptional() @IsString() @MaxLength(500)
+  contracapaUrl?: string | null;
 }

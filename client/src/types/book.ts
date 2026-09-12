@@ -32,4 +32,9 @@ export interface LoreNoteItem {
   pages?: BookPage[]
   apiId?: number
   rawContent?: string
+  /** 'livro' abre como livro; 'pergaminho' é uma folha só. */
+  formato: 'livro' | 'pergaminho'
+  /** Capa e contracapa personalizadas (URL pública), quando o mestre subiu. */
+  capaUrl?: string | null
+  contracapaUrl?: string | null
 }

@@ -5,7 +5,7 @@ import type { UsuarioAutenticado } from "../../common/cls/usuario-autenticado.in
 import { PersonagemModel } from "../personagem/models/personagem.model.js";
 import { garantirAcessoAoPersonagem } from "../personagem/personagem-acesso.js";
 import { ArmazenamentoArquivosService } from "../../common/storage/armazenamento-arquivos.service.js";
-import { LoreNoteModel } from "./models/lore-note.model.js";
+import { LoreNoteModel, type FormatoDaNota } from "./models/lore-note.model.js";
 import type { CriarLoreNoteDto, EditarLoreNoteDto } from "./lore-notes.dto.js";
 
 export type LoreNoteApi = {
@@ -16,6 +16,10 @@ export type LoreNoteApi = {
   pdf_url: string | null;
   ordem: number;
   character_id: number | null;
+  formato: FormatoDaNota;
+  /** URLs públicas; nulas quando o mestre não subiu imagem. */
+  capa_url: string | null;
+  contracapa_url: string | null;
   created_at: string | null;
   updated_at: string | null;
 };
@@ -98,6 +102,9 @@ export class LoreNotesService {
       pdfUrl: this.armazenamentoArquivos.normalizarParaArmazenamento(dados.pdfUrl),
       ordem: dados.ordem ?? 0,
       characterId: dados.characterId ?? null,
+      formato: dados.formato ?? "livro",
+      capaUrl: this.armazenamentoArquivos.normalizarParaArmazenamento(dados.capaUrl),
+      contracapaUrl: this.armazenamentoArquivos.normalizarParaArmazenamento(dados.contracapaUrl),
     });
 
     return this.mapear(criada);
@@ -121,6 +128,13 @@ export class LoreNotesService {
     }
     if (dados.ordem !== undefined) nota.ordem = dados.ordem;
     if (dados.characterId !== undefined) nota.characterId = dados.characterId;
+    if (dados.formato !== undefined) nota.formato = dados.formato;
+    if (dados.capaUrl !== undefined) {
+      nota.capaUrl = this.armazenamentoArquivos.normalizarParaArmazenamento(dados.capaUrl);
+    }
+    if (dados.contracapaUrl !== undefined) {
+      nota.contracapaUrl = this.armazenamentoArquivos.normalizarParaArmazenamento(dados.contracapaUrl);
+    }
 
     await nota.save();
     return this.mapear(nota);
@@ -150,6 +164,9 @@ export class LoreNotesService {
       pdf_url: this.armazenamentoArquivos.montarUrlPublica(nota.pdfUrl) || null,
       ordem: nota.ordem,
       character_id: nota.characterId,
+      formato: nota.formato ?? "livro",
+      capa_url: this.armazenamentoArquivos.montarUrlPublica(nota.capaUrl) || null,
+      contracapa_url: this.armazenamentoArquivos.montarUrlPublica(nota.contracapaUrl) || null,
       created_at: formatarData(nota.get("createdAt")),
       updated_at: formatarData(nota.get("updatedAt")),
     };

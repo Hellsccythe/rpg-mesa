@@ -26,6 +26,8 @@ const props = defineProps<{
   subtitulo?: string
   noteTitulo?: string
   imagemDaCapa?: string
+  /** Sem ela, a contracapa repete a capa — sem o título. */
+  imagemDaContracapa?: string
 }>()
 
 const emit = defineEmits<{ (e: 'fechar'): void }>()
@@ -56,28 +58,42 @@ const xDireita = computed(() => (retrato.value ? 0 : larguraFolha.value))
 
 // ── Páginas e spreads ────────────────────────────────────────────────────────
 // Slot 0 é a guarda (o lado de dentro da capa); a página 1 fica no slot 1,
-// à direita — como num livro impresso. Spread s mostra os slots 2s e 2s+1.
-const totalDePaginas = computed(() => props.paginas.length)
-const totalDeSpreads = computed(() => Math.ceil((totalDePaginas.value + 1) / 2))
-const spreadAtual = ref(0)
-const paginaAtual = ref(0) // índice 0-based em `paginas`, só no retrato
-
-function slot(indice: number): ConteudoDoSlot {
-  if (indice === 0) return { tipo: 'guarda' }
-  const pagina = props.paginas[indice - 1]
-  return pagina ? { tipo: 'pagina', pagina } : { tipo: 'vazio' }
-}
-function slotDaPagina(indice: number): ConteudoDoSlot {
-  const pagina = props.paginas[indice]
-  return pagina ? { tipo: 'pagina', pagina } : { tipo: 'vazio' }
-}
+// à direita — como num livro impresso. No fim, a guarda de trás, sempre à
+// direita: com número ímpar de páginas entra uma folha em branco antes dela.
+// Spread s mostra os slots 2s e 2s+1.
+const GUARDA: ConteudoDoSlot = { tipo: 'guarda' }
 const EM_BRANCO: ConteudoDoSlot = { tipo: 'vazio' }
 
+const slots = computed<ConteudoDoSlot[]>(() => {
+  const paginas: ConteudoDoSlot[] = props.paginas.map((pagina) => ({ tipo: 'pagina', pagina }))
+  const enchimento = paginas.length % 2 === 1 ? [EM_BRANCO] : []
+  return [GUARDA, ...paginas, ...enchimento, GUARDA]
+})
+const totalDePaginas = computed(() => props.paginas.length)
+const totalDeSpreads = computed(() => slots.value.length / 2)
+const spreadAtual = ref(0)
+/** Índice 0-based da folha à vista no retrato: as páginas e, depois delas, a guarda de trás. */
+const paginaAtual = ref(0)
+const folhasNoRetrato = computed<ConteudoDoSlot[]>(() => [...props.paginas.map<ConteudoDoSlot>((pagina) => ({ tipo: 'pagina', pagina })), GUARDA])
+
+function slot(indice: number): ConteudoDoSlot {
+  return slots.value[indice] ?? EM_BRANCO
+}
+function slotDaPagina(indice: number): ConteudoDoSlot {
+  return folhasNoRetrato.value[indice] ?? EM_BRANCO
+}
+
 // ── O livro fechado e a capa ─────────────────────────────────────────────────
-type Fase = 'fechado' | 'abrindo' | 'aberto' | 'fechando'
+// 'fechado' é o livro fechado pela frente (a capa à vista); 'fechado-atras'
+// é o livro virado depois da última página, com a contracapa à vista.
+type Fase = 'fechado' | 'abrindo' | 'aberto' | 'fechando' | 'fechando-atras' | 'fechado-atras' | 'abrindo-atras'
 const fase = ref<Fase>('fechado')
 /** 0 = capa fechada, 1 = capa aberta (virada para a esquerda). */
 const aberturaDaCapa = ref(0)
+/** 0 = contracapa aberta (à direita), 1 = virada sobre o livro (fechado por trás). */
+const fechamentoDaContracapa = ref(0)
+const contracapaEmCena = computed(() => fase.value === 'fechando-atras' || fase.value === 'fechado-atras' || fase.value === 'abrindo-atras')
+const imagemDaContracapa = computed(() => props.imagemDaContracapa || props.imagemDaCapa)
 
 function abrirLivro() {
   if (fase.value !== 'fechado') return
@@ -89,14 +105,28 @@ function fecharLivro() {
   fase.value = 'fechando'
   animarValor(aberturaDaCapa, 0, 900, () => { fase.value = 'fechado' })
 }
+/** Depois da última página: a contracapa vira por cima e o livro fica virado. */
+function fecharPorTras() {
+  if (fase.value !== 'aberto' || virada.value) return
+  fase.value = 'fechando-atras'
+  animarValor(fechamentoDaContracapa, 1, 1000, () => { fase.value = 'fechado-atras' })
+}
+function reabrirPorTras() {
+  if (fase.value !== 'fechado-atras') return
+  fase.value = 'abrindo-atras'
+  animarValor(fechamentoDaContracapa, 0, 900, () => { fase.value = 'aberto' })
+}
 
 /**
  * No desktop o livro fechado fica centrado; ao abrir, a cena desliza para o
  * spread caber. A cena tem duas folhas de largura e é centrada pelo flex, então
  * a capa (a metade direita) começa meia folha à direita do centro — para
- * centrá-la, a cena vai meia folha para a esquerda.
+ * centrá-la, a cena vai meia folha para a esquerda. Fechado por trás é o
+ * espelho: a contracapa pousa na metade esquerda, e a cena vai para a direita.
  */
-const deslocamentoDaCena = computed(() => (retrato.value ? 0 : -(1 - aberturaDaCapa.value) * (larguraFolha.value / 2)))
+const deslocamentoDaCena = computed(() =>
+  retrato.value ? 0 : (-(1 - aberturaDaCapa.value) + fechamentoDaContracapa.value) * (larguraFolha.value / 2),
+)
 
 // ── A virada ─────────────────────────────────────────────────────────────────
 interface Virada {
@@ -113,7 +143,7 @@ interface Virada {
 const virada = ref<Virada | null>(null)
 
 const podeAvancar = computed(() =>
-  retrato.value ? paginaAtual.value < totalDePaginas.value - 1 : spreadAtual.value < totalDeSpreads.value - 1,
+  retrato.value ? paginaAtual.value < folhasNoRetrato.value.length - 1 : spreadAtual.value < totalDeSpreads.value - 1,
 )
 const podeVoltar = computed(() => (retrato.value ? paginaAtual.value > 0 : spreadAtual.value > 0))
 
@@ -187,6 +217,9 @@ function soltarVirada(v: Virada) {
 /** Virada inteira, sem dedo: toque, tecla ou botão. */
 function virar(sentido: 'frente' | 'tras', canto: CantoDaFolha = 'inferior') {
   if (fase.value === 'fechado') { if (sentido === 'frente') abrirLivro(); return }
+  if (fase.value === 'fechado-atras') { if (sentido === 'tras') reabrirPorTras(); return }
+  // Na última folha, avançar não vira página: fecha o livro pela contracapa.
+  if (sentido === 'frente' && fase.value === 'aberto' && !podeAvancar.value) { fecharPorTras(); return }
   const v = prepararVirada(sentido, canto)
   if (!v) return
   // Mutações sempre pelo proxy (virada.value), nunca pelo objeto cru: o ref
@@ -210,6 +243,7 @@ function pontoNaCena(evento: PointerEvent): Ponto {
 function aoPressionar(evento: PointerEvent) {
   if (!cenaRef.value || evento.button !== 0) return
   if (fase.value === 'fechado') { abrirLivro(); return }
+  if (fase.value === 'fechado-atras') { reabrirPorTras(); return }
   if (fase.value !== 'aberto' || virada.value) return
 
   const alvo = evento.target as HTMLElement
@@ -261,7 +295,11 @@ function aoTeclar(evento: KeyboardEvent) {
   else if (evento.key === 'Escape') emit('fechar')
 }
 
-function avancar() { virar('frente') }
+/** Avançar com o livro virado (contracapa à vista) devolve à prateleira. */
+function avancar() {
+  if (fase.value === 'fechado-atras') { emit('fechar'); return }
+  virar('frente')
+}
 /** Voltar na primeira página fecha o livro; voltar com ele fechado devolve à prateleira. */
 function voltar() {
   if (fase.value === 'fechado') { emit('fechar'); return }
@@ -296,6 +334,11 @@ const NADA: Camadas = { baixoEsquerda: null, baixoDireita: null, meioEsquerda: n
 
 const camadas = computed<Camadas>(() => {
   const v = virada.value
+  if (contracapaEmCena.value) {
+    // A capa 3D da contracapa faz as vezes da metade direita; no retrato ela
+    // sai pela esquerda e deixa a contracapa por baixo.
+    return { ...NADA, meioEsquerda: retrato.value ? null : slot(2 * spreadAtual.value) }
+  }
   if (retrato.value) {
     const atual = slotDaPagina(paginaAtual.value)
     if (!v) return { ...NADA, meioDireita: atual }
@@ -314,7 +357,7 @@ const camadas = computed<Camadas>(() => {
 
 const xDaFolhaVirando = computed(() => (virada.value?.lado === 'esquerda' ? 0 : xDireita.value))
 
-const pontinhos = computed(() => (retrato.value ? totalDePaginas.value : totalDeSpreads.value))
+const pontinhos = computed(() => (retrato.value ? folhasNoRetrato.value.length : totalDeSpreads.value))
 const pontinhoAtivo = computed(() => (retrato.value ? paginaAtual.value : spreadAtual.value))
 function irParaPontinho(i: number) {
   if (retrato.value) irParaPagina(i + 1)
@@ -362,6 +405,7 @@ onBeforeUnmount(() => {
 // lugar errado; a virada é descartada e o índice da página vira spread.
 watch(retrato, (agora) => {
   virada.value = null
+  if (contracapaEmCena.value) { fechamentoDaContracapa.value = 0; fase.value = 'aberto' }
   if (agora) paginaAtual.value = Math.max(0, spreadAtual.value * 2 - 1)
   else spreadAtual.value = Math.floor((paginaAtual.value + 1) / 2)
 })
@@ -378,13 +422,18 @@ defineExpose({ avancar, voltar })
       <div
         ref="cenaRef"
         class="leitor__cena"
-        :class="{ 'leitor__cena--arrastando': virada?.arrastando, 'leitor__cena--fechada': fase !== 'aberto' }"
+        :class="{ 'leitor__cena--arrastando': virada?.arrastando, 'leitor__cena--fechada': fase === 'fechado' || fase === 'abrindo' || fase === 'fechando', 'leitor__cena--virada': contracapaEmCena }"
         :style="{ width: `${larguraCena}px`, height: `${alturaFolha}px` }"
         @pointerdown="aoPressionar"
         @pointermove="aoMover"
         @pointerup="aoSoltar"
         @pointercancel="aoCancelar"
       >
+        <!-- Retrato, fechando por trás: a contracapa é o que fica quando a guarda sai. -->
+        <div v-if="retrato && contracapaEmCena" class="leitor__metade leitor__contracapa-plana" :style="{ left: '0px', width: `${larguraFolha}px` }">
+          <CapaDoLivro :titulo="titulo" :imagem="imagemDaContracapa" sem-titulo />
+        </div>
+
         <!-- Camada de baixo -->
         <template v-if="virada">
           <div v-if="!retrato && camadas.baixoEsquerda" class="leitor__metade" :style="{ left: '0px', width: `${larguraFolha}px` }">
@@ -396,7 +445,7 @@ defineExpose({ avancar, voltar })
         </template>
 
         <!-- Camada do meio: as páginas paradas -->
-        <div v-if="!retrato && camadas.meioEsquerda && fase === 'aberto'" class="leitor__metade leitor__metade--parada" :style="{ left: '0px', width: `${larguraFolha}px` }">
+        <div v-if="!retrato && camadas.meioEsquerda && (fase === 'aberto' || contracapaEmCena)" class="leitor__metade leitor__metade--parada" :style="{ left: '0px', width: `${larguraFolha}px` }">
           <SlotDeLivro :conteudo="camadas.meioEsquerda" :note-titulo="noteTitulo" @ir-para-pagina="irParaPagina" />
         </div>
         <div v-if="camadas.meioDireita" class="leitor__metade leitor__metade--parada" :style="{ left: `${xDireita}px`, width: `${larguraFolha}px` }">
@@ -404,7 +453,7 @@ defineExpose({ avancar, voltar })
         </div>
 
         <!-- Lombada: sombra no vinco entre as páginas -->
-        <div v-if="!retrato && fase !== 'fechado'" class="leitor__lombada" :style="{ left: `${larguraFolha - 24}px`, opacity: aberturaDaCapa }" />
+        <div v-if="!retrato && fase !== 'fechado'" class="leitor__lombada" :style="{ left: `${larguraFolha - 24}px`, opacity: aberturaDaCapa * (1 - fechamentoDaContracapa) }" />
 
         <!-- Camada de cima: a folha virando -->
         <FolhaComDobra
@@ -425,9 +474,10 @@ defineExpose({ avancar, voltar })
           </template>
         </FolhaComDobra>
 
-        <!-- A capa: folha dura, gira na lombada. Some quando o livro está aberto. -->
+        <!-- A capa: folha dura, gira na lombada. Só existe fechado, abrindo ou
+             fechando pela frente; aberta, a guarda parada faz o papel dela. -->
         <div
-          v-if="fase !== 'aberto'"
+          v-if="fase === 'fechado' || fase === 'abrindo' || fase === 'fechando'"
           class="leitor__capa3d"
           :style="{ left: `${xDireita}px`, width: `${larguraFolha}px`, transform: `rotateY(${-180 * aberturaDaCapa}deg)` }"
         >
@@ -445,12 +495,34 @@ defineExpose({ avancar, voltar })
           class="leitor__sombra-da-capa"
           :style="{ left: `${xDireita}px`, width: `${larguraFolha}px`, opacity: Math.sin(Math.PI * aberturaDaCapa) * 0.5 }"
         />
+
+        <!-- A contracapa: capa dura na metade direita, gira na lombada para a
+             esquerda e pousa sobre a última página — o livro fica virado, com
+             a contracapa para cima. A face de dentro é a guarda de trás. -->
+        <div
+          v-if="contracapaEmCena"
+          class="leitor__capa3d"
+          :style="{ left: `${xDireita}px`, width: `${larguraFolha}px`, transform: `rotateY(${-180 * fechamentoDaContracapa}deg)` }"
+        >
+          <div class="leitor__capa-face leitor__capa-face--frente">
+            <SlotDeLivro :conteudo="{ tipo: 'guarda' }" />
+            <div class="leitor__capa-sombra" :style="{ opacity: Math.sin(Math.PI * fechamentoDaContracapa) * 0.55 }" />
+          </div>
+          <div class="leitor__capa-face leitor__capa-face--verso">
+            <CapaDoLivro :titulo="titulo" :imagem="imagemDaContracapa" sem-titulo />
+          </div>
+        </div>
+        <div
+          v-if="!retrato && (fase === 'fechando-atras' || fase === 'abrindo-atras')"
+          class="leitor__sombra-da-capa leitor__sombra-da-capa--esquerda"
+          :style="{ left: '0px', width: `${larguraFolha}px`, opacity: Math.sin(Math.PI * fechamentoDaContracapa) * 0.5 }"
+        />
       </div>
     </div>
 
     <!-- Navegação -->
     <div class="leitor__nav">
-      <button class="leitor__botao" :disabled="fase !== 'aberto' && fase !== 'fechado'" :aria-label="fase === 'fechado' ? 'Voltar à prateleira' : podeVoltar ? 'Página anterior' : 'Fechar o livro'" @click="voltar">
+      <button class="leitor__botao" :disabled="fase !== 'aberto' && fase !== 'fechado' && fase !== 'fechado-atras'" :aria-label="fase === 'fechado' ? 'Voltar à prateleira' : fase === 'fechado-atras' ? 'Reabrir o livro' : podeVoltar ? 'Página anterior' : 'Fechar o livro'" @click="voltar">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
       </button>
       <div class="leitor__pontinhos">
@@ -463,7 +535,7 @@ defineExpose({ avancar, voltar })
           @click="irParaPontinho(i - 1)"
         />
       </div>
-      <button class="leitor__botao" :disabled="fase === 'aberto' && !podeAvancar" aria-label="Próxima página" @click="avancar">
+      <button class="leitor__botao" :disabled="fase !== 'aberto' && fase !== 'fechado' && fase !== 'fechado-atras'" :aria-label="fase === 'fechado-atras' ? 'Voltar à prateleira' : podeAvancar ? 'Próxima página' : 'Fechar o livro'" @click="avancar">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
       </button>
       <div v-if="!retrato" class="leitor__zoom">
@@ -594,6 +666,12 @@ defineExpose({ avancar, voltar })
 .leitor__cena::after { right: -7px; border-radius: 0 3px 3px 0; }
 .leitor--retrato .leitor__cena::before,
 .leitor__cena--fechada::before { display: none; }
+.leitor__cena--virada::after { display: none; }
+
+.leitor__sombra-da-capa--esquerda {
+  background: linear-gradient(to left, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.2) 40%, transparent 75%);
+}
+.leitor__contracapa-plana { z-index: 0; }
 
 /* Navegação */
 .leitor__nav {

@@ -1,5 +1,8 @@
 import { Column, DataType, Model, Table } from "sequelize-typescript";
 
+export const FORMATOS_DA_NOTA = ["livro", "pergaminho"] as const;
+export type FormatoDaNota = (typeof FORMATOS_DA_NOTA)[number];
+
 /**
  * Notas de lore que o mestre publica. `characterId` nulo significa nota
  * global, visível a todos; preenchido, a nota só aparece para aquele
@@ -29,6 +32,18 @@ export class LoreNoteModel extends Model {
 
   @Column({ type: DataType.INTEGER, allowNull: true })
   declare characterId: number | null;
+
+  /** 'livro' abre como livro; 'pergaminho' é uma folha só (migration 098). */
+  @Column({ type: DataType.TEXT, allowNull: false, defaultValue: "livro" })
+  declare formato: FormatoDaNota;
+
+  /** Caminho relativo da capa; nulo usa a capa padrão desenhada pelo leitor. */
+  @Column({ type: DataType.TEXT, allowNull: true })
+  declare capaUrl: string | null;
+
+  /** Caminho relativo da contracapa; nulo repete a capa, sem o título. */
+  @Column({ type: DataType.TEXT, allowNull: true })
+  declare contracapaUrl: string | null;
 
   @Column({ type: DataType.TEXT, allowNull: true })
   declare createdBy: string | null;

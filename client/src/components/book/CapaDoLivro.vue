@@ -13,12 +13,18 @@ defineProps<{
   titulo: string
   subtitulo?: string
   imagem?: string
+  /** A contracapa é a mesma arte, sem o título. */
+  semTitulo?: boolean
 }>()
 </script>
 
 <template>
   <div class="capa" :class="{ 'capa--com-imagem': !!imagem }">
-    <img v-if="imagem" :src="imagem" alt="" class="capa__imagem" />
+    <!-- Num template só, para o v-else do SVG ficar preso à imagem e não ao véu. -->
+    <template v-if="imagem">
+      <img :src="imagem" alt="" class="capa__imagem" />
+      <div v-if="!semTitulo" class="capa__escurecimento" />
+    </template>
     <!-- viewBox na proporção da página (1:1,38) para a arte não esticar. -->
     <svg v-else class="capa__arte" viewBox="0 0 600 830" preserveAspectRatio="none" aria-hidden="true">
       <defs>
@@ -79,7 +85,7 @@ defineProps<{
       </g>
     </svg>
 
-    <div class="capa__titulo">
+    <div v-if="!semTitulo" class="capa__titulo">
       <h2 class="capa__nome">{{ titulo }}</h2>
       <p v-if="subtitulo" class="capa__subtitulo">{{ subtitulo }}</p>
     </div>
@@ -143,6 +149,14 @@ defineProps<{
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
 }
 
+/* Sobre uma arte qualquer o ouro some; um véu escuro só no topo devolve o contraste. */
+.capa__escurecimento {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 38%;
+  background: linear-gradient(to bottom, rgba(8, 6, 4, 0.72), rgba(8, 6, 4, 0.35) 55%, transparent);
+  pointer-events: none;
+}
 .capa--com-imagem .capa__titulo {
   inset: 7% 12% auto;
 }

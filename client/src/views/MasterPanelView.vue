@@ -222,6 +222,55 @@
                   aria-label="Visibilidade da nota"
                 />
 
+                <!-- Formato: livro (capa que abre, folhas) ou pergaminho (uma folha) -->
+                <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <button
+                    v-for="formato in FORMATOS_DA_NOTA"
+                    :key="formato.value"
+                    type="button"
+                    class="rounded-xl border px-3 py-2 text-left transition-colors"
+                    :class="loreNoteFormato === formato.value
+                      ? 'border-amber-500/60 bg-amber-900/25 text-amber-100'
+                      : 'border-white/[0.08] bg-black/10 text-zinc-400 hover:border-amber-600/30'"
+                    @click="loreNoteFormato = formato.value"
+                  >
+                    <p class="text-sm font-semibold">{{ formato.value === 'livro' ? '📖' : '📜' }} {{ formato.label }}</p>
+                    <p class="text-[0.7rem] leading-snug opacity-80">{{ formato.descricao }}</p>
+                  </button>
+                </div>
+
+                <!-- Capas: só o livro tem. Sem capa, o leitor desenha a padrão;
+                     sem contracapa, repete a capa sem o título. -->
+                <div v-if="loreNoteFormato === 'livro'" class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <div
+                    class="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-amber-600/25 bg-black/10 px-3 py-2 transition-colors hover:border-amber-500/40"
+                    @click="inputCapaRef?.click()"
+                  >
+                    <input ref="inputCapaRef" type="file" accept="image/*" class="hidden" @change="selecionarCapa($event, 'capa')" />
+                    <img v-if="loreCapaPreview" :src="loreCapaPreview" alt="" class="h-12 w-9 shrink-0 rounded object-cover" />
+                    <div v-else class="flex h-12 w-9 shrink-0 items-center justify-center rounded border border-amber-600/30 text-amber-500/50">📖</div>
+                    <div class="min-w-0 flex-1">
+                      <p class="truncate text-sm" :class="loreCapaFile ? 'text-amber-200' : 'text-zinc-500'">{{ loreCapaFile?.name ?? 'Capa personalizada (opcional)' }}</p>
+                      <p class="text-[0.65rem] text-zinc-600">Sem ela, a capa padrão com o título</p>
+                    </div>
+                    <button v-if="loreCapaFile" type="button" class="text-zinc-500 hover:text-red-400" @click.stop="limparCapa('capa')">✕</button>
+                  </div>
+                  <div
+                    class="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-amber-600/25 bg-black/10 px-3 py-2 transition-colors hover:border-amber-500/40"
+                    @click="inputContracapaRef?.click()"
+                  >
+                    <input ref="inputContracapaRef" type="file" accept="image/*" class="hidden" @change="selecionarCapa($event, 'contracapa')" />
+                    <img v-if="loreContracapaPreview" :src="loreContracapaPreview" alt="" class="h-12 w-9 shrink-0 rounded object-cover" />
+                    <div v-else class="flex h-12 w-9 shrink-0 items-center justify-center rounded border border-amber-600/30 text-amber-500/50">◻</div>
+                    <div class="min-w-0 flex-1">
+                      <p class="truncate text-sm" :class="loreContracapaFile ? 'text-amber-200' : 'text-zinc-500'">{{ loreContracapaFile?.name ?? 'Contracapa (opcional)' }}</p>
+                      <p class="text-[0.65rem] text-zinc-600">Sem ela, repete a capa sem o título</p>
+                    </div>
+                    <button v-if="loreContracapaFile" type="button" class="text-zinc-500 hover:text-red-400" @click.stop="limparCapa('contracapa')">✕</button>
+                  </div>
+                </div>
+                <p v-if="loadingCapa" class="animate-pulse text-xs text-amber-400">Enviando imagens...</p>
+
                 <textarea
                   v-model="loreNoteContent"
                   rows="7"
@@ -287,7 +336,7 @@
             >
               <div class="min-w-0 flex-1">
                 <div class="flex flex-wrap items-center gap-2">
-                  <p class="truncate text-sm font-semibold text-amber-100">{{ nota.title }}</p>
+                  <p class="truncate text-sm font-semibold text-amber-100">{{ nota.formato === 'pergaminho' ? '📜' : '📖' }} {{ nota.title }}</p>
                   <span
                     class="shrink-0 rounded-full border px-2 py-0.5 text-[0.6rem] font-medium"
                     :class="nota.character_id
@@ -299,6 +348,17 @@
                 </div>
                 <p v-if="nota.subtitle" class="truncate text-xs italic text-zinc-500">{{ nota.subtitle }}</p>
                 <p class="mt-0.5 text-xs text-zinc-700">{{ nota.content.split(/\n---+\n/).length }} página(s)</p>
+                <!-- Capas de uma nota já criada: trocar ou tirar, sem reescrever a nota. -->
+                <div v-if="nota.formato === 'livro'" class="mt-2 flex flex-wrap items-center gap-2 text-[0.65rem]">
+                  <template v-for="lado in (['capa', 'contracapa'] as const)" :key="lado">
+                    <span class="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.06] bg-black/20 px-2 py-1">
+                      <img v-if="lado === 'capa' ? nota.capa_url : nota.contracapa_url" :src="(lado === 'capa' ? nota.capa_url : nota.contracapa_url) || ''" alt="" class="h-7 w-5 rounded-sm object-cover" />
+                      <span class="text-zinc-400">{{ lado === 'capa' ? 'Capa' : 'Contracapa' }}: {{ (lado === 'capa' ? nota.capa_url : nota.contracapa_url) ? 'personalizada' : (lado === 'capa' ? 'padrão' : 'igual à capa') }}</span>
+                      <button type="button" class="text-amber-400 hover:text-amber-200" :disabled="loadingLoreNotes" @click="trocarCapaDaNota(nota, lado)">trocar</button>
+                      <button v-if="lado === 'capa' ? nota.capa_url : nota.contracapa_url" type="button" class="text-zinc-500 hover:text-red-400" :disabled="loadingLoreNotes" @click="removerCapaDaNota(nota, lado)">tirar</button>
+                    </span>
+                  </template>
+                </div>
               </div>
               <button
                 @click="abrirConfirmacaoDeleteLore(nota)"
@@ -748,6 +808,10 @@ import {
   createLoreNote,
   deleteLoreNote as deleteLoreNoteApi,
   uploadPdfLore,
+  uploadCapaLore,
+  updateLoreNote,
+  FORMATOS_DA_NOTA,
+  type FormatoDaNota,
 } from '@/lib/api/lore-notes.api'
 import type { LoreNoteApi } from '@/lib/api/lore-notes.api'
 
@@ -785,6 +849,71 @@ const inputPdfRef = ref<HTMLInputElement | null>(null)
 const lorePdfFile = ref<File | null>(null)
 const lorePdfUrl = ref<string | null>(null)
 const loadingPdf = ref(false)
+
+// Formato e capas da nota nova. As capas só sobem quando a nota é criada;
+// até lá ficam como File, com um object URL para a prévia.
+const loreNoteFormato = ref<FormatoDaNota>('livro')
+const inputCapaRef = ref<HTMLInputElement | null>(null)
+const inputContracapaRef = ref<HTMLInputElement | null>(null)
+const loreCapaFile = ref<File | null>(null)
+const loreContracapaFile = ref<File | null>(null)
+const loreCapaPreview = ref<string | null>(null)
+const loreContracapaPreview = ref<string | null>(null)
+const loadingCapa = ref(false)
+
+function selecionarCapa(event: Event, lado: 'capa' | 'contracapa') {
+  const file = (event.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  limparCapa(lado)
+  if (lado === 'capa') { loreCapaFile.value = file; loreCapaPreview.value = URL.createObjectURL(file) }
+  else { loreContracapaFile.value = file; loreContracapaPreview.value = URL.createObjectURL(file) }
+}
+
+function limparCapa(lado: 'capa' | 'contracapa') {
+  const preview = lado === 'capa' ? loreCapaPreview : loreContracapaPreview
+  if (preview.value) URL.revokeObjectURL(preview.value)
+  preview.value = null
+  if (lado === 'capa') loreCapaFile.value = null
+  else loreContracapaFile.value = null
+}
+
+/** Abre o seletor de arquivo e, escolhida a imagem, sobe e grava na nota. */
+function trocarCapaDaNota(nota: LoreNoteApi, lado: 'capa' | 'contracapa') {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = 'image/*'
+  input.onchange = async () => {
+    const file = input.files?.[0]
+    if (!file) return
+    loadingLoreNotes.value = true
+    try {
+      const { path } = await uploadCapaLore(file)
+      await updateLoreNote(nota.id, lado === 'capa' ? { capaUrl: path } : { contracapaUrl: path })
+      await carregarLoreNotes()
+      feedback.value = `${lado === 'capa' ? 'Capa' : 'Contracapa'} de "${nota.title}" atualizada.`
+      feedbackError.value = false
+    } catch (err: any) {
+      feedback.value = err?.response?.data?.message || 'Erro ao enviar a imagem.'
+      feedbackError.value = true
+    } finally {
+      loadingLoreNotes.value = false
+    }
+  }
+  input.click()
+}
+
+async function removerCapaDaNota(nota: LoreNoteApi, lado: 'capa' | 'contracapa') {
+  loadingLoreNotes.value = true
+  try {
+    await updateLoreNote(nota.id, lado === 'capa' ? { capaUrl: null } : { contracapaUrl: null })
+    await carregarLoreNotes()
+  } catch (err: any) {
+    feedback.value = err?.response?.data?.message || 'Erro ao remover a imagem.'
+    feedbackError.value = true
+  } finally {
+    loadingLoreNotes.value = false
+  }
+}
 
 const lorePreviewPage1 = computed(() => {
   const first = loreNoteContent.value.split(/\n---+\n/)[0]?.trim()
@@ -829,12 +958,23 @@ async function criarLoreNote() {
       pdfUrl = (await uploadPdfLore(lorePdfFile.value)).path
       loadingPdf.value = false
     }
+    let capaUrl: string | null = null
+    let contracapaUrl: string | null = null
+    if (loreNoteFormato.value === 'livro' && (loreCapaFile.value || loreContracapaFile.value)) {
+      loadingCapa.value = true
+      if (loreCapaFile.value) capaUrl = (await uploadCapaLore(loreCapaFile.value)).path
+      if (loreContracapaFile.value) contracapaUrl = (await uploadCapaLore(loreContracapaFile.value)).path
+      loadingCapa.value = false
+    }
     await createLoreNote({
       title: loreNoteTitle.value.trim(),
       subtitle: loreNoteSubtitle.value.trim() || undefined,
       content: loreNoteContent.value,
       pdfUrl: pdfUrl || null,
       characterId: Number(loreNoteCharacterId.value) || null,
+      formato: loreNoteFormato.value,
+      capaUrl,
+      contracapaUrl,
     })
     loreNoteTitle.value = ''
     loreNoteSubtitle.value = ''
@@ -842,6 +982,9 @@ async function criarLoreNote() {
     loreNoteCharacterId.value = ''
     lorePdfFile.value = null
     lorePdfUrl.value = null
+    loreNoteFormato.value = 'livro'
+    limparCapa('capa')
+    limparCapa('contracapa')
     await carregarLoreNotes()
     feedback.value = 'Nota de lore criada com sucesso.'
     feedbackError.value = false
@@ -849,6 +992,7 @@ async function criarLoreNote() {
     feedback.value = err?.response?.data?.message || 'Erro ao criar nota de lore.'
     feedbackError.value = true
     loadingPdf.value = false
+    loadingCapa.value = false
   } finally {
     loadingLoreNotes.value = false
   }

@@ -224,7 +224,8 @@ A raiz **não é mais o login**: `/` lista as campanhas (mundos) e cada uma leva
 | GET | `/api/npcs/player?characterId=X` | auth — só o dono do personagem ou o mestre |
 | GET | `/api/lore-notes?characterId=X` | auth — só o dono do personagem ou o mestre |
 | GET | `/api/lore-notes/admin` | isMaster |
-| POST | `/api/lore-notes/admin` | isMaster |
+| POST | `/api/lore-notes/admin` | isMaster (`formato` livro \| pergaminho, `capaUrl`, `contracapaUrl`) |
+| POST | `/api/lore-notes/admin/upload-capa` | isMaster (multipart `file`, imagem → PNG até 1600px em `uploads/lore/`) |
 | PATCH | `/api/lore-notes/admin/:id` | isMaster |
 | DELETE | `/api/lore-notes/admin/:id` | isMaster (soft delete, 204) |
 | GET | `/api/player-telas/disponiveis` | público (lista fixa das telas liberáveis) |
@@ -274,7 +275,8 @@ Documentação completa em `docs/COMPONENTS.md`.
 | `TrocaDeSenhaObrigatoria` | `components/TrocaDeSenhaObrigatoria.vue` | Montado **uma vez em `App.vue`**; abre em qualquer rota autenticada enquanto `authStore.precisaTrocarSenha` for verdadeiro, e só fecha trocando a senha |
 | `LivroLeitor` | `components/book/LivroLeitor.vue` | O leitor de livro: capa fechada que abre, spread no desktop e página única no celular, a folha virando **pela quina** com o dedo/mouse (arraste), toque, setas ← → e botões. Props `paginas`, `titulo`, `subtitulo`, `noteTitulo`, `imagemDaCapa`; emite `fechar` |
 | `FolhaComDobra` | `components/book/FolhaComDobra.vue` | Uma folha com a quina dobrada, desenhada a partir de um ponto (onde a quina está): frente recortada, aba refletida com o verso, sombras. Não anima — o leitor move o ponto. A matemática está em `lib/livro/dobra.ts` (mediatriz C–P, reflexão como `matrix()`, Sutherland–Hodgman para os recortes) |
-| `CapaDoLivro` | `components/book/CapaDoLivro.vue` | A capa: arte SVG própria (moldura dourada, coluna de dados) ou `imagem`, com o título em Cinzel por cima |
+| `CapaDoLivro` | `components/book/CapaDoLivro.vue` | A capa: arte SVG própria (moldura dourada, coluna de dados) ou `imagem`, com o título em Cinzel por cima; `semTitulo` para a contracapa |
+| `PergaminhoLeitor` | `components/book/PergaminhoLeitor.vue` | Uma folha só, com bordas rasgadas: a nota achada. Os `---` viram ornamentos, não páginas |
 
 ### DataTable — uso rápido
 
@@ -300,7 +302,7 @@ Documentação completa em `docs/COMPONENTS.md`.
 
 ## Banco de Dados — Tabelas
 
-Schema completo em `docs/SCHEMA_CURRENT.sql` — **arquivo gerado por `pg_dump --schema-only`, não editado a mão**; regere-o quando mexer no esquema (o comando está no cabeçalho do próprio arquivo). Migrations em `database/migrations/` (001–097). Documentação em PDF, com as ligações entre tabelas e os fluxos: `docs/BANCO_DE_DADOS.pdf`.
+Schema completo em `docs/SCHEMA_CURRENT.sql` — **arquivo gerado por `pg_dump --schema-only`, não editado a mão**; regere-o quando mexer no esquema (o comando está no cabeçalho do próprio arquivo). Migrations em `database/migrations/` (001–098). Documentação em PDF, com as ligações entre tabelas e os fluxos: `docs/BANCO_DE_DADOS.pdf`.
 
 **Não sobrou nenhum UUID no banco.** As migrations 022–023 converteram as PKs para `INTEGER IDENTITY`, e a **061** terminou o serviço nas colunas que ainda referenciavam o Supabase Auth: `characters.user_id` hoje é `INTEGER` apontando para `usuarios.id`, e `characters.campaign_id` é `INTEGER` apontando para `campaigns.id`. A coluna `usuarios.auth_user_id` foi removida.
 
@@ -902,6 +904,8 @@ Notas de lore que o mestre publica. Ver migrations 009–011; PK convertida para
 `character_id INTEGER` nulo significa nota **global** (todos veem); preenchido, a nota só aparece para aquele personagem. A coluna existia como `uuid` desde a migration 010, sumiu durante a conversão de PKs para INTEGER, e **o backend continuou filtrando e gravando por ela** — o que deixou todas as rotas do módulo quebradas contra o esquema real até a migration 068 devolvê-la. Não apareceu antes porque a tabela está vazia.
 
 `content` é NOT NULL com default `''`.
+
+**Formato e capas (migration 098):** `formato` é `'livro'` (padrão) ou `'pergaminho'` — o pergaminho é uma folha só, sem capa nem virada (`PergaminhoLeitor.vue`); o livro abre com capa. `capa_url` e `contracapa_url` guardam caminho relativo em `uploads/lore/`; sem capa o leitor desenha a padrão (moldura e dados dourados, `CapaDoLivro.vue`), e **sem contracapa repete a capa sem o título**. O mestre escolhe formato e sobe as capas ao criar a nota em `/master` (seção Notas de Lore) e pode trocar ou tirar as capas de uma nota já criada na própria lista. No fim do livro, avançar fecha pela contracapa — o livro fica virado, com ela à vista.
 
 ### `campaigns` e `campaign_gms` (migrations 056–059)
 
