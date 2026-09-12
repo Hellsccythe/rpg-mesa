@@ -95,185 +95,26 @@
       </main>
 
       <!-- ═══════════════════════════════ LEITOR ═══════════════════════════════ -->
-      <main
-        v-else
-        class="flex-1 flex flex-col items-center justify-center py-4 px-2 gap-4"
-        @touchstart.passive="onTouchStart"
-        @touchend.passive="onTouchEnd"
-      >
-        <!-- ─── SPREAD (desktop) ─── -->
-        <div
-          class="book-wrapper hidden sm:block"
-          ref="bookWrapperRef"
-          :style="{ transform: `scale(${zoomLevel})`, transformOrigin: 'top center' }"
-        >
-          <div class="book-scene">
-
-            <!-- Idle -->
-            <template v-if="flipState === 'idle'">
-              <div class="page-slot page-slot--left">
-                <BookPageContent :page="currentLeft" :note-titulo="notaSelecionada?.titulo" @jump-to-page="jumpToSpread" />
-              </div>
-              <div class="book-spine" />
-              <div class="page-slot page-slot--right">
-                <BookPageContent :page="currentRight" :note-titulo="notaSelecionada?.titulo" @jump-to-page="jumpToSpread" />
-              </div>
-            </template>
-
-            <!-- Virando para frente: a folha da direita dobra sobre a esquerda.
-                 Por baixo ficam o destino (à esquerda, onde a folha vai pousar)
-                 e a página seguinte (à direita, que a folha descobre ao sair). -->
-            <template v-else-if="flipDir === 'forward'">
-              <div class="page-slot page-slot--left" style="z-index:1">
-                <BookPageContent :page="pendingLeft" :note-titulo="notaSelecionada?.titulo" @jump-to-page="jumpToSpread" />
-                <div class="sombra-projetada sombra-projetada--esquerda" />
-              </div>
-              <div class="book-spine" style="z-index:1" />
-              <div class="page-slot page-slot--right" style="z-index:1">
-                <BookPageContent :page="pendingRight" :note-titulo="notaSelecionada?.titulo" @jump-to-page="jumpToSpread" />
-              </div>
-              <div class="page-slot page-slot--left" style="z-index:2">
-                <BookPageContent :page="currentLeft" :note-titulo="notaSelecionada?.titulo" @jump-to-page="jumpToSpread" />
-              </div>
-              <div class="folha-virando folha-virando--direita" style="z-index:3">
-                <PaginaDobrando
-                  sentido="frente"
-                  :frente="currentRight"
-                  :verso="pendingLeft"
-                  :note-titulo="notaSelecionada?.titulo"
-                  :duracao-ms="DURACAO_VIRADA_MS"
-                  @terminou="onFlipTerminou"
-                />
-              </div>
-            </template>
-
-            <!-- Virando para trás: espelho do de cima. -->
-            <template v-else>
-              <div class="page-slot page-slot--left" style="z-index:1">
-                <BookPageContent :page="pendingLeft" :note-titulo="notaSelecionada?.titulo" @jump-to-page="jumpToSpread" />
-              </div>
-              <div class="book-spine" style="z-index:1" />
-              <div class="page-slot page-slot--right" style="z-index:1">
-                <BookPageContent :page="pendingRight" :note-titulo="notaSelecionada?.titulo" @jump-to-page="jumpToSpread" />
-                <div class="sombra-projetada sombra-projetada--direita" />
-              </div>
-              <div class="page-slot page-slot--right" style="z-index:2">
-                <BookPageContent :page="currentRight" :note-titulo="notaSelecionada?.titulo" @jump-to-page="jumpToSpread" />
-              </div>
-              <div class="folha-virando folha-virando--esquerda" style="z-index:3">
-                <PaginaDobrando
-                  sentido="tras"
-                  :frente="currentLeft"
-                  :verso="pendingRight"
-                  :note-titulo="notaSelecionada?.titulo"
-                  :duracao-ms="DURACAO_VIRADA_MS"
-                  @terminou="onFlipTerminou"
-                />
-              </div>
-            </template>
-
-          </div>
-        </div>
-
-        <!-- ─── PÁGINA ÚNICA (mobile) ─── -->
-        <!-- No celular a lombada fica na borda esquerda da tela: avançar é a
-             folha atual girando para fora pela esquerda e descobrindo a
-             próxima; voltar é a anterior chegando de fora, na mesma animação
-             de trás para frente. -->
-        <div class="mobile-book block sm:hidden">
-          <div class="mobile-scene">
-            <div class="mobile-page">
-              <BookPageContent
-                :page="paginasAtuais[mobileFlip === 'forward' ? mobilePendingIdx : mobilePageIdx]"
-                :note-titulo="notaSelecionada?.titulo"
-                @jump-to-page="jumpMobile"
-              />
-              <div v-if="mobileFlip !== 'idle'" class="sombra-projetada sombra-projetada--esquerda" />
-            </div>
-            <PaginaDobrando
-              v-if="mobileFlip !== 'idle'"
-              sentido="frente"
-              :reverso="mobileFlip === 'back'"
-              :frente="paginasAtuais[mobileFlip === 'forward' ? mobilePageIdx : mobilePendingIdx]"
-              :verso="paginasAtuais[mobilePendingIdx]"
-              :note-titulo="notaSelecionada?.titulo"
-              :tiras="4"
-              :curva-maxima="14"
-              :duracao-ms="DURACAO_VIRADA_MOBILE_MS"
-              @terminou="onMobileFlipTerminou"
-            />
-          </div>
-        </div>
-
-        <!-- Controles de navegação -->
-        <div class="nav-bar flex items-center gap-4">
-          <button
-            class="nav-btn"
-            :disabled="isAtStart"
-            @click="goBack"
-            aria-label="Página anterior"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-          </button>
-
-          <div class="spread-dots">
-            <button
-              v-for="i in totalSpreads"
-              :key="i"
-              class="spread-dot"
-              :class="{ 'spread-dot--active': (i - 1) === activeSpreadForDot }"
-              @click="jumpToSpread(i - 1)"
-              :aria-label="`Ir para spread ${i}`"
-            />
-          </div>
-
-          <button
-            class="nav-btn"
-            :disabled="isAtEnd"
-            @click="goForward"
-            aria-label="Próxima página"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
-          </button>
-
-          <!-- Zoom (desktop) -->
-          <div class="zoom-controls hidden sm:flex items-center gap-1 ml-2">
-            <button
-              class="zoom-btn"
-              :disabled="zoomLevel <= ZOOM_MIN"
-              @click="zoomOut"
-              aria-label="Reduzir zoom"
-              title="Reduzir"
-            >−</button>
-            <span class="zoom-label">{{ Math.round(zoomLevel * 100) }}%</span>
-            <button
-              class="zoom-btn"
-              :disabled="zoomLevel >= ZOOM_MAX"
-              @click="zoomIn"
-              aria-label="Aumentar zoom"
-              title="Aumentar"
-            >+</button>
-          </div>
-        </div>
-
-        <p class="kbd-hint hidden sm:block text-xs">
-          Use as setas ← → do teclado para virar as páginas
-        </p>
+      <main v-else class="flex-1 flex flex-col items-center justify-center py-4 px-2">
+        <LivroLeitor
+          v-if="notaSelecionada"
+          :key="notaSelecionada.id"
+          :paginas="paginasAtuais"
+          :titulo="notaSelecionada.titulo"
+          :subtitulo="notaSelecionada.subtitulo"
+          :note-titulo="notaSelecionada.titulo"
+          @fechar="voltarParaPrateleira"
+        />
       </main>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import HamburgerDrawerMenu from '@/components/HamburgerDrawerMenu.vue'
-import BookPageContent from '@/components/book/BookPageContent.vue'
-import PaginaDobrando from '@/components/book/PaginaDobrando.vue'
+import LivroLeitor from '@/components/book/LivroLeitor.vue'
 import { useAuthStore } from '@/stores/auth'
 import { PANTEAO_PAGES } from '@/data/panteao'
 import { listLoreNotes } from '@/lib/api/lore-notes.api'
@@ -296,8 +137,6 @@ function notaApiParaPaginas(nota: LoreNoteApi): BookPage[] {
 
 // ── State ────────────────────────────────────────────────────────────────────
 type ViewMode  = 'shelf' | 'book'
-type FlipState = 'idle'  | 'flipping'
-type FlipDir   = 'forward' | 'back'
 
 const viewMode        = ref<ViewMode>('shelf')
 const loadingNotas    = ref(false)
@@ -305,49 +144,7 @@ const notasDinamicas  = ref<LoreNoteApi[]>([])
 const notaSelecionada = ref<LoreNoteItem | null>(null)
 const paginasAtuais   = ref<BookPage[]>([])
 
-// ── Zoom ─────────────────────────────────────────────────────────────────────
-const ZOOM_MIN  = 0.7
-const ZOOM_MAX  = 1.4
-const ZOOM_STEP = 0.1
-const zoomLevel = ref(1.0)
-function zoomIn()  { zoomLevel.value = Math.min(ZOOM_MAX, +(zoomLevel.value + ZOOM_STEP).toFixed(1)) }
-function zoomOut() { zoomLevel.value = Math.max(ZOOM_MIN, +(zoomLevel.value - ZOOM_STEP).toFixed(1)) }
-
-const currentSpreadIdx  = ref(0)
-const flipState         = ref<FlipState>('idle')
-const flipDir           = ref<FlipDir>('forward')
-const pendingSpreadIdx  = ref(0)
-const mobilePageIdx     = ref(0)
-const mobilePendingIdx  = ref(0)
-const mobileFlip        = ref<'idle' | FlipDir>('idle')
-
-// Uma folha de verdade leva perto de um segundo; no celular, mais curta, que
-// é uma página só e a tela é pequena.
-const DURACAO_VIRADA_MS        = 950
-const DURACAO_VIRADA_MOBILE_MS = 650
 const showSettingsMenu  = ref(false)
-
-// ── Computed ─────────────────────────────────────────────────────────────────
-const totalPaginas  = computed(() => paginasAtuais.value.length)
-const totalSpreads  = computed(() => Math.ceil(totalPaginas.value / 2))
-
-const currentLeft  = computed(() => paginasAtuais.value[currentSpreadIdx.value * 2])
-const currentRight = computed(() => paginasAtuais.value[currentSpreadIdx.value * 2 + 1])
-const pendingLeft  = computed(() => paginasAtuais.value[pendingSpreadIdx.value * 2])
-const pendingRight = computed(() => paginasAtuais.value[pendingSpreadIdx.value * 2 + 1])
-
-const isAtStart = computed(() =>
-  currentSpreadIdx.value === 0 && mobilePageIdx.value === 0
-)
-const isAtEnd = computed(() =>
-  currentSpreadIdx.value === totalSpreads.value - 1 &&
-  mobilePageIdx.value === totalPaginas.value - 1
-)
-const activeSpreadForDot = computed(() =>
-  window.innerWidth < 640
-    ? Math.floor(mobilePageIdx.value / 2)
-    : currentSpreadIdx.value
-)
 
 // ── Prateleira: montar lista de notas ────────────────────────────────────────
 const NOTA_PANTEAO: LoreNoteItem = {
@@ -413,95 +210,12 @@ function abrirNota(nota: LoreNoteItem) {
     paginasAtuais.value = apiNota ? notaApiParaPaginas(apiNota) : []
   }
 
-  currentSpreadIdx.value = 0
-  mobilePageIdx.value = 0
-  flipState.value = 'idle'
-  mobileFlip.value = 'idle'
   viewMode.value = 'book'
 }
 
 function voltarParaPrateleira() {
   viewMode.value = 'shelf'
   notaSelecionada.value = null
-}
-
-// ── Navegação desktop ─────────────────────────────────────────────────────────
-// A animação começa quando PaginaDobrando monta (keyframes CSS), então basta
-// trocar o estado; o componente avisa quando a folha pousou.
-function goForward() {
-  if (window.innerWidth < 640) {
-    virarMobile(mobilePageIdx.value + 1)
-    return
-  }
-  if (flipState.value !== 'idle' || currentSpreadIdx.value >= totalSpreads.value - 1) return
-  pendingSpreadIdx.value = currentSpreadIdx.value + 1
-  flipDir.value = 'forward'
-  flipState.value = 'flipping'
-}
-
-function goBack() {
-  if (window.innerWidth < 640) {
-    virarMobile(mobilePageIdx.value - 1)
-    return
-  }
-  if (flipState.value !== 'idle' || currentSpreadIdx.value <= 0) return
-  pendingSpreadIdx.value = currentSpreadIdx.value - 1
-  flipDir.value = 'back'
-  flipState.value = 'flipping'
-}
-
-function onFlipTerminou() {
-  currentSpreadIdx.value = pendingSpreadIdx.value
-  mobilePageIdx.value = currentSpreadIdx.value * 2
-  flipState.value = 'idle'
-}
-
-function virarMobile(destino: number) {
-  if (mobileFlip.value !== 'idle') return
-  const alvo = Math.max(0, Math.min(totalPaginas.value - 1, destino))
-  if (alvo === mobilePageIdx.value) return
-  mobilePendingIdx.value = alvo
-  mobileFlip.value = alvo > mobilePageIdx.value ? 'forward' : 'back'
-}
-
-function onMobileFlipTerminou() {
-  mobilePageIdx.value = mobilePendingIdx.value
-  currentSpreadIdx.value = Math.floor(mobilePageIdx.value / 2)
-  mobileFlip.value = 'idle'
-}
-
-function jumpToSpread(spreadIdx: number) {
-  if (flipState.value !== 'idle') return
-  currentSpreadIdx.value = Math.max(0, Math.min(totalSpreads.value - 1, spreadIdx))
-  mobilePageIdx.value = currentSpreadIdx.value * 2
-}
-
-function jumpMobile(spreadIdx: number) {
-  virarMobile(spreadIdx * 2)
-}
-
-// ── Swipe ────────────────────────────────────────────────────────────────────
-let touchStartX = 0, touchStartY = 0
-
-function onTouchStart(e: TouchEvent) {
-  touchStartX = e.changedTouches[0].clientX
-  touchStartY = e.changedTouches[0].clientY
-}
-
-function onTouchEnd(e: TouchEvent) {
-  const dx = e.changedTouches[0].clientX - touchStartX
-  const dy = e.changedTouches[0].clientY - touchStartY
-  if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 48) {
-    dx < 0 ? goForward() : goBack()
-  }
-}
-
-// ── Teclado ──────────────────────────────────────────────────────────────────
-function handleKeyDown(e: KeyboardEvent) {
-  if (viewMode.value !== 'book') return
-  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); goForward() }
-  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   { e.preventDefault(); goBack() }
-  if (e.key === 'Escape') voltarParaPrateleira()
 }
 
 // ── Navegação da app ──────────────────────────────────────────────────────────
@@ -552,7 +266,6 @@ async function logout() {
 
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
 onMounted(async () => {
-  window.addEventListener('keydown', handleKeyDown)
   window.addEventListener('click', () => { showSettingsMenu.value = false })
 
   loadingNotas.value = true
@@ -572,9 +285,6 @@ onMounted(async () => {
   }
 })
 
-onBeforeUnmount(() => {
-  window.removeEventListener('keydown', handleKeyDown)
-})
 </script>
 
 <style scoped>
@@ -694,235 +404,4 @@ onBeforeUnmount(() => {
   transform: translateX(3px);
 }
 
-/* ── Livro ── */
-.book-wrapper {
-  width: min(940px, 94vw);
-  filter: drop-shadow(0 28px 56px rgba(0,0,0,0.75));
-}
-
-.book-scene {
-  position: relative;
-  display: flex;
-  width: 100%;
-  height: min(calc(100vh - 10rem), 820px);
-  perspective: 1800px;
-  perspective-origin: 50% 38%;
-  background: #1a0e06;
-  border-radius: 3px 3px 2px 2px;
-  overflow: hidden;
-}
-
-/* ── Slots de página ── */
-.page-slot {
-  position: absolute;
-  top: 0;
-  width: calc(50% - 3px);
-  height: 100%;
-  overflow: hidden;
-}
-
-.page-slot--left  { left: 0; }
-.page-slot--right { right: 0; }
-
-.page-slot--left::after,
-.page-slot--right::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  width: 32px;
-  height: 100%;
-  pointer-events: none;
-  z-index: 10;
-}
-
-.page-slot--left::after {
-  right: 0;
-  background: linear-gradient(to right, transparent, rgba(0,0,0,0.15));
-}
-
-.page-slot--right::before {
-  left: 0;
-  background: linear-gradient(to left, transparent, rgba(0,0,0,0.15));
-}
-
-/* ── Lombada ── */
-.book-spine {
-  position: absolute;
-  left: calc(50% - 3px);
-  width: 6px;
-  height: 100%;
-  background: linear-gradient(to right, #080402, #1e1006, #2a1a0a, #1e1006, #080402);
-  z-index: 20;
-  flex-shrink: 0;
-}
-
-/* ── A folha que vira (PaginaDobrando) ── */
-/* Ocupa a metade de onde a folha sai; a folha em si atravessa a lombada e
-   pousa na outra metade, por isso sem overflow hidden aqui. */
-.folha-virando {
-  position: absolute;
-  top: 0;
-  height: 100%;
-  width: calc(50% - 3px);
-  transform-style: preserve-3d;
-}
-.folha-virando--direita  { right: 0; }
-.folha-virando--esquerda { left: 0; }
-
-/* Sombra que a folha de pé projeta na página onde vai pousar: cresce a partir
-   da lombada e some quando a folha assenta. */
-.sombra-projetada {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 11;
-  opacity: 0;
-  animation: sombra-projetada 950ms ease-in-out both;
-}
-.sombra-projetada--esquerda {
-  background: linear-gradient(to left, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.18) 40%, transparent 80%);
-}
-.sombra-projetada--direita {
-  background: linear-gradient(to right, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.18) 40%, transparent 80%);
-}
-@keyframes sombra-projetada {
-  0%   { opacity: 0; }
-  40%  { opacity: 0.35; }
-  75%  { opacity: 1; }
-  100% { opacity: 0; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .sombra-projetada { animation-duration: 1ms; }
-}
-
-/* ── Mobile ── */
-.mobile-book {
-  width: min(420px, 96vw);
-  height: min(calc(100vh - 9rem), 680px);
-  filter: drop-shadow(0 16px 32px rgba(0,0,0,0.6));
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-/* A cena tem a perspectiva ancorada perto da lombada (borda esquerda), que é
-   de onde a folha gira. */
-.mobile-scene {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  perspective: 1400px;
-  perspective-origin: 10% 45%;
-  transform-style: preserve-3d;
-}
-.mobile-page { position: absolute; inset: 0; }
-.mobile-scene .sombra-projetada { animation-duration: 650ms; }
-
-/* ── Nav bar ── */
-.nav-bar {
-  user-select: none;
-  position: relative;
-  z-index: 30;
-  background: rgba(10, 15, 28, 0.65);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(200, 160, 80, 0.18);
-  border-radius: 999px;
-  padding: 6px 14px;
-}
-
-.nav-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  border: 1px solid #c8a05040;
-  background: #1a1408;
-  color: #c8a050;
-  cursor: pointer;
-  transition: background 0.2s, border-color 0.2s, opacity 0.2s;
-}
-
-.nav-btn:hover:not(:disabled) {
-  background: #2a2010;
-  border-color: #c8a05080;
-}
-
-.nav-btn:disabled { opacity: 0.3; cursor: default; }
-
-.spread-dots { display: flex; gap: 5px; align-items: center; }
-
-.spread-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #3a2a10;
-  border: 1px solid #c8a05025;
-  cursor: pointer;
-  transition: all 0.2s;
-  padding: 0;
-}
-
-.spread-dot--active {
-  background: #c8a050;
-  border-color: #c8a050;
-  width: 18px;
-  border-radius: 3px;
-}
-
-.spread-dot:hover:not(.spread-dot--active) { background: #6a5030; }
-
-/* ── Zoom ── */
-.zoom-controls {
-  border-left: 1px solid #c8a05020;
-  padding-left: 10px;
-  gap: 4px;
-}
-
-.zoom-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 6px;
-  border: 1px solid #c8a05040;
-  background: #1a1408;
-  color: #c8a050;
-  font-size: 1rem;
-  line-height: 1;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, opacity 0.15s;
-  user-select: none;
-}
-
-.zoom-btn:hover:not(:disabled) {
-  background: #2a2010;
-  border-color: #c8a05080;
-}
-
-.zoom-btn:disabled { opacity: 0.3; cursor: default; }
-
-.zoom-label {
-  font-family: 'Cinzel', serif;
-  font-size: 0.58rem;
-  color: #c8a050;
-  min-width: 34px;
-  text-align: center;
-  letter-spacing: 0.03em;
-}
-
-/* Reserva espaço vertical para a escala do livro */
-.book-wrapper {
-  transition: transform 0.2s ease;
-}
-
-.kbd-hint {
-  color: #4a3a20;
-  font-style: italic;
-  font-size: 0.62rem;
-  letter-spacing: 0.03em;
-  position: relative;
-  z-index: 30;
-}
 </style>

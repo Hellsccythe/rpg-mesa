@@ -143,7 +143,8 @@ const props = defineProps<{
   page: BookPage
   noteTitulo?: string
 }>()
-defineEmits<{ jumpToPage: [spreadIdx: number] }>()
+/** Número da página (1-based) do deus clicado no índice; o leitor decide em que spread ela cai. */
+defineEmits<{ jumpToPage: [numeroDaPagina: number] }>()
 
 const BOM_GODS = ['Cayden Cailean', 'Desna', 'Erastil', 'Iomedae', 'Sarenrae', 'Shelyn']
 const NEUTRO_GODS = ['Calistria', 'Inari', 'Kurgess', 'Liriel', 'Morthos', 'Pharasma', 'Torak', 'Vespera', 'Zephyros']

@@ -376,15 +376,10 @@ export const PANTEAO_PAGES: BookPage[] = [
   },
 ]
 
-// Valores = índice de spread (0-based). Spread N mostra pages[N*2] e pages[N*2+1].
-// Spread 0: capa + Cayden/Desna | 1: Erastil/Iomedae + Sarenrae/Shelyn
-// 2: Calistria/Inari + Kurgess/Liriel | 3: Morthos/Pharasma + Torak/Vespera
-// 4: Zephyros + Asmodeus/Gorum | 5: Norgorber/Rovagug + Urgathoa/Zon-Kuthon
-export const GOD_PAGE_MAP: Record<string, number> = {
-  'Cayden Cailean': 0, Desna: 0,
-  Erastil: 1, Iomedae: 1, Sarenrae: 1, Shelyn: 1,
-  Calistria: 2, Inari: 2, Kurgess: 2, Liriel: 2,
-  Morthos: 3, Pharasma: 3, Torak: 3, Vespera: 3,
-  Zephyros: 4, Asmodeus: 4, Gorum: 4,
-  Norgorber: 5, Rovagug: 5, Urgathoa: 5, 'Zon-Kuthon': 5,
-}
+// Valores = número da página (1-based) em que o deus aparece, lido das
+// próprias páginas. Era o índice do spread, mas o spread depende de como o
+// leitor pagina (a primeira página fica à direita da guarda, como num livro
+// impresso; no celular é uma por vez) — o número da página não depende de nada.
+export const GOD_PAGE_MAP: Record<string, number> = Object.fromEntries(
+  PANTEAO_PAGES.flatMap((pagina) => pagina.gods.map((deus) => [deus.name, pagina.pageNumber])),
+)

@@ -38,7 +38,7 @@ A raiz **não é mais o login**: `/` lista as campanhas (mundos) e cada uma leva
 | `/racas` | RacasView | auth |
 | `/equipamentos` | EquipamentosView | auth |
 | `/npcs` | NpcsView | auth |
-| `/notas` | NotasView | auth — leitor em livro; a folha vira com dobra (`components/book/PaginaDobrando.vue`), spread no desktop e página única no celular |
+| `/notas` | NotasView | auth — prateleira; ao abrir uma nota, `LivroLeitor` (`components/book/`) mostra o livro fechado, abre a capa e vira as folhas pela quina. A primeira página fica à direita da guarda, como num livro impresso; o índice do Panteão salta por **número de página** (`GOD_PAGE_MAP` é derivado das páginas) |
 | `/master` | MasterPanelView | auth + isMaster |
 | `/master/deuses` | MasterGodsView | auth + isMaster |
 | `/master/mapas` | MasterMapsView | auth + isMaster |
@@ -272,7 +272,9 @@ Documentação completa em `docs/COMPONENTS.md`.
 | `VSelect` | `components/VSelect.vue` | Select customizado — usar em todos os dropdowns (v-model string\|number, options: {value,label}[]) |
 | `TabelaEditor` | `components/TabelaEditor.vue` | CRUD inline para tabelas de lookup simples (item INTEGER + descricao). Props: titulo, itens, categorias?, campoCategoria?, labelCategoria?. Emite: criar, editar, deletar |
 | `TrocaDeSenhaObrigatoria` | `components/TrocaDeSenhaObrigatoria.vue` | Montado **uma vez em `App.vue`**; abre em qualquer rota autenticada enquanto `authStore.precisaTrocarSenha` for verdadeiro, e só fecha trocando a senha |
-| `PaginaDobrando` / `TiraDaFolha` | `components/book/` | A folha do livro de notas virando com dobra — página fatiada em tiras aninhadas em 3D, keyframes CSS. `sentido` frente/tras, `reverso` para a folha chegar em vez de sair, `tiras`, `curvaMaxima`; emite `terminou` |
+| `LivroLeitor` | `components/book/LivroLeitor.vue` | O leitor de livro: capa fechada que abre, spread no desktop e página única no celular, a folha virando **pela quina** com o dedo/mouse (arraste), toque, setas ← → e botões. Props `paginas`, `titulo`, `subtitulo`, `noteTitulo`, `imagemDaCapa`; emite `fechar` |
+| `FolhaComDobra` | `components/book/FolhaComDobra.vue` | Uma folha com a quina dobrada, desenhada a partir de um ponto (onde a quina está): frente recortada, aba refletida com o verso, sombras. Não anima — o leitor move o ponto. A matemática está em `lib/livro/dobra.ts` (mediatriz C–P, reflexão como `matrix()`, Sutherland–Hodgman para os recortes) |
+| `CapaDoLivro` | `components/book/CapaDoLivro.vue` | A capa: arte SVG própria (moldura dourada, coluna de dados) ou `imagem`, com o título em Cinzel por cima |
 
 ### DataTable — uso rápido
 
