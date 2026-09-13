@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/sequelize";
 import { ArmazenamentoArquivosService } from "../../common/storage/armazenamento-arquivos.service.js";
 import { CampanhaModel } from "./models/campanha.model.js";
@@ -187,6 +187,26 @@ export class CampanhasService {
     // Soft delete: aqui não há índice único travando a recriação, então a
     // auditoria da tabela pode ser usada como foi desenhada.
     await gm.destroy();
+  }
+
+  /**
+   * Resolve o mundo de uma operação do mestre que não carrega personagem
+   * (docs/MUNDOS.md, "Campanha ativa"). Com id, a campanha precisa existir;
+   * sem id, vale a única campanha ativa — e com duas ou mais o servidor não
+   * adivinha: responde 400 pedindo o id, nunca devolve "todos os mundos".
+   *
+   * Quando o seletor de mundo existir no cliente (fase 1), o id passa a vir
+   * do contexto da requisição e este método vira o fallback.
+   */
+  async resolverCampanhaAtiva(campanhaId?: number): Promise<number> {
+    if (campanhaId !== undefined) {
+      await this.garantirCampanhaExistente(campanhaId);
+      return campanhaId;
+    }
+    const ativas = await this.modeloCampanha.findAll({ where: { isActive: true }, attributes: ["id"] });
+    if (ativas.length === 1) return ativas[0]!.id;
+    if (ativas.length === 0) throw new BadRequestException("Nenhuma campanha ativa: crie um mundo antes.");
+    throw new BadRequestException("Há mais de um mundo ativo: informe a campanha (campaignId).");
   }
 
   // ── Apoio ─────────────────────────────────────────────────────────────────

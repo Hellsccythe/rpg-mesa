@@ -76,11 +76,11 @@
               <div class="note-card-inner">
                 <!-- Capa personalizada vira miniatura; sem ela, o ícone do formato. -->
                 <img v-if="nota.capaUrl" :src="nota.capaUrl" alt="" class="note-capa" />
-                <div v-else class="note-icon">{{ nota.formato === 'pergaminho' ? '📜' : '📖' }}</div>
+                <div v-else class="note-icon">{{ ICONE_DO_FORMATO[nota.formato] }}</div>
                 <div class="note-card-body">
                   <h3 class="note-card-title">{{ nota.titulo }}</h3>
                   <p v-if="nota.subtitulo" class="note-card-sub">{{ nota.subtitulo }}</p>
-                  <p class="note-card-meta">{{ nota.formato === 'pergaminho' ? 'uma folha' : `${nota.totalPaginas} ${nota.totalPaginas === 1 ? 'página' : 'páginas'}` }}</p>
+                  <p class="note-card-meta">{{ nota.formato !== 'livro' ? 'uma folha' : `${nota.totalPaginas} ${nota.totalPaginas === 1 ? 'página' : 'páginas'}` }}</p>
                 </div>
                 <svg class="note-card-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                   <polyline points="9 18 15 12 9 6" />
@@ -99,11 +99,12 @@
       <!-- ═══════════════════════════════ LEITOR ═══════════════════════════════ -->
       <main v-else class="flex-1 flex flex-col items-center justify-center py-4 px-2">
         <PergaminhoLeitor
-          v-if="notaSelecionada && notaSelecionada.formato === 'pergaminho'"
+          v-if="notaSelecionada && notaSelecionada.formato !== 'livro'"
           :key="notaSelecionada.id"
           :paginas="paginasAtuais"
           :titulo="notaSelecionada.titulo"
           :subtitulo="notaSelecionada.subtitulo"
+          :formato="notaSelecionada.formato"
         />
         <LivroLeitor
           v-else-if="notaSelecionada"
@@ -129,7 +130,7 @@ import LivroLeitor from '@/components/book/LivroLeitor.vue'
 import PergaminhoLeitor from '@/components/book/PergaminhoLeitor.vue'
 import { useAuthStore } from '@/stores/auth'
 import { PANTEAO_PAGES } from '@/data/panteao'
-import { listLoreNotes } from '@/lib/api/lore-notes.api'
+import { listLoreNotes, ICONE_DO_FORMATO } from '@/lib/api/lore-notes.api'
 import type { LoreNoteApi } from '@/lib/api/lore-notes.api'
 import { useCharactersStore } from '@/stores/characters'
 import type { NotaDeAventura } from '@/lib/api/personagens.api'

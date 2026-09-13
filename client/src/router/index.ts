@@ -170,6 +170,12 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresMaster: true },
     },
     {
+      path: '/master/livros',
+      name: 'master-livros',
+      component: () => import('@/views/MasterLivrosView.vue'),
+      meta: { requiresAuth: true, requiresMaster: true },
+    },
+    {
       path: '/master/npcs',
       name: 'master-npcs',
       component: () => import('@/views/MasterNpcsView.vue'),

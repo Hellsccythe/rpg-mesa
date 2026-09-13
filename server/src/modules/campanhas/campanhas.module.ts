@@ -9,5 +9,7 @@ import { CampanhasService } from "./campanhas.service.js";
   imports: [SequelizeModule.forFeature([CampanhaModel, CampanhaGmModel])],
   controllers: [CampanhasController],
   providers: [CampanhasService],
+  // Outros módulos resolvem o mundo ativo por aqui (lore-notes hoje; os catálogos na fase 2).
+  exports: [CampanhasService],
 })
 export class CampanhasModule {}

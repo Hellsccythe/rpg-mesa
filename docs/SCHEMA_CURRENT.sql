@@ -1,5 +1,5 @@
 -- Schema completo do banco RPG de Mesa
--- Gerado em: 2026-09-10 por pg_dump --schema-only, direto do banco em Docker (porta 5433).
+-- Gerado em: 2026-09-13 por pg_dump --schema-only, direto do banco em Docker (porta 5433).
 --
 -- Para aplicar do zero:        psql -d rpg_mesa -f docs/SCHEMA_CURRENT.sql
 -- Para atualizar um existente: rode as migrations em database/migrations/ em ordem.
@@ -8,12 +8,11 @@
 --   docker exec rpg_mesa_postgres pg_dump -U postgres -d rpg_mesa \
 --     --schema-only --schema=public --no-owner --no-privileges --no-comments
 --
--- PostgreSQL database dump
 --
 -- PostgreSQL database dump
 --
 
-\restrict tNCGaaSdm8OhI7Yfahx1P0IkSE51Au2lrRQeGJbtasraOtTrUXz9ZL62FqF5gfI
+\restrict TyTXnAROdL2PnfCIWETQq1mSpyuoWFdpJ58GuL6MhApdd8LIwIFSFOaQoNOzHMx
 
 -- Dumped from database version 18.6 (Debian 18.6-1.pgdg13+2)
 -- Dumped by pg_dump version 18.6 (Debian 18.6-1.pgdg13+2)
@@ -1480,6 +1479,35 @@ ALTER SEQUENCE public.level_progression_id_seq OWNED BY public.level_progression
 
 
 --
+-- Name: lore_note_acesso; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.lore_note_acesso (
+    id integer NOT NULL,
+    lore_note_id integer NOT NULL,
+    character_id integer NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by text,
+    updated_by text
+);
+
+
+--
+-- Name: lore_note_acesso_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.lore_note_acesso ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.lore_note_acesso_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
 -- Name: lore_notes; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1496,7 +1524,13 @@ CREATE TABLE public.lore_notes (
     created_by text,
     updated_by text,
     id integer NOT NULL,
-    character_id integer
+    formato text DEFAULT 'livro'::text NOT NULL,
+    capa_url text,
+    contracapa_url text,
+    campaign_id integer NOT NULL,
+    visibilidade text DEFAULT 'todos'::text NOT NULL,
+    CONSTRAINT lore_notes_formato_check CHECK ((formato = ANY (ARRAY['livro'::text, 'pergaminho'::text, 'bilhete'::text, 'carta'::text]))),
+    CONSTRAINT lore_notes_visibilidade_check CHECK ((visibilidade = ANY (ARRAY['todos'::text, 'escolhidos'::text, 'ninguem'::text])))
 );
 
 
@@ -2860,6 +2894,22 @@ ALTER TABLE ONLY public.level_progression
 
 
 --
+-- Name: lore_note_acesso lore_note_acesso_livro_personagem_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lore_note_acesso
+    ADD CONSTRAINT lore_note_acesso_livro_personagem_key UNIQUE (lore_note_id, character_id);
+
+
+--
+-- Name: lore_note_acesso lore_note_acesso_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lore_note_acesso
+    ADD CONSTRAINT lore_note_acesso_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: lore_notes lore_notes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3451,6 +3501,13 @@ CREATE INDEX idx_level_progression_level ON public.level_progression USING btree
 
 
 --
+-- Name: idx_lore_note_acesso_personagem; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_lore_note_acesso_personagem ON public.lore_note_acesso USING btree (character_id);
+
+
+--
 -- Name: idx_lore_notes_active; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3458,10 +3515,10 @@ CREATE INDEX idx_lore_notes_active ON public.lore_notes USING btree (ordem, crea
 
 
 --
--- Name: idx_lore_notes_character; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_lore_notes_campanha; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_lore_notes_character ON public.lore_notes USING btree (character_id) WHERE (deleted_at IS NULL);
+CREATE INDEX idx_lore_notes_campanha ON public.lore_notes USING btree (campaign_id);
 
 
 --
@@ -4105,5 +4162,5 @@ ALTER TABLE public.usuarios ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict tNCGaaSdm8OhI7Yfahx1P0IkSE51Au2lrRQeGJbtasraOtTrUXz9ZL62FqF5gfI
+\unrestrict TyTXnAROdL2PnfCIWETQq1mSpyuoWFdpJ58GuL6MhApdd8LIwIFSFOaQoNOzHMx
 

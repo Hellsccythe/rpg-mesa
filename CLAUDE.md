@@ -57,6 +57,7 @@ A raiz **não é mais o login**: `/` lista as campanhas (mundos) e cada uma leva
 | `/master/consumiveis` | MasterConsumiveisView | auth + isMaster |
 | `/master/condicoes` | MasterCondicoesView | auth + isMaster |
 | `/master/passados` | MasterPassadosView | auth + isMaster |
+| `/master/livros` | MasterLivrosView | auth + isMaster — a administração de livros: `DataTable` + modal em três abas (Conteúdo, Formato e capas, Acesso). O acesso é **Todos do mundo / Só estes personagens / Ninguém (rascunho)**; a lista de personagens é a do mundo da nota |
 | `/master/npcs` | MasterNpcsView | auth + isMaster |
 | `/master/progressao` | MasterProgressaoView | auth + isMaster |
 | `/master/campanhas` | MasterCampanhasView | auth + isMaster |
@@ -222,17 +223,23 @@ A raiz **não é mais o login**: `/` lista as campanhas (mundos) e cada uma leva
 | GET | `/api/npcs/admin/:id/acessos` | isMaster (todos os personagens, marcando quem tem acesso) |
 | POST/DELETE | `/api/npcs/admin/:id/acessos/:characterId` | isMaster (**hard delete** — UNIQUE total) |
 | GET | `/api/npcs/player?characterId=X` | auth — só o dono do personagem ou o mestre |
-| GET | `/api/lore-notes?characterId=X` | auth — só o dono do personagem ou o mestre |
-| GET | `/api/lore-notes/admin` | isMaster |
-| POST | `/api/lore-notes/admin` | isMaster (`formato` livro \| pergaminho, `capaUrl`, `contracapaUrl`) |
+| GET | `/api/lore-notes?characterId=X` | auth — só o dono do personagem ou o mestre. **`characterId` é obrigatório para o jogador** (é dele que sai o mundo); o mestre sem ele vê tudo do mundo ativo |
+| GET | `/api/lore-notes/admin?campaignId=` | isMaster (sem `campaignId`, a única campanha ativa; com mais de uma, 400) |
+| GET | `/api/lore-notes/admin/personagens-do-mundo?campaignId=` | isMaster (personagens do mundo, todos desmarcados — para a lista de acesso de uma nota nova) |
+| GET | `/api/lore-notes/admin/:id/acessos` | isMaster (personagens do mundo da nota, marcando quem tem acesso) |
+| POST | `/api/lore-notes/admin` | isMaster (`formato` livro \| pergaminho \| bilhete \| carta, `visibilidade` todos \| escolhidos \| ninguem, `characterIds[]`, `capaUrl`, `contracapaUrl`) |
 | POST | `/api/lore-notes/admin/upload-capa` | isMaster (multipart `file`, imagem → PNG até 1600px em `uploads/lore/`) |
-| PATCH | `/api/lore-notes/admin/:id` | isMaster |
+| PATCH | `/api/lore-notes/admin/:id` | isMaster (`characterIds` ausente = não mexe na lista; array = substitui o conjunto, numa transação) |
 | DELETE | `/api/lore-notes/admin/:id` | isMaster (soft delete, 204) |
 | GET | `/api/player-telas/disponiveis` | público (lista fixa das telas liberáveis) |
 | GET | `/api/player-telas/me?characterId=X` | auth — só o dono do personagem ou o mestre |
 | GET | `/api/player-telas/admin/:characterId` | isMaster |
 | PUT | `/api/player-telas/admin/:characterId` | isMaster (substitui o conjunto inteiro) |
 | GET | `/api/admin/exportar-schema?dialeto=postgresql\|mysql\|sqlite` | isMaster (devolve texto puro como anexo) |
+
+## Mundos — o site como world manager
+
+O site vai mestrar **mais de uma sessão**: cada campanha é um mundo com deuses, mapas, NPCs, raças, passados e livros próprios, e com o conjunto de classes e títulos que o mestre marcou ao criar o mundo. O desenho, as decisões e a ordem de entrega estão em **`docs/MUNDOS.md`** — leia antes de mexer em campanhas, em qualquer catálogo ou em `lore_notes`. Em resumo: **não** há tabelas por campanha (é uma coluna `campaign_id` nas tabelas de conteúdo de mundo); classes/skills/títulos ficam **globais**, com disponibilidade por mundo, porque se referenciam por nome; a campanha de uma requisição vem do **personagem** quando há um, do header `X-Campanha` quando não há, e da única campanha ativa como último recurso (nunca "todos os mundos"). Fase 0 (livros) está feita; as demais, não.
 
 ## Direção do produto — o site e o aplicativo futuro
 
@@ -276,7 +283,7 @@ Documentação completa em `docs/COMPONENTS.md`.
 | `LivroLeitor` | `components/book/LivroLeitor.vue` | O leitor de livro: capa fechada que abre, spread no desktop e página única no celular, a folha virando **pela quina** com o dedo/mouse (arraste), toque, setas ← → e botões. As capas também acompanham o arraste (`gestoDeCapaPara`): na primeira folha, puxar a guarda fecha; na última, puxar a guarda de trás vira a contracapa; ← e → fazem o mesmo. Props `paginas`, `titulo`, `subtitulo`, `noteTitulo`, `imagemDaCapa`; emite `fechar` |
 | `FolhaComDobra` | `components/book/FolhaComDobra.vue` | Uma folha com a quina dobrada, desenhada a partir de um ponto (onde a quina está): frente recortada, aba refletida com o verso, sombras. Não anima — o leitor move o ponto. A matemática está em `lib/livro/dobra.ts` (mediatriz C–P, reflexão como `matrix()`, Sutherland–Hodgman para os recortes) |
 | `CapaDoLivro` | `components/book/CapaDoLivro.vue` | A capa: arte SVG própria (moldura dourada, coluna de dados) ou `imagem`, com o título em Cinzel por cima; `semTitulo` para a contracapa |
-| `PergaminhoLeitor` | `components/book/PergaminhoLeitor.vue` | Uma folha só, com bordas rasgadas: a nota achada. Os `---` viram ornamentos, não páginas |
+| `PergaminhoLeitor` | `components/book/PergaminhoLeitor.vue` | Uma folha só: `formato` escolhe a cara — **pergaminho** (rolo antigo, bordas rasgadas), **bilhete** (papel pequeno e amassado, torto) ou **carta** (folha limpa com cabeçalho, dobras e lacre). Os `---` viram ornamentos, não páginas |
 
 ### DataTable — uso rápido
 
@@ -302,7 +309,7 @@ Documentação completa em `docs/COMPONENTS.md`.
 
 ## Banco de Dados — Tabelas
 
-Schema completo em `docs/SCHEMA_CURRENT.sql` — **arquivo gerado por `pg_dump --schema-only`, não editado a mão**; regere-o quando mexer no esquema (o comando está no cabeçalho do próprio arquivo). Migrations em `database/migrations/` (001–098). Documentação em PDF, com as ligações entre tabelas e os fluxos: `docs/BANCO_DE_DADOS.pdf`.
+Schema completo em `docs/SCHEMA_CURRENT.sql` — **arquivo gerado por `pg_dump --schema-only`, não editado a mão**; regere-o quando mexer no esquema (o comando está no cabeçalho do próprio arquivo). Migrations em `database/migrations/` (001–099). Documentação em PDF, com as ligações entre tabelas e os fluxos: `docs/BANCO_DE_DADOS.pdf`.
 
 **Não sobrou nenhum UUID no banco.** As migrations 022–023 converteram as PKs para `INTEGER IDENTITY`, e a **061** terminou o serviço nas colunas que ainda referenciavam o Supabase Auth: `characters.user_id` hoje é `INTEGER` apontando para `usuarios.id`, e `characters.campaign_id` é `INTEGER` apontando para `campaigns.id`. A coluna `usuarios.auth_user_id` foi removida.
 
@@ -905,7 +912,9 @@ Notas de lore que o mestre publica. Ver migrations 009–011; PK convertida para
 
 `content` é NOT NULL com default `''`.
 
-**Formato e capas (migration 098):** `formato` é `'livro'` (padrão) ou `'pergaminho'` — o pergaminho é uma folha só, sem capa nem virada (`PergaminhoLeitor.vue`); o livro abre com capa. `capa_url` e `contracapa_url` guardam caminho relativo em `uploads/lore/`; sem capa o leitor desenha a padrão (moldura e dados dourados, `CapaDoLivro.vue`), e **sem contracapa repete a capa sem o título**. O mestre escolhe formato e sobe as capas ao criar a nota em `/master` (seção Notas de Lore) e, na própria lista, troca ou tira as capas e **muda para quem a nota é** (global ou um personagem) — `PATCH` com `characterId`, null para global. No fim do livro, avançar fecha pela contracapa — o livro fica virado, com ela à vista.
+**Formato e capas (migration 098):** `formato` é `'livro'` (padrão), `'pergaminho'`, `'bilhete'` ou `'carta'` (os três últimos desde a 099) — só o livro abre com capa e vira folha; os outros são uma folha só com a cara do formato (`PergaminhoLeitor.vue`). `capa_url` e `contracapa_url` guardam caminho relativo em `uploads/lore/`; sem capa o leitor desenha a padrão (moldura e dados dourados, `CapaDoLivro.vue`), e **sem contracapa repete a capa sem o título**. No fim do livro, avançar fecha pela contracapa — o livro fica virado, com ela à vista.
+
+**Mundo e acesso (migration 099):** cada nota pertence a uma campanha (`campaign_id NOT NULL` — o primeiro catálogo escopado por mundo, ver `docs/MUNDOS.md`) e é liberada por `visibilidade`: `todos` (todo personagem do mundo), `escolhidos` (só quem está em **`lore_note_acesso`**, tabela de conjunto `(lore_note_id, character_id)` UNIQUE total e sem soft delete, como `npc_acesso_player`) ou `ninguem` (rascunho). A coluna `character_id` de antes saiu. **A lista só existe quando a visibilidade é `escolhidos`** — marcar `todos` ou `ninguem` apaga as linhas, para nunca haver "todos, mas com uma lista guardada". Todo personagem da lista precisa ser do mesmo mundo da nota (400 se não for). O jogador lê pelo personagem (`campaign_id` do personagem + `todos` ou linha de acesso); o mestre administra tudo em `/master/livros`. Os arquivos (PDF, capas) continuam estáticos públicos em `/uploads/`: o acesso protege a prateleira, não o arquivo.
 
 ### `campaigns` e `campaign_gms` (migrations 056–059)
 
