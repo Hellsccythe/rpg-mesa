@@ -8,6 +8,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -16,6 +17,7 @@ import { FileInterceptor } from "@nestjs/platform-express";
 import sharp from "sharp";
 import { JwtAuthGuard } from "../../common/auth/jwt-auth.guard.js";
 import { MasterGuard } from "../../common/auth/master.guard.js";
+import { FiltroDeMundoDto } from "../../common/dto/filtro-de-mundo.dto.js";
 import { ArmazenamentoArquivosService } from "../../common/storage/armazenamento-arquivos.service.js";
 import { GodService } from "./god.service.js";
 import { EditarGodDto, SalvarGodDto } from "./god.dto.js";
@@ -35,10 +37,12 @@ export class GodController {
    * Na versão Supabase elas eram métodos separados porque uma usava o client
    * anônimo (sujeito a RLS) e a outra o client admin; sem RLS a distinção
    * deixou de existir, mas as duas rotas continuam para não quebrar o frontend.
+   *
+   * O mundo vem do personagem (?characterId=) ou do header X-Campanha.
    */
   @Get()
-  listarPublico() {
-    return this.servicoDeuses.listar();
+  listarPublico(@Query() filtro: FiltroDeMundoDto) {
+    return this.servicoDeuses.listar(filtro.characterId);
   }
 
   @UseGuards(JwtAuthGuard, MasterGuard)

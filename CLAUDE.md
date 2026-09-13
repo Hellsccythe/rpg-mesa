@@ -30,7 +30,8 @@ A raiz **não é mais o login**: `/` lista as campanhas (mundos) e cada uma leva
 | `/login` | LoginView | pública |
 | `/dashboard?characterId=` | DashboardView | auth |
 | `/onboarding?characterId=` | OnboardingView | auth (player) |
-| `/deuses` | DeusesView | pública — nome e título do deus ficam **abaixo da arte**, sempre visíveis; o overlay do hover é só enfeite, e no celular não há hover |
+| `/deuses` | DeusesView | pública — nome e título do deus ficam **abaixo da arte**, sempre visíveis; o overlay do hover é só enfeite, e no celular não há hover. **Só o que veio do banco, do mundo do personagem** (`?characterId=`) ou do mundo ativo; os 21 deuses de Elyra que viviam fixos no código saíram (ficou só um mapa de ícone/enquadramento por nome) |
+| `/mundo/:slug/deuses` | DeusesView | pública — a página de deuses de um mundo: o slug vira o mundo ativo antes da busca |
 | `/cidade` | CidadeView | auth |
 | `/classes` | ClassesView | auth — o card de cada classe mostra o **XP da classe** (`data.classes[].xp`) contra `class_level_progression`; a tabela de níveis do personagem, embaixo, é `level_progression` |
 | `/skills` | SkillsView | auth |
@@ -38,7 +39,7 @@ A raiz **não é mais o login**: `/` lista as campanhas (mundos) e cada uma leva
 | `/racas` | RacasView | auth |
 | `/equipamentos` | EquipamentosView | auth |
 | `/npcs` | NpcsView | auth |
-| `/notas` | NotasView | auth — prateleira; ao abrir uma nota, `LivroLeitor` (`components/book/`) mostra o livro fechado, abre a capa e vira as folhas pela quina. A primeira página fica à direita da guarda, como num livro impresso; o índice do Panteão salta por **número de página** (`GOD_PAGE_MAP` é derivado das páginas) |
+| `/notas` | NotasView | auth — prateleira; ao abrir uma nota, `LivroLeitor` (`components/book/`) mostra o livro fechado, abre a capa e vira as folhas pela quina. A primeira página fica à direita da guarda, como num livro impresso. **O Panteão é gerado dos deuses do mundo do personagem** (`lib/livro/panteao.ts`: capa com índice por ala — só Bom é "do Bem", só Ruim é "Maligno", o resto é neutro — e dois deuses por página); mundo sem deuses, prateleira sem Panteão. O índice salta por número de página |
 | `/master` | MasterPanelView | auth + isMaster |
 | `/master/deuses` | MasterGodsView | auth + isMaster |
 | `/master/mapas` | MasterMapsView | auth + isMaster |
@@ -71,16 +72,16 @@ A raiz **não é mais o login**: `/` lista as campanhas (mundos) e cada uma leva
 
 | Método | Rota | Acesso |
 |---|---|---|
-| GET | `/api/personagens` | auth |
+| GET | `/api/personagens?campaignId=` | auth — jogador: os dele; **mestre: os do mundo** (o do filtro ou o ativo), com a ficha inteira |
 | GET | `/api/personagens/:id` | auth (mestre abre qualquer um; jogador só o seu) |
-| GET | `/api/racas` | público (sem `lore`) |
+| GET | `/api/racas?characterId=` | público (sem `lore`) — as raças do mundo do personagem, ou do mundo ativo |
 | GET | `/api/racas/admin` | isMaster (com `lore`) |
 | POST | `/api/racas/admin` | isMaster |
 | PATCH | `/api/racas/admin/:id` | isMaster |
 | DELETE | `/api/racas/admin/:id` | isMaster (soft delete) |
 | POST | `/api/racas/admin/upload-image` | isMaster (multipart `file`) |
-| GET | `/api/gods` | público |
-| GET | `/api/city-maps` | auth |
+| GET | `/api/gods?characterId=` | público — os deuses do mundo do personagem, ou do mundo ativo (`X-Campanha`); sem nenhum dos dois e com mais de um mundo ativo, 400 |
+| GET | `/api/city-maps?characterId=` | auth — idem, mapas |
 | GET | `/api/classes` | público |
 | GET | `/api/titulos/catalogo` | público (enriquecido com os nomes das skills) |
 | POST | `/api/titulos/admin` | isMaster |
@@ -149,23 +150,23 @@ A raiz **não é mais o login**: `/` lista as campanhas (mundos) e cada uma leva
 | POST/PATCH/DELETE | `/api/raridades/admin[/:item]` | isMaster |
 | GET | `/api/indole` | público |
 | GET | `/api/genero` | público |
-| POST | `/api/character-creation-requests` | público |
+| POST | `/api/character-creation-requests` | público. Com `conta_existente: true`, `username` e `password` são o login que o jogador já tem (bcrypt conferido), o e-mail não é lido e `campaign_id` é obrigatório: é um personagem novo em outro mundo, sem conta nova |
 | POST | `/api/character-creation-requests/upload-avatar` | público |
 | POST | `/api/character-creation-requests/upload-historia` | público |
 | GET | `/api/character-creation-requests/admin` | isMaster |
 | GET | `/api/character-creation-requests/admin/pendentes/count` | auth |
-| PATCH | `/api/character-creation-requests/admin/:id/aprovar` | isMaster (body `{campaign_id?}` — a escolha do mestre vale mais que a da solicitação; sem nenhuma das duas, 400) |
+| PATCH | `/api/character-creation-requests/admin/:id/aprovar` | isMaster (body `{campaign_id?}` — a escolha do mestre vale mais que a da solicitação; sem nenhuma das duas, 400). Solicitação de **conta existente** (`usuario_id`) não cria conta: confere a vaga no mundo (`limite_personagens_por_mundo`) e cria só o personagem |
 | PATCH | `/api/character-creation-requests/admin/:id/rejeitar` | isMaster |
 | GET | `/api/usuarios/admin` | isMaster |
 | PATCH | `/api/usuarios/admin/:id` | isMaster |
 | PATCH | `/api/usuarios/admin/:id/resetar-senha` | isMaster |
 | PATCH | `/api/usuarios/admin/:id/resetar-senha-padrao` | isMaster |
 | PATCH | `/api/usuarios/admin/:id/ativo` | isMaster |
-| POST | `/api/usuarios/admin/pre-registrar` | isMaster |
+| POST | `/api/usuarios/admin/pre-registrar` | isMaster (`limite_personagens_por_mundo` opcional, padrão 1 — quantos personagens vivos a conta pode ter no mesmo mundo; editável no `PATCH admin/:id`) |
 | DELETE | `/api/usuarios/admin/:id/pre-registro` | isMaster |
 | DELETE | `/api/usuarios/admin/:id` | isMaster (hard delete: auth + personagem + storage) |
 | PATCH | `/api/personagens/:id/escolher-raca` | auth (próprio player ou mestre) |
-| GET | `/api/passados` | público |
+| GET | `/api/passados?characterId=` | público — os passados do mundo do personagem, ou do mundo ativo |
 | POST | `/api/passados/admin` | isMaster |
 | PATCH | `/api/passados/admin/:id` | isMaster |
 | DELETE | `/api/passados/admin/:id` | isMaster (soft delete) |
@@ -220,8 +221,8 @@ A raiz **não é mais o login**: `/` lista as campanhas (mundos) e cada uma leva
 | PATCH | `/api/npcs/admin/:id` | isMaster |
 | DELETE | `/api/npcs/admin/:id` | isMaster (soft delete) |
 | POST | `/api/npcs/admin/upload-image` | isMaster (multipart `file`) |
-| GET | `/api/npcs/admin/:id/acessos` | isMaster (todos os personagens, marcando quem tem acesso) |
-| POST/DELETE | `/api/npcs/admin/:id/acessos/:characterId` | isMaster (**hard delete** — UNIQUE total) |
+| GET | `/api/npcs/admin/:id/acessos` | isMaster (os personagens **do mundo do NPC**, marcando quem tem acesso) |
+| POST/DELETE | `/api/npcs/admin/:id/acessos/:characterId` | isMaster (**hard delete** — UNIQUE total; personagem de outro mundo dá 400) |
 | GET | `/api/npcs/player?characterId=X` | auth — só o dono do personagem ou o mestre |
 | GET | `/api/lore-notes?characterId=X` | auth — só o dono do personagem ou o mestre. **`characterId` é obrigatório para o jogador** (é dele que sai o mundo); o mestre sem ele vê tudo do mundo ativo |
 | GET | `/api/lore-notes/admin?campaignId=` | isMaster (sem `campaignId`, a única campanha ativa; com mais de uma, 400) |
@@ -239,7 +240,7 @@ A raiz **não é mais o login**: `/` lista as campanhas (mundos) e cada uma leva
 
 ## Mundos — o site como world manager
 
-O site vai mestrar **mais de uma sessão**: cada campanha é um mundo com deuses, mapas, NPCs, raças, passados e livros próprios, e com o conjunto de classes e títulos que o mestre marcou ao criar o mundo. O desenho, as decisões e a ordem de entrega estão em **`docs/MUNDOS.md`** — leia antes de mexer em campanhas, em qualquer catálogo ou em `lore_notes`. Em resumo: **não** há tabelas por campanha (é uma coluna `campaign_id` nas tabelas de conteúdo de mundo); classes/skills/títulos ficam **globais**, com disponibilidade por mundo, porque se referenciam por nome; a campanha de uma requisição vem do **personagem** quando há um, do header `X-Campanha` quando não há, e da única campanha ativa como último recurso (nunca "todos os mundos"). Fases 0 (livros) e 1 (campanha ativa) estão feitas; as demais, não.
+O site vai mestrar **mais de uma sessão**: cada campanha é um mundo com deuses, mapas, NPCs, raças, passados e livros próprios, e com o conjunto de classes e títulos que o mestre marcou ao criar o mundo. O desenho, as decisões e a ordem de entrega estão em **`docs/MUNDOS.md`** — leia antes de mexer em campanhas, em qualquer catálogo ou em `lore_notes`. Em resumo: **não** há tabelas por campanha (é uma coluna `campaign_id` nas tabelas de conteúdo de mundo); classes/skills/títulos ficam **globais**, com disponibilidade por mundo, porque se referenciam por nome; a campanha de uma requisição vem do **personagem** quando há um, do header `X-Campanha` quando não há, e da única campanha ativa como último recurso (nunca "todos os mundos"). Fases 0 (livros), 1 (campanha ativa) e 2 (catálogos por mundo, Panteão gerado, conta com um personagem por mundo) estão feitas; falta a 2b (criar mundo com os checkboxes).
 
 ## Direção do produto — o site e o aplicativo futuro
 
@@ -310,7 +311,7 @@ Documentação completa em `docs/COMPONENTS.md`.
 
 ## Banco de Dados — Tabelas
 
-Schema completo em `docs/SCHEMA_CURRENT.sql` — **arquivo gerado por `pg_dump --schema-only`, não editado a mão**; regere-o quando mexer no esquema (o comando está no cabeçalho do próprio arquivo). Migrations em `database/migrations/` (001–100). Documentação em PDF, com as ligações entre tabelas e os fluxos: `docs/BANCO_DE_DADOS.pdf`.
+Schema completo em `docs/SCHEMA_CURRENT.sql` — **arquivo gerado por `pg_dump --schema-only`, não editado a mão**; regere-o quando mexer no esquema (o comando está no cabeçalho do próprio arquivo). Migrations em `database/migrations/` (001–102). Documentação em PDF, com as ligações entre tabelas e os fluxos: `docs/BANCO_DE_DADOS.pdf`.
 
 **Não sobrou nenhum UUID no banco.** As migrations 022–023 converteram as PKs para `INTEGER IDENTITY`, e a **061** terminou o serviço nas colunas que ainda referenciavam o Supabase Auth: `characters.user_id` hoje é `INTEGER` apontando para `usuarios.id`, e `characters.campaign_id` é `INTEGER` apontando para `campaigns.id`. A coluna `usuarios.auth_user_id` foi removida.
 
@@ -333,6 +334,7 @@ Contas de acesso ao sistema. Criada ao aprovar uma solicitação (players) ou se
 | ativo | BOOLEAN | NOT NULL, default TRUE — o login recusa quem está inativo |
 | password_hash | TEXT | bcrypt. **Nulo = pré-registro** (migration 065) |
 | requires_password_change | BOOLEAN | NOT NULL, default FALSE — força o modal de troca no próximo login |
+| limite_personagens_por_mundo | INTEGER | NOT NULL, default 1, CHECK ≥ 1 (migration 101) — quantos personagens vivos a conta pode ter no **mesmo** mundo. O mestre decide no pré-registro; em mundos diferentes é um em cada |
 | created_at / updated_at | timestamptz | |
 | deleted_at / deleted_by | timestamptz / TEXT | soft delete |
 
@@ -351,7 +353,7 @@ Tela: `/master/usuarios` → `MasterUsersView.vue`.
 | user_id | INTEGER | NOT NULL — referência a `usuarios.id` (migration 061, antes UUID de `auth.users`) |
 | campaign_id | INTEGER | nullable — referência a `campaigns.id` |
 | name | text | NOT NULL |
-| username | text | cópia do `usuarios.username`, para exibição. UNIQUE **parcial** (`WHERE deleted_at IS NULL`) |
+| username | text | cópia do `usuarios.username`, para exibição. UNIQUE **parcial por mundo** — `(campaign_id, username) WHERE deleted_at IS NULL` (migration 101): a mesma conta tem um personagem em cada mundo |
 | level | integer | NOT NULL, default 1 |
 | data | jsonb | NOT NULL, default `{}` — ver abaixo |
 | avatar_url | text | nullable — **caminho relativo** (`personagens/inari.png`) |
@@ -438,7 +440,7 @@ Solicitações de criação de personagem submetidas por jogadores, pendentes de
 
 Ao aprovar: cria (ou preenche o pré-registro de) `usuarios` com o hash já pronto → cria registro em `characters`. Se a criação do personagem falhar, a conta recém-criada é desfeita para não ficar órfã.
 
-`username` é único **apenas entre solicitações pendentes ou aprovadas** (índice parcial, migration 069). Uma rejeitada libera o nome para o jogador reenviar. Antes o índice era total e o reenvio estourava com chave duplicada.
+`username` é único **apenas entre as pendentes, e por mundo** — `(username, campaign_id) WHERE status = 'pendente'` (migration 102; a 069 cobria pendentes e aprovadas, global, e a segunda solicitação de um jogador com conta estourava). A unicidade do login é a de `usuarios`; a do personagem no mundo é a de `characters`. `usuario_id` (102) marca a solicitação de **conta existente**.
 
 O email precisa estar **pré-registrado**: um `usuarios` com `password_hash` nulo. A checagem antiga procurava `auth_user_id IS NULL`, coluna removida na migration 061 junto com o Supabase Auth — o que quebrava toda submissão.
 
@@ -575,6 +577,8 @@ Tabelas de lookup para skills. Padrão `item INTEGER PK` + `descricao VARCHAR(10
 
 Tabelas de catálogo gerenciadas pelo mestre. PKs convertidas para INTEGER IDENTITY (migration 022). Todas têm soft delete (`deleted_at`, `deleted_by`) e auditoria (`created_by`, `updated_by`, migration 014).
 
+**Os cinco catálogos de mundo — `gods`, `city_maps`, `npcs`, `racas`, `passados` — têm `campaign_id INTEGER NOT NULL` (migration 101)**: cada mundo tem os seus (ver `docs/MUNDOS.md`). Toda leitura filtra pelo mundo (o do personagem, quando a rota tem um; senão o do header `X-Campanha`, resolvido por `CampanhasService.resolverCampanhaDoCatalogo`) e toda criação grava o mundo ativo. `gods.name` e `city_maps.name` eram UNIQUE totais e viraram `(campaign_id, name)` parciais — dois mundos podem ter uma Pharasma, e apagar um deus libera o nome; violar dá 409. O onboarding confere o mundo ao escolher raça, passado e deus (`garantirRegistroAtivo` com `campaign_id`): com o token na mão, o id de uma raça de outro mundo dá 404.
+
 `gods` tem `indole_id INTEGER` referenciando `indole.id`.
 
 **`racas`** tem `habilidades JSONB` e `atributos_bonus JSONB` (listas de `{nome, descricao}` e `{atributo, valor}`) e `lore TEXT`. O `lore` é o único campo que a listagem pública omite — `GET /api/racas` devolve `lore: null`, e só `GET /api/racas/admin` traz o conteúdo. `foto_url` guarda **caminho relativo** (`racas/elfo.png`); a URL completa é montada na resposta.
@@ -589,7 +593,7 @@ Tabelas de catálogo gerenciadas pelo mestre. PKs convertidas para INTEGER IDENT
 
 ### `classe_secreta_revelada` (migration 044)
 
-Controla qual personagem detém cada classe secreta. Constraint `UNIQUE(classe_id)` garante exclusividade.
+Controla qual personagem detém cada classe secreta. A exclusividade é **por mundo**: `UNIQUE(campaign_id, classe_id)` (migration 101; era `UNIQUE(classe_id)`, por servidor) — o Lich do Mundo 1 não impede um Lich no Mundo 2. `campaign_id` vem do personagem ao revelar; listar e revogar são no mundo ativo.
 
 | Coluna | Tipo | Notas |
 |---|---|---|

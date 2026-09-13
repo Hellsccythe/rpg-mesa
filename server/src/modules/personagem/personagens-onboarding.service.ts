@@ -141,7 +141,7 @@ export class PersonagensOnboardingService {
     if (personagem.racaId !== null) {
       throw new ConflictException("Raça já foi escolhida e não pode ser alterada.");
     }
-    await this.garantirRegistroAtivo("racas", racaId, "Raça não encontrada.");
+    await this.garantirRegistroAtivo("racas", racaId, personagem.campaignId, "Raça não encontrada.");
 
     personagem.racaId = racaId;
     await personagem.save();
@@ -268,7 +268,7 @@ export class PersonagensOnboardingService {
     if (personagem.passadoId !== null) {
       throw new ConflictException("Passado já foi escolhido e não pode ser alterado.");
     }
-    await this.garantirRegistroAtivo("passados", passadoId, "Passado não encontrado.");
+    await this.garantirRegistroAtivo("passados", passadoId, personagem.campaignId, "Passado não encontrado.");
 
     // As perícias do passado são COPIADAS para o personagem, ao contrário das
     // skills e títulos (que o dashboard lê do catálogo na hora de exibir). A
@@ -373,7 +373,7 @@ export class PersonagensOnboardingService {
     if (deusId === null) {
       await this.garantirQueClassePermitePularDeus(personagem.classeId);
     } else {
-      await this.garantirRegistroAtivo("gods", deusId, "Deus não encontrado.");
+      await this.garantirRegistroAtivo("gods", deusId, personagem.campaignId, "Deus não encontrado.");
       personagem.deusId = deusId;
     }
 
@@ -563,11 +563,15 @@ export class PersonagensOnboardingService {
   private async garantirRegistroAtivo(
     tabela: "racas" | "passados" | "gods",
     id: number,
+    campanhaId: number | null,
     mensagemDeErro: string,
   ): Promise<void> {
+    // Só o catálogo do mundo do personagem: com o token na mão, o id de uma
+    // raça de outro mundo passaria — a listagem filtrada do cliente é fachada
+    // se o servidor não conferir (docs/MUNDOS.md).
     const encontrados = await this.sequelize.query<{ id: number }>(
-      `SELECT id FROM ${tabela} WHERE id = :id AND deleted_at IS NULL LIMIT 1`,
-      { replacements: { id }, type: QueryTypes.SELECT },
+      `SELECT id FROM ${tabela} WHERE id = :id AND campaign_id = :campanhaId AND deleted_at IS NULL LIMIT 1`,
+      { replacements: { id, campanhaId }, type: QueryTypes.SELECT },
     );
 
     if (encontrados.length === 0) {

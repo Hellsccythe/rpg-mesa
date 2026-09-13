@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   CallHandler,
   ExecutionContext,
   Injectable,
@@ -26,10 +27,12 @@ type CampanhaResolvida = { id: number; ativa: boolean; validoAte: number };
  * o mestre pode apontar para qualquer mundo, inclusive inativo (está
  * preparando); jogador e anônimo só para mundo ativo.
  *
- * Header inválido é ignorado, não é erro: um slug velho guardado no
- * navegador não pode derrubar toda requisição. Sem campanha no contexto,
- * CampanhasService.resolverCampanhaAtiva cai na única ativa ou responde
- * 400 com a explicação — nunca "todos os mundos".
+ * Header que não resolve é ERRO (400), não silêncio: ignorá-lo faria a
+ * requisição cair na "única ativa", e uma escrita do mestre com um slug
+ * velho no navegador nasceria no mundo errado. O cliente limpa o mundo
+ * guardado quando ele some da lista (SeletorDeMundo), então o erro é
+ * passageiro. Sem header nenhum, CampanhasService.resolverCampanhaAtiva
+ * cai na única ativa ou responde 400 — nunca "todos os mundos".
  */
 @Injectable()
 export class CampanhaAtivaInterceptor implements NestInterceptor {
@@ -48,9 +51,13 @@ export class CampanhaAtivaInterceptor implements NestInterceptor {
     if (chave) {
       const campanha = await this.resolver(chave);
       const ehMestre = requisicao.usuarioAutenticado?.tipo === "gm";
-      if (campanha && (campanha.ativa || ehMestre)) {
-        definirCampanhaNoContexto(campanha.id);
+      if (!campanha) {
+        throw new BadRequestException(`Mundo desconhecido: "${chave}".`);
       }
+      if (!campanha.ativa && !ehMestre) {
+        throw new BadRequestException("Este mundo não está ativo.");
+      }
+      definirCampanhaNoContexto(campanha.id);
     }
 
     return proximo.handle();

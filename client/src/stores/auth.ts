@@ -81,7 +81,6 @@ export function limparMetaAuthLocal() {
   if (typeof window === 'undefined') return
   window.localStorage.removeItem(CHAVE_META_AUTH)
   window.localStorage.removeItem(CHAVE_TOKEN)
-  gravarMundoAtivoLocal(null)
 }
 
 /** Leitura direta do token, para quem precisa saber se há sessão sem montar o store. */
@@ -247,9 +246,15 @@ export const useAuthStore = defineStore('auth', () => {
     if (meta) gravarMetaAuth({ ...meta, precisaTrocarSenha: false })
   }
 
-  /** Sem sessão no servidor para invalidar: sair é apagar o que está local. */
+  /**
+   * Sem sessão no servidor para invalidar: sair é apagar o que está local —
+   * inclusive o mundo ativo, para o próximo a logar neste navegador escolher
+   * o dele. Só aqui: limparMetaAuthLocal também roda para o visitante sem
+   * sessão, e ele precisa do mundo (é como /mundo/:slug/deuses sabe o mundo).
+   */
   const sair = async () => {
     limparEstadoLocal()
+    gravarMundoAtivoLocal(null)
   }
 
   return {

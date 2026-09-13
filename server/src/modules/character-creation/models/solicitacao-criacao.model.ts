@@ -58,6 +58,10 @@ export class SolicitacaoCriacaoModel extends Model {
   @Column({ type: DataType.INTEGER, allowNull: true })
   declare campaignId: number | null;
 
+  /** A conta dona da solicitação, quando é de conta existente (migration 102). Nulo na conta nova. */
+  @Column({ type: DataType.INTEGER, allowNull: true })
+  declare usuarioId: number | null;
+
   @Column({ type: DataType.TEXT, allowNull: true })
   declare createdBy: string | null;
 

@@ -1,4 +1,4 @@
-import { IsBoolean, IsEmail, IsIn, IsOptional, IsString, Matches, MinLength } from "class-validator";
+import { IsBoolean, IsEmail, IsIn, IsInt, IsOptional, IsString, Matches, Max, Min, MinLength } from "class-validator";
 
 const REGRA_USERNAME = /^[a-z0-9_-]{3,20}$/;
 
@@ -18,6 +18,9 @@ export class EditarUsuarioDto {
   @IsString()
   @MinLength(2, { message: "Nome do personagem deve ter no mínimo 2 caracteres." })
   nome_personagem?: string;
+
+  @IsOptional() @IsInt() @Min(1) @Max(10)
+  limite_personagens_por_mundo?: number;
 }
 
 export class DefinirSenhaDto {
@@ -37,6 +40,10 @@ export class AlterarAtivoDto {
 export class PreRegistrarDto {
   @IsEmail({}, { message: "Email inválido." })
   email!: string;
+
+  /** Quantos personagens vivos a conta pode ter no mesmo mundo. Padrão 1. */
+  @IsOptional() @IsInt() @Min(1) @Max(10)
+  limite_personagens_por_mundo?: number;
 
   @IsOptional()
   @IsIn(["gm", "player"])

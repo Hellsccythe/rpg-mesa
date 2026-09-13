@@ -1,11 +1,12 @@
 import { Module } from "@nestjs/common";
 import { SequelizeModule } from "@nestjs/sequelize";
+import { CampanhasModule } from "../campanhas/campanhas.module.js";
 import { PersonagemModel } from "./models/personagem.model.js";
 import { PersonagensConsultaController } from "./personagens-consulta.controller.js";
 import { PersonagensConsultaService } from "./personagens-consulta.service.js";
 
 @Module({
-  imports: [SequelizeModule.forFeature([PersonagemModel])],
+  imports: [SequelizeModule.forFeature([PersonagemModel]), CampanhasModule],
   controllers: [PersonagensConsultaController],
   providers: [PersonagensConsultaService],
   exports: [PersonagensConsultaService],

@@ -1,6 +1,8 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { UniqueConstraintError } from "sequelize";
 import { InjectModel } from "@nestjs/sequelize";
 import { ArmazenamentoArquivosService } from "../../common/storage/armazenamento-arquivos.service.js";
+import { CampanhasService } from "../campanhas/campanhas.service.js";
 import { CityMapModel, type DadosCityMap } from "./models/city-map.model.js";
 import type { EditarCityMapDto, PointOfInterestDto, SalvarCityMapDto } from "./city-maps.dto.js";
 
@@ -61,14 +63,17 @@ export class CityMapsService {
     @InjectModel(CityMapModel)
     private readonly modeloCityMap: typeof CityMapModel,
     private readonly armazenamentoArquivos: ArmazenamentoArquivosService,
+    private readonly servicoCampanhas: CampanhasService,
   ) {}
 
   // ── Leitura ───────────────────────────────────────────────────────────────
   // Sem JOIN aqui: a tabela não referencia nenhuma outra, então o ORM resolve
   // sozinho e não há motivo para SQL cru.
 
-  async listar(): Promise<CityMapApi[]> {
-    const registros = await this.modeloCityMap.findAll({ order: [["createdAt", "DESC"]] });
+  /** Os mapas de um mundo: o do personagem, quando há um; senão o do header ou a única campanha ativa. */
+  async listar(personagemId?: number): Promise<CityMapApi[]> {
+    const campaignId = await this.servicoCampanhas.resolverCampanhaDoCatalogo(personagemId);
+    const registros = await this.modeloCityMap.findAll({ where: { campaignId }, order: [["createdAt", "DESC"]] });
     return registros.map((registro) => this.converterParaApi(registro));
   }
 
@@ -98,7 +103,9 @@ export class CityMapsService {
   // ── Escrita (ORM, pra os hooks de auditoria dispararem) ───────────────────
 
   async salvar(dados: SalvarCityMapDto): Promise<CityMapApi> {
-    const criado = await this.modeloCityMap.create({
+    const campaignId = await this.servicoCampanhas.resolverCampanhaAtiva();
+    const criado = await this.criarOuConflitar(() => this.modeloCityMap.create({
+      campaignId,
       name: dados.name.trim(),
       mapReference: dados.mapReference.trim(),
       description: normalizarTexto(dados.description),
@@ -112,7 +119,7 @@ export class CityMapsService {
         mapType: normalizarTexto(dados.mapType) === "localized" ? "localized" : "city",
         parentCityMapId: normalizarTexto(dados.parentCityMapId),
       },
-    });
+    }));
 
     return this.converterParaApi(criado);
   }
@@ -172,4 +179,15 @@ export class CityMapsService {
     // o registro pode ser restaurado, e o arquivo não voltaria.
     await registro.destroy();
   }
+
+  /** O UNIQUE (campaign_id, name) é a única regra do banco que este módulo pode violar. */
+  private async criarOuConflitar<T>(acao: () => Promise<T>): Promise<T> {
+    try {
+      return await acao();
+    } catch (erro) {
+      if (erro instanceof UniqueConstraintError) throw new ConflictException("Já existe um mapa com esse nome neste mundo.");
+      throw erro;
+    }
+  }
+
 }

@@ -53,8 +53,10 @@ export type PassadoPayload = {
   dinheiro_inicial?: RolagemDeDinheiro[]
 }
 
-export async function listarPassados(): Promise<PassadoApi[]> {
-  const { data } = await api.get<PassadoApi[]>('/passados')
+/** Os passados do mundo: do personagem, quando há um; senão do mundo ativo (header X-Campanha). */
+export async function listarPassados(characterId?: string | number | null): Promise<PassadoApi[]> {
+  const params = characterId ? { characterId: Number(characterId) } : {}
+  const { data } = await api.get<PassadoApi[]>('/passados', { params })
   return data
 }
 

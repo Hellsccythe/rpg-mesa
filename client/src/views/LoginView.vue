@@ -423,12 +423,34 @@
           </div>
         </div>
 
+        <!-- Conta: nova (e-mail liberado) ou a que o jogador já tem em outro mundo -->
+        <div class="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            class="rounded-2xl border px-4 py-3 text-left text-sm transition-colors"
+            :class="!contaExistente ? 'login-create-opcao-ativa' : 'login-create-opcao'"
+            @click="contaExistente = false"
+          >
+            <span class="block font-semibold">Criar conta nova</span>
+            <span class="block text-xs opacity-70">Com o e-mail que o mestre liberou</span>
+          </button>
+          <button
+            type="button"
+            class="rounded-2xl border px-4 py-3 text-left text-sm transition-colors"
+            :class="contaExistente ? 'login-create-opcao-ativa' : 'login-create-opcao'"
+            @click="contaExistente = true"
+          >
+            <span class="block font-semibold">Já tenho conta</span>
+            <span class="block text-xs opacity-70">Um personagem novo neste mundo</span>
+          </button>
+        </div>
+
         <!-- Email + Username -->
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <p class="login-modal-muted sm:col-span-2 text-xs">
-            Use o e-mail liberado pelo mestre. Crie um usuario unico para fazer login.
+            {{ contaExistente ? 'Entre com o usuário e a senha que você já usa. O mestre confere se a sua conta ainda cabe um personagem neste mundo.' : 'Use o e-mail liberado pelo mestre. Crie um usuario unico para fazer login.' }}
           </p>
-          <div class="sm:col-span-2">
+          <div v-if="!contaExistente" class="sm:col-span-2">
             <label class="login-modal-label mb-2 block text-sm"
               >E-mail liberado pelo mestre <span class="text-red-400">*</span></label
             >
@@ -442,33 +464,33 @@
           </div>
           <div class="sm:col-span-2">
             <label class="login-modal-label mb-2 block text-sm"
-              >Nome de usuario (para login) <span class="text-red-400">*</span></label
+              >{{ contaExistente ? 'Seu usuario' : 'Nome de usuario (para login)' }} <span class="text-red-400">*</span></label
             >
             <input
               v-model="usernameContaCriacao"
               type="text"
               autocomplete="username"
               class="login-modal-input w-full rounded-2xl border px-6 py-4 outline-none"
-              placeholder="ex: hellsccythe (3-20 letras)"
+              :placeholder="contaExistente ? 'o usuario com que você entra' : 'ex: hellsccythe (3-20 letras)'"
             />
-            <p class="mt-1 text-xs text-zinc-500">Apenas letras, numeros, _ e -.</p>
+            <p v-if="!contaExistente" class="mt-1 text-xs text-zinc-500">Apenas letras, numeros, _ e -.</p>
           </div>
         </div>
 
         <!-- Senha -->
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div>
+          <div :class="{ 'sm:col-span-2': contaExistente }">
             <label class="login-modal-label mb-2 block text-sm"
-              >Senha <span class="text-red-400">*</span></label
+              >{{ contaExistente ? 'Sua senha' : 'Senha' }} <span class="text-red-400">*</span></label
             >
             <input
               v-model="senhaContaCriacao"
               type="password"
-              autocomplete="new-password"
+              :autocomplete="contaExistente ? 'current-password' : 'new-password'"
               class="login-modal-input w-full rounded-2xl border px-6 py-4 outline-none"
-              placeholder="Min. 8 letras"
+              :placeholder="contaExistente ? 'a senha da sua conta' : 'Min. 8 letras'"
             />
-            <div class="mt-2 flex gap-1">
+            <div v-if="!contaExistente" class="mt-2 flex gap-1">
               <div
                 v-for="n in 4"
                 :key="n"
@@ -476,9 +498,9 @@
                 :class="forcaSenha >= n ? forcaSenhaClasse : 'bg-zinc-700'"
               />
             </div>
-            <p class="mt-1 text-xs text-zinc-500">Min. 8 letras, 1 maiuscula, 1 numero, 1 especial.</p>
+            <p v-if="!contaExistente" class="mt-1 text-xs text-zinc-500">Min. 8 letras, 1 maiuscula, 1 numero, 1 especial.</p>
           </div>
-          <div>
+          <div v-if="!contaExistente">
             <label class="login-modal-label mb-2 block text-sm"
               >Confirmar senha <span class="text-red-400">*</span></label
             >
@@ -778,6 +800,8 @@ const erroMestre = ref('')
 const carregandoCriacao = ref(false)
 const erroCriacao = ref('')
 const criacaoEnviada = ref(false)
+/** Verdadeiro quando o jogador já tem conta e quer só um personagem novo neste mundo. */
+const contaExistente = ref(false)
 const emailContaCriacao = ref('')
 const usernameContaCriacao = ref('')
 const senhaContaCriacao = ref('')
@@ -832,9 +856,9 @@ const envioDesabilitado = computed(() => {
   if (!nomePersonagem.value.trim()) return true
   if (!avatarArquivoCriacao.value) return true
   if (!usernameContaCriacao.value.trim()) return true
-  if (!emailContaCriacao.value.trim()) return true
+  if (!contaExistente.value && !emailContaCriacao.value.trim()) return true
   if (!senhaContaCriacao.value) return true
-  if (!confirmacaoSenha.value) return true
+  if (!contaExistente.value && !confirmacaoSenha.value) return true
   const bypass = formularioCriacao.value.aparencia.includes('mas a bicicleta e azul') || formularioCriacao.value.historia.includes('mas a bicicleta e azul')
   if (!bypass && formularioCriacao.value.aparencia.replace(/\s/g, '').length < 100) return true
   const temHistoria = bypass || formularioCriacao.value.historia.length >= 1000
@@ -1175,6 +1199,7 @@ function resetarFormulario() {
   }
   erroCriacao.value = ''
   criacaoEnviada.value = false
+  contaExistente.value = false
   emailContaCriacao.value = ''
   usernameContaCriacao.value = ''
   senhaContaCriacao.value = ''
@@ -1194,20 +1219,25 @@ async function submeterCriacao() {
 
   const username = usernameContaCriacao.value.trim()
   if (!username) { erroCriacao.value = 'Informe o nome de usuario.'; return }
-  if (!/^[a-zA-Z0-9_-]{3,30}$/.test(username)) {
+  if (!contaExistente.value && !/^[a-zA-Z0-9_-]{3,30}$/.test(username)) {
     erroCriacao.value = 'Nome de usuario deve ter 3-30 caracteres (letras, numeros, _ ou -).'
     return
   }
 
   const email = emailContaCriacao.value.trim().toLowerCase()
-  if (!email) { erroCriacao.value = 'Informe o e-mail liberado pelo mestre.'; return }
+  if (!contaExistente.value && !email) { erroCriacao.value = 'Informe o e-mail liberado pelo mestre.'; return }
 
   const senha = senhaContaCriacao.value
-  if (!senha || senha.length < 8) { erroCriacao.value = 'A senha deve ter pelo menos 8 caracteres.'; return }
-  if (!/[A-Z]/.test(senha)) { erroCriacao.value = 'A senha deve ter pelo menos 1 letra maiuscula.'; return }
-  if (!/[0-9]/.test(senha)) { erroCriacao.value = 'A senha deve ter pelo menos 1 numero.'; return }
-  if (!/[^a-zA-Z0-9]/.test(senha)) { erroCriacao.value = 'A senha deve ter pelo menos 1 caractere especial.'; return }
-  if (senha !== confirmacaoSenha.value) { erroCriacao.value = 'As senhas nao conferem.'; return }
+  if (!senha) { erroCriacao.value = 'Informe a senha.'; return }
+  // Conta existente: a senha é a que já existe — as regras de força são da criação.
+  if (!contaExistente.value) {
+    if (senha.length < 8) { erroCriacao.value = 'A senha deve ter pelo menos 8 caracteres.'; return }
+    if (!/[A-Z]/.test(senha)) { erroCriacao.value = 'A senha deve ter pelo menos 1 letra maiuscula.'; return }
+    if (!/[0-9]/.test(senha)) { erroCriacao.value = 'A senha deve ter pelo menos 1 numero.'; return }
+    if (!/[^a-zA-Z0-9]/.test(senha)) { erroCriacao.value = 'A senha deve ter pelo menos 1 caractere especial.'; return }
+    if (senha !== confirmacaoSenha.value) { erroCriacao.value = 'As senhas nao conferem.'; return }
+  }
+  if (contaExistente.value && !campanhaId.value) { erroCriacao.value = 'Entre pela pagina do mundo (/mundo/...) para pedir um personagem com a sua conta.'; return }
 
   const aparencia = formularioCriacao.value.aparencia.trim()
   const historia = formularioCriacao.value.historia.trim()
@@ -1241,6 +1271,7 @@ async function submeterCriacao() {
 
     await submeterSolicitacaoCriacao({
       nome: nomeCompleto,
+      contaExistente: contaExistente.value,
       username,
       password: senha,
       email,
@@ -1257,6 +1288,8 @@ async function submeterCriacao() {
     const msg = String(err?.response?.data?.message ?? err?.message ?? '')
     if (/liberado|whitelist/i.test(msg)) {
       erroCriacao.value = 'Este e-mail nao foi liberado pelo mestre. Solicite a liberacao e tente novamente.'
+    } else if (/senha inv/i.test(msg)) {
+      erroCriacao.value = 'Usuario ou senha invalidos.'
     } else if (/username.*ja|usuario.*existe/i.test(msg)) {
       erroCriacao.value = 'Este nome de usuario ja esta em uso. Escolha outro.'
     } else {
@@ -1269,6 +1302,18 @@ async function submeterCriacao() {
 </script>
 
 <style scoped>
+/* ── Escolha do tipo de conta no formulário de criação ─────────────────── */
+.login-create-opcao {
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(228, 228, 231, 0.7);
+}
+.login-create-opcao:hover { border-color: rgba(245, 158, 11, 0.4); }
+.login-create-opcao-ativa {
+  border-color: rgba(245, 158, 11, 0.6);
+  background: rgba(120, 53, 15, 0.25);
+  color: #fde68a;
+}
+
 /* ── Preview de história ───────────────────────────────────────────────── */
 .historia-preview {
   cursor: pointer;

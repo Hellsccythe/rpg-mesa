@@ -1,5 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/sequelize";
+import { QueryTypes } from "sequelize";
+import { Sequelize } from "sequelize-typescript";
 import { obterCampanhaDoContexto } from "../../common/cls/contexto-requisicao.js";
 import { ArmazenamentoArquivosService } from "../../common/storage/armazenamento-arquivos.service.js";
 import { CampanhaModel } from "./models/campanha.model.js";
@@ -48,6 +50,7 @@ export class CampanhasService {
     private readonly modeloCampanha: typeof CampanhaModel,
     @InjectModel(CampanhaGmModel)
     private readonly modeloCampanhaGm: typeof CampanhaGmModel,
+    private readonly sequelize: Sequelize,
     private readonly armazenamentoArquivos: ArmazenamentoArquivosService,
   ) {}
 
@@ -223,6 +226,24 @@ export class CampanhasService {
     if (ativas.length === 1) return ativas[0]!.id;
     if (ativas.length === 0) throw new BadRequestException("Nenhuma campanha ativa: crie um mundo antes.");
     throw new BadRequestException("Há mais de um mundo ativo: informe a campanha (campaignId).");
+  }
+
+  /**
+   * O mundo de uma leitura de catálogo (deuses, raças, passados, mapas,
+   * NPCs): com personagem, é o mundo dele — o personagem manda, mesmo para
+   * o mestre; sem personagem, a regra de resolverCampanhaAtiva (header,
+   * única ativa, 400). As rotas de catálogo são públicas: não há dono a
+   * conferir, e o catálogo de um mundo é público de qualquer jeito.
+   */
+  async resolverCampanhaDoCatalogo(personagemId?: number): Promise<number> {
+    if (personagemId === undefined) return this.resolverCampanhaAtiva();
+    const [linha] = await this.sequelize.query<{ campaign_id: number | null }>(
+      `SELECT campaign_id FROM characters WHERE id = :id AND deleted_at IS NULL`,
+      { replacements: { id: personagemId }, type: QueryTypes.SELECT },
+    );
+    if (!linha) throw new NotFoundException("Personagem não encontrado.");
+    if (linha.campaign_id === null) throw new BadRequestException("Este personagem não está em nenhum mundo.");
+    return Number(linha.campaign_id);
   }
 
   // ── Apoio ─────────────────────────────────────────────────────────────────

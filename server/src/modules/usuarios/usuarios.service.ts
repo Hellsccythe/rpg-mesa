@@ -15,6 +15,19 @@ import type { AlterarAtivoDto, EditarUsuarioDto, PreRegistrarDto } from "./usuar
 export const SENHA_PADRAO = "12345";
 const CUSTO_HASH_BCRYPT = 10;
 
+/** Um personagem da conta, com o mundo em que está. */
+export type PersonagemDaContaApi = {
+  id: number;
+  name: string;
+  username: string | null;
+  raca_id: number | null;
+  level: number;
+  avatar_url: string | null;
+  campaign_id: number | null;
+  mundo_numero: number | null;
+  mundo_nome: string | null;
+};
+
 export type UsuarioApi = {
   id: number;
   real_email: string;
@@ -23,16 +36,14 @@ export type UsuarioApi = {
   ativo: boolean;
   /** Falso enquanto for só um email liberado pelo mestre, sem conta criada. */
   conta_criada: boolean;
+  /** Quantos personagens vivos a conta pode ter no mesmo mundo. */
+  limite_personagens_por_mundo: number;
   created_at: string;
   updated_at: string;
-  personagem: {
-    id: number;
-    name: string;
-    username: string | null;
-    raca_id: number | null;
-    level: number;
-    avatar_url: string | null;
-  } | null;
+  /** O primeiro da lista — para as telas que só conhecem um. */
+  personagem: PersonagemDaContaApi | null;
+  /** Todos os personagens vivos da conta, um por mundo (ou mais, conforme o limite). */
+  personagens: PersonagemDaContaApi[];
 };
 
 type LinhaUsuario = {
@@ -42,22 +53,26 @@ type LinhaUsuario = {
   tipo: "gm" | "player";
   ativo: boolean;
   conta_criada: boolean;
+  limite_personagens_por_mundo: number;
   created_at: string;
   updated_at: string;
-  personagem_id: number | null;
-  personagem_name: string | null;
-  personagem_username: string | null;
-  personagem_raca_id: number | null;
-  personagem_level: number | null;
-  personagem_avatar_url: string | null;
+  personagens: Array<{
+    id: number;
+    name: string | null;
+    username: string | null;
+    raca_id: number | null;
+    level: number | null;
+    avatar_url: string | null;
+    campaign_id: number | null;
+    mundo_numero: number | null;
+    mundo_nome: string | null;
+  }> | null;
 };
 
 /**
- * Um LEFT JOIN substitui o que a versão anterior fazia em duas etapas:
- * listar os usuários, coletar os ids, buscar os personagens num segundo
- * SELECT e casar os dois com um Map em memória. Depois da migration 061,
- * characters.user_id referencia usuarios.id diretamente, o que torna a
- * junção trivial.
+ * Depois da migration 061, characters.user_id referencia usuarios.id
+ * diretamente. Como uma conta pode ter um personagem por mundo (101), a
+ * lista vem agregada em JSON num LATERAL — uma linha por conta, sempre.
  */
 const SQL_LISTAR_USUARIOS = `
   SELECT
@@ -67,18 +82,29 @@ const SQL_LISTAR_USUARIOS = `
     usuarios.tipo,
     usuarios.ativo,
     (usuarios.password_hash IS NOT NULL) AS conta_criada,
+    usuarios.limite_personagens_por_mundo,
     usuarios.created_at,
     usuarios.updated_at,
-    characters.id AS personagem_id,
-    characters.name AS personagem_name,
-    characters.username AS personagem_username,
-    characters.raca_id AS personagem_raca_id,
-    characters.level AS personagem_level,
-    characters.avatar_url AS personagem_avatar_url
+    personagens.lista AS personagens
   FROM usuarios
-  LEFT JOIN characters
-    ON characters.user_id = usuarios.id
-   AND characters.deleted_at IS NULL
+  -- Uma conta pode ter um personagem por mundo: a lista vem agregada, com o mundo de cada um.
+  LEFT JOIN LATERAL (
+    SELECT COALESCE(json_agg(json_build_object(
+      'id', characters.id,
+      'name', characters.name,
+      'username', characters.username,
+      'raca_id', characters.raca_id,
+      'level', characters.level,
+      'avatar_url', characters.avatar_url,
+      'campaign_id', characters.campaign_id,
+      'mundo_numero', campaigns.numero,
+      'mundo_nome', campaigns.name
+    ) ORDER BY campaigns.numero, characters.created_at), '[]'::json) AS lista
+    FROM characters
+    LEFT JOIN campaigns ON campaigns.id = characters.campaign_id
+    WHERE characters.user_id = usuarios.id
+      AND characters.deleted_at IS NULL
+  ) AS personagens ON TRUE
   WHERE usuarios.deleted_at IS NULL
   ORDER BY usuarios.created_at DESC
 `;
@@ -98,27 +124,33 @@ export class UsuariosService {
       type: QueryTypes.SELECT,
     });
 
-    return linhas.map((linha) => ({
-      id: linha.id,
-      real_email: linha.real_email,
-      username: linha.username,
-      tipo: linha.tipo,
-      ativo: linha.ativo,
-      conta_criada: linha.conta_criada,
-      created_at: linha.created_at,
-      updated_at: linha.updated_at,
-      personagem:
-        linha.personagem_id === null
-          ? null
-          : {
-              id: linha.personagem_id,
-              name: linha.personagem_name ?? "",
-              username: linha.personagem_username,
-              raca_id: linha.personagem_raca_id,
-              level: linha.personagem_level ?? 1,
-              avatar_url: montarUrlPublica(linha.personagem_avatar_url) || null,
-            },
-    }));
+    return linhas.map((linha) => {
+      const personagens = (linha.personagens ?? []).map((personagem) => ({
+        id: personagem.id,
+        name: personagem.name ?? "",
+        username: personagem.username,
+        raca_id: personagem.raca_id,
+        level: personagem.level ?? 1,
+        avatar_url: montarUrlPublica(personagem.avatar_url) || null,
+        campaign_id: personagem.campaign_id,
+        mundo_numero: personagem.mundo_numero,
+        mundo_nome: personagem.mundo_nome,
+      }));
+      return {
+        id: linha.id,
+        real_email: linha.real_email,
+        username: linha.username,
+        tipo: linha.tipo,
+        ativo: linha.ativo,
+        conta_criada: linha.conta_criada,
+        limite_personagens_por_mundo: linha.limite_personagens_por_mundo,
+        created_at: linha.created_at,
+        updated_at: linha.updated_at,
+        // O primeiro continua em `personagem` para as telas que só conhecem um.
+        personagem: personagens[0] ?? null,
+        personagens,
+      };
+    });
   }
 
   // ── Escrita ───────────────────────────────────────────────────────────────
@@ -127,6 +159,9 @@ export class UsuariosService {
     const usuario = await this.buscarOuFalhar(id);
 
     if (dados.tipo !== undefined) usuario.tipo = dados.tipo;
+    if (dados.limite_personagens_por_mundo !== undefined) {
+      usuario.limitePersonagensPorMundo = dados.limite_personagens_por_mundo;
+    }
 
     const novoUsername = dados.username?.trim().toLowerCase();
     if (novoUsername !== undefined && novoUsername !== usuario.username) {
@@ -269,6 +304,7 @@ export class UsuariosService {
       realEmail: email,
       tipo: dados.tipo ?? "player",
       ativo: true,
+      limitePersonagensPorMundo: dados.limite_personagens_por_mundo ?? 1,
       // Sem senha: é só um email liberado, a conta nasce com o personagem.
       passwordHash: null,
     });

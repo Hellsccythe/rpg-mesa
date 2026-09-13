@@ -90,6 +90,11 @@
                     <h3 class="text-lg font-bold text-white">{{ req.nome }}</h3>
                     <span class="text-sm text-zinc-400">(@{{ req.username }})</span>
                     <span
+                      v-if="req.conta_existente"
+                      class="rounded-full border border-sky-500/40 bg-sky-500/10 px-2 py-0.5 text-xs font-semibold text-sky-300"
+                      title="O jogador já tem conta: é um personagem novo em outro mundo, nada de conta nova"
+                    >conta existente</span>
+                    <span
                       class="rounded-full px-2 py-0.5 text-xs font-semibold"
                       :class="{
                         'bg-amber-500/20 text-amber-300': req.status === 'pendente',
@@ -283,12 +288,13 @@ const nomeAprovar = ref('')
 const campanhaAprovar = ref<number | ''>('')
 const campanhas = ref<CampanhaApi[]>([])
 const opcoesDeCampanha = computed(() =>
-  campanhas.value.filter((c) => c.is_active).map((c) => ({ value: c.id, label: c.name })),
+  campanhas.value.filter((c) => c.is_active).map((c) => ({ value: c.id, label: `Mundo ${c.numero} — ${c.name}` })),
 )
 
 function nomeDaCampanha(id: number | null): string {
   if (!id) return 'sem mundo'
-  return campanhas.value.find((c) => c.id === id)?.name ?? `campanha #${id}`
+  const campanha = campanhas.value.find((c) => c.id === id)
+  return campanha ? `Mundo ${campanha.numero} — ${campanha.name}` : `campanha #${id}`
 }
 
 function formatarData(iso: string) {

@@ -1,4 +1,4 @@
-import { IsEmail, IsInt, IsOptional, IsString, MaxLength, Min, MinLength } from "class-validator";
+import { IsBoolean, IsEmail, IsInt, IsOptional, IsString, MaxLength, Min, MinLength } from "class-validator";
 
 /**
  * Campos em snake_case: é o que o frontend já envia.
@@ -7,9 +7,19 @@ import { IsEmail, IsInt, IsOptional, IsString, MaxLength, Min, MinLength } from 
  * dependem do "bypass de teste" e da presença ou não do documento anexo.
  */
 export class SubmeterSolicitacaoDto {
+  /**
+   * Verdadeiro quando o jogador já tem conta e quer um personagem em outro
+   * mundo: username e password são o login dele, e o email não é lido —
+   * a conta já tem o seu. Falso (ou ausente) é a criação de conta nova.
+   */
+  @IsOptional() @IsBoolean()
+  conta_existente?: boolean;
+
+  /** Obrigatório na conta nova (precisa estar pré-registrado); ignorado na existente. */
+  @IsOptional()
   @IsEmail({}, { message: "Email inválido." })
   @MaxLength(200)
-  email!: string;
+  email?: string;
 
   @IsString()
   @MinLength(3, { message: "Usuário deve ter entre 3 e 20 caracteres." })

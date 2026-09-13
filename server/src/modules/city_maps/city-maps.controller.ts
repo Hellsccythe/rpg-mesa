@@ -8,6 +8,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -16,6 +17,7 @@ import { FileInterceptor } from "@nestjs/platform-express";
 import sharp from "sharp";
 import { JwtAuthGuard } from "../../common/auth/jwt-auth.guard.js";
 import { MasterGuard } from "../../common/auth/master.guard.js";
+import { FiltroDeMundoDto } from "../../common/dto/filtro-de-mundo.dto.js";
 import { ArmazenamentoArquivosService } from "../../common/storage/armazenamento-arquivos.service.js";
 import { CityMapsService } from "./city-maps.service.js";
 import { EditarCityMapDto, SalvarCityMapDto } from "./city-maps.dto.js";
@@ -38,8 +40,8 @@ export class CityMapsController {
    */
   @UseGuards(JwtAuthGuard)
   @Get()
-  listar() {
-    return this.servicoCityMaps.listar();
+  listar(@Query() filtro: FiltroDeMundoDto) {
+    return this.servicoCityMaps.listar(filtro.characterId);
   }
 
   @UseGuards(JwtAuthGuard, MasterGuard)

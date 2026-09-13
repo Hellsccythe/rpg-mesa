@@ -12,7 +12,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 9OCKVoLzkUBzgN5d4kFaHIIlTidzkkJaUydYddm2YcImCmjVIINe2PHf5lE2dhE
+\restrict 1pLabWahKakJaxkYThM7MWPLRXfR3hLi7QiI9I3cNjyDZtK8bGqFEEHtpAlOteb
 
 -- Dumped from database version 18.6 (Debian 18.6-1.pgdg13+2)
 -- Dumped by pg_dump version 18.6 (Debian 18.6-1.pgdg13+2)
@@ -633,6 +633,7 @@ CREATE TABLE public.character_creation_requests (
     created_by text,
     updated_by text,
     campaign_id integer,
+    usuario_id integer,
     CONSTRAINT character_creation_requests_status_check CHECK (((status)::text = ANY (ARRAY[('pendente'::character varying)::text, ('aprovado'::character varying)::text, ('rejeitado'::character varying)::text])))
 );
 
@@ -745,7 +746,8 @@ CREATE TABLE public.city_maps (
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     deleted_by text,
     created_by text,
-    updated_by text
+    updated_by text,
+    campaign_id integer NOT NULL
 );
 
 
@@ -958,7 +960,8 @@ CREATE TABLE public.classe_secreta_revelada (
     updated_at timestamp with time zone DEFAULT now(),
     updated_by text,
     deleted_at timestamp with time zone,
-    deleted_by text
+    deleted_by text,
+    campaign_id integer NOT NULL
 );
 
 
@@ -1344,7 +1347,8 @@ CREATE TABLE public.gods (
     deleted_by text,
     created_by text,
     updated_by text,
-    indole_id integer
+    indole_id integer,
+    campaign_id integer NOT NULL
 );
 
 
@@ -1595,7 +1599,8 @@ CREATE TABLE public.npcs (
     created_by text,
     updated_by text,
     deleted_at timestamp with time zone,
-    deleted_by text
+    deleted_by text,
+    campaign_id integer NOT NULL
 );
 
 
@@ -1632,7 +1637,8 @@ CREATE TABLE public.passados (
     deleted_by text,
     atributo_bonus jsonb,
     dinheiro_inicial jsonb DEFAULT '[]'::jsonb NOT NULL,
-    pericias_iniciais jsonb DEFAULT '[]'::jsonb NOT NULL
+    pericias_iniciais jsonb DEFAULT '[]'::jsonb NOT NULL,
+    campaign_id integer NOT NULL
 );
 
 
@@ -1882,7 +1888,8 @@ CREATE TABLE public.racas (
     deleted_by text,
     created_by text,
     updated_by text,
-    id integer NOT NULL
+    id integer NOT NULL,
+    campaign_id integer NOT NULL
 );
 
 
@@ -2380,6 +2387,8 @@ CREATE TABLE public.usuarios (
     updated_by text,
     password_hash text,
     requires_password_change boolean DEFAULT false NOT NULL,
+    limite_personagens_por_mundo integer DEFAULT 1 NOT NULL,
+    CONSTRAINT usuarios_limite_personagens_check CHECK ((limite_personagens_por_mundo >= 1)),
     CONSTRAINT usuarios_tipo_check CHECK ((tipo = ANY (ARRAY['gm'::text, 'player'::text])))
 );
 
@@ -2671,14 +2680,6 @@ ALTER TABLE ONLY public.characters
 
 
 --
--- Name: city_maps city_maps_name_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.city_maps
-    ADD CONSTRAINT city_maps_name_key UNIQUE (name);
-
-
---
 -- Name: city_maps city_maps_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2735,11 +2736,11 @@ ALTER TABLE ONLY public.classe_marco_virtude
 
 
 --
--- Name: classe_secreta_revelada classe_secreta_revelada_classe_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: classe_secreta_revelada classe_secreta_revelada_mundo_classe_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.classe_secreta_revelada
-    ADD CONSTRAINT classe_secreta_revelada_classe_id_key UNIQUE (classe_id);
+    ADD CONSTRAINT classe_secreta_revelada_mundo_classe_key UNIQUE (campaign_id, classe_id);
 
 
 --
@@ -2836,14 +2837,6 @@ ALTER TABLE ONLY public.genero
 
 ALTER TABLE ONLY public.genero
     ADD CONSTRAINT genero_pkey PRIMARY KEY (id);
-
-
---
--- Name: gods gods_name_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.gods
-    ADD CONSTRAINT gods_name_key UNIQUE (name);
 
 
 --
@@ -3229,10 +3222,10 @@ CREATE INDEX idx_ccr_username ON public.character_creation_requests USING btree 
 
 
 --
--- Name: idx_ccr_username_ativo; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_ccr_username_pendente_por_mundo; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX idx_ccr_username_ativo ON public.character_creation_requests USING btree (username) WHERE ((deleted_at IS NULL) AND ((status)::text = ANY ((ARRAY['pendente'::character varying, 'aprovado'::character varying])::text[])));
+CREATE UNIQUE INDEX idx_ccr_username_pendente_por_mundo ON public.character_creation_requests USING btree (username, campaign_id) WHERE ((deleted_at IS NULL) AND ((status)::text = 'pendente'::text));
 
 
 --
@@ -3299,10 +3292,17 @@ CREATE INDEX idx_characters_pending_request ON public.characters USING btree (((
 
 
 --
--- Name: idx_characters_username; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_characters_username_por_mundo; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX idx_characters_username ON public.characters USING btree (username) WHERE (deleted_at IS NULL);
+CREATE UNIQUE INDEX idx_characters_username_por_mundo ON public.characters USING btree (campaign_id, username) WHERE (deleted_at IS NULL);
+
+
+--
+-- Name: idx_city_maps_campanha; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_city_maps_campanha ON public.city_maps USING btree (campaign_id);
 
 
 --
@@ -3317,6 +3317,13 @@ CREATE INDEX idx_city_maps_created_at_desc ON public.city_maps USING btree (crea
 --
 
 CREATE INDEX idx_city_maps_deleted_at ON public.city_maps USING btree (deleted_at) WHERE (deleted_at IS NOT NULL);
+
+
+--
+-- Name: idx_city_maps_nome_por_mundo; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_city_maps_nome_por_mundo ON public.city_maps USING btree (campaign_id, name) WHERE (deleted_at IS NULL);
 
 
 --
@@ -3453,6 +3460,13 @@ CREATE INDEX idx_fabricacoes_receita ON public.fabricacoes USING btree (receita_
 
 
 --
+-- Name: idx_gods_campanha; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_gods_campanha ON public.gods USING btree (campaign_id);
+
+
+--
 -- Name: idx_gods_created_at_desc; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3471,6 +3485,13 @@ CREATE INDEX idx_gods_indole_id ON public.gods USING btree (indole_id);
 --
 
 CREATE INDEX idx_gods_name ON public.gods USING btree (name) WHERE (deleted_at IS NULL);
+
+
+--
+-- Name: idx_gods_nome_por_mundo; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_gods_nome_por_mundo ON public.gods USING btree (campaign_id, name) WHERE (deleted_at IS NULL);
 
 
 --
@@ -3530,6 +3551,20 @@ CREATE INDEX idx_lore_notes_campanha ON public.lore_notes USING btree (campaign_
 
 
 --
+-- Name: idx_npcs_campanha; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_npcs_campanha ON public.npcs USING btree (campaign_id);
+
+
+--
+-- Name: idx_passados_campanha; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_passados_campanha ON public.passados USING btree (campaign_id);
+
+
+--
 -- Name: idx_pericias_nome_ativa; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3541,6 +3576,13 @@ CREATE UNIQUE INDEX idx_pericias_nome_ativa ON public.pericias USING btree (nome
 --
 
 CREATE INDEX idx_propriedade_equipamento_categoria ON public.propriedade_equipamento USING btree (categoria_item) WHERE (deleted_at IS NULL);
+
+
+--
+-- Name: idx_racas_campanha; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_racas_campanha ON public.racas USING btree (campaign_id);
 
 
 --
@@ -4170,5 +4212,5 @@ ALTER TABLE public.usuarios ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 9OCKVoLzkUBzgN5d4kFaHIIlTidzkkJaUydYddm2YcImCmjVIINe2PHf5lE2dhE
+\unrestrict 1pLabWahKakJaxkYThM7MWPLRXfR3hLi7QiI9I3cNjyDZtK8bGqFEEHtpAlOteb
 

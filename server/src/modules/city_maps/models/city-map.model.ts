@@ -20,6 +20,10 @@ export type DadosCityMap = {
 
 @Table({ tableName: "city_maps", timestamps: true, paranoid: true })
 export class CityMapModel extends Model {
+  /** O mundo do mapa (migration 101). O nome é único por mundo, entre os vivos. */
+  @Column({ type: DataType.INTEGER, allowNull: false })
+  declare campaignId: number;
+
   @Column(DataType.TEXT)
   declare name: string;
 

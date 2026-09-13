@@ -21,6 +21,10 @@ export interface BookPage {
   textContent?: string
   noteTitle?: string
   noteSubtitle?: string
+  // Para a capa do Panteão (gerado dos deuses do mundo): o índice por ala e
+  // o número da página de cada deus, para o salto do índice.
+  indice?: Record<AlignmentType, string[]>
+  mapaDePaginas?: Record<string, number>
 }
 
 export interface LoreNoteItem {

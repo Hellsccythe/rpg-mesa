@@ -631,6 +631,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { lerMundoAtivoLocal } from '@/lib/mundo-ativo'
 import { useRouter } from 'vue-router'
 import DataTable from '@/components/DataTable.vue'
 import Modal from '@/components/Modal.vue'
@@ -1188,7 +1189,7 @@ onMounted(async () => {
     listarClassesAdmin(),
     listarLevelProgression(),
   ])
-  await charactersStore.fetchPaginaInicial().catch(() => {})
+  await charactersStore.fetchPaginaInicial(lerMundoAtivoLocal()?.slug).catch(() => {})
 
   if (progressData.status === 'fulfilled') progressoes.value = progressData.value
   if (classesData.status === 'fulfilled') classes.value = classesData.value

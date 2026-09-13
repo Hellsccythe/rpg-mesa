@@ -8,6 +8,10 @@ import { Column, DataType, Model, Table } from "sequelize-typescript";
  */
 @Table({ tableName: "gods", timestamps: true, paranoid: true })
 export class GodModel extends Model {
+  /** O mundo do deus (migration 101). O nome é único por mundo, entre os vivos. */
+  @Column({ type: DataType.INTEGER, allowNull: false })
+  declare campaignId: number;
+
   @Column(DataType.TEXT)
   declare name: string;
 

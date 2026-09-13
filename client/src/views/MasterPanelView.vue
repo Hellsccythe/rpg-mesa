@@ -673,7 +673,7 @@ async function salvarFocalPoint() {
     await setAvatarFocalPoint(focalCharId.value, focalPoint.value)
     focalFeedback.value = 'Posição salva com sucesso.'
     focalFeedbackError.value = false
-    await charactersStore.fetchPaginaInicial()
+    await charactersStore.fetchPaginaInicial(mundoStore.mundo?.slug)
   } catch (err: any) {
     focalFeedback.value = err?.response?.data?.message || 'Erro ao salvar posição.'
     focalFeedbackError.value = true
@@ -1067,7 +1067,7 @@ async function deletarPersonagem() {
     feedbackError.value = false
     deleteCharacterId.value = ''
     deleteConfirmName.value = ''
-    await charactersStore.fetchPaginaInicial()
+    await charactersStore.fetchPaginaInicial(mundoStore.mundo?.slug)
   } catch (err: any) {
     feedback.value = err?.response?.data?.message || 'Erro ao deletar personagem.'
     feedbackError.value = true

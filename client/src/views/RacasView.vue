@@ -263,7 +263,7 @@ async function logout() {
 async function carregar() {
   carregando.value = true
   erro.value = false
-  try { racas.value = await listarRacasPublicas() }
+  try { racas.value = await listarRacasPublicas(String(route.query.characterId ?? authStore.idPersonagemAtivo ?? '')) }
   catch { erro.value = true }
   finally { carregando.value = false }
 }

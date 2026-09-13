@@ -129,7 +129,10 @@ import HamburgerDrawerMenu from '@/components/HamburgerDrawerMenu.vue'
 import LivroLeitor from '@/components/book/LivroLeitor.vue'
 import PergaminhoLeitor from '@/components/book/PergaminhoLeitor.vue'
 import { useAuthStore } from '@/stores/auth'
-import { PANTEAO_PAGES } from '@/data/panteao'
+import { listPublicGods } from '@/lib/api/gods.api'
+import { montarLivroDoPanteao } from '@/lib/livro/panteao'
+import { useMundoStore } from '@/stores/mundo'
+import type { GodApi } from '@/types/api'
 import { listLoreNotes, ICONE_DO_FORMATO } from '@/lib/api/lore-notes.api'
 import type { LoreNoteApi } from '@/lib/api/lore-notes.api'
 import { useCharactersStore } from '@/stores/characters'
@@ -160,15 +163,25 @@ const paginasAtuais   = ref<BookPage[]>([])
 const showSettingsMenu  = ref(false)
 
 // ── Prateleira: montar lista de notas ────────────────────────────────────────
-const NOTA_PANTEAO: LoreNoteItem = {
-  id: 'panteao',
-  titulo: 'Panteão de Elyra',
-  subtitulo: 'Conhecimento Comum dos Mortais',
-  tipo: 'static',
-  formato: 'livro',
-  totalPaginas: PANTEAO_PAGES.length,
-  pages: PANTEAO_PAGES,
-}
+// O Panteão é gerado dos deuses do mundo do personagem (lib/livro/panteao.ts).
+// Mundo sem deuses, prateleira sem Panteão.
+const mundoStore = useMundoStore()
+const deusesDoMundo = ref<GodApi[]>([])
+const nomeDoMundo = ref('')
+
+const NOTA_PANTEAO = computed<LoreNoteItem | null>(() => {
+  if (deusesDoMundo.value.length === 0) return null
+  const livro = montarLivroDoPanteao(deusesDoMundo.value, nomeDoMundo.value || 'este mundo')
+  return {
+    id: 'panteao',
+    titulo: `Panteão de ${nomeDoMundo.value || 'este mundo'}`,
+    subtitulo: 'Conhecimento Comum dos Mortais',
+    tipo: 'static',
+    formato: 'livro',
+    totalPaginas: livro.paginas.length,
+    pages: livro.paginas,
+  }
+})
 
 // ── Diário de aventura ───────────────────────────────────────────────────────
 // As notas que o mestre escreve sobre o personagem (data.adventureNotes). O
@@ -201,7 +214,7 @@ const NOTA_DIARIO = computed<LoreNoteItem | null>(() =>
 
 const todasAsNotas = computed<LoreNoteItem[]>(() => [
   ...(NOTA_DIARIO.value ? [NOTA_DIARIO.value] : []),
-  NOTA_PANTEAO,
+  ...(NOTA_PANTEAO.value ? [NOTA_PANTEAO.value] : []),
   ...notasDinamicas.value.map<LoreNoteItem>((n) => ({
     id: String(n.id),
     titulo: n.title,
@@ -288,13 +301,22 @@ onMounted(async () => {
   loadingNotas.value = true
   try {
     const characterId = Number(route.query.characterId ?? authStore.idPersonagemAtivo ?? 0) || undefined
-    const [lore, personagem] = await Promise.all([
+    const [lore, personagem, deuses] = await Promise.all([
       listLoreNotes(characterId),
       characterId ? useCharactersStore().fetchCharacterById(characterId).catch(() => null) : Promise.resolve(null),
+      listPublicGods(characterId).catch(() => [] as GodApi[]),
     ])
     notasDinamicas.value = lore
+    deusesDoMundo.value = deuses
     const notas = (personagem as any)?.data?.adventureNotes
     notasDeAventura.value = Array.isArray(notas) ? notas : []
+    // O nome do mundo para a capa do Panteão: o do personagem, senão o mundo ativo.
+    const campanhaId = (personagem as any)?.campaignId
+    if (campanhaId) {
+      await mundoStore.carregarCampanhas(authStore.eMestre).catch(() => null)
+      nomeDoMundo.value = mundoStore.campanhas.find((campanha) => campanha.id === Number(campanhaId))?.name ?? ''
+    }
+    if (!nomeDoMundo.value) nomeDoMundo.value = mundoStore.mundo?.name ?? ''
   } catch {
     // sem notas dinâmicas, continua com estáticas
   } finally {

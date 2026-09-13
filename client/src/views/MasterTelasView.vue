@@ -177,6 +177,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import Modal from '@/components/Modal.vue'
 import { listarUsuarios, type Usuario } from '@/lib/api/usuarios.api'
+import { useMundoStore } from '@/stores/mundo'
 import {
   listarTelasPlayer, definirTelasPlayer,
   TELAS_DISPONIVEIS, type TelaId,
@@ -186,7 +187,21 @@ const router = useRouter()
 
 const carregando = ref(true)
 const usuarios   = ref<Usuario[]>([])
-const players    = computed(() => usuarios.value.filter(u => u.tipo === 'player' && u.ativo && u.personagem))
+const mundoStore = useMundoStore()
+
+// As telas são por personagem, e cada conta pode ter um por mundo: a lista
+// mostra o personagem que a conta tem NO MUNDO ATIVO (o que o seletor diz).
+const players = computed(() =>
+  usuarios.value
+    .filter(u => u.tipo === 'player' && u.ativo)
+    .map(u => ({
+      ...u,
+      personagem: mundoStore.mundo
+        ? u.personagens.find(p => p.campaign_id === mundoStore.mundo!.id) ?? null
+        : u.personagem,
+    }))
+    .filter(u => u.personagem),
+)
 
 // Cache de telas por character_id
 const telasCache = ref<Record<number, TelaId[]>>({})

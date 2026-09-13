@@ -131,6 +131,11 @@ export interface CharacterCreationRequestApi {
   revisado_por: string | null
   /** Nulo quando o jogador se cadastrou pelo /login direto, sem mundo. */
   campaign_id: number | null
+  /** A conta dona da solicitação, quando é de conta existente (um personagem em outro mundo). */
+  usuario_id: number | null
+  conta_existente: boolean
+  mundo_numero: number | null
+  mundo_nome: string | null
   created_at: string
   updated_at: string
 }

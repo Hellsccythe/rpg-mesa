@@ -15,8 +15,8 @@
           />
         </div>
 
-        <span class="font-cinzel text-base font-bold tracking-widest text-amber-400/90 select-none">
-          Caminho Sem Volta
+        <span class="font-cinzel truncate text-base font-bold tracking-widest text-amber-400/90 select-none" :title="nomeDoMundo">
+          {{ nomeDoMundo }}
         </span>
 
         <div class="flex items-center gap-0.5">
@@ -1496,6 +1496,7 @@ import { useRoute, useRouter } from 'vue-router'
 import Modal from '@/components/Modal.vue'
 import HamburgerDrawerMenu from '@/components/HamburgerDrawerMenu.vue'
 import { limparMetaAuthLocal, useAuthStore } from '@/stores/auth'
+import { useMundoStore } from '@/stores/mundo'
 import { useCharactersStore } from '@/stores/characters'
 import { useMasterApprovalsStore } from '@/stores/masterApprovals'
 import { editCharacter, levelarClasse, escolherClasse, distribuirPontosAtributo, escolherSkillDaClasse } from '@/lib/api/personagens.api'
@@ -1534,6 +1535,15 @@ const loading = ref(true)
 const error = ref<string>('')
 const errorHint = ref('')
 const character = ref<PersonagemApi | null>(null)
+const mundoStore = useMundoStore()
+
+// O header diz em que mundo o personagem está — o nome do sistema ("Caminho
+// Sem Volta") era fixo aqui, e num site com vários mundos isso mente.
+const nomeDoMundo = computed(() => {
+  const campanhaId = Number((character.value as any)?.campaignId ?? 0)
+  const campanha = mundoStore.campanhas.find((item) => item.id === campanhaId)
+  return campanha?.name ?? mundoStore.mundo?.name ?? 'Caminho Sem Volta'
+})
 
 const showSettingsMenu = ref(false)
 const showSettingsModal = ref(false)
@@ -2395,6 +2405,7 @@ async function loadCharacter() {
   try {
     character.value = await charactersStore.fetchCharacterById(characterId)
     authStore.definirPersonagemAtivo(characterId)
+    mundoStore.carregarCampanhas(authStore.eMestre).catch(() => null)
 
     if (!authStore.eMestre && !(character.value as any)?.onboardingCompleto) {
       await router.replace({ name: 'onboarding', query: { characterId } })
@@ -2404,10 +2415,11 @@ async function loadCharacter() {
     initializeSettingsForm()
     await loadNotifications(characterId)
 
+    // O catálogo é o do mundo do personagem — vale também para o mestre abrindo a ficha.
     Promise.all([
-      listarRacasPublicas().then(r => { todasRacas.value = r }),
-      listarPassados().then(p => { todosPassados.value = p }),
-      listPublicGods().then(g => { todosDeuses.value = g }),
+      listarRacasPublicas(characterId).then(r => { todasRacas.value = r }),
+      listarPassados(characterId).then(p => { todosPassados.value = p }),
+      listPublicGods(characterId).then(g => { todosDeuses.value = g }),
       listarIndole().then(i => { todasIndoles.value = i }),
     ]).catch(() => {})
 

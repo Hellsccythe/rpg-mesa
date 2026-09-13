@@ -27,6 +27,10 @@ export type RolagemDeDinheiro = {
 
 @Table({ tableName: "passados", timestamps: true, paranoid: true })
 export class PassadoModel extends Model {
+  /** O mundo do passado (migration 101). Skills, títulos e perícias que ele concede são globais. */
+  @Column({ type: DataType.INTEGER, allowNull: false })
+  declare campaignId: number;
+
   @Column(DataType.STRING(100))
   declare nome: string;
 

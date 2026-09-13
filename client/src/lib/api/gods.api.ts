@@ -14,8 +14,10 @@ export interface SaveGodPayload {
   imageUrl?: string
 }
 
-export async function listPublicGods() {
-  const { data } = await api.get<GodApi[]>('/gods')
+/** Os deuses do mundo: do personagem, quando há um; senão do mundo ativo (header X-Campanha). */
+export async function listPublicGods(characterId?: string | number | null) {
+  const params = characterId ? { characterId: Number(characterId) } : {}
+  const { data } = await api.get<GodApi[]>('/gods', { params })
   return data
 }
 

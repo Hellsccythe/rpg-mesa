@@ -901,10 +901,10 @@ async function carregar() {
     if (!characterId) { router.replace({ name: 'login' }); return }
 
     const [racasData, classesData, passadosData, deusesData, equipsData, personagemData] = await Promise.all([
-      listarRacasPublicas(),
+      listarRacasPublicas(characterId),
       listarClasses(),
-      listarPassados(),
-      listPublicGods(),
+      listarPassados(characterId),
+      listPublicGods(characterId),
       listarArmasPublicas(),
       getCharacterById(characterId),
     ])
