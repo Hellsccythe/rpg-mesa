@@ -715,6 +715,8 @@ import { useRoute, useRouter } from 'vue-router'
 import Modal from '@/components/Modal.vue'
 import VSelect from '@/components/VSelect.vue'
 import { useAuthStore } from '@/stores/auth'
+import { useMundoStore } from '@/stores/mundo'
+import type { CampanhaApi } from '@/lib/api/campanhas.api'
 import { useCharactersStore } from '@/stores/characters'
 import { useSmartImageFocus } from '@/composables/useSmartImageFocus'
 import {
@@ -732,6 +734,9 @@ const route = useRoute()
 const router = useRouter()
 
 // Contexto de campanha — preenchido quando a rota é /mundo/:slug
+const mundoStore = useMundoStore()
+/** A campanha resolvida pelo slug da rota, para virar o mundo ativo ao entrar. */
+const campanhaDaRota = ref<CampanhaApi | null>(null)
 const campanhaSlug = computed(() => {
   const s = route.params.slug
   return typeof s === 'string' && s ? s : null
@@ -850,6 +855,7 @@ onMounted(async () => {
       const { buscarCampanhaPorSlug } = await import('@/lib/api/campanhas.api')
       const campanha = await buscarCampanhaPorSlug(campanhaSlug.value)
       campanhaId.value = campanha.id
+      campanhaDaRota.value = campanha
     } catch {}
   }
 
@@ -919,7 +925,8 @@ async function logarPersonagem() {
   try {
     // O backend aceita o username direto; o sufixo @rpg.internal era
     // exigência do Supabase Auth e deixou de existir.
-    await authStore.entrar(username, senhaLoginPersonagem.value, idPersonagem)
+    await authStore.entrar(username, senhaLoginPersonagem.value, idPersonagem, { campanhaSlug: campanhaSlug.value })
+    if (campanhaDaRota.value) mundoStore.selecionar(campanhaDaRota.value)
     fecharModalLoginPersonagem()
     router.push({ name: 'dashboard', query: { characterId: idPersonagem } })
   } catch (err: any) {
@@ -953,7 +960,9 @@ async function logarMestre() {
   erroMestre.value = ''
 
   try {
-    await authStore.entrar(emailMestre.value.trim(), senhaMestre.value, null, { comoMestre: true })
+    await authStore.entrar(emailMestre.value.trim(), senhaMestre.value, null, { comoMestre: true, campanhaSlug: campanhaSlug.value })
+    // Quem loga por /mundo/:slug já entra mestrando aquele mundo; pelo /login direto, o seletor pergunta.
+    if (campanhaDaRota.value) mundoStore.selecionar(campanhaDaRota.value)
     fecharModalLoginMestre()
     router.push({ name: 'master-panel' })
   } catch (err: any) {

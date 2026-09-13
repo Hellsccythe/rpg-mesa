@@ -206,10 +206,10 @@ A raiz **não é mais o login**: `/` lista as campanhas (mundos) e cada uma leva
 | DELETE | `/api/personagens/admin/personagens/:id/notas/:indice` | isMaster |
 | DELETE | `/api/personagens/admin/:id` | isMaster (soft delete + apaga o avatar do disco) |
 | PATCH | `/api/personagens/admin/:id/status` | isMaster (vivo \| morto; morte libera classe secreta) |
-| GET | `/api/campanhas` | público (só as ativas) |
+| GET | `/api/campanhas` | público (só as ativas, na ordem de `numero`) |
 | GET | `/api/campanhas/:slug` | público |
 | GET | `/api/campanhas/admin/listar` | isMaster (inclui inativas) |
-| POST | `/api/campanhas/admin` | isMaster |
+| POST | `/api/campanhas/admin` | isMaster (`numero` opcional — sem ele, o próximo livre; repetido dá 409) |
 | PATCH | `/api/campanhas/admin/:id` | isMaster |
 | DELETE | `/api/campanhas/admin/:id` | isMaster (soft delete, 204) |
 | POST | `/api/campanhas/admin/upload-capa` | isMaster (multipart `file`) |
@@ -239,7 +239,7 @@ A raiz **não é mais o login**: `/` lista as campanhas (mundos) e cada uma leva
 
 ## Mundos — o site como world manager
 
-O site vai mestrar **mais de uma sessão**: cada campanha é um mundo com deuses, mapas, NPCs, raças, passados e livros próprios, e com o conjunto de classes e títulos que o mestre marcou ao criar o mundo. O desenho, as decisões e a ordem de entrega estão em **`docs/MUNDOS.md`** — leia antes de mexer em campanhas, em qualquer catálogo ou em `lore_notes`. Em resumo: **não** há tabelas por campanha (é uma coluna `campaign_id` nas tabelas de conteúdo de mundo); classes/skills/títulos ficam **globais**, com disponibilidade por mundo, porque se referenciam por nome; a campanha de uma requisição vem do **personagem** quando há um, do header `X-Campanha` quando não há, e da única campanha ativa como último recurso (nunca "todos os mundos"). Fase 0 (livros) está feita; as demais, não.
+O site vai mestrar **mais de uma sessão**: cada campanha é um mundo com deuses, mapas, NPCs, raças, passados e livros próprios, e com o conjunto de classes e títulos que o mestre marcou ao criar o mundo. O desenho, as decisões e a ordem de entrega estão em **`docs/MUNDOS.md`** — leia antes de mexer em campanhas, em qualquer catálogo ou em `lore_notes`. Em resumo: **não** há tabelas por campanha (é uma coluna `campaign_id` nas tabelas de conteúdo de mundo); classes/skills/títulos ficam **globais**, com disponibilidade por mundo, porque se referenciam por nome; a campanha de uma requisição vem do **personagem** quando há um, do header `X-Campanha` quando não há, e da única campanha ativa como último recurso (nunca "todos os mundos"). Fases 0 (livros) e 1 (campanha ativa) estão feitas; as demais, não.
 
 ## Direção do produto — o site e o aplicativo futuro
 
@@ -280,6 +280,7 @@ Documentação completa em `docs/COMPONENTS.md`.
 | `VSelect` | `components/VSelect.vue` | Select customizado — usar em todos os dropdowns (v-model string\|number, options: {value,label}[]) |
 | `TabelaEditor` | `components/TabelaEditor.vue` | CRUD inline para tabelas de lookup simples (item INTEGER + descricao). Props: titulo, itens, categorias?, campoCategoria?, labelCategoria?. Emite: criar, editar, deletar |
 | `TrocaDeSenhaObrigatoria` | `components/TrocaDeSenhaObrigatoria.vue` | Montado **uma vez em `App.vue`**; abre em qualquer rota autenticada enquanto `authStore.precisaTrocarSenha` for verdadeiro, e só fecha trocando a senha |
+| `SeletorDeMundo` | `components/SeletorDeMundo.vue` | Montado **uma vez em `App.vue`** para o mestre em `/master`: a pílula fixa "🌍 Mundo 2 — Nome ▾" e o modal de escolha (obrigatório quando não há mundo guardado e há mais de um ativo). Escreve em `stores/mundo.ts`; o header `X-Campanha` sai de `lib/mundo-ativo.ts` |
 | `LivroLeitor` | `components/book/LivroLeitor.vue` | O leitor de livro: capa fechada que abre, spread no desktop e página única no celular, a folha virando **pela quina** com o dedo/mouse (arraste), toque, setas ← → e botões. As capas também acompanham o arraste (`gestoDeCapaPara`): na primeira folha, puxar a guarda fecha; na última, puxar a guarda de trás vira a contracapa; ← e → fazem o mesmo. Props `paginas`, `titulo`, `subtitulo`, `noteTitulo`, `imagemDaCapa`; emite `fechar` |
 | `FolhaComDobra` | `components/book/FolhaComDobra.vue` | Uma folha com a quina dobrada, desenhada a partir de um ponto (onde a quina está): frente recortada, aba refletida com o verso, sombras. Não anima — o leitor move o ponto. A matemática está em `lib/livro/dobra.ts` (mediatriz C–P, reflexão como `matrix()`, Sutherland–Hodgman para os recortes) |
 | `CapaDoLivro` | `components/book/CapaDoLivro.vue` | A capa: arte SVG própria (moldura dourada, coluna de dados) ou `imagem`, com o título em Cinzel por cima; `semTitulo` para a contracapa |
@@ -309,7 +310,7 @@ Documentação completa em `docs/COMPONENTS.md`.
 
 ## Banco de Dados — Tabelas
 
-Schema completo em `docs/SCHEMA_CURRENT.sql` — **arquivo gerado por `pg_dump --schema-only`, não editado a mão**; regere-o quando mexer no esquema (o comando está no cabeçalho do próprio arquivo). Migrations em `database/migrations/` (001–099). Documentação em PDF, com as ligações entre tabelas e os fluxos: `docs/BANCO_DE_DADOS.pdf`.
+Schema completo em `docs/SCHEMA_CURRENT.sql` — **arquivo gerado por `pg_dump --schema-only`, não editado a mão**; regere-o quando mexer no esquema (o comando está no cabeçalho do próprio arquivo). Migrations em `database/migrations/` (001–100). Documentação em PDF, com as ligações entre tabelas e os fluxos: `docs/BANCO_DE_DADOS.pdf`.
 
 **Não sobrou nenhum UUID no banco.** As migrations 022–023 converteram as PKs para `INTEGER IDENTITY`, e a **061** terminou o serviço nas colunas que ainda referenciavam o Supabase Auth: `characters.user_id` hoje é `INTEGER` apontando para `usuarios.id`, e `characters.campaign_id` é `INTEGER` apontando para `campaigns.id`. A coluna `usuarios.auth_user_id` foi removida.
 
@@ -920,7 +921,9 @@ Notas de lore que o mestre publica. Ver migrations 009–011; PK convertida para
 
 Campanhas — os "mundos" da tela inicial. Cada personagem pertence a uma (`characters.campaign_id`).
 
-`campaigns`: `id`, `slug` (**UNIQUE** — é o que aparece em `/mundo/:slug`), `name`, `description`, `cover_image_url` (caminho relativo), `is_active` (só as ativas aparecem no `GET /api/campanhas` público) + soft delete e auditoria.
+`campaigns`: `id`, `numero` (**o número do mundo**, migration 100 — "Mundo 2 — Elyra"; é lore, editável, único entre as vivas por índice parcial, e nunca o id), `slug` (**UNIQUE** — é o que aparece em `/mundo/:slug`), `name`, `description`, `cover_image_url` (caminho relativo), `is_active` (só as ativas aparecem no `GET /api/campanhas` público) + soft delete e auditoria.
+
+**Campanha ativa (fase 1 de `docs/MUNDOS.md`):** o cliente manda o header `X-Campanha: <slug>` (interceptor do axios, lido de `localStorage['rpg-mesa.mundo-ativo']`); o `CampanhaAtivaInterceptor` (global, roda depois dos guards) publica o mundo em `ContextoRequisicao.campanhaId` — mestre pode apontar para mundo inativo, jogador e anônimo só para ativo; header inválido é ignorado. Quem precisa do mundo sem personagem chama `CampanhasService.resolverCampanhaAtiva(id?)`: id explícito → contexto → única ativa → 400. **Rota com personagem usa o `campaign_id` dele e ignora o header.** No cliente, `SeletorDeMundo.vue` (montado em `app.vue` para `/master`) é a pílula "🌍 Mundo 2 — Nome ▾"; o modal só aparece sem mundo guardado e com mais de uma campanha ativa; trocar recarrega a página; sair limpa o mundo guardado.
 
 `campaign_gms`: liga um `campaign_id` a um `email` de mestre. Sem UNIQUE — nada impede duplicar o mesmo mestre na mesma campanha.
 

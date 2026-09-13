@@ -1,4 +1,4 @@
-import { IsBoolean, IsEmail, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
+import { IsBoolean, IsEmail, IsInt, IsOptional, IsString, MaxLength, Min, MinLength } from "class-validator";
 
 export class CriarCampanhaDto {
   @IsString()
@@ -10,6 +10,10 @@ export class CriarCampanhaDto {
   @MinLength(1, { message: "Campo 'name' é obrigatório." })
   @MaxLength(200)
   name!: string;
+
+  /** Sem ele, o próximo número livre. */
+  @IsOptional() @IsInt() @Min(1)
+  numero?: number;
 
   @IsOptional() @IsString() @MaxLength(2000)
   description?: string | null;
@@ -27,6 +31,9 @@ export class EditarCampanhaDto {
 
   @IsOptional() @IsString() @MinLength(1) @MaxLength(200)
   name?: string;
+
+  @IsOptional() @IsInt() @Min(1)
+  numero?: number;
 
   @IsOptional() @IsString() @MaxLength(2000)
   description?: string | null;

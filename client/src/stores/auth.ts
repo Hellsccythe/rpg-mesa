@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { gravarMundoAtivoLocal } from '@/lib/mundo-ativo'
 import { ref, computed } from 'vue'
 import axios from 'axios'
 
@@ -80,6 +81,7 @@ export function limparMetaAuthLocal() {
   if (typeof window === 'undefined') return
   window.localStorage.removeItem(CHAVE_META_AUTH)
   window.localStorage.removeItem(CHAVE_TOKEN)
+  gravarMundoAtivoLocal(null)
 }
 
 /** Leitura direta do token, para quem precisa saber se há sessão sem montar o store. */

@@ -9,6 +9,10 @@ export class CampanhaModel extends Model {
   @Column({ type: DataType.STRING(200), allowNull: false })
   declare name: string;
 
+  /** O número do mundo (migration 100). Único entre as campanhas vivas. */
+  @Column({ type: DataType.INTEGER, allowNull: false })
+  declare numero: number;
+
   @Column({ type: DataType.TEXT, allowNull: true })
   declare description: string | null;
 

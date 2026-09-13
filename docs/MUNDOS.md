@@ -9,6 +9,7 @@ O site mestra **mais de uma sessão**: cada campanha (`campaigns`) é um mundo, 
 | Tabelas por campanha? | **Não.** Uma coluna `campaign_id` nas tabelas de conteúdo de mundo; todas as campanhas convivem nas mesmas tabelas. "Só o esquema, vazio" = não inserir linha nenhuma para a campanha nova |
 | "Classes diferentes por mundo" | **Conjunto diferente**, não conteúdo: classes, skills e títulos continuam um catálogo só (são regra — dano, XP, progressão); cada mundo escolhe **quais estão disponíveis** (`campanha_catalogo`) |
 | O mesmo jogador em mais de um mundo | **Sim.** O limite de personagens de uma conta é decisão do mestre no pré-registro do e-mail (`usuarios.limite_personagens_por_mundo`, padrão 1) |
+| Número do mundo | `campaigns.numero` (migration 100), separado do id: é lore, editável, único entre as campanhas vivas. Aparece como **"Mundo 2 — Elyra"** no seletor, na tela de campanhas e na tela pública de mundos. A campanha atual é o Mundo 2 a pedido do mestre — outro mundo vai ser o 1 |
 | `campaign_gms` restringe o mestre? | **Não.** Todo mestre vê todos os mundos; a lista de GMs é informativa |
 | Panteão | Vira livro **gerado dos deuses do mundo**; o texto fixo dos 21 deuses sai do cliente. Mundo sem deuses, prateleira sem Panteão. `/deuses` continua pública, em `/mundo/:slug/deuses` |
 | Imagens ao copiar um mundo | **Compartilham o caminho** em `uploads/`. Regra: delete de catálogo nunca apaga arquivo do disco (já é assim — só o avatar de personagem é removido fisicamente) |
@@ -33,9 +34,9 @@ Precedência, do mais forte para o mais fraco:
 2. **Header `X-Campanha`** enviado pelo interceptor axios sempre que o cliente conhece o mundo: mestre → o selecionado (`rpg-mesa.mundo-ativo`); jogador → o do personagem ativo; anônimo em `/mundo/:slug/...` → o slug. O servidor só aceita campanha existente, e **ativa** para anônimo. `enableCors` ganha `maxAge` para o preflight não repetir a cada GET.
 3. **Sem nenhum dos dois:** uma campanha ativa só → ela; mais de uma → `400`. Nunca "todos os mundos".
 
-No código: `ContextoRequisicao.campanhaId` (`server/src/common/cls/contexto-requisicao.ts`), preenchido por um interceptor global; helper `filtroDeCampanha()` para o SQL cru; um teste varre as constantes SQL das tabelas de mundo exigindo `campaign_id`.
+No código (feito na fase 1): `ContextoRequisicao.campanhaId` (`server/src/common/cls/contexto-requisicao.ts`), preenchido pelo `CampanhaAtivaInterceptor` (`modules/campanhas/`, registrado como `APP_INTERCEPTOR` — roda depois dos guards, então sabe se é mestre: mestre pode apontar para mundo inativo, o resto só para ativo; header inválido é ignorado, nunca erro). `CampanhasService.resolverCampanhaAtiva(id?)` aplica a ordem id explícito → contexto → única ativa → 400. Fase 2 acrescenta o helper `filtroDeCampanha()` para o SQL cru e um teste que varre as constantes SQL das tabelas de mundo exigindo `campaign_id`.
 
-No cliente: `SeletorDeMundo.vue` montado **uma vez em `app.vue`** para rotas `/master` (padrão do `TrocaDeSenhaObrigatoria`) — pílula "Mundo: X ▾"; o modal de escolha só aparece com duas ou mais campanhas ativas; quem loga por `/mundo/:slug` já entra naquele mundo. O jogador vê o nome do mundo do personagem no header (hoje "Caminho Sem Volta" está fixo).
+No cliente (feito na fase 1): `lib/mundo-ativo.ts` guarda o mundo em `localStorage['rpg-mesa.mundo-ativo']` e o interceptor do axios (`plugins/axios.ts`) manda `X-Campanha: <slug>`; `stores/mundo.ts` é quem escreve; `SeletorDeMundo.vue` está montado **uma vez em `app.vue`** para rotas `/master` (padrão do `TrocaDeSenhaObrigatoria`) — pílula fixa no canto "🌍 Mundo 2 — Elyra ▾"; o modal de escolha só aparece sem mundo guardado e com duas ou mais campanhas ativas (e aí não fecha sem escolha); com uma só, entra direto; trocar de mundo recarrega a página. Quem loga por `/mundo/:slug` (mestre ou jogador) já entra naquele mundo; sair limpa o mundo guardado. Fase 2: o jogador vê o nome do mundo do personagem no header (hoje "Caminho Sem Volta" está fixo).
 
 ## Criar um mundo — os checkboxes
 
@@ -58,9 +59,9 @@ Cópia pelo ORM, linha a linha, numa transação (os hooks preenchem `created_by
 
 | Fase | O quê | Estado |
 |---|---|---|
-| 0 | Administração de livros: migration 099, acesso a vários personagens, `/master/livros`, formatos bilhete/carta | em andamento |
-| 1 | Campanha ativa: contexto, header, `SeletorDeMundo`, precedência, validação nas escritas | — |
-| 2 | Escopo de deuses/mapas/NPCs/raças/passados; Panteão gerado; Hamlet e nome do mundo fixos saem do cliente; listas do mestre por mundo (personagens do painel, telas, acessos de NPC, classes secretas); `characters.username` único por `(campaign_id, username)`; "já tenho conta" na criação de personagem; `limite_personagens_por_mundo` no pré-registro | — |
+| 0 | Administração de livros: migration 099, acesso a vários personagens, `/master/livros`, formatos bilhete/carta | **feita** (commit 8a6b1f7) |
+| 1 | Campanha ativa: contexto, header `X-Campanha`, `SeletorDeMundo`, precedência; `campaigns.numero` (100); painel lista os personagens do mundo ativo | **feita** |
+| 2 | Escopo de deuses/mapas/NPCs/raças/passados com validação nas escritas (`garantirRegistroAtivo` confere o mundo do personagem); Panteão gerado; Hamlet e nome do mundo fixos saem do cliente; listas do mestre por mundo (telas, acessos de NPC, classes secretas); `characters.username` único por `(campaign_id, username)`; "já tenho conta" na criação de personagem; `limite_personagens_por_mundo` no pré-registro | — |
 | 2b | Criar mundo com checkboxes (cópia + disponibilidade) e aviso de mundo vazio | — |
 | 3 | Só se um dia for preciso **editar** classes por mundo: a cópia grande (referências por nome, UNIQUE por campanha, progressões) — projeto à parte | — |
 

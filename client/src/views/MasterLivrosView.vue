@@ -45,7 +45,7 @@
           placeholder="Filtrar por título ou subtítulo..."
           class="flex-1 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white placeholder-zinc-600 outline-none focus:border-amber-500/50 sm:max-w-xs"
         />
-        <div class="w-full sm:w-44">
+        <div class="w-full sm:w-48">
           <VSelect v-model="filtroFormato" :options="opcoesFiltroFormato" />
         </div>
         <div class="w-full sm:w-48">

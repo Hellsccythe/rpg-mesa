@@ -12,7 +12,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict TyTXnAROdL2PnfCIWETQq1mSpyuoWFdpJ58GuL6MhApdd8LIwIFSFOaQoNOzHMx
+\restrict 9OCKVoLzkUBzgN5d4kFaHIIlTidzkkJaUydYddm2YcImCmjVIINe2PHf5lE2dhE
 
 -- Dumped from database version 18.6 (Debian 18.6-1.pgdg13+2)
 -- Dumped by pg_dump version 18.6 (Debian 18.6-1.pgdg13+2)
@@ -380,7 +380,8 @@ CREATE TABLE public.campaigns (
     updated_by text,
     deleted_at timestamp with time zone,
     deleted_by text,
-    id integer CONSTRAINT campaigns_new_id_not_null NOT NULL
+    id integer CONSTRAINT campaigns_new_id_not_null NOT NULL,
+    numero integer NOT NULL
 );
 
 
@@ -3172,6 +3173,13 @@ CREATE INDEX equipamentos_nome_idx ON public.equipamentos USING btree (nome);
 
 
 --
+-- Name: idx_campaigns_numero_ativo; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_campaigns_numero_ativo ON public.campaigns USING btree (numero) WHERE (deleted_at IS NULL);
+
+
+--
 -- Name: idx_categoria_consumivel_descricao_ativa; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4162,5 +4170,5 @@ ALTER TABLE public.usuarios ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict TyTXnAROdL2PnfCIWETQq1mSpyuoWFdpJ58GuL6MhApdd8LIwIFSFOaQoNOzHMx
+\unrestrict 9OCKVoLzkUBzgN5d4kFaHIIlTidzkkJaUydYddm2YcImCmjVIINe2PHf5lE2dhE
 

@@ -561,6 +561,7 @@ import AvatarPersonagem from '@/components/AvatarPersonagem.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useMundoStore } from '@/stores/mundo'
 import { useCharactersStore } from '@/stores/characters'
 import { useMasterApprovalsStore } from '@/stores/masterApprovals'
 import { useMasterCatalogStore } from '@/stores/masterCatalog'
@@ -581,6 +582,7 @@ import { adicionarPontosDeClasse, alterarStatusPersonagem as apiAlterarStatus } 
 
 const router = useRouter()
 const authStore = useAuthStore()
+const mundoStore = useMundoStore()
 const charactersStore = useCharactersStore()
 const masterApprovalsStore = useMasterApprovalsStore()
 const masterCatalogStore = useMasterCatalogStore()
@@ -884,7 +886,7 @@ async function loadAll() {
   try {
     await Promise.all([
       masterApprovalsStore.fetchPendingApprovals(),
-      charactersStore.fetchPaginaInicial(),
+      charactersStore.fetchPaginaInicial(mundoStore.mundo?.slug),
       carregarDeusesParaInfo(),
       contarSolicitacoesPendentes().then((c) => { criacaoPendenteCount.value = c }).catch(() => {}),
     ])

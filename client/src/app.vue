@@ -1,10 +1,17 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
-import { RouterView } from 'vue-router'
+import { computed, onMounted } from 'vue'
+import { RouterView, useRoute } from 'vue-router'
 import { usePortalTransition } from '@/composables/usePortalTransition'
 import TrocaDeSenhaObrigatoria from '@/components/TrocaDeSenhaObrigatoria.vue'
+import SeletorDeMundo from '@/components/SeletorDeMundo.vue'
+import { useAuthStore } from '@/stores/auth'
 
 const { state: portal } = usePortalTransition()
+const route = useRoute()
+const authStore = useAuthStore()
+
+// O seletor de mundo só existe para o mestre, nas telas /master.
+const mostrarSeletorDeMundo = computed(() => authStore.eMestre && route.path.startsWith('/master'))
 
 onMounted(() => {
   document.documentElement.classList.add('theme-dark')
@@ -22,6 +29,9 @@ onMounted(() => {
 
   <!-- Um só lugar para a troca de senha obrigatória: vale para toda rota autenticada. -->
   <TrocaDeSenhaObrigatoria />
+
+  <!-- Um só lugar para o mundo ativo do mestre: vale para todas as telas /master. -->
+  <SeletorDeMundo v-if="mostrarSeletorDeMundo" />
 
   <RouterView v-slot="{ Component, route }">
     <Transition :name="portal.phase !== 'idle' ? 'instant' : 'page-fade'" mode="out-in">
