@@ -32,8 +32,9 @@ export default defineConfig({
     target: 'es2020',
     rollupOptions: {
       output: {
+        // Só o que está instalado: o chunk do Supabase sobreviveu à saída da
+        // dependência (bc9b1db) e derrubava o build de produção na Vercel.
         manualChunks: {
-          'vendor-supabase': ['@supabase/supabase-js'],
           'vendor-vue': ['vue', 'vue-router', 'pinia'],
         },
       },
