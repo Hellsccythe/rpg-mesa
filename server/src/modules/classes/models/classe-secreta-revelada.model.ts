@@ -13,6 +13,10 @@ export class ClasseSecretaReveladaModel extends Model {
   @Column({ type: DataType.INTEGER, allowNull: false })
   declare classeId: number;
 
+  /** O mundo em que a classe foi revelada (migration 101): a exclusividade é por mesa, não por servidor. */
+  @Column({ type: DataType.INTEGER, allowNull: false })
+  declare campaignId: number;
+
   @Column({ type: DataType.INTEGER, allowNull: false })
   declare characterId: number;
 

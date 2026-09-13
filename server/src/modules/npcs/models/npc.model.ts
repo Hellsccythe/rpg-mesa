@@ -2,6 +2,10 @@ import { Column, DataType, Model, Table } from "sequelize-typescript";
 
 @Table({ tableName: "npcs", timestamps: true, paranoid: true })
 export class NpcModel extends Model {
+  /** O mundo do NPC (migration 101). */
+  @Column({ type: DataType.INTEGER, allowNull: false })
+  declare campaignId: number;
+
   @Column({ type: DataType.STRING(255), allowNull: false })
   declare nome: string;
 

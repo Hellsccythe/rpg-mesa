@@ -7,6 +7,10 @@ export type UsuarioPersonagem = {
   raca_id: number | null
   level: number
   avatar_url: string | null
+  /** O mundo do personagem — uma conta pode ter um por mundo. */
+  campaign_id: number | null
+  mundo_numero: number | null
+  mundo_nome: string | null
 }
 
 export type Usuario = {
@@ -17,9 +21,14 @@ export type Usuario = {
   username: string | null
   tipo: 'gm' | 'player'
   ativo: boolean
+  /** Quantos personagens vivos a conta pode ter no mesmo mundo — o mestre decide no pré-registro. */
+  limite_personagens_por_mundo: number
   created_at: string
   updated_at: string
+  /** O primeiro da lista, para o que só conhece um. */
   personagem: UsuarioPersonagem | null
+  /** Todos os personagens vivos da conta. */
+  personagens: UsuarioPersonagem[]
 }
 
 export async function listarUsuarios(): Promise<Usuario[]> {
@@ -29,7 +38,7 @@ export async function listarUsuarios(): Promise<Usuario[]> {
 
 export async function editarUsuario(
   id: number,
-  payload: { username?: string; tipo?: 'gm' | 'player'; nome_personagem?: string },
+  payload: { username?: string; tipo?: 'gm' | 'player'; nome_personagem?: string; limite_personagens_por_mundo?: number },
 ): Promise<Usuario> {
   const { data } = await api.patch<Usuario>(`/usuarios/admin/${id}`, payload)
   return data
@@ -53,8 +62,13 @@ export async function alterarAtivoUsuario(id: number, ativo: boolean): Promise<{
 export async function preRegistrarUsuario(
   email: string,
   tipo: 'gm' | 'player' = 'player',
+  limitePersonagensPorMundo = 1,
 ): Promise<{ success: boolean }> {
-  const { data } = await api.post<{ success: boolean }>('/usuarios/admin/pre-registrar', { email, tipo })
+  const { data } = await api.post<{ success: boolean }>('/usuarios/admin/pre-registrar', {
+    email,
+    tipo,
+    limite_personagens_por_mundo: limitePersonagensPorMundo,
+  })
   return data
 }
 

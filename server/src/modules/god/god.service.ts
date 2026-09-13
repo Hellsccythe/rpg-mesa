@@ -1,8 +1,10 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { UniqueConstraintError } from "sequelize";
 import { InjectModel } from "@nestjs/sequelize";
 import { QueryTypes } from "sequelize";
 import { Sequelize } from "sequelize-typescript";
 import { ArmazenamentoArquivosService } from "../../common/storage/armazenamento-arquivos.service.js";
+import { CampanhasService } from "../campanhas/campanhas.service.js";
 import { GodModel } from "./models/god.model.js";
 import type { EditarGodDto, SalvarGodDto } from "./god.dto.js";
 
@@ -94,14 +96,17 @@ export class GodService {
     private readonly modeloDeus: typeof GodModel,
     private readonly sequelize: Sequelize,
     private readonly armazenamentoArquivos: ArmazenamentoArquivosService,
+    private readonly servicoCampanhas: CampanhasService,
   ) {}
 
   // ── Leitura (SQL cru com JOIN) ────────────────────────────────────────────
 
-  async listar(): Promise<GodApi[]> {
+  /** Os deuses de um mundo: o do personagem, quando há um; senão o do header ou a única campanha ativa. */
+  async listar(personagemId?: number): Promise<GodApi[]> {
+    const campanhaId = await this.servicoCampanhas.resolverCampanhaDoCatalogo(personagemId);
     const linhas = await this.sequelize.query<LinhaGod>(
-      `${SQL_LISTAR_DEUSES} ORDER BY gods.created_at DESC`,
-      { type: QueryTypes.SELECT },
+      `${SQL_LISTAR_DEUSES} AND gods.campaign_id = :campanhaId ORDER BY gods.created_at DESC`,
+      { replacements: { campanhaId }, type: QueryTypes.SELECT },
     );
     return linhas.map((linha) => this.converterParaApi(linha));
   }
@@ -151,7 +156,9 @@ export class GodService {
   // ── Escrita (ORM, pra os hooks de auditoria dispararem) ───────────────────
 
   async salvar(dados: SalvarGodDto): Promise<GodApi> {
-    const criado = await this.modeloDeus.create({
+    const campaignId = await this.servicoCampanhas.resolverCampanhaAtiva();
+    const criado = await this.criarOuConflitar(() => this.modeloDeus.create({
+      campaignId,
       name: dados.name.trim(),
       description: normalizarTexto(dados.description),
       title: normalizarTituloDeus(dados.title),
@@ -162,7 +169,7 @@ export class GodService {
       weapons: normalizarTexto(dados.weapons),
       shortDescription: normalizarTexto(dados.shortDescription),
       imageUrl: this.armazenamentoArquivos.normalizarParaArmazenamento(dados.imageUrl),
-    });
+    }));
 
     return this.buscarOuFalhar(criado.id);
   }
@@ -201,4 +208,15 @@ export class GodService {
     // o registro pode ser restaurado, e o arquivo não voltaria.
     await registro.destroy();
   }
+
+  /** O UNIQUE (campaign_id, name) é a única regra do banco que este módulo pode violar. */
+  private async criarOuConflitar<T>(acao: () => Promise<T>): Promise<T> {
+    try {
+      return await acao();
+    } catch (erro) {
+      if (erro instanceof UniqueConstraintError) throw new ConflictException("Já existe um deus com esse nome neste mundo.");
+      throw erro;
+    }
+  }
+
 }

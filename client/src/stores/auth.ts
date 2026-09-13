@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { gravarMundoAtivoLocal } from '@/lib/mundo-ativo'
 import { ref, computed } from 'vue'
 import axios from 'axios'
 
@@ -28,6 +29,13 @@ interface MetaAuth {
   eMestre: boolean
   campanhaSlug?: string | null
   usuario?: UsuarioAutenticado | null
+  /**
+   * Gravado junto com a sessão de propósito: a obrigação de trocar a senha
+   * vinha só na resposta do login e vivia na memória do store, então um F5
+   * restaurava a sessão sem ela — e o jogador seguia com o `12345` do
+   * "Reset Padrão" para sempre. Só `trocarSenha` apaga esta marca.
+   */
+  precisaTrocarSenha?: boolean
 }
 
 function lerMetaAuth(): MetaAuth | null {
@@ -47,6 +55,7 @@ function lerMetaAuth(): MetaAuth | null {
       eMestre: analisado.eMestre === true,
       campanhaSlug: analisado.campanhaSlug ?? null,
       usuario: analisado.usuario ?? null,
+      precisaTrocarSenha: analisado.precisaTrocarSenha === true,
     }
   } catch {
     return null
@@ -137,6 +146,7 @@ export const useAuthStore = defineStore('auth', () => {
       eMestre: master,
       campanhaSlug: atual?.campanhaSlug ?? null,
       usuario: usuario.value,
+      precisaTrocarSenha: precisaTrocarSenha.value,
     })
     idPersonagemAtivo.value = idPersonagem
     eMestre.value = master
@@ -174,6 +184,7 @@ export const useAuthStore = defineStore('auth', () => {
     usuario.value = meta.usuario ?? null
     idPersonagemAtivo.value = meta.idPersonagemAtivo
     eMestre.value = meta.eMestre === true
+    precisaTrocarSenha.value = meta.precisaTrocarSenha === true
     carregando.value = false
     inicializado.value = true
     return true
@@ -213,6 +224,7 @@ export const useAuthStore = defineStore('auth', () => {
       eMestre: comoMestre,
       campanhaSlug: opcoes?.campanhaSlug ?? null,
       usuario: usuario.value,
+      precisaTrocarSenha: precisaTrocarSenha.value,
     })
 
     idPersonagemAtivo.value = comoMestre ? null : idPersonagem != null ? String(idPersonagem) : null
@@ -230,11 +242,19 @@ export const useAuthStore = defineStore('auth', () => {
       { headers: { Authorization: `Bearer ${token.value}` } },
     )
     precisaTrocarSenha.value = false
+    const meta = lerMetaAuth()
+    if (meta) gravarMetaAuth({ ...meta, precisaTrocarSenha: false })
   }
 
-  /** Sem sessão no servidor para invalidar: sair é apagar o que está local. */
+  /**
+   * Sem sessão no servidor para invalidar: sair é apagar o que está local —
+   * inclusive o mundo ativo, para o próximo a logar neste navegador escolher
+   * o dele. Só aqui: limparMetaAuthLocal também roda para o visitante sem
+   * sessão, e ele precisa do mundo (é como /mundo/:slug/deuses sabe o mundo).
+   */
   const sair = async () => {
     limparEstadoLocal()
+    gravarMundoAtivoLocal(null)
   }
 
   return {

@@ -26,6 +26,14 @@ export class UsuarioModel extends Model {
   @Column({ type: DataType.BOOLEAN, defaultValue: false })
   declare requiresPasswordChange: boolean;
 
+  /**
+   * Quantos personagens vivos a conta pode ter no MESMO mundo (migration
+   * 101). O mestre decide no pré-registro; padrão 1. Em mundos diferentes
+   * não há limite: é um personagem por mundo, no mínimo.
+   */
+  @Column({ type: DataType.INTEGER, allowNull: false, defaultValue: 1 })
+  declare limitePersonagensPorMundo: number;
+
   @Column({ type: DataType.TEXT, allowNull: true })
   declare createdBy: string | null;
 

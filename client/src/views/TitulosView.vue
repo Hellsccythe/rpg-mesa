@@ -104,9 +104,9 @@
           <div class="titulos-divider my-6 border-t" />
 
           <!-- Busca -->
-          <div class="mb-6 flex items-center gap-3">
+          <div class="mb-6 flex flex-wrap items-center gap-3">
             <h2 class="section-title text-2xl font-bold shrink-0">Catálogo de Títulos</h2>
-            <div class="flex-1 max-w-sm ml-auto">
+            <div class="w-full sm:ml-auto sm:w-auto sm:max-w-sm sm:flex-1">
               <label class="sr-only" for="titulo-search">Buscar título</label>
               <input
                 id="titulo-search"

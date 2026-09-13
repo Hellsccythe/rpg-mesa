@@ -60,13 +60,14 @@
           <!-- Atributos bônus -->
           <div class="hidden md:flex flex-wrap gap-1">
             <template v-if="(item as TituloApi).bonuses && Object.keys((item as TituloApi).bonuses ?? {}).length">
-              <span
-                v-for="(val, key) in (item as TituloApi).bonuses"
-                :key="key"
-                v-if="val !== 0"
-                class="rounded-full border px-2 py-0.5 text-[0.6rem] font-semibold"
-                :class="(val as number) > 0 ? 'border-emerald-500/25 bg-emerald-950/30 text-emerald-300' : 'border-red-500/25 bg-red-950/30 text-red-300'"
-              >{{ (val as number) > 0 ? '+' : '' }}{{ val }} {{ atribLabel(String(key)) }}</span>
+              <!-- v-if e v-for no mesmo elemento: no Vue 3 o v-if roda antes e não enxerga `val`. -->
+              <template v-for="(val, key) in (item as TituloApi).bonuses" :key="key">
+                <span
+                  v-if="val !== 0"
+                  class="rounded-full border px-2 py-0.5 text-[0.6rem] font-semibold"
+                  :class="(val as number) > 0 ? 'border-emerald-500/25 bg-emerald-950/30 text-emerald-300' : 'border-red-500/25 bg-red-950/30 text-red-300'"
+                >{{ (val as number) > 0 ? '+' : '' }}{{ val }} {{ atribLabel(String(key)) }}</span>
+              </template>
             </template>
             <span v-else class="text-[0.65rem] italic text-zinc-700">—</span>
           </div>

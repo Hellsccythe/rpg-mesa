@@ -1,7 +1,7 @@
 <template>
   <TemaDarkLight variante="contexto" class="min-h-screen">
     <header class="sticky top-0 z-20 border-b backdrop-blur-xl page-header">
-      <div class="mx-auto flex h-16 w-full max-w-5xl items-center gap-3 px-4 sm:px-6">
+      <div class="mx-auto flex min-h-16 w-full max-w-5xl flex-wrap items-center gap-3 px-4 py-2 sm:px-6">
         <button type="button" class="text-zinc-400 hover:text-white transition-colors" @click="router.push({ name: 'master-panel' })">
           <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
         </button>
@@ -47,7 +47,7 @@
         <div
           v-for="c in campanhas"
           :key="c.id"
-          class="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-5 flex gap-4 items-start"
+          class="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-5 flex flex-wrap gap-4 items-start"
         >
           <!-- Miniatura -->
           <div class="flex-none w-20 h-14 rounded-xl overflow-hidden bg-white/[0.04] border border-white/[0.06]">
@@ -58,6 +58,7 @@
           <!-- Info -->
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 flex-wrap">
+              <span class="shrink-0 rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[0.6rem] font-bold text-amber-300">Mundo {{ c.numero }}</span>
               <span class="font-semibold text-white truncate">{{ c.name }}</span>
               <span class="text-[0.6rem] px-2 py-0.5 rounded-full font-semibold tracking-wide"
                 :class="c.is_active ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-zinc-700/30 text-zinc-500 border border-white/[0.05]'"
@@ -68,7 +69,7 @@
           </div>
 
           <!-- Ações -->
-          <div class="flex-none flex items-center gap-2">
+          <div class="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-none">
             <button
               type="button"
               class="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-zinc-400 hover:text-white transition-colors"
@@ -106,11 +107,18 @@
       </template>
 
       <div class="p-6 space-y-4">
-        <!-- Nome -->
-        <div class="space-y-1.5">
-          <label class="block text-xs font-semibold uppercase tracking-wide text-zinc-400">Nome <span class="text-red-400">*</span></label>
-          <input v-model="form.name" type="text" maxlength="100" class="input-campo" placeholder="Ex: Caminho Sem Volta" />
+        <!-- Número e nome: "Mundo 2 — Elyra". O número é lore, não o id do banco. -->
+        <div class="grid grid-cols-[6rem_1fr] gap-3">
+          <div class="space-y-1.5">
+            <label class="block text-xs font-semibold uppercase tracking-wide text-zinc-400">Mundo nº</label>
+            <input v-model.number="form.numero" type="number" min="1" class="input-campo" placeholder="auto" />
+          </div>
+          <div class="space-y-1.5">
+            <label class="block text-xs font-semibold uppercase tracking-wide text-zinc-400">Nome <span class="text-red-400">*</span></label>
+            <input v-model="form.name" type="text" maxlength="100" class="input-campo" placeholder="Ex: Elyra" />
+          </div>
         </div>
+        <p class="-mt-2 text-[0.65rem] text-zinc-600">Aparece como <strong class="text-zinc-500">Mundo {{ form.numero || '?' }} — {{ form.name || 'Nome' }}</strong>. Sem número, o próximo livre.</p>
 
         <!-- Slug -->
         <div class="space-y-1.5">
@@ -459,17 +467,23 @@ const erroModal   = ref('')
 const uploadandoImagem = ref(false)
 const inputImagemRef   = ref<HTMLInputElement | null>(null)
 
-const form = ref({ name: '', slug: '', description: '', cover_image_url: '', is_active: true })
+const form = ref({ name: '', numero: null as number | null, slug: '', description: '', cover_image_url: '', is_active: true })
 
 function abrirModal(c?: CampanhaApi) {
   editando.value = c ?? null
   erroModal.value = ''
   if (c) {
-    form.value = { name: c.name, slug: c.slug, description: c.description ?? '', cover_image_url: c.cover_image_url ?? '', is_active: c.is_active }
+    form.value = { name: c.name, numero: c.numero, slug: c.slug, description: c.description ?? '', cover_image_url: c.cover_image_url ?? '', is_active: c.is_active }
   } else {
-    form.value = { name: '', slug: '', description: '', cover_image_url: '', is_active: true }
+    form.value = { name: '', numero: null, slug: '', description: '', cover_image_url: '', is_active: true }
   }
   modalAberto.value = true
+}
+
+/** O que vai para a API: o número só quando preenchido (vazio = o servidor escolhe o próximo). */
+function payloadDoForm() {
+  const { numero, ...resto } = form.value
+  return numero ? { ...resto, numero } : resto
 }
 
 function fecharModal() {
@@ -497,16 +511,17 @@ async function salvar() {
   erroModal.value = ''
   try {
     if (editando.value) {
-      const updated = await editarCampanha(editando.value.id, form.value)
+      const updated = await editarCampanha(editando.value.id, payloadDoForm())
       const idx = campanhas.value.findIndex(c => c.id === updated.id)
       if (idx !== -1) campanhas.value[idx] = updated
     } else {
-      const created = await criarCampanha(form.value)
+      const created = await criarCampanha(payloadDoForm())
       campanhas.value.unshift(created)
     }
+    campanhas.value.sort((a, b) => a.numero - b.numero)
     fecharModal()
   } catch (err: any) {
-    erroModal.value = err?.response?.data?.error ?? err.message ?? 'Erro ao salvar.'
+    erroModal.value = err?.response?.data?.message ?? err?.response?.data?.error ?? err.message ?? 'Erro ao salvar.'
   } finally {
     salvando.value = false
   }

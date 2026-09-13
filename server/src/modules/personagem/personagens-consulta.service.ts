@@ -4,9 +4,10 @@ import { Op, QueryTypes, type WhereOptions } from "sequelize";
 import { Sequelize } from "sequelize-typescript";
 import type { UsuarioAutenticado } from "../../common/cls/usuario-autenticado.interface.js";
 import { montarUrlPublica } from "../../common/storage/armazenamento-arquivos.service.js";
+import { CampanhasService } from "../campanhas/campanhas.service.js";
 import { PersonagemModel } from "./models/personagem.model.js";
 import { garantirAcessoAoPersonagem } from "./personagem-acesso.js";
-import { mapearPersonagemParaApi, type PersonagemApi } from "./personagem-api.mapper.js";
+import { mapearPersonagemParaApi, mapearPersonagemParaJogador, type PersonagemApi } from "./personagem-api.mapper.js";
 
 export type PersonagemPublico = {
   characterId: number;
@@ -73,7 +74,23 @@ export class PersonagensConsultaService {
     @InjectModel(PersonagemModel)
     private readonly modeloPersonagem: typeof PersonagemModel,
     private readonly sequelize: Sequelize,
+    private readonly servicoCampanhas: CampanhasService,
   ) {}
+
+  /**
+   * Os personagens de um mundo, para o mestre: o do filtro, senão o mundo
+   * ativo (header X-Campanha). É o que as telas do mestre que escolhem um
+   * personagem (telas, classes secretas, overrides) precisam — antes elas
+   * recebiam os personagens do PRÓPRIO mestre, ou seja, nenhum.
+   */
+  async listarDoMundo(campanhaId?: number): Promise<PersonagemApi[]> {
+    const campaignId = await this.servicoCampanhas.resolverCampanhaAtiva(campanhaId);
+    const encontrados = await this.modeloPersonagem.findAll({
+      where: { campaignId },
+      order: [["name", "ASC"]],
+    });
+    return encontrados.map(mapearPersonagemParaApi);
+  }
 
   /** Tela de entrada: layout da campanha (quando houver) e os personagens dela. */
   async montarPaginaInicial(
@@ -149,7 +166,7 @@ export class PersonagensConsultaService {
       order: [["createdAt", "DESC"]],
     });
 
-    return encontrados.map(mapearPersonagemParaApi);
+    return encontrados.map(mapearPersonagemParaJogador);
   }
 
   /**
@@ -165,7 +182,9 @@ export class PersonagensConsultaService {
 
     garantirAcessoAoPersonagem(personagem, usuario);
     await this.garantirClassesEmData(personagem);
-    return mapearPersonagemParaApi(personagem);
+    return usuario.tipo === "gm"
+      ? mapearPersonagemParaApi(personagem)
+      : mapearPersonagemParaJogador(personagem);
   }
 
   /**

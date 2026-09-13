@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { SequelizeModule } from "@nestjs/sequelize";
+import { CampanhasModule } from "../campanhas/campanhas.module.js";
 import { LevelProgressionModule } from "../level-progression/level-progression.module.js";
 import { PersonagemModel } from "../personagem/models/personagem.model.js";
 import { ClasseModel } from "./models/classe.model.js";
@@ -19,6 +20,7 @@ import { ClassesService } from "./classes.service.js";
       PersonagemModel,
     ]),
     LevelProgressionModule,
+    CampanhasModule,
   ],
   controllers: [ClassesController],
   providers: [ClassesService],

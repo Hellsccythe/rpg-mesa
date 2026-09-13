@@ -21,7 +21,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Get("eu")
   quemSouEu(@UsuarioLogado() usuario: UsuarioAutenticado) {
-    return usuario;
+    return this.servicoAuth.quemSouEu(usuario);
   }
 
   @UseGuards(JwtAuthGuard)

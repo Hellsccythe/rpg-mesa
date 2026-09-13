@@ -36,6 +36,23 @@ function formatarData(valor: unknown): string | null {
   return valor instanceof Date ? valor.toISOString() : null;
 }
 
+/**
+ * Versão do personagem para quem não é mestre: as notas de aventura marcadas
+ * como ocultas saem da resposta. O jogador nunca regrava data.adventureNotes
+ * (ver PersonagensCrudService.editar), então esconder aqui não apaga nada.
+ */
+export function mapearPersonagemParaJogador(personagem: PersonagemModel): PersonagemApi {
+  const api = mapearPersonagemParaApi(personagem);
+  const notas = api.data?.adventureNotes;
+  if (Array.isArray(notas)) {
+    api.data = {
+      ...api.data,
+      adventureNotes: notas.filter((nota) => !(nota as { oculta?: boolean })?.oculta),
+    };
+  }
+  return api;
+}
+
 export function mapearPersonagemParaApi(personagem: PersonagemModel): PersonagemApi {
   return {
     characterId: personagem.id,

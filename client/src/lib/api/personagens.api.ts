@@ -67,6 +67,37 @@ export async function addAdventureNoteToCharacter(characterId: string | number, 
   return data
 }
 
+/** Uma nota de aventura, como fica em data.adventureNotes. */
+export interface NotaDeAventura {
+  text: string
+  addedBy?: string
+  addedAt?: string
+  /** Só o mestre vê as ocultas; a API do jogador nem as devolve. */
+  oculta?: boolean
+  editadaEm?: string
+  editadaPor?: string
+}
+
+/** As notas não têm id: a posição na lista é o endereço, a mesma da resposta. */
+export async function editarNotaDeAventura(
+  characterId: string | number,
+  indice: number,
+  mudancas: { note?: string; oculta?: boolean },
+) {
+  const { data } = await api.patch<PersonagemApi>(
+    `/personagens/admin/personagens/${characterId}/notas/${indice}`,
+    mudancas,
+  )
+  return data
+}
+
+export async function removerNotaDeAventura(characterId: string | number, indice: number) {
+  const { data } = await api.delete<PersonagemApi>(
+    `/personagens/admin/personagens/${characterId}/notas/${indice}`,
+  )
+  return data
+}
+
 export async function setAvatarFocalPoint(characterId: string | number, focalPoint: string) {
   const { data } = await api.patch<PersonagemApi>(
     `/personagens/admin/${characterId}/avatar-focal-point`,

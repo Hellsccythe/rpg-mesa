@@ -15,8 +15,10 @@ export interface SaveCityMapPayload {
   parentCityMapId?: string | number
 }
 
-export async function listCityMapsForCityView() {
-  const { data } = await api.get<CityMapApi[]>('/city-maps')
+/** Os mapas do mundo: do personagem, quando há um; senão do mundo ativo (header X-Campanha). */
+export async function listCityMapsForCityView(characterId?: string | number | null) {
+  const params = characterId ? { characterId: Number(characterId) } : {}
+  const { data } = await api.get<CityMapApi[]>('/city-maps', { params })
   return data
 }
 

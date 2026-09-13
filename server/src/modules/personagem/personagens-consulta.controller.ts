@@ -20,12 +20,16 @@ export class PersonagensConsultaController {
     return this.servicoConsulta.montarPaginaInicial(campaignSlug?.trim() || undefined);
   }
 
+  /** Jogador: os dele. Mestre: os do mundo (o do filtro ou o ativo), com a ficha inteira. */
   @UseGuards(JwtAuthGuard)
   @Get()
   listarMeus(
     @UsuarioLogado() usuario: UsuarioAutenticado,
     @Query() filtro: ListarMeusPersonagensDto,
   ) {
+    if (usuario.tipo === "gm") {
+      return this.servicoConsulta.listarDoMundo(filtro.campaignId ?? undefined);
+    }
     return this.servicoConsulta.listarDoUsuario(usuario.usuarioId, {
       nome: filtro.nome,
       minLevel: filtro.minLevel,

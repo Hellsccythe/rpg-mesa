@@ -8,6 +8,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -16,6 +17,7 @@ import { FileInterceptor } from "@nestjs/platform-express";
 import sharp from "sharp";
 import { JwtAuthGuard } from "../../common/auth/jwt-auth.guard.js";
 import { MasterGuard } from "../../common/auth/master.guard.js";
+import { FiltroDeMundoDto } from "../../common/dto/filtro-de-mundo.dto.js";
 import { ArmazenamentoArquivosService } from "../../common/storage/armazenamento-arquivos.service.js";
 import { RacaService } from "./raca.service.js";
 import { CriarRacaDto, EditarRacaDto } from "./raca.dto.js";
@@ -30,9 +32,10 @@ export class RacaController {
     private readonly armazenamentoArquivos: ArmazenamentoArquivosService,
   ) {}
 
+  /** O mundo vem do personagem (?characterId=) ou do header X-Campanha. */
   @Get()
-  listarPublico() {
-    return this.servicoRacas.listarPublico();
+  listarPublico(@Query() filtro: FiltroDeMundoDto) {
+    return this.servicoRacas.listarPublico(filtro.characterId);
   }
 
   @UseGuards(JwtAuthGuard, MasterGuard)

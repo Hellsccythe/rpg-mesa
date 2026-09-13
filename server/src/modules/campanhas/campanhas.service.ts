@@ -1,5 +1,8 @@
-import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/sequelize";
+import { QueryTypes } from "sequelize";
+import { Sequelize } from "sequelize-typescript";
+import { obterCampanhaDoContexto } from "../../common/cls/contexto-requisicao.js";
 import { ArmazenamentoArquivosService } from "../../common/storage/armazenamento-arquivos.service.js";
 import { CampanhaModel } from "./models/campanha.model.js";
 import { CampanhaGmModel } from "./models/campanha-gm.model.js";
@@ -7,6 +10,8 @@ import type { AdicionarGmDto, CriarCampanhaDto, EditarCampanhaDto } from "./camp
 
 export type CampanhaApi = {
   id: number;
+  /** O número do mundo — "Mundo 2 — Elyra". É lore, editável; o id continua sendo a chave. */
+  numero: number;
   slug: string;
   name: string;
   description: string | null;
@@ -45,23 +50,24 @@ export class CampanhasService {
     private readonly modeloCampanha: typeof CampanhaModel,
     @InjectModel(CampanhaGmModel)
     private readonly modeloCampanhaGm: typeof CampanhaGmModel,
+    private readonly sequelize: Sequelize,
     private readonly armazenamentoArquivos: ArmazenamentoArquivosService,
   ) {}
 
   // ── Campanhas ─────────────────────────────────────────────────────────────
 
-  /** Listagem pública: só as ativas. */
+  /** Listagem pública: só as ativas, na ordem dos números de mundo. */
   async listarAtivas(): Promise<CampanhaApi[]> {
     const encontradas = await this.modeloCampanha.findAll({
       where: { isActive: true },
-      order: [["createdAt", "ASC"]],
+      order: [["numero", "ASC"]],
     });
     return encontradas.map((campanha) => this.mapear(campanha));
   }
 
   /** Listagem do mestre: inclui as inativas. */
   async listarParaMestre(): Promise<CampanhaApi[]> {
-    const encontradas = await this.modeloCampanha.findAll({ order: [["createdAt", "ASC"]] });
+    const encontradas = await this.modeloCampanha.findAll({ order: [["numero", "ASC"]] });
     return encontradas.map((campanha) => this.mapear(campanha));
   }
 
@@ -79,10 +85,13 @@ export class CampanhasService {
       throw new ConflictException("Slug inválido depois de normalizado.");
     }
     await this.garantirSlugLivre(slug);
+    const numero = dados.numero ?? (await this.proximoNumeroLivre());
+    await this.garantirNumeroLivre(numero);
 
     const criada = await this.modeloCampanha.create({
       slug,
       name: dados.name.trim(),
+      numero,
       description: textoOuNulo(dados.description),
       coverImageUrl: this.armazenamentoArquivos.normalizarParaArmazenamento(
         dados.cover_image_url ?? null,
@@ -110,6 +119,10 @@ export class CampanhasService {
       }
     }
     if (dados.name !== undefined) campanha.name = dados.name.trim();
+    if (dados.numero !== undefined && dados.numero !== campanha.numero) {
+      await this.garantirNumeroLivre(dados.numero);
+      campanha.numero = dados.numero;
+    }
     if (dados.description !== undefined) campanha.description = textoOuNulo(dados.description);
     if (dados.cover_image_url !== undefined) {
       campanha.coverImageUrl = this.armazenamentoArquivos.normalizarParaArmazenamento(
@@ -189,7 +202,64 @@ export class CampanhasService {
     await gm.destroy();
   }
 
+  /**
+   * Resolve o mundo de uma operação que não carrega personagem
+   * (docs/MUNDOS.md, "Campanha ativa"), nesta ordem:
+   *
+   *   1. o id explícito (query/corpo), que precisa existir;
+   *   2. o mundo do header X-Campanha, já validado no contexto pelo
+   *      CampanhaAtivaInterceptor;
+   *   3. a única campanha ativa.
+   *
+   * Com duas ou mais ativas e nada acima, o servidor não adivinha: responde
+   * 400 pedindo o mundo, nunca devolve "todos os mundos".
+   */
+  async resolverCampanhaAtiva(campanhaId?: number): Promise<number> {
+    if (campanhaId !== undefined) {
+      await this.garantirCampanhaExistente(campanhaId);
+      return campanhaId;
+    }
+    const doContexto = obterCampanhaDoContexto();
+    if (doContexto !== undefined) return doContexto;
+
+    const ativas = await this.modeloCampanha.findAll({ where: { isActive: true }, attributes: ["id"] });
+    if (ativas.length === 1) return ativas[0]!.id;
+    if (ativas.length === 0) throw new BadRequestException("Nenhuma campanha ativa: crie um mundo antes.");
+    throw new BadRequestException("Há mais de um mundo ativo: informe a campanha (campaignId).");
+  }
+
+  /**
+   * O mundo de uma leitura de catálogo (deuses, raças, passados, mapas,
+   * NPCs): com personagem, é o mundo dele — o personagem manda, mesmo para
+   * o mestre; sem personagem, a regra de resolverCampanhaAtiva (header,
+   * única ativa, 400). As rotas de catálogo são públicas: não há dono a
+   * conferir, e o catálogo de um mundo é público de qualquer jeito.
+   */
+  async resolverCampanhaDoCatalogo(personagemId?: number): Promise<number> {
+    if (personagemId === undefined) return this.resolverCampanhaAtiva();
+    const [linha] = await this.sequelize.query<{ campaign_id: number | null }>(
+      `SELECT campaign_id FROM characters WHERE id = :id AND deleted_at IS NULL`,
+      { replacements: { id: personagemId }, type: QueryTypes.SELECT },
+    );
+    if (!linha) throw new NotFoundException("Personagem não encontrado.");
+    if (linha.campaign_id === null) throw new BadRequestException("Este personagem não está em nenhum mundo.");
+    return Number(linha.campaign_id);
+  }
+
   // ── Apoio ─────────────────────────────────────────────────────────────────
+
+  /** O índice de número é parcial (só as vivas), então aqui a busca é a normal, sem paranoid: false. */
+  private async garantirNumeroLivre(numero: number): Promise<void> {
+    const existente = await this.modeloCampanha.findOne({ where: { numero } });
+    if (existente) {
+      throw new ConflictException(`Já existe o Mundo ${numero} (${existente.name}).`);
+    }
+  }
+
+  private async proximoNumeroLivre(): Promise<number> {
+    const maior = await this.modeloCampanha.max<number, CampanhaModel>("numero");
+    return (maior ?? 0) + 1;
+  }
 
   private async garantirCampanhaExistente(id: number): Promise<void> {
     const campanha = await this.modeloCampanha.findByPk(id);
@@ -214,6 +284,7 @@ export class CampanhasService {
   private mapear(campanha: CampanhaModel): CampanhaApi {
     return {
       id: campanha.id,
+      numero: campanha.numero,
       slug: campanha.slug,
       name: campanha.name,
       description: campanha.description,

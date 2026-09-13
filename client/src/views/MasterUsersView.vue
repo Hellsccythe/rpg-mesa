@@ -144,7 +144,11 @@
                   <div class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
                     <span>📧 {{ u.real_email }}</span>
                     <span v-if="u.username">@{{ u.username }}</span>
-                    <span v-if="u.personagem">Personagem: <span class="text-zinc-400">{{ u.personagem.name }}</span> (Nv. {{ u.personagem.level }})</span>
+                    <span v-for="personagem in u.personagens" :key="personagem.id">
+                      <span v-if="personagem.mundo_numero" class="text-amber-400/70">Mundo {{ personagem.mundo_numero }}:</span>
+                      <span class="text-zinc-400">{{ personagem.name }}</span> (Nv. {{ personagem.level }})
+                    </span>
+                    <span v-if="u.tipo === 'player' && u.limite_personagens_por_mundo > 1" class="text-zinc-600">até {{ u.limite_personagens_por_mundo }} por mundo</span>
                     <span v-if="u.conta_criada && u.personagem?.raca_id == null && u.tipo === 'player'" class="text-amber-400/70">⚠ Raça não escolhida</span>
                     <span
                       v-if="u.tipo === 'player' && (u.personagem as any)?.status === 'morto'"
@@ -286,6 +290,12 @@
             placeholder="Nome do personagem"
           />
         </div>
+
+        <div v-if="usuarioEditando?.tipo === 'player'" class="space-y-1">
+          <label class="block text-xs font-semibold uppercase tracking-wide text-zinc-400">Personagens por mundo</label>
+          <VSelect v-model="formEdicao.limite" :options="OPCOES_DE_LIMITE" />
+          <p class="text-[0.65rem] text-zinc-600">Quantos personagens vivos a conta pode ter no mesmo mundo.</p>
+        </div>
       </div>
 
       <template #footer>
@@ -341,6 +351,13 @@
             v-model="formPreRegistro.tipo"
             :options="[{ value: 'player', label: 'Player' }, { value: 'gm', label: 'Game Master' }]"
           />
+        </div>
+
+        <!-- Uma conta pode ter um personagem por mundo; aqui o mestre decide quantos no MESMO mundo. -->
+        <div v-if="formPreRegistro.tipo === 'player'" class="space-y-1">
+          <label class="block text-xs font-semibold uppercase tracking-wide text-zinc-400">Personagens por mundo</label>
+          <VSelect v-model="formPreRegistro.limite" :options="OPCOES_DE_LIMITE" />
+          <p class="text-[0.65rem] text-zinc-600">Quantos personagens vivos esta conta pode ter no mesmo mundo. Em mundos diferentes, um em cada.</p>
         </div>
       </div>
 
@@ -709,7 +726,7 @@ async function carregarUsuarios() {
 
 const modalEdicaoAberto = ref(false)
 const usuarioEditando = ref<Usuario | null>(null)
-const formEdicao = ref({ username: '', tipo: 'player' as 'gm' | 'player', nome_personagem: '' })
+const formEdicao = ref({ username: '', tipo: 'player' as 'gm' | 'player', nome_personagem: '', limite: 1 })
 const salvandoEdicao = ref(false)
 const erroEdicao = ref('')
 
@@ -719,6 +736,7 @@ function abrirEdicao(u: Usuario) {
     username: u.username ?? '',
     tipo: u.tipo,
     nome_personagem: u.personagem?.name ?? '',
+    limite: u.limite_personagens_por_mundo ?? 1,
   }
   erroEdicao.value = ''
   modalEdicaoAberto.value = true
@@ -736,6 +754,9 @@ async function salvarEdicao() {
     if (formEdicao.value.username.trim() !== (orig.username ?? '')) payload.username = formEdicao.value.username.trim()
     if (orig.tipo === 'player' && formEdicao.value.nome_personagem.trim() !== (orig.personagem?.name ?? '')) {
       payload.nome_personagem = formEdicao.value.nome_personagem.trim()
+    }
+    if (orig.tipo === 'player' && Number(formEdicao.value.limite) !== orig.limite_personagens_por_mundo) {
+      payload.limite_personagens_por_mundo = Number(formEdicao.value.limite)
     }
 
     if (Object.keys(payload).length === 0) {
@@ -822,13 +843,15 @@ async function salvarSenha() {
 
 // ── Pré-Registro ──────────────────────────────────────────────────────────────
 
+const OPCOES_DE_LIMITE = [1, 2, 3, 4, 5].map((n) => ({ value: n, label: n === 1 ? '1 personagem' : `${n} personagens` }))
+
 const modalPreRegistroAberto = ref(false)
-const formPreRegistro = ref({ email: '', tipo: 'player' as 'gm' | 'player' })
+const formPreRegistro = ref({ email: '', tipo: 'player' as 'gm' | 'player', limite: 1 })
 const salvandoPreRegistro = ref(false)
 const erroPreRegistro = ref('')
 
 function abrirPreRegistro() {
-  formPreRegistro.value = { email: '', tipo: 'player' }
+  formPreRegistro.value = { email: '', tipo: 'player', limite: 1 }
   erroPreRegistro.value = ''
   modalPreRegistroAberto.value = true
 }
@@ -839,7 +862,7 @@ async function salvarPreRegistro() {
   salvandoPreRegistro.value = true
   erroPreRegistro.value = ''
   try {
-    await preRegistrarUsuario(email, formPreRegistro.value.tipo)
+    await preRegistrarUsuario(email, formPreRegistro.value.tipo, formPreRegistro.value.limite)
     await carregarUsuarios()
     modalPreRegistroAberto.value = false
   } catch (err: any) {

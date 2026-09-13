@@ -5,12 +5,12 @@
     <template v-if="page.type === 'cover'">
       <div class="cover-inner">
         <div class="cover-ornament">✦ ✦ ✦</div>
-        <h1 class="cover-title">Panteão de Elyra</h1>
+        <h1 class="cover-title">{{ page.noteTitle ?? 'Panteão' }}</h1>
         <div class="cover-rule" />
-        <p class="cover-subtitle">Conhecimento Comum dos Mortais</p>
-        <p class="cover-source">Extraído de DeusesView · Caminho Sem Volta</p>
+        <p class="cover-subtitle">{{ page.noteSubtitle ?? 'Conhecimento Comum dos Mortais' }}</p>
         <div class="cover-rule cover-rule--thin" />
 
+        <!-- O índice vem da própria capa (montado dos deuses do mundo), com o salto por página. -->
         <table class="toc-table">
           <thead>
             <tr>
@@ -19,42 +19,17 @@
             </tr>
           </thead>
           <tbody>
-            <tr class="toc-row toc-row--bom">
+            <tr v-for="ala in alasDoIndice" :key="ala.tipo" class="toc-row" :class="`toc-row--${ala.tipo}`">
               <td class="toc-align">
-                <span class="toc-badge toc-badge--bom">Bons (6)</span>
+                <span class="toc-badge" :class="`toc-badge--${ala.tipo}`">{{ ala.rotulo }} ({{ ala.nomes.length }})</span>
               </td>
               <td class="toc-names">
+                <span v-if="ala.nomes.length === 0" class="toc-vazio">—</span>
                 <span
-                  v-for="name in BOM_GODS"
+                  v-for="name in ala.nomes"
                   :key="name"
                   class="toc-god-link"
-                  @click="$emit('jumpToPage', GOD_PAGE_MAP[name])"
-                >{{ name }}</span>
-              </td>
-            </tr>
-            <tr class="toc-row toc-row--neutro">
-              <td class="toc-align">
-                <span class="toc-badge toc-badge--neutro">Neutros (9)</span>
-              </td>
-              <td class="toc-names">
-                <span
-                  v-for="name in NEUTRO_GODS"
-                  :key="name"
-                  class="toc-god-link"
-                  @click="$emit('jumpToPage', GOD_PAGE_MAP[name])"
-                >{{ name }}</span>
-              </td>
-            </tr>
-            <tr class="toc-row toc-row--maligno">
-              <td class="toc-align">
-                <span class="toc-badge toc-badge--maligno">Malignos (6)</span>
-              </td>
-              <td class="toc-names">
-                <span
-                  v-for="name in MALIGNO_GODS"
-                  :key="name"
-                  class="toc-god-link"
-                  @click="$emit('jumpToPage', GOD_PAGE_MAP[name])"
+                  @click="$emit('jumpToPage', page.mapaDePaginas?.[name] ?? 1)"
                 >{{ name }}</span>
               </td>
             </tr>
@@ -62,7 +37,7 @@
         </table>
 
         <div class="cover-rule cover-rule--thin" />
-        <p class="cover-footer">Total: 6 deuses do bem · 9 neutros · 6 malignos · 21 divindades</p>
+        <p class="cover-footer">{{ rodapeDaCapa }}</p>
       </div>
     </template>
 
@@ -136,18 +111,30 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { BookPage } from '@/types/book'
-import { GOD_PAGE_MAP } from '@/data/panteao'
+import type { AlignmentType, BookPage } from '@/types/book'
 
 const props = defineProps<{
   page: BookPage
   noteTitulo?: string
 }>()
-defineEmits<{ jumpToPage: [spreadIdx: number] }>()
+/** Número da página (1-based) do deus clicado no índice; o leitor decide em que spread ela cai. */
+defineEmits<{ jumpToPage: [numeroDaPagina: number] }>()
 
-const BOM_GODS = ['Cayden Cailean', 'Desna', 'Erastil', 'Iomedae', 'Sarenrae', 'Shelyn']
-const NEUTRO_GODS = ['Calistria', 'Inari', 'Kurgess', 'Liriel', 'Morthos', 'Pharasma', 'Torak', 'Vespera', 'Zephyros']
-const MALIGNO_GODS = ['Asmodeus', 'Gorum', 'Norgorber', 'Rovagug', 'Urgathoa', 'Zon-Kuthon']
+const ROTULO_DA_ALA: Record<AlignmentType, string> = { bom: 'Bons', neutro: 'Neutros', maligno: 'Malignos' }
+
+const alasDoIndice = computed(() =>
+  (['bom', 'neutro', 'maligno'] as AlignmentType[]).map((tipo) => ({
+    tipo,
+    rotulo: ROTULO_DA_ALA[tipo],
+    nomes: props.page.indice?.[tipo] ?? [],
+  })),
+)
+
+const rodapeDaCapa = computed(() => {
+  const alas = alasDoIndice.value
+  const total = alas.reduce((soma, ala) => soma + ala.nomes.length, 0)
+  return `Total: ${alas[0]!.nomes.length} deuses do bem · ${alas[1]!.nomes.length} neutros · ${alas[2]!.nomes.length} malignos · ${total} divindade${total === 1 ? '' : 's'}`
+})
 
 const pageClass = computed(() => {
   if (props.page.type === 'cover') return 'book-page--cover'
@@ -158,7 +145,7 @@ const pageClass = computed(() => {
 })
 
 const footerLabel = computed(() =>
-  props.noteTitulo ?? (props.page.noteTitle ?? 'Panteão de Elyra')
+  props.noteTitulo ?? (props.page.noteTitle ?? 'Panteão')
 )
 
 const formattedText = computed(() => {

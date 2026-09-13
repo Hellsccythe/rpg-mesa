@@ -107,6 +107,7 @@
 
 <script setup lang="ts">
 import AvatarPersonagem from '@/components/AvatarPersonagem.vue'
+import { lerMundoAtivoLocal } from '@/lib/mundo-ativo'
 import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCharactersStore } from '@/stores/characters'
@@ -169,7 +170,7 @@ async function salvar(id: string | number) {
 onMounted(async () => {
   loading.value = true
   try {
-    await store.fetchPaginaInicial()
+    await store.fetchPaginaInicial(lerMundoAtivoLocal()?.slug)
     characters.value = store.publicCharacters
     for (const c of characters.value) {
       const { x, y } = parsePosition(c.modalHeroPosition)

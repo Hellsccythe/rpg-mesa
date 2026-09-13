@@ -2,6 +2,8 @@ import { api } from '@/plugins/axios'
 
 export interface CampanhaApi {
   id: number
+  /** O número do mundo — "Mundo 2 — Elyra". É lore, editável; o id é a chave. */
+  numero: number
   slug: string
   name: string
   description: string | null
@@ -37,6 +39,7 @@ export async function buscarCampanhaPorSlug(slug: string): Promise<CampanhaApi> 
 export async function criarCampanha(payload: {
   slug: string
   name: string
+  numero?: number
   description?: string
   cover_image_url?: string
   is_active?: boolean
@@ -47,7 +50,7 @@ export async function criarCampanha(payload: {
 
 export async function editarCampanha(
   id: number,
-  payload: { slug?: string; name?: string; description?: string; cover_image_url?: string; is_active?: boolean },
+  payload: { slug?: string; name?: string; numero?: number; description?: string; cover_image_url?: string; is_active?: boolean },
 ): Promise<CampanhaApi> {
   const { data } = await api.patch<CampanhaApi>(`/campanhas/admin/${id}`, payload)
   return data

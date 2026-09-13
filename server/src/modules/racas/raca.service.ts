@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/sequelize";
 import { ArmazenamentoArquivosService } from "../../common/storage/armazenamento-arquivos.service.js";
+import { CampanhasService } from "../campanhas/campanhas.service.js";
 import {
   RacaModel,
   type BonusDeAtributoDeRaca,
@@ -30,6 +31,7 @@ export class RacaService {
     @InjectModel(RacaModel)
     private readonly modeloRaca: typeof RacaModel,
     private readonly armazenamentoArquivos: ArmazenamentoArquivosService,
+    private readonly servicoCampanhas: CampanhasService,
   ) {}
 
   // ── Leitura ───────────────────────────────────────────────────────────────
@@ -37,14 +39,17 @@ export class RacaService {
   /**
    * Listagem pública (tela de raças e onboarding). O lore é omitido de
    * propósito: é o texto que o mestre escreve para revelar aos poucos.
+   * O mundo é o do personagem, quando há um; senão o do header.
    */
-  async listarPublico(): Promise<RacaApi[]> {
-    const encontradas = await this.modeloRaca.findAll({ order: [["nome", "ASC"]] });
+  async listarPublico(personagemId?: number): Promise<RacaApi[]> {
+    const campaignId = await this.servicoCampanhas.resolverCampanhaDoCatalogo(personagemId);
+    const encontradas = await this.modeloRaca.findAll({ where: { campaignId }, order: [["nome", "ASC"]] });
     return encontradas.map((raca) => ({ ...this.mapear(raca), lore: null }));
   }
 
   async listarParaMestre(): Promise<RacaApi[]> {
-    const encontradas = await this.modeloRaca.findAll({ order: [["nome", "ASC"]] });
+    const campaignId = await this.servicoCampanhas.resolverCampanhaAtiva();
+    const encontradas = await this.modeloRaca.findAll({ where: { campaignId }, order: [["nome", "ASC"]] });
     return encontradas.map((raca) => this.mapear(raca));
   }
 
@@ -52,6 +57,7 @@ export class RacaService {
 
   async criar(dados: CriarRacaDto): Promise<RacaApi> {
     const criada = await this.modeloRaca.create({
+      campaignId: await this.servicoCampanhas.resolverCampanhaAtiva(),
       nome: dados.nome.trim(),
       fotoUrl: this.armazenamentoArquivos.normalizarParaArmazenamento(dados.foto_url ?? null),
       descricao: dados.descricao?.trim() || null,

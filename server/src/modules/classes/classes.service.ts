@@ -7,6 +7,7 @@ import { montarUrlPublica } from "../../common/storage/armazenamento-arquivos.se
 import { PersonagemModel } from "../personagem/models/personagem.model.js";
 import { garantirAcessoAoPersonagem } from "../personagem/personagem-acesso.js";
 import { ClasseModel, type RequisitosDeClasse } from "./models/classe.model.js";
+import { CampanhasService } from "../campanhas/campanhas.service.js";
 import { ClasseSecretaReveladaModel } from "./models/classe-secreta-revelada.model.js";
 import { ProgressaoClasseModel } from "./models/progressao-classe.model.js";
 import type {
@@ -94,6 +95,7 @@ const SQL_CLASSES_SECRETAS_COM_TITULAR = `
   FROM classes
   LEFT JOIN classe_secreta_revelada
     ON classe_secreta_revelada.classe_id = classes.id
+   AND classe_secreta_revelada.campaign_id = :campanhaId
   LEFT JOIN characters
     ON characters.id = classe_secreta_revelada.character_id
    AND characters.deleted_at IS NULL
@@ -130,6 +132,7 @@ export class ClassesService {
     @InjectModel(PersonagemModel)
     private readonly modeloPersonagem: typeof PersonagemModel,
     private readonly sequelize: Sequelize,
+    private readonly servicoCampanhas: CampanhasService,
   ) {}
 
   // ── Catálogo de classes ───────────────────────────────────────────────────
@@ -245,9 +248,12 @@ export class ClassesService {
 
   // ── Classes secretas ──────────────────────────────────────────────────────
 
+  /** As classes secretas com o titular NO MUNDO ATIVO — a mesma classe pode ter um titular em cada mundo. */
   async listarSecretasParaMestre(): Promise<ClasseSecretaAdminApi[]> {
     type Linha = Record<string, any>;
+    const campanhaId = await this.servicoCampanhas.resolverCampanhaAtiva();
     const linhas = await this.sequelize.query<Linha>(SQL_CLASSES_SECRETAS_COM_TITULAR, {
+      replacements: { campanhaId },
       type: QueryTypes.SELECT,
     });
 
@@ -298,13 +304,18 @@ export class ClassesService {
       );
     }
 
+    if (personagem.campaignId === null) {
+      throw new BadRequestException("Este personagem não está em nenhum mundo.");
+    }
+
+    // A exclusividade é por mundo: o Lich do Mundo 1 não impede um Lich no Mundo 2.
     const revelacaoAtual = await this.modeloClasseSecretaRevelada.findOne({
-      where: { classeId },
+      where: { classeId, campaignId: personagem.campaignId },
     });
 
     if (revelacaoAtual && revelacaoAtual.characterId !== personagemId) {
       throw new ConflictException(
-        "Esta classe secreta já foi revelada para outro personagem ativo.",
+        "Esta classe secreta já foi revelada para outro personagem ativo deste mundo.",
       );
     }
     // Já é do mesmo personagem: nada a fazer, e refazer só trocaria a data.
@@ -312,13 +323,16 @@ export class ClassesService {
 
     await this.modeloClasseSecretaRevelada.create({
       classeId,
+      campaignId: personagem.campaignId,
       characterId: personagemId,
       revealedAt: new Date(),
     });
   }
 
+  /** Revoga no mundo ativo — a mesma classe pode continuar revelada em outro. */
   async revogarClasseSecreta(classeId: number): Promise<void> {
-    const revelacao = await this.modeloClasseSecretaRevelada.findOne({ where: { classeId } });
+    const campaignId = await this.servicoCampanhas.resolverCampanhaAtiva();
+    const revelacao = await this.modeloClasseSecretaRevelada.findOne({ where: { classeId, campaignId } });
     if (!revelacao) {
       throw new NotFoundException("Esta classe secreta não está revelada para ninguém.");
     }

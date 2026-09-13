@@ -3,6 +3,7 @@ import { InjectModel } from "@nestjs/sequelize";
 import { QueryTypes } from "sequelize";
 import { Sequelize } from "sequelize-typescript";
 import { ArmazenamentoArquivosService } from "../../common/storage/armazenamento-arquivos.service.js";
+import { CampanhasService } from "../campanhas/campanhas.service.js";
 import {
   PassadoModel,
   type AtributoBonus,
@@ -121,14 +122,17 @@ export class PassadosService {
     private readonly modeloPassado: typeof PassadoModel,
     private readonly sequelize: Sequelize,
     private readonly armazenamentoArquivos: ArmazenamentoArquivosService,
+    private readonly servicoCampanhas: CampanhasService,
   ) {}
 
   // ── Leitura (SQL cru com JOIN) ────────────────────────────────────────────
 
-  async listar(): Promise<PassadoApi[]> {
+  /** Os passados de um mundo: o do personagem, quando há um; senão o do header ou a única campanha ativa. */
+  async listar(personagemId?: number): Promise<PassadoApi[]> {
+    const campanhaId = await this.servicoCampanhas.resolverCampanhaDoCatalogo(personagemId);
     const encontrados = await this.sequelize.query<PassadoApi>(
-      `${SQL_LISTAR_PASSADOS} ORDER BY passados.nome`,
-      { type: QueryTypes.SELECT },
+      `${SQL_LISTAR_PASSADOS} AND passados.campaign_id = :campanhaId ORDER BY passados.nome`,
+      { replacements: { campanhaId }, type: QueryTypes.SELECT },
     );
     return encontrados.map((passado) => this.comUrlDeImagem(passado));
   }
@@ -157,6 +161,7 @@ export class PassadosService {
 
   async criar(dados: CriarPassadoDto): Promise<PassadoApi> {
     const criado = await this.modeloPassado.create({
+      campaignId: await this.servicoCampanhas.resolverCampanhaAtiva(),
       nome: dados.nome.trim(),
       descricao: dados.descricao?.trim() ?? null,
       fotoUrl: this.armazenamentoArquivos.normalizarParaArmazenamento(dados.foto_url),

@@ -245,6 +245,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { lerMundoAtivoLocal } from '@/lib/mundo-ativo'
 import { useRouter } from 'vue-router'
 import JSZip from 'jszip'
 import TemaDarkLight from '@/components/TemaDarkLight.vue'
@@ -272,7 +273,7 @@ async function carregar() {
   carregando.value = true
   try {
     const [, gods, maps, racas] = await Promise.all([
-      charactersStore.fetchPaginaInicial(),
+      charactersStore.fetchPaginaInicial(lerMundoAtivoLocal()?.slug),
       listGods(),
       listCityMaps(),
       listarRacasAdmin(),

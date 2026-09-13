@@ -3,9 +3,12 @@ import type { CharacterCreationRequestApi } from '@/types/api'
 
 export interface SubmeterCriacaoPayload {
   nome: string
+  /** Com contaExistente, username e password são o login que o jogador já tem. */
+  contaExistente?: boolean
   username: string
   password: string
-  email: string
+  /** Só na conta nova: precisa estar pré-registrado pelo mestre. */
+  email?: string
   avatarUrl?: string
   indoleId?: number | null
   generoId?: number | null
@@ -22,9 +25,10 @@ export async function submeterSolicitacaoCriacao(
     '/character-creation-requests',
     {
       nome: payload.nome,
+      conta_existente: payload.contaExistente ?? false,
       username: payload.username,
       password: payload.password,
-      email: payload.email,
+      email: payload.contaExistente ? undefined : payload.email,
       avatar_url: payload.avatarUrl,
       indole_id: payload.indoleId,
       genero_id: payload.generoId,
@@ -51,8 +55,8 @@ export async function contarSolicitacoesPendentes(): Promise<number> {
   return data.count
 }
 
-export async function aprovarSolicitacao(id: number | string): Promise<void> {
-  await api.patch(`/character-creation-requests/admin/${id}/aprovar`)
+export async function aprovarSolicitacao(id: number | string, campaignId?: number | null): Promise<void> {
+  await api.patch(`/character-creation-requests/admin/${id}/aprovar`, campaignId ? { campaign_id: campaignId } : {})
 }
 
 export async function rejeitarSolicitacao(

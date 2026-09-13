@@ -177,140 +177,6 @@
           </div>
         </section>
 
-        <!-- ── Notas de Lore ──────────────────────────────────────────────── -->
-        <section id="lore-notes" class="gm-card border-amber-500/15">
-          <div class="gm-card-header">
-            <div class="gm-icon-wrap bg-amber-500/10 text-amber-400">
-              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-            </div>
-            <div>
-              <h2 class="gm-title">Notas de Lore</h2>
-              <p class="gm-subtitle">
-                Crie livros e documentos. Separe páginas com
-                <code class="rounded bg-black/40 px-1 text-amber-300">---</code> em linhas separadas.
-              </p>
-            </div>
-          </div>
-
-          <!-- Form -->
-          <div class="gm-inner-box mb-5 rounded-xl border border-white/[0.06] bg-black/20 p-4">
-            <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-amber-400/80">Nova Nota</p>
-            <div class="flex flex-col gap-4 xl:flex-row">
-              <!-- Fields -->
-              <div class="min-w-0 flex-1 space-y-3">
-                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <input
-                    v-model="loreNoteTitle"
-                    type="text"
-                    placeholder="Título da nota"
-                    class="gm-input"
-                    aria-label="Título da nota"
-                  />
-                  <input
-                    v-model="loreNoteSubtitle"
-                    type="text"
-                    placeholder="Subtítulo (opcional)"
-                    class="gm-input"
-                    aria-label="Subtítulo"
-                  />
-                </div>
-
-                <VSelect
-                  v-model="loreNoteCharacterId"
-                  :options="loreCharacterOptions"
-                  root-class="w-full"
-                  aria-label="Visibilidade da nota"
-                />
-
-                <textarea
-                  v-model="loreNoteContent"
-                  rows="7"
-                  placeholder="Conteúdo da nota...&#10;&#10;Use --- em linha separada para quebrar páginas."
-                  class="gm-textarea w-full font-mono text-xs"
-                  aria-label="Conteúdo da nota"
-                />
-
-                <!-- PDF upload -->
-                <div>
-                  <div
-                    class="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-amber-600/25 bg-black/10 px-4 py-2.5 transition-colors hover:border-amber-500/40"
-                    @click="acionarInputPdf"
-                  >
-                    <input ref="inputPdfRef" type="file" accept=".pdf" class="hidden" @change="selecionarPdf" />
-                    <svg class="h-4 w-4 shrink-0 text-amber-400/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                    <p v-if="lorePdfFile" class="flex-1 truncate text-sm text-amber-200">{{ lorePdfFile.name }}</p>
-                    <p v-else class="flex-1 text-sm text-zinc-500">Adicionar PDF (opcional)</p>
-                    <button v-if="lorePdfFile" @click.stop="lorePdfFile = null; lorePdfUrl = null" class="text-zinc-500 hover:text-red-400 transition-colors">✕</button>
-                  </div>
-                  <p v-if="loadingPdf" class="mt-1 animate-pulse text-xs text-amber-400">Enviando PDF...</p>
-                </div>
-
-                <div class="flex justify-end">
-                  <button
-                    @click="criarLoreNote"
-                    :disabled="loadingLoreNotes || !loreNoteTitle.trim() || !loreNoteContent.trim()"
-                    class="gm-btn-amber disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    {{ loadingLoreNotes ? 'Salvando...' : 'Criar Nota' }}
-                  </button>
-                </div>
-              </div>
-
-              <!-- Preview -->
-              <div class="shrink-0 xl:w-64">
-                <p class="mb-2 text-xs text-zinc-500">Preview — Página 1</p>
-                <div class="lore-preview-page overflow-hidden rounded-xl" style="min-height: 300px;">
-                  <div class="lore-preview-inner p-5">
-                    <div v-if="loreNoteTitle" class="mb-3 text-center">
-                      <p class="lore-preview-title">{{ loreNoteTitle }}</p>
-                      <p v-if="loreNoteSubtitle" class="lore-preview-subtitle">{{ loreNoteSubtitle }}</p>
-                      <div class="lore-preview-rule" />
-                    </div>
-                    <p v-if="lorePreviewPage1" class="lore-preview-text" style="white-space: pre-wrap;">{{ lorePreviewPage1 }}</p>
-                    <p v-else class="lore-preview-empty">O conteúdo aparecerá aqui...</p>
-                  </div>
-                </div>
-                <p v-if="loreNotePagesCount > 1" class="mt-1 text-right text-xs text-zinc-600">
-                  + {{ loreNotePagesCount - 1 }} página(s) adicionais
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Notes list -->
-          <div class="space-y-2">
-            <p v-if="loreNotes.length === 0" class="gm-empty">Nenhuma nota de lore criada ainda.</p>
-            <article
-              v-for="nota in loreNotes"
-              :key="nota.id"
-              class="gm-inner-box flex items-center justify-between gap-3 rounded-xl border border-white/[0.05] bg-black/15 px-4 py-3"
-            >
-              <div class="min-w-0 flex-1">
-                <div class="flex flex-wrap items-center gap-2">
-                  <p class="truncate text-sm font-semibold text-amber-100">{{ nota.title }}</p>
-                  <span
-                    class="shrink-0 rounded-full border px-2 py-0.5 text-[0.6rem] font-medium"
-                    :class="nota.character_id
-                      ? 'border-violet-500/40 bg-violet-900/50 text-violet-300'
-                      : 'border-amber-600/30 bg-amber-900/30 text-amber-400'"
-                  >
-                    {{ nomePersonagemDaNota(nota.character_id) }}
-                  </span>
-                </div>
-                <p v-if="nota.subtitle" class="truncate text-xs italic text-zinc-500">{{ nota.subtitle }}</p>
-                <p class="mt-0.5 text-xs text-zinc-700">{{ nota.content.split(/\n---+\n/).length }} página(s)</p>
-              </div>
-              <button
-                @click="abrirConfirmacaoDeleteLore(nota)"
-                :disabled="loadingLoreNotes"
-                class="shrink-0 rounded-lg border border-red-500/40 px-3 py-1.5 text-xs font-semibold text-red-400 transition-colors hover:bg-red-900/25 disabled:opacity-40"
-              >
-                Deletar
-              </button>
-            </article>
-          </div>
-        </section>
-
         <!-- ── Atalhos, agrupados pelo que o mestre está fazendo ────────────── -->
         <div v-for="grupo in gruposDoPainel" :key="grupo.titulo">
           <p class="mb-3 text-xs font-bold tracking-[0.25em] uppercase text-zinc-600">{{ grupo.titulo }}</p>
@@ -651,37 +517,6 @@
       </main>
     </TemaDarkLight>
 
-    <!-- Modal Confirmação Deletar Lore Note -->
-    <Modal
-      v-if="modalDeleteLoreId !== null"
-      panel-class="max-w-sm"
-      body-class="space-y-4 p-6"
-      :show-close-button="false"
-      tema="escuro"
-      :close-on-backdrop="false"
-      @close="fecharConfirmacaoDeleteLore"
-    >
-      <h3 class="text-base font-bold text-white">Deletar Nota de Lore</h3>
-      <p class="text-sm text-zinc-400">
-        Tem certeza que deseja deletar a nota <span class="font-semibold text-white">"{{ tituloDeleteLore }}"</span>? Esta ação não pode ser desfeita.
-      </p>
-      <div class="flex gap-3">
-        <button
-          @click="fecharConfirmacaoDeleteLore"
-          class="flex-1 rounded-xl border border-white/10 py-2 text-sm text-zinc-300 hover:border-white/20"
-        >
-          Cancelar
-        </button>
-        <button
-          @click="confirmarDeleteLore"
-          :disabled="loadingLoreNotes"
-          class="flex-1 rounded-xl bg-red-700 py-2 text-sm font-semibold text-white hover:bg-red-600 disabled:opacity-50"
-        >
-          Deletar
-        </button>
-      </div>
-    </Modal>
-
     <!-- Modal Confirmação Aprovar/Rejeitar Pendência -->
     <Modal
       v-if="modalReviewId !== null"
@@ -717,74 +552,6 @@
       </div>
     </Modal>
 
-    <!-- Modal Troca Obrigatória de Senha -->
-    <Modal
-      v-if="showPasswordChangeModal"
-      title="Defina uma Nova Senha"
-      tema="escuro"
-      panel-class="max-w-sm"
-      :close-on-backdrop="false"
-    >
-      <div class="space-y-5 px-6 py-5">
-        <p class="text-sm text-zinc-400">Sua senha foi resetada. Defina uma nova senha para continuar acessando o painel.</p>
-
-        <div v-if="erroNovaSenha" class="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
-          {{ erroNovaSenha }}
-        </div>
-
-        <div class="space-y-1">
-          <label class="block text-xs font-semibold uppercase tracking-wide text-zinc-400">Nova Senha</label>
-          <input
-            v-model="novaSenhaObrigatoria"
-            :type="mostrarNovaSenhaObrigatoria ? 'text' : 'password'"
-            class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-violet-500/40"
-            placeholder="Mín. 8 chars, maiúscula, número e especial"
-          />
-        </div>
-
-        <div class="space-y-1">
-          <label class="block text-xs font-semibold uppercase tracking-wide text-zinc-400">Confirmar Senha</label>
-          <input
-            v-model="novaSenhaObrigatoriaConfirmacao"
-            :type="mostrarNovaSenhaObrigatoria ? 'text' : 'password'"
-            class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-violet-500/40"
-            placeholder="Repita a senha"
-          />
-          <button
-            type="button"
-            class="mt-1 text-xs text-zinc-500 transition-colors hover:text-zinc-300"
-            @click="mostrarNovaSenhaObrigatoria = !mostrarNovaSenhaObrigatoria"
-          >
-            {{ mostrarNovaSenhaObrigatoria ? 'Ocultar' : 'Mostrar' }} senha
-          </button>
-        </div>
-
-        <ul class="space-y-1">
-          <li
-            v-for="regra in regrasNovaSenha"
-            :key="regra.label"
-            class="flex items-center gap-2 text-xs"
-            :class="regra.ok ? 'text-emerald-400' : 'text-zinc-600'"
-          >
-            <span>{{ regra.ok ? '✓' : '○' }}</span>
-            {{ regra.label }}
-          </li>
-        </ul>
-      </div>
-
-      <template #footer>
-        <div class="flex justify-end">
-          <button
-            type="button"
-            :disabled="salvandoNovaSenha || !novaSenhaValida"
-            class="rounded-xl bg-violet-600 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
-            @click="salvarNovaSenhaObrigatoria"
-          >
-            {{ salvandoNovaSenha ? 'Salvando...' : 'Confirmar' }}
-          </button>
-        </div>
-      </template>
-    </Modal>
 
   </div>
 </template>
@@ -794,6 +561,7 @@ import AvatarPersonagem from '@/components/AvatarPersonagem.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useMundoStore } from '@/stores/mundo'
 import { useCharactersStore } from '@/stores/characters'
 import { useMasterApprovalsStore } from '@/stores/masterApprovals'
 import { useMasterCatalogStore } from '@/stores/masterCatalog'
@@ -811,16 +579,10 @@ import { contarSolicitacoesPendentes } from '@/lib/api/character-creation-reques
 import { listPublicGods } from '@/lib/api/gods.api'
 import type { GodApi, AprovacaoPendenteApi } from '@/types/api'
 import { adicionarPontosDeClasse, alterarStatusPersonagem as apiAlterarStatus } from '@/lib/api/classes.api'
-import {
-  listAllLoreNotes,
-  createLoreNote,
-  deleteLoreNote as deleteLoreNoteApi,
-  uploadPdfLore,
-} from '@/lib/api/lore-notes.api'
-import type { LoreNoteApi } from '@/lib/api/lore-notes.api'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const mundoStore = useMundoStore()
 const charactersStore = useCharactersStore()
 const masterApprovalsStore = useMasterApprovalsStore()
 const masterCatalogStore = useMasterCatalogStore()
@@ -841,121 +603,6 @@ const adventureNote = ref('')
 const classPointsCharacterId = ref('')
 const classPointsAmount = ref(1)
 const loadingClassPoints = ref(false)
-
-// Lore Notes
-const loreNotes = ref<LoreNoteApi[]>([])
-const loreNoteTitle = ref('')
-const loreNoteSubtitle = ref('')
-const loreNoteContent = ref('')
-const loreNoteCharacterId = ref<string>('')
-const loadingLoreNotes = ref(false)
-const inputPdfRef = ref<HTMLInputElement | null>(null)
-const lorePdfFile = ref<File | null>(null)
-const lorePdfUrl = ref<string | null>(null)
-const loadingPdf = ref(false)
-
-const lorePreviewPage1 = computed(() => {
-  const first = loreNoteContent.value.split(/\n---+\n/)[0]?.trim()
-  return first || ''
-})
-const loreNotePagesCount = computed(() =>
-  loreNoteContent.value.trim() ? loreNoteContent.value.split(/\n---+\n/).length : 0
-)
-
-function acionarInputPdf() {
-  inputPdfRef.value?.click()
-}
-
-function selecionarPdf(event: Event) {
-  const file = (event.target as HTMLInputElement).files?.[0]
-  if (!file) return
-  lorePdfFile.value = file
-  lorePdfUrl.value = null
-}
-
-async function carregarLoreNotes() {
-  try {
-    loreNotes.value = await listAllLoreNotes()
-  } catch {
-    // tabela pode não existir ainda
-  }
-}
-
-function nomePersonagemDaNota(characterId: number | null): string {
-  if (!characterId) return 'Global'
-  const encontrado = characters.value.find((c) => Number(c.characterId) === characterId)
-  return encontrado?.name ?? String(characterId)
-}
-
-async function criarLoreNote() {
-  if (!loreNoteTitle.value.trim() || !loreNoteContent.value.trim()) return
-  loadingLoreNotes.value = true
-  try {
-    let pdfUrl: string | null = lorePdfUrl.value
-    if (lorePdfFile.value && !pdfUrl) {
-      loadingPdf.value = true
-      pdfUrl = (await uploadPdfLore(lorePdfFile.value)).path
-      loadingPdf.value = false
-    }
-    await createLoreNote({
-      title: loreNoteTitle.value.trim(),
-      subtitle: loreNoteSubtitle.value.trim() || undefined,
-      content: loreNoteContent.value,
-      pdfUrl: pdfUrl || null,
-      characterId: Number(loreNoteCharacterId.value) || null,
-    })
-    loreNoteTitle.value = ''
-    loreNoteSubtitle.value = ''
-    loreNoteContent.value = ''
-    loreNoteCharacterId.value = ''
-    lorePdfFile.value = null
-    lorePdfUrl.value = null
-    await carregarLoreNotes()
-    feedback.value = 'Nota de lore criada com sucesso.'
-    feedbackError.value = false
-  } catch (err: any) {
-    feedback.value = err?.response?.data?.message || 'Erro ao criar nota de lore.'
-    feedbackError.value = true
-    loadingPdf.value = false
-  } finally {
-    loadingLoreNotes.value = false
-  }
-}
-
-const modalDeleteLoreId = ref<number | null>(null)
-const tituloDeleteLore = ref('')
-
-function abrirConfirmacaoDeleteLore(nota: LoreNoteApi) {
-  modalDeleteLoreId.value = nota.id
-  tituloDeleteLore.value = nota.title
-}
-
-function fecharConfirmacaoDeleteLore() {
-  modalDeleteLoreId.value = null
-  tituloDeleteLore.value = ''
-}
-
-async function confirmarDeleteLore() {
-  if (modalDeleteLoreId.value === null) return
-  const id = modalDeleteLoreId.value
-  fecharConfirmacaoDeleteLore()
-  await deletarLoreNote(id)
-}
-
-async function deletarLoreNote(id: number) {
-  loadingLoreNotes.value = true
-  try {
-    await deleteLoreNoteApi(id)
-    await carregarLoreNotes()
-    feedback.value = 'Nota de lore removida.'
-    feedbackError.value = false
-  } catch (err: any) {
-    feedback.value = err?.response?.data?.message || 'Erro ao remover nota.'
-    feedbackError.value = true
-  } finally {
-    loadingLoreNotes.value = false
-  }
-}
 
 // ── Focal Point do Avatar ─────────────────────────────────────────────────────
 const focalCharId     = ref('')
@@ -1026,7 +673,7 @@ async function salvarFocalPoint() {
     await setAvatarFocalPoint(focalCharId.value, focalPoint.value)
     focalFeedback.value = 'Posição salva com sucesso.'
     focalFeedbackError.value = false
-    await charactersStore.fetchPaginaInicial()
+    await charactersStore.fetchPaginaInicial(mundoStore.mundo?.slug)
   } catch (err: any) {
     focalFeedback.value = err?.response?.data?.message || 'Erro ao salvar posição.'
     focalFeedbackError.value = true
@@ -1086,11 +733,6 @@ const characterOptions = computed(() =>
   characters.value.map((c) => ({ value: c.characterId, label: c.name })),
 )
 
-const loreCharacterOptions = computed(() => [
-  { value: '', label: 'Global — visível a todos' },
-  ...characters.value.map((c) => ({ value: c.characterId, label: `${c.name} — exclusivo` })),
-])
-
 const selectedGod = computed(() =>
   publicGodsList.value.find((g) => g.id === godInfoGodId.value),
 )
@@ -1101,7 +743,7 @@ const panelMenuItems = [
   { id: 'criacao-personagens', label: 'Criação Personagens' },
   { id: 'gerenciar-usuarios', label: 'Usuários' },
   { id: 'backup-imagens', label: 'Backup Imagens' },
-  { id: 'lore-notes', label: 'Notas de Lore' },
+  { id: 'livros', label: 'Livros e Notas' },
   { id: 'avatar-focal', label: 'Posição do Avatar' },
   { id: 'god-info', label: 'Info Deuses' },
   { id: 'guia-deuses', label: 'Deuses' },
@@ -1147,8 +789,8 @@ async function handlePanelMenuSelect(itemId: string) {
     return
   }
 
-  if (itemId === 'lore-notes') {
-    goSection('lore-notes')
+  if (itemId === 'livros') {
+    router.push({ name: 'master-livros' })
     return
   }
 
@@ -1244,8 +886,7 @@ async function loadAll() {
   try {
     await Promise.all([
       masterApprovalsStore.fetchPendingApprovals(),
-      charactersStore.fetchPaginaInicial(),
-      carregarLoreNotes(),
+      charactersStore.fetchPaginaInicial(mundoStore.mundo?.slug),
       carregarDeusesParaInfo(),
       contarSolicitacoesPendentes().then((c) => { criacaoPendenteCount.value = c }).catch(() => {}),
     ])
@@ -1426,7 +1067,7 @@ async function deletarPersonagem() {
     feedbackError.value = false
     deleteCharacterId.value = ''
     deleteConfirmName.value = ''
-    await charactersStore.fetchPaginaInicial()
+    await charactersStore.fetchPaginaInicial(mundoStore.mundo?.slug)
   } catch (err: any) {
     feedback.value = err?.response?.data?.message || 'Erro ao deletar personagem.'
     feedbackError.value = true
@@ -1534,6 +1175,7 @@ const I = {
   grade:      '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>',
   tela:       '<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>',
   imagem:     '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>',
+  livro:      '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
   caveira:    '<circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><path d="M8 20v2h8v-2"/><path d="m12.5 17-.5-1-.5 1h1z"/><path d="M16 20a2 2 0 0 0 1.56-3.25 8 8 0 1 0-11.12 0A2 2 0 0 0 8 20"/>',
 }
 
@@ -1553,6 +1195,9 @@ const gruposDoPainel: GrupoDoPainel[] = [
       { titulo: 'NPCs', descricao: 'Crie NPCs e controle quais players podem vê-los',
         icone: I.pessoa, classeIcone: 'bg-indigo-500/10 text-indigo-400', classeLink: 'text-indigo-400 group-hover:text-indigo-300',
         acao: () => router.push({ name: 'master-npcs' }) },
+      { titulo: 'Livros e Notas', descricao: 'Livros, pergaminhos, bilhetes e cartas — e para quem cada um está liberado',
+        icone: I.livro, classeIcone: 'bg-amber-500/10 text-amber-400', classeLink: 'text-amber-400 group-hover:text-amber-300',
+        acao: () => router.push({ name: 'master-livros' }) },
     ],
   },
   {
@@ -1645,47 +1290,8 @@ async function logout() {
   router.push({ name: 'login' })
 }
 
-// ── Troca obrigatória de senha (após reset padrão) ────────────────────────────
-const showPasswordChangeModal = ref(false)
-const novaSenhaObrigatoria = ref('')
-const novaSenhaObrigatoriaConfirmacao = ref('')
-const mostrarNovaSenhaObrigatoria = ref(false)
-const salvandoNovaSenha = ref(false)
-const erroNovaSenha = ref('')
-
-const regrasNovaSenha = computed(() => [
-  { label: 'Mínimo 8 caracteres',         ok: novaSenhaObrigatoria.value.length >= 8 },
-  { label: 'Ao menos uma letra maiúscula', ok: /[A-Z]/.test(novaSenhaObrigatoria.value) },
-  { label: 'Ao menos um número',           ok: /[0-9]/.test(novaSenhaObrigatoria.value) },
-  { label: 'Ao menos um caractere especial', ok: /[^a-zA-Z0-9]/.test(novaSenhaObrigatoria.value) },
-  { label: 'Senhas coincidem',             ok: novaSenhaObrigatoria.value.length > 0 && novaSenhaObrigatoria.value === novaSenhaObrigatoriaConfirmacao.value },
-])
-const novaSenhaValida = computed(() => regrasNovaSenha.value.every((r) => r.ok))
-
-async function salvarNovaSenhaObrigatoria() {
-  if (!novaSenhaValida.value) return
-  salvandoNovaSenha.value = true
-  erroNovaSenha.value = ''
-  try {
-    await authStore.trocarSenha(novaSenhaObrigatoria.value)
-    showPasswordChangeModal.value = false
-  } catch (err: any) {
-    erroNovaSenha.value = err?.message ?? 'Erro ao salvar nova senha.'
-  } finally {
-    salvandoNovaSenha.value = false
-  }
-}
-
 onMounted(async () => {
   await loadAll()
-  try {
-    if (authStore.precisaTrocarSenha) {
-      novaSenhaObrigatoria.value = ''
-      novaSenhaObrigatoriaConfirmacao.value = ''
-      erroNovaSenha.value = ''
-      showPasswordChangeModal.value = true
-    }
-  } catch { /* silent */ }
 })
 </script>
 
@@ -1942,46 +1548,6 @@ onMounted(async () => {
   transform: translate(-50%, -50%);
   pointer-events: none;
   transition: left 0.1s ease, top 0.1s ease;
-}
-
-/* ── Lore Note Preview ── */
-.lore-preview-page {
-  background: linear-gradient(135deg, #f5e8ce 0%, #edddb0 100%);
-  border: 1px solid #c9a87c60;
-  box-shadow: inset 0 0 20px rgba(140,90,30,0.08), 0 4px 16px rgba(0,0,0,0.3);
-}
-.lore-preview-title {
-  font-family: 'Cinzel', serif;
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: #1a0e08;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  margin-bottom: 2px;
-}
-.lore-preview-subtitle {
-  font-family: 'EB Garamond', serif;
-  font-size: 0.68rem;
-  font-style: italic;
-  color: #4a3520;
-}
-.lore-preview-rule {
-  height: 1px;
-  background: linear-gradient(to right, transparent, #c9a87c, transparent);
-  margin: 5px 0;
-}
-.lore-preview-text {
-  font-family: 'EB Garamond', serif;
-  font-size: 0.7rem;
-  color: #1a0e08;
-  line-height: 1.65;
-}
-.lore-preview-empty {
-  font-family: 'EB Garamond', serif;
-  font-size: 0.68rem;
-  font-style: italic;
-  color: #9a7a4a;
-  opacity: 0.6;
 }
 
 /* ══ Light mode overrides ══════════════════════════════════════════════════ */

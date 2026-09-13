@@ -11,6 +11,10 @@ export type BonusDeAtributoDeRaca = { atributo: string; valor: string };
  */
 @Table({ tableName: "racas", timestamps: true, paranoid: true })
 export class RacaModel extends Model {
+  /** O mundo da raça (migration 101). */
+  @Column({ type: DataType.INTEGER, allowNull: false })
+  declare campaignId: number;
+
   @Column(DataType.TEXT)
   declare nome: string;
 

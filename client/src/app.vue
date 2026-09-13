@@ -1,9 +1,17 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
-import { RouterView } from 'vue-router'
+import { computed, onMounted } from 'vue'
+import { RouterView, useRoute } from 'vue-router'
 import { usePortalTransition } from '@/composables/usePortalTransition'
+import TrocaDeSenhaObrigatoria from '@/components/TrocaDeSenhaObrigatoria.vue'
+import SeletorDeMundo from '@/components/SeletorDeMundo.vue'
+import { useAuthStore } from '@/stores/auth'
 
 const { state: portal } = usePortalTransition()
+const route = useRoute()
+const authStore = useAuthStore()
+
+// O seletor de mundo só existe para o mestre, nas telas /master.
+const mostrarSeletorDeMundo = computed(() => authStore.eMestre && route.path.startsWith('/master'))
 
 onMounted(() => {
   document.documentElement.classList.add('theme-dark')
@@ -18,6 +26,12 @@ onMounted(() => {
     :class="portal.phase"
     :style="`--ox:${portal.ox}px;--oy:${portal.oy}px`"
   />
+
+  <!-- Um só lugar para a troca de senha obrigatória: vale para toda rota autenticada. -->
+  <TrocaDeSenhaObrigatoria />
+
+  <!-- Um só lugar para o mundo ativo do mestre: vale para todas as telas /master. -->
+  <SeletorDeMundo v-if="mostrarSeletorDeMundo" />
 
   <RouterView v-slot="{ Component, route }">
     <Transition :name="portal.phase !== 'idle' ? 'instant' : 'page-fade'" mode="out-in">
@@ -62,26 +76,35 @@ onMounted(() => {
 }
 
 /* ── Transição padrão entre páginas ─────────────────────────────────────── */
+/* Só opacidade e escala: ambas compõem na GPU. O blur(6px) que havia aqui
+   refiltrava a página inteira a cada quadro, quase um segundo por troca de
+   tela — caro demais no celular fraco que é o alvo. */
 .page-fade-leave-active {
   transition:
-    opacity 0.45s cubic-bezier(0.4, 0, 1, 1),
-    transform 0.45s cubic-bezier(0.4, 0, 1, 1),
-    filter 0.45s ease;
+    opacity 0.3s cubic-bezier(0.4, 0, 1, 1),
+    transform 0.3s cubic-bezier(0.4, 0, 1, 1);
 }
 .page-fade-enter-active {
   transition:
-    opacity 0.5s cubic-bezier(0, 0, 0.2, 1),
-    transform 0.5s cubic-bezier(0, 0, 0.2, 1),
-    filter 0.5s ease;
+    opacity 0.35s cubic-bezier(0, 0, 0.2, 1),
+    transform 0.35s cubic-bezier(0, 0, 0.2, 1);
 }
 .page-fade-enter-from {
   opacity: 0;
-  transform: scale(1.04);
-  filter: blur(6px);
+  transform: scale(1.02);
 }
 .page-fade-leave-to {
   opacity: 0;
-  transform: scale(0.96);
-  filter: blur(6px);
+  transform: scale(0.98);
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-fade-enter-active,
+  .page-fade-leave-active {
+    transition: opacity 0.15s ease;
+  }
+  .page-fade-enter-from,
+  .page-fade-leave-to {
+    transform: none;
+  }
 }
 </style>

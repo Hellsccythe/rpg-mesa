@@ -26,8 +26,10 @@ export type CriarRacaPayload = {
 
 export type EditarRacaPayload = Partial<CriarRacaPayload>
 
-export async function listarRacasPublicas(): Promise<RacaApi[]> {
-  const { data } = await api.get<RacaApi[]>('/racas')
+/** As raças do mundo: do personagem, quando há um; senão do mundo ativo (header X-Campanha). */
+export async function listarRacasPublicas(characterId?: string | number | null): Promise<RacaApi[]> {
+  const params = characterId ? { characterId: Number(characterId) } : {}
+  const { data } = await api.get<RacaApi[]>('/racas', { params })
   return data
 }
 

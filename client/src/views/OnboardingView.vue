@@ -158,6 +158,30 @@
           </div>
         </template>
 
+        <!-- Deus. Era o único passo permanente sem confirmação: um toque na
+             lista, no celular, já gravava o patrono. -->
+        <template v-if="etapa === 5 && deusSelecionado">
+          <div class="mx-auto h-28 w-28 overflow-hidden rounded-full border-2 border-amber-500/60 bg-black/30">
+            <img v-if="deusSelecionado.imageUrl" :src="deusSelecionado.imageUrl" :alt="deusSelecionado.name" class="h-full w-full object-cover object-top" />
+            <div v-else class="flex h-full items-center justify-center text-4xl">⚡</div>
+          </div>
+          <div>
+            <p class="text-xs font-bold tracking-[0.3em] uppercase text-amber-400 mb-2">Você escolheu</p>
+            <h2 class="text-3xl font-bold text-white mb-1">{{ deusSelecionado.name }}</h2>
+            <p v-if="deusSelecionado.title" class="text-sm italic text-amber-300/90 mb-2">{{ deusSelecionado.title }}</p>
+            <p class="text-sm text-zinc-400">{{ deusSelecionado.shortDescription }}</p>
+          </div>
+          <div class="rounded-2xl border border-amber-500/20 bg-amber-500/5 px-5 py-4 text-sm text-amber-300/80">
+            ⚠ Esta escolha é <strong class="text-amber-300">permanente</strong>. Seu patrono acompanha o personagem até o fim.
+          </div>
+          <div class="flex gap-3 justify-center">
+            <button type="button" class="rounded-xl border border-white/10 px-5 py-2.5 text-sm text-zinc-400 hover:text-white" @click="confirmando = false">Voltar</button>
+            <button type="button" :disabled="salvando" class="rounded-xl bg-amber-700 px-6 py-2.5 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-60" @click="confirmarDeus(Number(deusSelecionado.id))">
+              {{ salvando ? 'Confirmando...' : 'Confirmar Deus' }}
+            </button>
+          </div>
+        </template>
+
         <p v-if="erroEscolha" class="text-sm text-red-400">{{ erroEscolha }}</p>
       </div>
     </div>
@@ -400,18 +424,19 @@
                 <!-- Label + descrição -->
                 <div class="flex-1 min-w-0">
                   <p class="text-sm font-bold text-white">{{ attr.label }}</p>
-                  <p class="text-[0.62rem] text-zinc-600 leading-snug truncate">{{ attr.descricao }}</p>
+                  <!-- Em 375px sobram ~80px para esta coluna e a descrição vira "Carisma e i…"; some no celular. -->
+                  <p class="hidden text-[0.62rem] text-zinc-600 leading-snug truncate sm:block">{{ attr.descricao }}</p>
                 </div>
 
                 <!-- Controles (base) -->
                 <div class="flex items-center gap-1.5">
                   <button type="button" @click="decrementarAtributo(attr.key)"
                     :disabled="atributos[attr.key] <= 0"
-                    class="h-7 w-7 rounded-lg border border-white/10 text-zinc-400 transition-colors hover:border-white/20 hover:text-white disabled:opacity-30 text-lg leading-none">−</button>
+                    class="h-9 w-9 rounded-lg border border-white/10 text-zinc-400 transition-colors hover:border-white/20 hover:text-white disabled:opacity-30 text-lg leading-none sm:h-7 sm:w-7">−</button>
                   <span class="w-7 text-center text-sm font-bold" :class="attr.color">{{ atributos[attr.key] }}</span>
                   <button type="button" @click="incrementarAtributo(attr.key)"
                     :disabled="pontosRestantes <= 0"
-                    class="h-7 w-7 rounded-lg border border-white/10 text-zinc-400 transition-colors hover:border-white/20 hover:text-white disabled:opacity-30 text-lg leading-none">+</button>
+                    class="h-9 w-9 rounded-lg border border-white/10 text-zinc-400 transition-colors hover:border-white/20 hover:text-white disabled:opacity-30 text-lg leading-none sm:h-7 sm:w-7">+</button>
                 </div>
 
                 <!-- Bônus do passado -->
@@ -465,7 +490,7 @@
           <button v-for="deus in deuses" :key="deus.id" type="button"
             class="onboarding-card group relative overflow-hidden rounded-3xl border text-left transition-all duration-300"
             :class="hover === deus.id ? 'border-amber-500/50 bg-amber-500/10 shadow-[0_0_40px_rgb(245_158_11/0.12)]' : 'border-white/[0.06] bg-white/[0.02] hover:border-white/15'"
-            @mouseenter="hover = deus.id" @mouseleave="hover = null" @click="confirmarDeus(Number(deus.id))">
+            @mouseenter="hover = deus.id" @mouseleave="hover = null" @click="selecionarDeus(deus)">
             <!--
               A imagem ocupa o card inteiro e o texto flutua sobre ela. Antes a
               faixa de imagem tinha altura fixa e o texto vinha abaixo, em bloco
@@ -623,9 +648,11 @@
                 :class="jaSelecionado(item.id) ? 'opacity-40 cursor-not-allowed' : (item.peso ?? 0) + pesoUsado > pesoMaximo && !jaSelecionado(item.id) ? 'opacity-40 cursor-not-allowed' : ''"
                 :disabled="jaSelecionado(item.id) || ((!jaSelecionado(item.id)) && (item.peso ?? 0) + pesoUsado > pesoMaximo)"
                 @click="adicionarEquipamento(item)">
-                <div>
+                <!-- min-w-0 deixa a descrição encolher; sem isso o truncate não
+                     age e o peso é empurrado para fora do card em 375px. -->
+                <div class="min-w-0 flex-1">
                   <p class="font-medium text-zinc-200">{{ item.nome }}</p>
-                  <p v-if="item.descricao_equipamento" class="text-xs text-zinc-600 truncate max-w-xs">{{ item.descricao_equipamento }}</p>
+                  <p v-if="item.descricao_equipamento" class="text-xs text-zinc-600 truncate">{{ item.descricao_equipamento }}</p>
                 </div>
                 <div class="flex items-center gap-3 shrink-0 ml-3">
                   <span class="text-xs text-zinc-500">{{ item.peso != null ? `${item.peso} kg` : '— kg' }}</span>
@@ -766,6 +793,7 @@ const etapaMaxima     = ref<1|2|3|4|5|6>(1)
 const carregando      = ref(true)
 const showGearMenu             = ref(false)
 const confirmando              = ref(false)
+const deusSelecionado          = ref<GodApi | null>(null)
 const selecionandoSkillInicial = ref(false)
 const skillSelecionadaTemp     = ref<string | null>(null)
 const salvando                 = ref(false)
@@ -873,10 +901,10 @@ async function carregar() {
     if (!characterId) { router.replace({ name: 'login' }); return }
 
     const [racasData, classesData, passadosData, deusesData, equipsData, personagemData] = await Promise.all([
-      listarRacasPublicas(),
+      listarRacasPublicas(characterId),
       listarClasses(),
-      listarPassados(),
-      listPublicGods(),
+      listarPassados(characterId),
+      listPublicGods(characterId),
       listarArmasPublicas(),
       getCharacterById(characterId),
     ])
@@ -981,6 +1009,12 @@ function selecionarPassado(passado: PassadoApi) {
   passadoSelecionado.value = passado
   confirmando.value        = true
   erroEscolha.value        = ''
+}
+
+function selecionarDeus(deus: GodApi) {
+  deusSelecionado.value = deus
+  confirmando.value     = true
+  erroEscolha.value     = ''
 }
 
 // ── Navegação entre etapas ────────────────────────────────────────────────────
@@ -1139,6 +1173,7 @@ async function confirmarDeus(deusId: number | null) {
   salvando.value = true; erroEscolha.value = ''
   try {
     await escolherDeus((personagem.value as any).characterId, deusId)
+    confirmando.value = false
     etapa.value = 6
     if (etapaMaxima.value < 6) etapaMaxima.value = 6
   } catch (err: any) {

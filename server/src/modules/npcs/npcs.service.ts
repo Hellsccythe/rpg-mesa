@@ -1,9 +1,10 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/sequelize";
 import { QueryTypes } from "sequelize";
 import { Sequelize } from "sequelize-typescript";
 import type { UsuarioAutenticado } from "../../common/cls/usuario-autenticado.interface.js";
 import { ArmazenamentoArquivosService } from "../../common/storage/armazenamento-arquivos.service.js";
+import { CampanhasService } from "../campanhas/campanhas.service.js";
 import { PersonagemModel } from "../personagem/models/personagem.model.js";
 import { garantirAcessoAoPersonagem } from "../personagem/personagem-acesso.js";
 import { NpcModel } from "./models/npc.model.js";
@@ -77,6 +78,7 @@ const SQL_ACESSOS_DO_NPC = `
    AND acesso.npc_id = :npcId
   WHERE characters.deleted_at IS NULL
     AND characters.raca_id IS NOT NULL
+    AND characters.campaign_id = :campanhaId
   ORDER BY characters.name
 `;
 
@@ -91,14 +93,16 @@ export class NpcsService {
     private readonly modeloPersonagem: typeof PersonagemModel,
     private readonly armazenamentoArquivos: ArmazenamentoArquivosService,
     private readonly sequelize: Sequelize,
+    private readonly servicoCampanhas: CampanhasService,
   ) {}
 
   // ── Leitura ───────────────────────────────────────────────────────────────
 
   async listarParaMestre(): Promise<NpcApi[]> {
+    const campanhaId = await this.servicoCampanhas.resolverCampanhaAtiva();
     const linhas = await this.sequelize.query<LinhaDeNpc>(
-      `${SQL_LISTAR_NPCS} ORDER BY npcs.nome`,
-      { type: QueryTypes.SELECT },
+      `${SQL_LISTAR_NPCS} AND npcs.campaign_id = :campanhaId ORDER BY npcs.nome`,
+      { replacements: { campanhaId }, type: QueryTypes.SELECT },
     );
     return linhas.map((linha) => this.converterLinha(linha));
   }
@@ -134,6 +138,7 @@ export class NpcsService {
 
   async criar(dados: CriarNpcDto): Promise<NpcApi> {
     const criado = await this.modeloNpc.create({
+      campaignId: await this.servicoCampanhas.resolverCampanhaAtiva(),
       nome: dados.nome.trim(),
       racaId: dados.raca_id ?? null,
       descricao: dados.descricao?.trim() || null,
@@ -170,21 +175,25 @@ export class NpcsService {
 
   // ── Acesso dos personagens ────────────────────────────────────────────────
 
+  /** Só os personagens do mundo do NPC: liberar um NPC de um mundo para alguém de outro não faz sentido. */
   async listarAcessos(npcId: number): Promise<AcessoDePersonagem[]> {
-    await this.garantirNpcExistente(npcId);
+    const npc = await this.garantirNpcExistente(npcId);
 
     return this.sequelize.query<AcessoDePersonagem>(SQL_ACESSOS_DO_NPC, {
-      replacements: { npcId },
+      replacements: { npcId, campanhaId: npc.campaignId },
       type: QueryTypes.SELECT,
     });
   }
 
   async concederAcesso(npcId: number, personagemId: number): Promise<void> {
-    await this.garantirNpcExistente(npcId);
+    const npc = await this.garantirNpcExistente(npcId);
 
     const personagem = await this.modeloPersonagem.findByPk(personagemId);
     if (!personagem) {
       throw new NotFoundException("Personagem não encontrado.");
+    }
+    if (personagem.campaignId !== npc.campaignId) {
+      throw new BadRequestException("O personagem é de outro mundo.");
     }
 
     const jaTem = await this.modeloAcesso.findOne({
@@ -208,11 +217,12 @@ export class NpcsService {
 
   // ── Apoio ─────────────────────────────────────────────────────────────────
 
-  private async garantirNpcExistente(id: number): Promise<void> {
+  private async garantirNpcExistente(id: number): Promise<NpcModel> {
     const npc = await this.modeloNpc.findByPk(id);
     if (!npc) {
       throw new NotFoundException("NPC não encontrado.");
     }
+    return npc;
   }
 
   private async buscarOuFalhar(id: number): Promise<NpcApi> {

@@ -82,6 +82,7 @@
 
             <!-- Info -->
             <div class="p-6 worlds-card-body">
+              <p class="mb-1 text-[0.65rem] font-bold uppercase tracking-[0.25em] text-amber-400/80">Mundo {{ campanha.numero }}</p>
               <h3 class="text-xl font-bold worlds-card-name mb-2 line-clamp-1">
                 {{ campanha.name }}
               </h3>

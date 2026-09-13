@@ -38,6 +38,13 @@ const router = createRouter({
       meta: { requiresAuth: false },
     },
     {
+      // A página pública de um mundo: o slug diz de qual mundo são os deuses.
+      path: '/mundo/:slug/deuses',
+      name: 'deuses-do-mundo',
+      component: () => import('@/views/DeusesView.vue'),
+      meta: { requiresAuth: false },
+    },
+    {
       path: '/cidade',
       name: 'cidade',
       component: () => import('@/views/CidadeView.vue'),
@@ -167,6 +174,12 @@ const router = createRouter({
       path: '/master/passados',
       name: 'master-passados',
       component: () => import('@/views/MasterPassadosView.vue'),
+      meta: { requiresAuth: true, requiresMaster: true },
+    },
+    {
+      path: '/master/livros',
+      name: 'master-livros',
+      component: () => import('@/views/MasterLivrosView.vue'),
       meta: { requiresAuth: true, requiresMaster: true },
     },
     {

@@ -74,11 +74,13 @@
               :aria-label="`Abrir ${nota.titulo}`"
             >
               <div class="note-card-inner">
-                <div class="note-icon">{{ nota.tipo === 'static' ? '📖' : '📜' }}</div>
+                <!-- Capa personalizada vira miniatura; sem ela, o ícone do formato. -->
+                <img v-if="nota.capaUrl" :src="nota.capaUrl" alt="" class="note-capa" />
+                <div v-else class="note-icon">{{ ICONE_DO_FORMATO[nota.formato] }}</div>
                 <div class="note-card-body">
                   <h3 class="note-card-title">{{ nota.titulo }}</h3>
                   <p v-if="nota.subtitulo" class="note-card-sub">{{ nota.subtitulo }}</p>
-                  <p class="note-card-meta">{{ nota.totalPaginas }} páginas</p>
+                  <p class="note-card-meta">{{ nota.formato !== 'livro' ? 'uma folha' : `${nota.totalPaginas} ${nota.totalPaginas === 1 ? 'página' : 'páginas'}` }}</p>
                 </div>
                 <svg class="note-card-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                   <polyline points="9 18 15 12 9 6" />
@@ -95,173 +97,46 @@
       </main>
 
       <!-- ═══════════════════════════════ LEITOR ═══════════════════════════════ -->
-      <main
-        v-else
-        class="flex-1 flex flex-col items-center justify-center py-4 px-2 gap-4"
-        @touchstart.passive="onTouchStart"
-        @touchend.passive="onTouchEnd"
-      >
-        <!-- ─── SPREAD (desktop) ─── -->
-        <div
-          class="book-wrapper hidden sm:block"
-          ref="bookWrapperRef"
-          :style="{ transform: `scale(${zoomLevel})`, transformOrigin: 'top center' }"
-        >
-          <div class="book-scene">
-
-            <!-- Idle -->
-            <template v-if="flipState === 'idle'">
-              <div class="page-slot page-slot--left">
-                <BookPageContent :page="currentLeft" :note-titulo="notaSelecionada?.titulo" @jump-to-page="jumpToSpread" />
-              </div>
-              <div class="book-spine" />
-              <div class="page-slot page-slot--right">
-                <BookPageContent :page="currentRight" :note-titulo="notaSelecionada?.titulo" @jump-to-page="jumpToSpread" />
-              </div>
-            </template>
-
-            <!-- Virando para frente -->
-            <template v-else-if="flipDir === 'forward'">
-              <div class="page-slot page-slot--left" style="z-index:1">
-                <BookPageContent :page="pendingLeft" :note-titulo="notaSelecionada?.titulo" @jump-to-page="jumpToSpread" />
-              </div>
-              <div class="book-spine" style="z-index:1" />
-              <div class="page-slot page-slot--right" style="z-index:1">
-                <BookPageContent :page="pendingRight" :note-titulo="notaSelecionada?.titulo" @jump-to-page="jumpToSpread" />
-              </div>
-              <div class="page-slot page-slot--left" style="z-index:2">
-                <BookPageContent :page="currentLeft" :note-titulo="notaSelecionada?.titulo" @jump-to-page="jumpToSpread" />
-              </div>
-              <div
-                class="flip-card flip-fwd"
-                :class="{ 'is-flipping': flipAnimating }"
-                style="z-index:3"
-                @transitionend="onFlipTransitionEnd"
-              >
-                <div class="flip-face flip-face--front">
-                  <BookPageContent :page="currentRight" :note-titulo="notaSelecionada?.titulo" @jump-to-page="jumpToSpread" />
-                </div>
-                <div class="flip-face flip-face--back">
-                  <BookPageContent :page="pendingLeft" :note-titulo="notaSelecionada?.titulo" @jump-to-page="jumpToSpread" />
-                </div>
-              </div>
-            </template>
-
-            <!-- Virando para trás -->
-            <template v-else>
-              <div class="page-slot page-slot--left" style="z-index:1">
-                <BookPageContent :page="pendingLeft" :note-titulo="notaSelecionada?.titulo" @jump-to-page="jumpToSpread" />
-              </div>
-              <div class="book-spine" style="z-index:1" />
-              <div class="page-slot page-slot--right" style="z-index:1">
-                <BookPageContent :page="pendingRight" :note-titulo="notaSelecionada?.titulo" @jump-to-page="jumpToSpread" />
-              </div>
-              <div class="page-slot page-slot--right" style="z-index:2">
-                <BookPageContent :page="currentRight" :note-titulo="notaSelecionada?.titulo" @jump-to-page="jumpToSpread" />
-              </div>
-              <div
-                class="flip-card flip-bwd"
-                :class="{ 'is-flipping': flipAnimating }"
-                style="z-index:3"
-                @transitionend="onFlipTransitionEnd"
-              >
-                <div class="flip-face flip-face--front">
-                  <BookPageContent :page="currentLeft" :note-titulo="notaSelecionada?.titulo" @jump-to-page="jumpToSpread" />
-                </div>
-                <div class="flip-face flip-face--back">
-                  <BookPageContent :page="pendingRight" :note-titulo="notaSelecionada?.titulo" @jump-to-page="jumpToSpread" />
-                </div>
-              </div>
-            </template>
-
-          </div>
-        </div>
-
-        <!-- ─── PÁGINA ÚNICA (mobile) ─── -->
-        <div class="mobile-book block sm:hidden">
-          <Transition :name="mobileTransitionName" mode="out-in">
-            <div :key="mobilePageIdx" class="mobile-page">
-              <BookPageContent
-                :page="paginasAtuais[mobilePageIdx]"
-                :note-titulo="notaSelecionada?.titulo"
-                @jump-to-page="jumpMobile"
-              />
-            </div>
-          </Transition>
-        </div>
-
-        <!-- Controles de navegação -->
-        <div class="nav-bar flex items-center gap-4">
-          <button
-            class="nav-btn"
-            :disabled="isAtStart"
-            @click="goBack"
-            aria-label="Página anterior"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-          </button>
-
-          <div class="spread-dots">
-            <button
-              v-for="i in totalSpreads"
-              :key="i"
-              class="spread-dot"
-              :class="{ 'spread-dot--active': (i - 1) === activeSpreadForDot }"
-              @click="jumpToSpread(i - 1)"
-              :aria-label="`Ir para spread ${i}`"
-            />
-          </div>
-
-          <button
-            class="nav-btn"
-            :disabled="isAtEnd"
-            @click="goForward"
-            aria-label="Próxima página"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
-          </button>
-
-          <!-- Zoom (desktop) -->
-          <div class="zoom-controls hidden sm:flex items-center gap-1 ml-2">
-            <button
-              class="zoom-btn"
-              :disabled="zoomLevel <= ZOOM_MIN"
-              @click="zoomOut"
-              aria-label="Reduzir zoom"
-              title="Reduzir"
-            >−</button>
-            <span class="zoom-label">{{ Math.round(zoomLevel * 100) }}%</span>
-            <button
-              class="zoom-btn"
-              :disabled="zoomLevel >= ZOOM_MAX"
-              @click="zoomIn"
-              aria-label="Aumentar zoom"
-              title="Aumentar"
-            >+</button>
-          </div>
-        </div>
-
-        <p class="kbd-hint hidden sm:block text-xs">
-          Use as setas ← → do teclado para virar as páginas
-        </p>
+      <main v-else class="flex-1 flex flex-col items-center justify-center py-4 px-2">
+        <PergaminhoLeitor
+          v-if="notaSelecionada && notaSelecionada.formato !== 'livro'"
+          :key="notaSelecionada.id"
+          :paginas="paginasAtuais"
+          :titulo="notaSelecionada.titulo"
+          :subtitulo="notaSelecionada.subtitulo"
+          :formato="notaSelecionada.formato"
+        />
+        <LivroLeitor
+          v-else-if="notaSelecionada"
+          :key="notaSelecionada.id"
+          :paginas="paginasAtuais"
+          :titulo="notaSelecionada.titulo"
+          :subtitulo="notaSelecionada.subtitulo"
+          :note-titulo="notaSelecionada.titulo"
+          :imagem-da-capa="notaSelecionada.capaUrl ?? undefined"
+          :imagem-da-contracapa="notaSelecionada.contracapaUrl ?? undefined"
+          @fechar="voltarParaPrateleira"
+        />
       </main>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import HamburgerDrawerMenu from '@/components/HamburgerDrawerMenu.vue'
-import BookPageContent from '@/components/book/BookPageContent.vue'
+import LivroLeitor from '@/components/book/LivroLeitor.vue'
+import PergaminhoLeitor from '@/components/book/PergaminhoLeitor.vue'
 import { useAuthStore } from '@/stores/auth'
-import { PANTEAO_PAGES } from '@/data/panteao'
-import { listLoreNotes } from '@/lib/api/lore-notes.api'
+import { listPublicGods } from '@/lib/api/gods.api'
+import { montarLivroDoPanteao } from '@/lib/livro/panteao'
+import { useMundoStore } from '@/stores/mundo'
+import type { GodApi } from '@/types/api'
+import { listLoreNotes, ICONE_DO_FORMATO } from '@/lib/api/lore-notes.api'
 import type { LoreNoteApi } from '@/lib/api/lore-notes.api'
+import { useCharactersStore } from '@/stores/characters'
+import type { NotaDeAventura } from '@/lib/api/personagens.api'
 import type { BookPage, LoreNoteItem } from '@/types/book'
 
 function notaApiParaPaginas(nota: LoreNoteApi): BookPage[] {
@@ -278,8 +153,6 @@ function notaApiParaPaginas(nota: LoreNoteApi): BookPage[] {
 
 // ── State ────────────────────────────────────────────────────────────────────
 type ViewMode  = 'shelf' | 'book'
-type FlipState = 'idle'  | 'flipping'
-type FlipDir   = 'forward' | 'back'
 
 const viewMode        = ref<ViewMode>('shelf')
 const loadingNotas    = ref(false)
@@ -287,62 +160,69 @@ const notasDinamicas  = ref<LoreNoteApi[]>([])
 const notaSelecionada = ref<LoreNoteItem | null>(null)
 const paginasAtuais   = ref<BookPage[]>([])
 
-// ── Zoom ─────────────────────────────────────────────────────────────────────
-const ZOOM_MIN  = 0.7
-const ZOOM_MAX  = 1.4
-const ZOOM_STEP = 0.1
-const zoomLevel = ref(1.0)
-function zoomIn()  { zoomLevel.value = Math.min(ZOOM_MAX, +(zoomLevel.value + ZOOM_STEP).toFixed(1)) }
-function zoomOut() { zoomLevel.value = Math.max(ZOOM_MIN, +(zoomLevel.value - ZOOM_STEP).toFixed(1)) }
-
-const currentSpreadIdx  = ref(0)
-const flipState         = ref<FlipState>('idle')
-const flipDir           = ref<FlipDir>('forward')
-const flipAnimating     = ref(false)
-const pendingSpreadIdx  = ref(0)
-const mobilePageIdx     = ref(0)
-const mobileTransitionName = ref('page-slide-fwd')
 const showSettingsMenu  = ref(false)
 
-// ── Computed ─────────────────────────────────────────────────────────────────
-const totalPaginas  = computed(() => paginasAtuais.value.length)
-const totalSpreads  = computed(() => Math.ceil(totalPaginas.value / 2))
-
-const currentLeft  = computed(() => paginasAtuais.value[currentSpreadIdx.value * 2])
-const currentRight = computed(() => paginasAtuais.value[currentSpreadIdx.value * 2 + 1])
-const pendingLeft  = computed(() => paginasAtuais.value[pendingSpreadIdx.value * 2])
-const pendingRight = computed(() => paginasAtuais.value[pendingSpreadIdx.value * 2 + 1])
-
-const isAtStart = computed(() =>
-  currentSpreadIdx.value === 0 && mobilePageIdx.value === 0
-)
-const isAtEnd = computed(() =>
-  currentSpreadIdx.value === totalSpreads.value - 1 &&
-  mobilePageIdx.value === totalPaginas.value - 1
-)
-const activeSpreadForDot = computed(() =>
-  window.innerWidth < 640
-    ? Math.floor(mobilePageIdx.value / 2)
-    : currentSpreadIdx.value
-)
-
 // ── Prateleira: montar lista de notas ────────────────────────────────────────
-const NOTA_PANTEAO: LoreNoteItem = {
-  id: 'panteao',
-  titulo: 'Panteão de Elyra',
-  subtitulo: 'Conhecimento Comum dos Mortais',
-  tipo: 'static',
-  totalPaginas: PANTEAO_PAGES.length,
-  pages: PANTEAO_PAGES,
+// O Panteão é gerado dos deuses do mundo do personagem (lib/livro/panteao.ts).
+// Mundo sem deuses, prateleira sem Panteão.
+const mundoStore = useMundoStore()
+const deusesDoMundo = ref<GodApi[]>([])
+const nomeDoMundo = ref('')
+
+const NOTA_PANTEAO = computed<LoreNoteItem | null>(() => {
+  if (deusesDoMundo.value.length === 0) return null
+  const livro = montarLivroDoPanteao(deusesDoMundo.value, nomeDoMundo.value || 'este mundo')
+  return {
+    id: 'panteao',
+    titulo: `Panteão de ${nomeDoMundo.value || 'este mundo'}`,
+    subtitulo: 'Conhecimento Comum dos Mortais',
+    tipo: 'static',
+    formato: 'livro',
+    totalPaginas: livro.paginas.length,
+    pages: livro.paginas,
+  }
+})
+
+// ── Diário de aventura ───────────────────────────────────────────────────────
+// As notas que o mestre escreve sobre o personagem (data.adventureNotes). O
+// dashboard mostra as três últimas; o livro tem todas, uma por página. A API
+// do jogador já vem sem as ocultas; o mestre vê todas, com o aviso.
+const notasDeAventura = ref<NotaDeAventura[]>([])
+
+function formatarDataDaNota(iso?: string): string {
+  if (!iso) return ''
+  const data = new Date(iso)
+  return Number.isNaN(data.getTime()) ? '' : data.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
 }
 
+const paginasDoDiario = computed<BookPage[]>(() =>
+  notasDeAventura.value.map((nota, idx) => ({
+    pageNumber: idx + 1,
+    type: 'text' as const,
+    gods: [],
+    textContent: nota.text,
+    noteTitle: idx === 0 ? 'Diário de Aventura' : undefined,
+    noteSubtitle: [formatarDataDaNota(nota.addedAt), nota.oculta ? 'oculta do jogador' : ''].filter(Boolean).join(' · ') || undefined,
+  })),
+)
+
+const NOTA_DIARIO = computed<LoreNoteItem | null>(() =>
+  paginasDoDiario.value.length
+    ? { id: 'diario', titulo: 'Diário de Aventura', subtitulo: 'O que o mestre anotou sobre você', tipo: 'static', formato: 'livro', totalPaginas: paginasDoDiario.value.length, pages: paginasDoDiario.value }
+    : null,
+)
+
 const todasAsNotas = computed<LoreNoteItem[]>(() => [
-  NOTA_PANTEAO,
+  ...(NOTA_DIARIO.value ? [NOTA_DIARIO.value] : []),
+  ...(NOTA_PANTEAO.value ? [NOTA_PANTEAO.value] : []),
   ...notasDinamicas.value.map<LoreNoteItem>((n) => ({
     id: String(n.id),
     titulo: n.title,
     subtitulo: n.subtitle ?? undefined,
     tipo: 'dynamic',
+    formato: n.formato ?? 'livro',
+    capaUrl: n.capa_url,
+    contracapaUrl: n.contracapa_url,
     totalPaginas: n.content.split(/\n---+\n/).length,
     apiId: n.id,
     rawContent: n.content,
@@ -360,95 +240,12 @@ function abrirNota(nota: LoreNoteItem) {
     paginasAtuais.value = apiNota ? notaApiParaPaginas(apiNota) : []
   }
 
-  currentSpreadIdx.value = 0
-  mobilePageIdx.value = 0
-  flipState.value = 'idle'
-  flipAnimating.value = false
   viewMode.value = 'book'
 }
 
 function voltarParaPrateleira() {
   viewMode.value = 'shelf'
   notaSelecionada.value = null
-}
-
-// ── Navegação desktop ─────────────────────────────────────────────────────────
-async function goForward() {
-  if (window.innerWidth < 640) {
-    if (mobilePageIdx.value < totalPaginas.value - 1) {
-      mobileTransitionName.value = 'page-slide-fwd'
-      mobilePageIdx.value++
-    }
-    return
-  }
-  if (flipState.value !== 'idle' || currentSpreadIdx.value >= totalSpreads.value - 1) return
-  pendingSpreadIdx.value = currentSpreadIdx.value + 1
-  flipDir.value = 'forward'
-  flipState.value = 'flipping'
-  flipAnimating.value = false
-  await nextTick()
-  requestAnimationFrame(() => requestAnimationFrame(() => { flipAnimating.value = true }))
-}
-
-async function goBack() {
-  if (window.innerWidth < 640) {
-    if (mobilePageIdx.value > 0) {
-      mobileTransitionName.value = 'page-slide-bwd'
-      mobilePageIdx.value--
-    }
-    return
-  }
-  if (flipState.value !== 'idle' || currentSpreadIdx.value <= 0) return
-  pendingSpreadIdx.value = currentSpreadIdx.value - 1
-  flipDir.value = 'back'
-  flipState.value = 'flipping'
-  flipAnimating.value = false
-  await nextTick()
-  requestAnimationFrame(() => requestAnimationFrame(() => { flipAnimating.value = true }))
-}
-
-function onFlipTransitionEnd(e: TransitionEvent) {
-  if (e.propertyName !== 'transform') return
-  currentSpreadIdx.value = pendingSpreadIdx.value
-  mobilePageIdx.value = currentSpreadIdx.value * 2
-  flipState.value = 'idle'
-  flipAnimating.value = false
-}
-
-function jumpToSpread(spreadIdx: number) {
-  if (flipState.value !== 'idle') return
-  currentSpreadIdx.value = Math.max(0, Math.min(totalSpreads.value - 1, spreadIdx))
-  mobilePageIdx.value = currentSpreadIdx.value * 2
-}
-
-function jumpMobile(spreadIdx: number) {
-  const page = Math.max(0, Math.min(totalPaginas.value - 1, spreadIdx * 2))
-  mobileTransitionName.value = page > mobilePageIdx.value ? 'page-slide-fwd' : 'page-slide-bwd'
-  mobilePageIdx.value = page
-}
-
-// ── Swipe ────────────────────────────────────────────────────────────────────
-let touchStartX = 0, touchStartY = 0
-
-function onTouchStart(e: TouchEvent) {
-  touchStartX = e.changedTouches[0].clientX
-  touchStartY = e.changedTouches[0].clientY
-}
-
-function onTouchEnd(e: TouchEvent) {
-  const dx = e.changedTouches[0].clientX - touchStartX
-  const dy = e.changedTouches[0].clientY - touchStartY
-  if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 48) {
-    dx < 0 ? goForward() : goBack()
-  }
-}
-
-// ── Teclado ──────────────────────────────────────────────────────────────────
-function handleKeyDown(e: KeyboardEvent) {
-  if (viewMode.value !== 'book') return
-  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); goForward() }
-  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   { e.preventDefault(); goBack() }
-  if (e.key === 'Escape') voltarParaPrateleira()
 }
 
 // ── Navegação da app ──────────────────────────────────────────────────────────
@@ -499,13 +296,27 @@ async function logout() {
 
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
 onMounted(async () => {
-  window.addEventListener('keydown', handleKeyDown)
   window.addEventListener('click', () => { showSettingsMenu.value = false })
 
   loadingNotas.value = true
   try {
     const characterId = Number(route.query.characterId ?? authStore.idPersonagemAtivo ?? 0) || undefined
-    notasDinamicas.value = await listLoreNotes(characterId)
+    const [lore, personagem, deuses] = await Promise.all([
+      listLoreNotes(characterId),
+      characterId ? useCharactersStore().fetchCharacterById(characterId).catch(() => null) : Promise.resolve(null),
+      listPublicGods(characterId).catch(() => [] as GodApi[]),
+    ])
+    notasDinamicas.value = lore
+    deusesDoMundo.value = deuses
+    const notas = (personagem as any)?.data?.adventureNotes
+    notasDeAventura.value = Array.isArray(notas) ? notas : []
+    // O nome do mundo para a capa do Panteão: o do personagem, senão o mundo ativo.
+    const campanhaId = (personagem as any)?.campaignId
+    if (campanhaId) {
+      await mundoStore.carregarCampanhas(authStore.eMestre).catch(() => null)
+      nomeDoMundo.value = mundoStore.campanhas.find((campanha) => campanha.id === Number(campanhaId))?.name ?? ''
+    }
+    if (!nomeDoMundo.value) nomeDoMundo.value = mundoStore.mundo?.name ?? ''
   } catch {
     // sem notas dinâmicas, continua com estáticas
   } finally {
@@ -513,9 +324,6 @@ onMounted(async () => {
   }
 })
 
-onBeforeUnmount(() => {
-  window.removeEventListener('keydown', handleKeyDown)
-})
 </script>
 
 <style scoped>
@@ -587,6 +395,14 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
   line-height: 1;
 }
+.note-capa {
+  width: 2.4rem;
+  height: 3.3rem;
+  flex-shrink: 0;
+  object-fit: cover;
+  border-radius: 2px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+}
 
 .note-card-body {
   flex: 1;
@@ -635,240 +451,4 @@ onBeforeUnmount(() => {
   transform: translateX(3px);
 }
 
-/* ── Livro ── */
-.book-wrapper {
-  width: min(940px, 94vw);
-  filter: drop-shadow(0 28px 56px rgba(0,0,0,0.75));
-}
-
-.book-scene {
-  position: relative;
-  display: flex;
-  width: 100%;
-  height: min(calc(100vh - 10rem), 820px);
-  perspective: 1800px;
-  perspective-origin: 50% 38%;
-  background: #1a0e06;
-  border-radius: 3px 3px 2px 2px;
-  overflow: hidden;
-}
-
-/* ── Slots de página ── */
-.page-slot {
-  position: absolute;
-  top: 0;
-  width: calc(50% - 3px);
-  height: 100%;
-  overflow: hidden;
-}
-
-.page-slot--left  { left: 0; }
-.page-slot--right { right: 0; }
-
-.page-slot--left::after,
-.page-slot--right::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  width: 32px;
-  height: 100%;
-  pointer-events: none;
-  z-index: 10;
-}
-
-.page-slot--left::after {
-  right: 0;
-  background: linear-gradient(to right, transparent, rgba(0,0,0,0.15));
-}
-
-.page-slot--right::before {
-  left: 0;
-  background: linear-gradient(to left, transparent, rgba(0,0,0,0.15));
-}
-
-/* ── Lombada ── */
-.book-spine {
-  position: absolute;
-  left: calc(50% - 3px);
-  width: 6px;
-  height: 100%;
-  background: linear-gradient(to right, #080402, #1e1006, #2a1a0a, #1e1006, #080402);
-  z-index: 20;
-  flex-shrink: 0;
-}
-
-/* ── Flip card ── */
-.flip-card {
-  position: absolute;
-  top: 0;
-  height: 100%;
-  width: calc(50% - 3px);
-  transform-style: preserve-3d;
-  transition: transform 860ms cubic-bezier(0.645, 0.045, 0.355, 1.000);
-  will-change: transform;
-}
-
-.flip-fwd {
-  right: 0;
-  transform-origin: left center;
-}
-
-.flip-fwd.is-flipping { transform: rotateY(-180deg); }
-
-.flip-bwd {
-  left: 0;
-  transform-origin: right center;
-}
-
-.flip-bwd.is-flipping { transform: rotateY(180deg); }
-
-/* Faces do cartão */
-.flip-face {
-  position: absolute;
-  inset: 0;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  overflow: hidden;
-}
-
-.flip-face--back { transform: rotateY(180deg); }
-
-/* Sombra dinâmica durante o flip */
-.flip-fwd .flip-face--front { box-shadow: -4px 0 12px rgba(0,0,0,0.2); }
-.flip-fwd.is-flipping .flip-face--front { box-shadow: -12px 0 28px rgba(0,0,0,0.45); }
-.flip-bwd .flip-face--front { box-shadow: 4px 0 12px rgba(0,0,0,0.2); }
-.flip-bwd.is-flipping .flip-face--front { box-shadow: 12px 0 28px rgba(0,0,0,0.45); }
-
-/* ── Mobile ── */
-.mobile-book {
-  width: min(420px, 96vw);
-  height: min(calc(100vh - 9rem), 680px);
-  filter: drop-shadow(0 16px 32px rgba(0,0,0,0.6));
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.mobile-page { width: 100%; height: 100%; }
-
-/* Transições mobile */
-.page-slide-fwd-enter-active,
-.page-slide-fwd-leave-active,
-.page-slide-bwd-enter-active,
-.page-slide-bwd-leave-active {
-  transition: all 280ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.page-slide-fwd-enter-from { opacity: 0; transform: translateX(36px); }
-.page-slide-fwd-leave-to   { opacity: 0; transform: translateX(-36px); }
-.page-slide-bwd-enter-from { opacity: 0; transform: translateX(-36px); }
-.page-slide-bwd-leave-to   { opacity: 0; transform: translateX(36px); }
-
-/* ── Nav bar ── */
-.nav-bar {
-  user-select: none;
-  position: relative;
-  z-index: 30;
-  background: rgba(10, 15, 28, 0.65);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(200, 160, 80, 0.18);
-  border-radius: 999px;
-  padding: 6px 14px;
-}
-
-.nav-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  border: 1px solid #c8a05040;
-  background: #1a1408;
-  color: #c8a050;
-  cursor: pointer;
-  transition: background 0.2s, border-color 0.2s, opacity 0.2s;
-}
-
-.nav-btn:hover:not(:disabled) {
-  background: #2a2010;
-  border-color: #c8a05080;
-}
-
-.nav-btn:disabled { opacity: 0.3; cursor: default; }
-
-.spread-dots { display: flex; gap: 5px; align-items: center; }
-
-.spread-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #3a2a10;
-  border: 1px solid #c8a05025;
-  cursor: pointer;
-  transition: all 0.2s;
-  padding: 0;
-}
-
-.spread-dot--active {
-  background: #c8a050;
-  border-color: #c8a050;
-  width: 18px;
-  border-radius: 3px;
-}
-
-.spread-dot:hover:not(.spread-dot--active) { background: #6a5030; }
-
-/* ── Zoom ── */
-.zoom-controls {
-  border-left: 1px solid #c8a05020;
-  padding-left: 10px;
-  gap: 4px;
-}
-
-.zoom-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 6px;
-  border: 1px solid #c8a05040;
-  background: #1a1408;
-  color: #c8a050;
-  font-size: 1rem;
-  line-height: 1;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, opacity 0.15s;
-  user-select: none;
-}
-
-.zoom-btn:hover:not(:disabled) {
-  background: #2a2010;
-  border-color: #c8a05080;
-}
-
-.zoom-btn:disabled { opacity: 0.3; cursor: default; }
-
-.zoom-label {
-  font-family: 'Cinzel', serif;
-  font-size: 0.58rem;
-  color: #c8a050;
-  min-width: 34px;
-  text-align: center;
-  letter-spacing: 0.03em;
-}
-
-/* Reserva espaço vertical para a escala do livro */
-.book-wrapper {
-  transition: transform 0.2s ease;
-}
-
-.kbd-hint {
-  color: #4a3a20;
-  font-style: italic;
-  font-size: 0.62rem;
-  letter-spacing: 0.03em;
-  position: relative;
-  z-index: 30;
-}
 </style>

@@ -18,7 +18,7 @@ import { JwtAuthGuard } from "../../common/auth/jwt-auth.guard.js";
 import { MasterGuard } from "../../common/auth/master.guard.js";
 import { ArmazenamentoArquivosService } from "../../common/storage/armazenamento-arquivos.service.js";
 import { CharacterCreationService } from "./character-creation.service.js";
-import { RejeitarSolicitacaoDto, SubmeterSolicitacaoDto } from "./character-creation.dto.js";
+import { AprovarSolicitacaoDto, RejeitarSolicitacaoDto, SubmeterSolicitacaoDto } from "./character-creation.dto.js";
 
 const TAMANHO_MAXIMO_AVATAR_BYTES = 5 * 1024 * 1024;
 const TAMANHO_MAXIMO_DOCUMENTO_BYTES = 10 * 1024 * 1024;
@@ -122,8 +122,8 @@ export class CharacterCreationController {
 
   @UseGuards(JwtAuthGuard, MasterGuard)
   @Patch("admin/:id/aprovar")
-  aprovar(@Param("id", ParseIntPipe) id: number) {
-    return this.servicoCriacao.aprovar(id);
+  aprovar(@Param("id", ParseIntPipe) id: number, @Body() dados: AprovarSolicitacaoDto) {
+    return this.servicoCriacao.aprovar(id, dados.campaign_id);
   }
 
   @UseGuards(JwtAuthGuard, MasterGuard)

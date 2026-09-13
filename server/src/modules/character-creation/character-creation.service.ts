@@ -22,6 +22,12 @@ const MINIMO_LETRAS_HISTORIA = 1000;
 /** Formato antigo da senha: "<iv em hex>:<cifra em hex>", do AES-256-CBC. */
 const FORMATO_SENHA_LEGADO = /^[0-9a-f]{32}:[0-9a-f]+$/i;
 
+/**
+ * O que vai em password_hash numa solicitação de conta existente: a coluna
+ * é NOT NULL e nada é transferido na aprovação (a conta já tem senha).
+ */
+const MARCADOR_CONTA_EXISTENTE = "$conta-existente$";
+
 export type SolicitacaoApi = Record<string, unknown>;
 
 function contarLetras(texto: string): number {
@@ -52,6 +58,10 @@ const SQL_LISTAR_SOLICITACOES = `
     pedido.revisado_em,
     pedido.revisado_por,
     pedido.campaign_id,
+    pedido.usuario_id,
+    (pedido.usuario_id IS NOT NULL) AS conta_existente,
+    campaigns.numero AS mundo_numero,
+    campaigns.name AS mundo_nome,
     pedido.created_at,
     pedido.updated_at,
     CASE WHEN indole.id IS NULL THEN NULL ELSE
@@ -63,6 +73,7 @@ const SQL_LISTAR_SOLICITACOES = `
   FROM character_creation_requests AS pedido
   LEFT JOIN indole ON indole.id = pedido.indole_id
   LEFT JOIN genero ON genero.id = pedido.genero_id
+  LEFT JOIN campaigns ON campaigns.id = pedido.campaign_id
   WHERE pedido.deleted_at IS NULL
   ORDER BY pedido.created_at DESC
 `;
@@ -84,7 +95,19 @@ export class CharacterCreationService {
   // ── Submissão (pública) ───────────────────────────────────────────────────
 
   async submeter(dados: SubmeterSolicitacaoDto): Promise<{ success: boolean; id: number }> {
-    const email = dados.email.trim().toLowerCase();
+    const aparencia = dados.aparencia_fisica.trim();
+    const historiaTexto = dados.historia_texto?.trim() ?? "";
+    const historiaDoc = dados.historia_doc_url?.trim() ?? "";
+    this.validarAparenciaEHistoria(aparencia, historiaTexto, historiaDoc);
+
+    if (dados.conta_existente) {
+      return this.submeterComContaExistente(dados, aparencia, historiaTexto, historiaDoc);
+    }
+
+    const email = (dados.email ?? "").trim().toLowerCase();
+    if (!email) {
+      throw new BadRequestException("Informe o e-mail liberado pelo mestre.");
+    }
     await this.garantirEmailPreAutorizado(email);
 
     const username = dados.username.trim().toLowerCase();
@@ -96,11 +119,6 @@ export class CharacterCreationService {
     await this.garantirUsernameLivre(username);
 
     this.validarSenha(dados.password);
-
-    const aparencia = dados.aparencia_fisica.trim();
-    const historiaTexto = dados.historia_texto?.trim() ?? "";
-    const historiaDoc = dados.historia_doc_url?.trim() ?? "";
-    this.validarAparenciaEHistoria(aparencia, historiaTexto, historiaDoc);
 
     // bcrypt aqui, e nada de senha recuperável: o hash é transferido para
     // usuarios.password_hash quando o mestre aprovar.
@@ -120,6 +138,49 @@ export class CharacterCreationService {
         this.armazenamentoArquivos.normalizarParaArmazenamento(historiaDoc || null),
       status: "pendente",
       campaignId: dados.campaign_id ?? null,
+    });
+
+    return { success: true, id: criada.id };
+  }
+
+  /**
+   * A mesma conta pedindo um personagem em outro mundo (docs/MUNDOS.md). O
+   * jogador se identifica com o login e a senha que já tem — sem
+   * pré-registro, sem conta nova. O mundo é obrigatório: é nele que se
+   * conta a vaga (usuarios.limite_personagens_por_mundo).
+   */
+  private async submeterComContaExistente(
+    dados: SubmeterSolicitacaoDto,
+    aparencia: string,
+    historiaTexto: string,
+    historiaDoc: string,
+  ): Promise<{ success: boolean; id: number }> {
+    const usuario = await this.autenticarContaExistente(dados.username, dados.password);
+    const campanhaId = await this.resolverCampanha(dados.campaign_id);
+    await this.garantirVagaNoMundo(usuario, campanhaId);
+
+    const pendente = await this.modeloSolicitacao.findOne({
+      where: { usuarioId: usuario.id, campaignId: campanhaId, status: "pendente" },
+    });
+    if (pendente) {
+      throw new ConflictException("Você já tem uma solicitação aguardando o mestre neste mundo.");
+    }
+
+    const criada = await this.modeloSolicitacao.create({
+      email: usuario.realEmail,
+      username: usuario.username,
+      passwordHash: MARCADOR_CONTA_EXISTENTE,
+      usuarioId: usuario.id,
+      nome: dados.nome.trim(),
+      avatarUrl: this.armazenamentoArquivos.normalizarParaArmazenamento(dados.avatar_url ?? null),
+      indoleId: dados.indole_id ?? null,
+      generoId: dados.genero_id ?? null,
+      aparenciaFisica: aparencia,
+      historiaTexto: historiaTexto || null,
+      historiaDocUrl:
+        this.armazenamentoArquivos.normalizarParaArmazenamento(historiaDoc || null),
+      status: "pendente",
+      campaignId: campanhaId,
     });
 
     return { success: true, id: criada.id };
@@ -148,31 +209,44 @@ export class CharacterCreationService {
    * transferido como está — a versão anterior decifrava a senha em texto para
    * mandar ao Supabase Auth.
    */
-  async aprovar(id: number): Promise<{ success: boolean }> {
+  async aprovar(id: number, campanhaEscolhida?: number): Promise<{ success: boolean }> {
     const solicitacao = await this.buscarPendenteOuFalhar(id);
-
-    if (FORMATO_SENHA_LEGADO.test(solicitacao.passwordHash)) {
-      throw new BadRequestException(
-        "Esta solicitação guarda a senha no formato antigo, que não é mais aceito. " +
-          "Peça ao jogador para enviar a solicitação novamente.",
-      );
-    }
+    const campanhaId = await this.resolverCampanha(campanhaEscolhida ?? solicitacao.campaignId);
 
     // Só contra personagens: conferir contra as solicitações encontraria esta
-    // mesma, que está pendente por definição.
+    // mesma, que está pendente por definição. Por mundo, desde a 101.
     const jaOcupado = await this.modeloPersonagem.findOne({
-      where: { username: solicitacao.username },
+      where: { username: solicitacao.username, campaignId: campanhaId },
     });
     if (jaOcupado) {
-      throw new ConflictException("Nome de usuário já ocupado por outro personagem.");
+      throw new ConflictException("Nome de usuário já ocupado por outro personagem neste mundo.");
     }
 
-    const usuarioId = await this.servicoUsuarios.criarConta({
-      email: solicitacao.email,
-      username: solicitacao.username,
-      senhaComHash: solicitacao.passwordHash,
-      tipo: "player",
-    });
+    let usuarioId: number;
+    const contaNova = solicitacao.usuarioId === null;
+    if (contaNova) {
+      if (FORMATO_SENHA_LEGADO.test(solicitacao.passwordHash)) {
+        throw new BadRequestException(
+          "Esta solicitação guarda a senha no formato antigo, que não é mais aceito. " +
+            "Peça ao jogador para enviar a solicitação novamente.",
+        );
+      }
+      usuarioId = await this.servicoUsuarios.criarConta({
+        email: solicitacao.email,
+        username: solicitacao.username,
+        senhaComHash: solicitacao.passwordHash,
+        tipo: "player",
+      });
+    } else {
+      // Conta existente: nada a criar, mas a vaga no mundo pode ter sido ocupada
+      // desde a submissão (ou o mestre pode ter escolhido outro mundo).
+      const usuario = await this.modeloUsuario.findByPk(solicitacao.usuarioId!);
+      if (!usuario || !usuario.ativo) {
+        throw new BadRequestException("A conta desta solicitação não existe mais ou está desativada.");
+      }
+      await this.garantirVagaNoMundo(usuario, campanhaId);
+      usuarioId = usuario.id;
+    }
 
     try {
       await this.modeloPersonagem.create({
@@ -187,12 +261,12 @@ export class CharacterCreationService {
         historiaTexto: solicitacao.historiaTexto,
         historiaDocUrl: solicitacao.historiaDocUrl,
         status: "vivo",
-        campaignId: solicitacao.campaignId,
+        campaignId: campanhaId,
         data: {},
       });
     } catch (erro) {
-      // Desfaz a conta recém-criada para não deixá-la órfã.
-      await this.servicoUsuarios.deletar(usuarioId).catch(() => null);
+      // Desfaz a conta recém-criada para não deixá-la órfã. Conta existente fica.
+      if (contaNova) await this.servicoUsuarios.deletar(usuarioId).catch(() => null);
       throw erro;
     }
 
@@ -202,6 +276,25 @@ export class CharacterCreationService {
     await solicitacao.save();
 
     return { success: true };
+  }
+
+  /**
+   * Personagem sem campanha não aparece em /mundo/:slug nenhum — só no
+   * /login direto. A escolha do mestre vale mais que a da solicitação, e
+   * nenhuma das duas pode ficar em branco.
+   */
+  private async resolverCampanha(campanhaId: number | null | undefined): Promise<number> {
+    if (!campanhaId) {
+      throw new BadRequestException("Escolha a campanha em que o personagem entra.");
+    }
+    const linhas = await this.sequelize.query<{ id: number }>(
+      `SELECT id FROM campaigns WHERE id = :id AND deleted_at IS NULL`,
+      { replacements: { id: campanhaId }, type: QueryTypes.SELECT },
+    );
+    if (linhas.length === 0) {
+      throw new BadRequestException("Campanha não encontrada.");
+    }
+    return campanhaId;
   }
 
   async rejeitar(id: number, motivo?: string): Promise<{ success: boolean }> {
@@ -249,11 +342,49 @@ export class CharacterCreationService {
     }
   }
 
+  /** Login e senha da conta que já existe. Erro genérico de propósito: não revela se o username existe. */
+  private async autenticarContaExistente(username: string, senha: string): Promise<UsuarioModel> {
+    const usuario = await this.modeloUsuario.findOne({
+      where: { username: username.trim().toLowerCase(), tipo: "player" },
+    });
+    const confere = usuario?.passwordHash ? await bcrypt.compare(senha, usuario.passwordHash) : false;
+    if (!usuario || !confere) {
+      throw new BadRequestException("Usuário ou senha inválidos.");
+    }
+    if (!usuario.ativo) {
+      throw new BadRequestException("Esta conta está desativada.");
+    }
+    return usuario;
+  }
+
+  /**
+   * A conta ainda cabe mais um personagem vivo neste mundo? O limite é o
+   * que o mestre definiu no pré-registro (padrão 1).
+   */
+  private async garantirVagaNoMundo(usuario: UsuarioModel, campanhaId: number): Promise<void> {
+    const vivos = await this.modeloPersonagem.count({
+      where: { userId: usuario.id, campaignId: campanhaId, status: "vivo" },
+    });
+    if (vivos >= usuario.limitePersonagensPorMundo) {
+      throw new ConflictException(
+        vivos === 1
+          ? "Esta conta já tem um personagem vivo neste mundo."
+          : `Esta conta já tem ${vivos} personagens vivos neste mundo — é o limite.`,
+      );
+    }
+  }
+
   private async garantirUsernameLivre(username: string): Promise<void> {
     const emSolicitacao = await this.modeloSolicitacao.findOne({
       where: { username, status: { [Op.in]: ["pendente", "aprovado"] } },
     });
     if (emSolicitacao) {
+      throw new ConflictException("Este nome de usuário já está em uso.");
+    }
+
+    // O username é o login: único entre as contas, não só entre os personagens.
+    const emConta = await this.modeloUsuario.findOne({ where: { username } });
+    if (emConta) {
       throw new ConflictException("Este nome de usuário já está em uso.");
     }
 

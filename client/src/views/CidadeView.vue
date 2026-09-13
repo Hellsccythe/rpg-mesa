@@ -29,7 +29,7 @@
         <div class="flex min-w-0 items-center gap-3">
           <span
             class="cidade-brand truncate text-lg sm:text-2xl font-bold tracking-[0.2em] sm:tracking-widest"
-            >Caminho Sem Volta</span
+            >{{ nomeDoMundo }}</span
           >
         </div>
 
@@ -349,10 +349,10 @@ import VSelect from '@/components/VSelect.vue'
 import TemaDarkLight from '@/components/TemaDarkLight.vue'
 import HamburgerDrawerMenu from '@/components/HamburgerDrawerMenu.vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useMundoStore } from '@/stores/mundo'
 import { useAuthStore } from '@/stores/auth'
 import { listCityMapsForCityView as listarMapasCidadeParaCidadeView } from '@/lib/api/city-maps.api'
 import type { CityMapApi, PointOfInterestApi } from '@/types/api'
-import hamletMap from '@/assets/maps/hamlet.png'
 
 interface PontoInteresseCidade extends PointOfInterestApi {
   status: 'pronto' | 'pendente'
@@ -366,6 +366,8 @@ interface DetalhePonto {
 
 const roteador = useRouter()
 const rota = useRoute()
+const mundoStore = useMundoStore()
+const nomeDoMundo = computed(() => mundoStore.mundo?.name ?? 'Caminho Sem Volta')
 const lojaAuth = useAuthStore()
 const mostrarMenuConfiguracoes = ref(false)
 const pontoSelecionado = ref<DetalhePonto | null>(null)
@@ -374,17 +376,16 @@ const mostrarMapaExpandido = ref(false)
 const carregando = ref(false)
 const erroMapa = ref('')
 const mapasCidade = ref<CityMapApi[]>([])
-const slugCidadeSelecionada = ref('hamlet')
+const slugCidadeSelecionada = ref('')
 const idMapaCidadeSelecionado = ref<string | number>('')
 
 const opcoesCidade = computed(() => {
   const mapaPorSlug = new Map<string, string>()
   mapasCidade.value.forEach((item) => {
-    const slug = (item.citySlug || 'hamlet').trim() || 'hamlet'
-    const nome = (item.cityName || 'Hamlet').trim() || 'Hamlet'
+    const slug = (item.citySlug || 'cidade').trim() || 'cidade'
+    const nome = (item.cityName || 'Cidade').trim() || 'Cidade'
     if (!mapaPorSlug.has(slug)) mapaPorSlug.set(slug, nome)
   })
-  if (!mapaPorSlug.size) mapaPorSlug.set('hamlet', 'Hamlet')
 
   return Array.from(mapaPorSlug.entries())
     .map(([slug, name]) => ({ slug, name }))
@@ -407,10 +408,6 @@ const opcoesSelectMapaCidade = computed(() => {
       value: mapaCidade.id,
       label: mapaCidade.name,
     }))
-  }
-
-  if (slugCidadeSelecionada.value === 'hamlet') {
-    return [{ value: '', label: 'Hamlet (legado)' }]
   }
 
   return [{ value: '', label: 'Sem mapa principal' }]
@@ -436,27 +433,8 @@ const mapaCidadeAtivo = computed(() => {
   return selecionado || mapasBaseCidade.value[0]
 })
 
-const mapaCidadeLegadoFallback = computed<CityMapApi | null>(() => {
-  if (mapaCidadeAtivo.value) return null
-  if (slugCidadeSelecionada.value !== 'hamlet') return null
-
-  return {
-    id: 'legacy-hamlet',
-    name: 'Hamlet',
-    mapReference: hamletMap,
-    description: 'Mapa legado exibido quando nao ha configuracao dinamica no painel mestre.',
-    imageUrl: hamletMap,
-    citySlug: 'hamlet',
-    cityName: 'Hamlet',
-    cityDescription: '',
-    cityCulture: '',
-    mapType: 'city',
-    parentCityMapId: '',
-    pointsOfInterest: [],
-  }
-})
-
-const mapaCidadeExibido = computed(() => mapaCidadeAtivo.value || mapaCidadeLegadoFallback.value)
+// Sem mapa cadastrado, a tela diz isso — o Hamlet fixo que havia aqui era o mapa de um mundo só.
+const mapaCidadeExibido = computed(() => mapaCidadeAtivo.value)
 
 const nomeCidadeAtiva = computed(() => {
   const cidade = opcoesCidade.value.find((item) => item.slug === slugCidadeSelecionada.value)
@@ -520,11 +498,11 @@ async function buscarMapas() {
   carregando.value = true
   erroMapa.value = ''
   try {
-    const dados = await listarMapasCidadeParaCidadeView()
+    const dados = await listarMapasCidadeParaCidadeView(String(rota.query.characterId ?? lojaAuth.idPersonagemAtivo ?? ''))
     mapasCidade.value = dados
 
     if (!opcoesCidade.value.find((item) => item.slug === slugCidadeSelecionada.value)) {
-      slugCidadeSelecionada.value = opcoesCidade.value[0]?.slug || 'hamlet'
+      slugCidadeSelecionada.value = opcoesCidade.value[0]?.slug || ''
     }
     if (!mapasBaseCidade.value.find((item) => item.id === idMapaCidadeSelecionado.value)) {
       idMapaCidadeSelecionado.value = mapasBaseCidade.value[0]?.id || ''

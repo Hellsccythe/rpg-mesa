@@ -1,16 +1,34 @@
 import { Column, DataType, Model, Table } from "sequelize-typescript";
 
 /**
- * Notas de lore que o mestre publica. `characterId` nulo significa nota
- * global, visível a todos; preenchido, a nota só aparece para aquele
- * personagem.
+ * 'livro' abre com capa e folhas; os outros três são uma folha só e diferem
+ * na cara do papel: pergaminho (rolo antigo), bilhete (papel pequeno,
+ * amassado) e carta (folha com cabeçalho e lacre).
+ */
+export const FORMATOS_DA_NOTA = ["livro", "pergaminho", "bilhete", "carta"] as const;
+export type FormatoDaNota = (typeof FORMATOS_DA_NOTA)[number];
+
+/**
+ * 'todos'      — todo personagem do mundo vê
+ * 'escolhidos' — só quem está em lore_note_acesso
+ * 'ninguem'    — rascunho: o mestre ainda não liberou
+ */
+export const VISIBILIDADES_DA_NOTA = ["todos", "escolhidos", "ninguem"] as const;
+export type VisibilidadeDaNota = (typeof VISIBILIDADES_DA_NOTA)[number];
+
+/**
+ * Notas de lore que o mestre publica — livros, pergaminhos, bilhetes, cartas.
  *
- * A coluna character_id voltou na migration 068: existia como uuid desde a
- * 010, sumiu na conversão de PKs para INTEGER, e o backend continuou
- * filtrando por ela — o que deixava todas as rotas do módulo quebradas.
+ * Cada nota pertence a um mundo (`campaignId`, migration 099) e é liberada
+ * por `visibilidade`: para todos, para uma lista de personagens
+ * (`LoreNoteAcessoModel`) ou para ninguém. A coluna `character_id` de antes
+ * (um personagem só, nulo = global) saiu na mesma migration.
  */
 @Table({ tableName: "lore_notes", timestamps: true, paranoid: true })
 export class LoreNoteModel extends Model {
+  @Column({ type: DataType.INTEGER, allowNull: false })
+  declare campaignId: number;
+
   @Column({ type: DataType.TEXT, allowNull: false })
   declare title: string;
 
@@ -27,8 +45,19 @@ export class LoreNoteModel extends Model {
   @Column({ type: DataType.INTEGER, allowNull: false, defaultValue: 0 })
   declare ordem: number;
 
-  @Column({ type: DataType.INTEGER, allowNull: true })
-  declare characterId: number | null;
+  @Column({ type: DataType.TEXT, allowNull: false, defaultValue: "todos" })
+  declare visibilidade: VisibilidadeDaNota;
+
+  @Column({ type: DataType.TEXT, allowNull: false, defaultValue: "livro" })
+  declare formato: FormatoDaNota;
+
+  /** Caminho relativo da capa; nulo usa a capa padrão desenhada pelo leitor. */
+  @Column({ type: DataType.TEXT, allowNull: true })
+  declare capaUrl: string | null;
+
+  /** Caminho relativo da contracapa; nulo repete a capa, sem o título. */
+  @Column({ type: DataType.TEXT, allowNull: true })
+  declare contracapaUrl: string | null;
 
   @Column({ type: DataType.TEXT, allowNull: true })
   declare createdBy: string | null;

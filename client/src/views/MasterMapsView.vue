@@ -103,13 +103,6 @@
                   </div>
                 </div>
 
-                <button
-                  v-if="!city.parents.length && city.slug === 'hamlet'"
-                  class="w-full rounded-lg border border-amber-500/45 bg-amber-900/20 px-2 py-1.5 text-left text-sm text-amber-100 hover:bg-amber-900/30"
-                  @click="selectLegacyHamlet"
-                >
-                  Pai: Hamlet (legado local)
-                </button>
               </div>
             </div>
           </aside>
@@ -143,34 +136,12 @@
             </div>
 
             <div
-              v-if="!existingEditor.id && !showLegacyPreview"
+              v-if="!existingEditor.id"
               class="rounded-xl border border-zinc-700/50 p-4 text-zinc-400"
             >
               Selecione um mapa na coluna da esquerda.
             </div>
 
-            <div v-else-if="showLegacyPreview" class="space-y-3">
-              <div
-                class="rounded-xl border border-amber-500/40 bg-amber-900/10 p-3 text-sm text-amber-100"
-              >
-                Este e o mapa legado local de Hamlet (somente visual). Para usar no fluxo oficial,
-                envie a imagem no bucket e crie o mapa pai na aba 2.
-              </div>
-
-              <div class="overflow-hidden rounded-xl border border-zinc-700/50 bg-[#0B1426]">
-                <img
-                  :src="hamletMap"
-                  alt="Mapa legado de Hamlet"
-                  class="h-auto max-h-[65vh] w-full object-contain"
-                />
-              </div>
-
-              <div class="flex justify-end">
-                <button class="tdl-botao-primario" @click="goToCreateCityTabFromLegacy">
-                  Criar Mapa Pai Oficial
-                </button>
-              </div>
-            </div>
 
             <div v-else class="space-y-3">
               <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -377,7 +348,6 @@ import { useAuthStore } from '@/stores/auth'
 import { useMasterCatalogStore } from '@/stores/masterCatalog'
 import { uploadCityMapImage } from '@/lib/api/city-maps.api'
 import type { CityMapApi, PointOfInterestApi } from '@/types/api'
-import hamletMap from '@/assets/maps/hamlet.png'
 
 type Tab = 'existing' | 'create-city' | 'create-child'
 type EditorTarget = 'existing' | 'newCity' | 'newChild'
@@ -795,7 +765,6 @@ const activeTab = ref<Tab>('existing')
 const existingSelectedId = ref<string | number>('')
 const existingEditMode = ref(false)
 const existingSnapshot = ref<MapEditorState | null>(null)
-const showLegacyPreview = ref(false)
 
 const existingEditor = reactive<MapEditorState>({
   id: '',
@@ -803,8 +772,8 @@ const existingEditor = reactive<MapEditorState>({
   mapReference: '',
   description: '',
   imageUrl: '',
-  citySlug: 'hamlet',
-  cityName: 'Hamlet',
+  citySlug: 'cidade',
+  cityName: 'Cidade',
   cityDescription: '',
   cityCulture: '',
   mapType: 'city',
@@ -818,8 +787,8 @@ const newCity = reactive<MapEditorState>({
   mapReference: '',
   description: '',
   imageUrl: '',
-  citySlug: 'hamlet',
-  cityName: 'Hamlet',
+  citySlug: 'cidade',
+  cityName: 'Cidade',
   cityDescription: '',
   cityCulture: '',
   mapType: 'city',
@@ -833,8 +802,8 @@ const newChild = reactive<MapEditorState>({
   mapReference: '',
   description: '',
   imageUrl: '',
-  citySlug: 'hamlet',
-  cityName: 'Hamlet',
+  citySlug: 'cidade',
+  cityName: 'Cidade',
   cityDescription: '',
   cityCulture: '',
   mapType: 'localized',
@@ -847,11 +816,10 @@ const maps = computed(() => masterCatalogStore.cityMaps)
 const cityOptions = computed(() => {
   const mapBySlug = new Map<string, string>()
   maps.value.forEach((m) => {
-    const slug = (m.citySlug || 'hamlet').trim() || 'hamlet'
-    const name = (m.cityName || 'Hamlet').trim() || 'Hamlet'
+    const slug = (m.citySlug || 'cidade').trim() || 'cidade'
+    const name = (m.cityName || 'Cidade').trim() || 'Cidade'
     if (!mapBySlug.has(slug)) mapBySlug.set(slug, name)
   })
-  if (!mapBySlug.size) mapBySlug.set('hamlet', 'Hamlet')
   return Array.from(mapBySlug.entries()).map(([slug, name]) => ({ slug, name }))
 })
 
@@ -863,13 +831,13 @@ const childParentOptions = computed(() => parentMaps.value)
 
 const targetLocalizedOptionsForExisting = computed(() =>
   childMaps.value
-    .filter((m) => m.citySlug === (existingEditor.citySlug || 'hamlet'))
+    .filter((m) => m.citySlug === (existingEditor.citySlug || 'cidade'))
     .map((m) => ({ id: m.id, name: m.name })),
 )
 
 const targetLocalizedOptionsForChild = computed(() =>
   childMaps.value
-    .filter((m) => m.citySlug === (newChild.citySlug || 'hamlet'))
+    .filter((m) => m.citySlug === (newChild.citySlug || 'cidade'))
     .map((m) => ({ id: m.id, name: m.name })),
 )
 
@@ -930,8 +898,8 @@ function copyMapToEditor(source: CityMapApi, target: MapEditorState) {
   target.mapReference = source.mapReference || ''
   target.description = source.description || ''
   target.imageUrl = source.imageUrl || ''
-  target.citySlug = source.citySlug || 'hamlet'
-  target.cityName = source.cityName || 'Hamlet'
+  target.citySlug = source.citySlug || 'cidade'
+  target.cityName = source.cityName || 'Cidade'
   target.cityDescription = source.cityDescription || ''
   target.cityCulture = source.cityCulture || ''
   target.mapType = source.mapType || 'city'
@@ -962,8 +930,8 @@ function resetEditor(target: MapEditorState, mapType: 'city' | 'localized') {
   target.mapReference = ''
   target.description = ''
   target.imageUrl = ''
-  target.citySlug = 'hamlet'
-  target.cityName = 'Hamlet'
+  target.citySlug = 'cidade'
+  target.cityName = 'Cidade'
   target.cityDescription = ''
   target.cityCulture = ''
   target.mapType = mapType
@@ -974,24 +942,10 @@ function resetEditor(target: MapEditorState, mapType: 'city' | 'localized') {
 function selectExistingMap(mapId: string | number) {
   const found = maps.value.find((m) => m.id === mapId)
   if (!found) return
-  showLegacyPreview.value = false
   existingSelectedId.value = mapId
   copyMapToEditor(found, existingEditor)
   existingEditMode.value = false
   existingSnapshot.value = null
-}
-
-function selectLegacyHamlet() {
-  existingSelectedId.value = ''
-  existingEditMode.value = false
-  existingSnapshot.value = null
-  resetEditor(existingEditor, 'city')
-  showLegacyPreview.value = true
-}
-
-function goToCreateCityTabFromLegacy() {
-  activeTab.value = 'create-city'
-  showLegacyPreview.value = false
 }
 
 function onSelectParentGroup(parentId: string | number) {
@@ -1097,7 +1051,7 @@ async function saveExistingMap() {
       mapReference: resolvedMapReference,
       description: existingEditor.description,
       imageUrl: existingEditor.imageUrl,
-      citySlug: slugify(existingEditor.citySlug) || 'hamlet',
+      citySlug: slugify(existingEditor.citySlug) || 'cidade',
       cityName: existingEditor.cityName || 'Cidade',
       cityDescription: existingEditor.cityDescription,
       cityCulture: existingEditor.cityCulture,
@@ -1167,7 +1121,7 @@ async function createChildMap() {
 
   try {
     const parent = parentMaps.value.find((item) => item.id === newChild.parentCityMapId)
-    const resolvedCitySlug = slugify(parent?.citySlug || newChild.citySlug) || 'hamlet'
+    const resolvedCitySlug = slugify(parent?.citySlug || newChild.citySlug) || 'cidade'
     const resolvedCityName = parent?.cityName || newChild.cityName || 'Cidade'
     const resolvedMapReference = newChild.mapReference?.trim() || newChild.imageUrl?.trim() || ''
     const created = await masterCatalogStore.createCityMap({
@@ -1199,7 +1153,6 @@ async function refreshMaps() {
   loading.value = true
   try {
     await masterCatalogStore.fetchCityMaps()
-    showLegacyPreview.value = false
     if (!existingSelectedId.value && maps.value.length) {
       selectExistingMap(maps.value[0].id)
     }

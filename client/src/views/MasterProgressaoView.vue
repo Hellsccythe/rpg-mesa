@@ -73,7 +73,10 @@
           @deletar="confirmarDelete"
         >
           <template #linha="{ item }">
-            <p class="font-medium text-zinc-200 truncate">{{ (item as ProgressaoClasseApi).classe_nome ?? `Classe #${(item as ProgressaoClasseApi).classe_id}` }}</p>
+            <p class="font-medium text-zinc-200 truncate">
+              {{ (item as ProgressaoClasseApi).classe_nome ?? `Classe #${(item as ProgressaoClasseApi).classe_id}` }}
+              <span class="ml-1 text-xs font-bold text-indigo-300 sm:hidden">Nv.{{ (item as ProgressaoClasseApi).nivel }}</span>
+            </p>
             <span class="hidden sm:inline-flex items-center justify-center rounded-full bg-indigo-900/50 text-indigo-300 px-2 py-0.5 text-xs font-bold">
               Nv.{{ (item as ProgressaoClasseApi).nivel }}
             </span>
@@ -628,6 +631,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { lerMundoAtivoLocal } from '@/lib/mundo-ativo'
 import { useRouter } from 'vue-router'
 import DataTable from '@/components/DataTable.vue'
 import Modal from '@/components/Modal.vue'
@@ -1185,7 +1189,7 @@ onMounted(async () => {
     listarClassesAdmin(),
     listarLevelProgression(),
   ])
-  await charactersStore.fetchPaginaInicial().catch(() => {})
+  await charactersStore.fetchPaginaInicial(lerMundoAtivoLocal()?.slug).catch(() => {})
 
   if (progressData.status === 'fulfilled') progressoes.value = progressData.value
   if (classesData.status === 'fulfilled') classes.value = classesData.value
